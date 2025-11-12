@@ -58,20 +58,20 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
   };
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-200">
+    <Card className="group bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl hover:shadow-xl transition-transform duration-200 hover:scale-[1.01]">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2">
+          <CardTitle className="text-lg font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] line-clamp-2">
             {outfit.name}
           </CardTitle>
           <Button
             variant="ghost"
             size="sm"
             onClick={handleFavorite}
-            className="text-gray-400 hover:text-red-500 transition-colors"
+            className="text-[#8A827A] hover:text-[#FF6F61] transition-colors"
           >
             {outfit.isFavorite ? (
-              <Heart className="h-5 w-5 fill-red-500 text-red-500" />
+              <Heart className="h-5 w-5 fill-[#FF6F61] text-[#FF6F61]" />
             ) : (
               <HeartOff className="h-5 w-5" />
             )}
@@ -79,14 +79,14 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
         </div>
         
         <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary" className="text-xs">
+          <Badge variant="secondary" className="text-xs uppercase tracking-wide">
             {outfit.occasion}
           </Badge>
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-xs border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
             {outfit.style}
           </Badge>
           {outfit.mood && (
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
               {outfit.mood}
             </Badge>
           )}
@@ -96,12 +96,12 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
       <CardContent className="pt-0">
         {/* Outfit Items Preview */}
         <div className="mb-4">
-          <p className="text-sm text-gray-600 mb-2">Items ({outfit.items.length}):</p>
+          <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-2">Items ({outfit.items.length}):</p>
           <div className="grid grid-cols-2 gap-2">
             {outfit.items.slice(0, 4).map((item, index) => (
               <div key={index} className="relative group">
                 {item.imageUrl ? (
-                  <div className="aspect-square rounded-lg overflow-hidden border border-gray-200">
+                  <div className="aspect-square rounded-xl overflow-hidden border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-[#F5F0E8]/60 dark:bg-[#2C2119]/70">
                     <img
                       src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl}
                       alt={item.name}
@@ -115,21 +115,21 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
                       }}
                     />
                     <div 
-                      className="hidden text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded absolute inset-0 flex items-center justify-center"
+                      className="hidden text-xs text-[#57534E] dark:text-[#C4BCB4] bg-white/80 dark:bg-[#2C2119]/80 px-2 py-1 rounded absolute inset-0 flex items-center justify-center"
                       style={{ display: 'none' }}
                     >
                       {item.name}
                     </div>
                   </div>
                 ) : (
-                  <div className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded aspect-square flex items-center justify-center text-center">
+                  <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] bg-[#F5F0E8]/60 dark:bg-[#2C2119]/70 px-2 py-1 rounded-xl aspect-square flex items-center justify-center text-center">
                     {item.name}
                   </div>
                 )}
               </div>
             ))}
             {outfit.items.length > 4 && (
-              <div className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded aspect-square flex items-center justify-center">
+              <div className="text-xs text-[#8A827A] bg-[#F5F0E8]/60 dark:bg-[#2C2119]/70 px-2 py-1 rounded-xl aspect-square flex items-center justify-center">
                 +{outfit.items.length - 4} more
               </div>
             )}
@@ -137,7 +137,7 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
         </div>
 
         {/* Outfit Stats */}
-        <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+        <div className="flex items-center justify-between text-sm text-[#57534E] dark:text-[#C4BCB4] mb-4">
           <div className="flex flex-col gap-1">
             <span>Worn {outfit.wearCount || 0} times</span>
             <span>Created: {
@@ -175,23 +175,23 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
             variant="outline"
             size="sm"
             onClick={handleWear}
-            className="flex-1 text-xs"
+            className="flex-1 text-xs border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
           >
             <Eye className="h-3 w-3 mr-1" />
-            Mark Worn
+            Mark worn
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleEdit}
-            className="text-xs"
+            className="text-xs border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
           >
             <Edit className="h-3 w-3" />
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="text-xs text-red-600 hover:text-red-700"
+            className="text-xs text-[#FF6F61] border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 hover:text-[#FF4A3A]"
             onClick={handleDeleteClick}
           >
             <Trash2 className="h-3 w-3" />
@@ -200,13 +200,13 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
 
         {/* Confidence Score */}
         {outfit.confidenceScore && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Confidence:</span>
+          <div className="mt-3 pt-3 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+            <div className="flex items-center justify-between text-xs text-[#57534E] dark:text-[#C4BCB4]">
+              <span>Confidence:</span>
               <span className={cn(
                 "font-medium",
-                outfit.confidenceScore >= 0.8 ? "text-green-600" :
-                outfit.confidenceScore >= 0.6 ? "text-yellow-600" : "text-red-600"
+                outfit.confidenceScore >= 0.8 ? "text-[#10B981]" :
+                outfit.confidenceScore >= 0.6 ? "text-[#F59E0B]" : "text-[#EF4444]"
               )}>
                 {Math.round(outfit.confidenceScore * 100)}%
               </span>
@@ -217,18 +217,20 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
       
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white/90 dark:bg-[#1A1510]/90 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Outfit</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{outfit.name}"? This action cannot be undone.
+            <AlertDialogTitle className="text-[#1C1917] dark:text-[#F8F5F1]">Delete outfit</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+              This will remove “{outfit.name}” permanently.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)} className="border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-[#FF6F61] hover:bg-[#FF4A3A]"
             >
               Delete
             </AlertDialogAction>
@@ -262,12 +264,12 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, s
   };
 
   return (
-    <div className="bg-transparent p-6 mb-6">
+    <div className="bg-white/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl p-6 sm:p-8 mb-6 backdrop-blur-xl shadow-lg">
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {/* Search Input */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Search Outfits
+          <label className="block text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-2">
+            Search outfits
           </label>
           <div className="flex gap-2">
             <Input
@@ -276,7 +278,7 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, s
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             />
-            <Button onClick={handleSearch} size="sm">
+            <Button onClick={handleSearch} size="sm" className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-4">
               Search
             </Button>
           </div>
@@ -284,7 +286,7 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, s
 
         {/* Occasion Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-2">
             Occasion
           </label>
           <Select
@@ -307,7 +309,7 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, s
 
         {/* Style Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-2">
             Style
           </label>
           <Select
@@ -330,8 +332,8 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, s
 
         {/* Sort By */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Sort By
+          <label className="block text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-2">
+            Sort by
           </label>
           <Select
             value={sortBy}
@@ -351,8 +353,8 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, s
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
-        <div className="text-sm text-gray-500">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mt-6 pt-4 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+        <div className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
           {filters.occasion && filters.occasion !== 'all' && `Occasion: ${filters.occasion}`}
           {filters.style && filters.style !== 'all' && ` Style: ${filters.style}`}
           {((filters.occasion && filters.occasion !== 'all') || (filters.style && filters.style !== 'all')) && ' • '}
@@ -363,8 +365,8 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, s
             'Least Worn'
           }</span>
         </div>
-        <Button variant="outline" onClick={handleClear} size="sm">
-          Clear Filters
+        <Button variant="outline" onClick={handleClear} size="sm" className="self-start sm:self-auto border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] rounded-2xl">
+          Clear filters
         </Button>
       </div>
     </div>
@@ -756,7 +758,7 @@ export default function OutfitGrid({
               "flex items-center gap-2 border",
               showFavoritesOnly
                 ? "bg-red-100 text-red-600 border-red-200 hover:bg-red-200"
-                : "text-gray-600 border-gray-200 hover:bg-gray-100"
+                        : "text-[#57534E] border-[#F5F0E8]/60 hover:bg-[#F5F0E8] dark:border-[#3D2F24]/70 dark:hover:bg-[#2C2119]"
             )}
           >
             <Heart className={cn("h-4 w-4", showFavoritesOnly ? "fill-current" : "")} />

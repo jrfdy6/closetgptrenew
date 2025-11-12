@@ -26,26 +26,30 @@ function ToastItem({ message, type, onClose }: ToastProps) {
   };
 
   const colors = {
-    success: "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200",
-    info: "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200",
-    error: "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200"
+    success: "bg-[#ECFDF5]/95 border-[#6EE7B7]/40 text-[#0F172A] dark:bg-[#1F3D32]/90 dark:border-[#15803D]/40 dark:text-[#D1FAE5]",
+    info: "bg-[#FFF7E6]/95 border-[#FFB84C]/40 text-[#7C3E0A] dark:bg-[#3D2F24]/90 dark:border-[#FF9400]/35 dark:text-[#FDE68A]",
+    error: "bg-[#FFF0EC]/95 border-[#FF6F61]/40 text-[#7F1D1D] dark:bg-[#3D211F]/90 dark:border-[#FF6F61]/35 dark:text-[#FCA5A5]"
   };
 
   const Icon = icons[type];
 
   return (
     <div
+      role="status"
+      aria-live={type === "error" ? "assertive" : "polite"}
       className={cn(
-        "flex items-center gap-3 p-4 rounded-xl border shadow-lg backdrop-blur-sm",
+        "flex items-center gap-3 p-4 rounded-2xl border shadow-xl backdrop-blur-xl",
         "animate-slide-up",
         colors[type]
       )}
     >
-      <Icon className="w-5 h-5 flex-shrink-0" />
-      <span className="text-body font-medium flex-1">{message}</span>
+      <div className="w-9 h-9 rounded-full bg-white/50 dark:bg-white/10 flex items-center justify-center shadow-inner">
+        <Icon className="w-5 h-5 flex-shrink-0" />
+      </div>
+      <span className="text-sm font-semibold flex-1 leading-snug">{message}</span>
       <button
         onClick={onClose}
-        className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+        className="p-1.5 rounded-lg text-current/70 hover:text-current hover:bg-white/30 dark:hover:bg-white/10 transition-colors"
         aria-label="Close"
       >
         <X className="w-4 h-4" />
@@ -77,7 +81,12 @@ export default function ToastContainer() {
   };
 
   return (
-    <div className="fixed top-20 right-4 z-[200] flex flex-col gap-2 max-w-sm">
+    <div
+      className="fixed top-24 right-6 z-[200] flex flex-col gap-3 max-w-sm"
+      role="region"
+      aria-live="polite"
+      aria-label="Notifications"
+    >
       {toasts.map(toast => (
         <ToastItem
           key={toast.id}

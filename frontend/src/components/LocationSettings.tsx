@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin, Navigation, Save, AlertCircle, CheckCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useAutoWeather } from '@/hooks/useWeather';
 
 interface LocationSettingsProps {
@@ -114,17 +115,20 @@ export function LocationSettings({ onLocationChange, className }: LocationSettin
   };
 
   return (
-    <Card className={className}>
+    <Card className={cn(
+      "bg-white/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl shadow-lg backdrop-blur-xl",
+      className
+    )}>
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-medium flex items-center gap-2">
-          <MapPin className="h-5 w-5" />
-          Location Settings
+        <CardTitle className="text-xl font-display flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
+          <MapPin className="h-5 w-5 text-[#FFB84C]" />
+          Location settings
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="location" className="text-sm font-medium">
-            Your Location
+          <Label htmlFor="location" className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
+            Your location
           </Label>
           <div className="flex gap-2">
             <Input
@@ -132,7 +136,7 @@ export function LocationSettings({ onLocationChange, className }: LocationSettin
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Enter city name or coordinates"
-              className="flex-1"
+              className="flex-1 bg-white/80 dark:bg-[#1A1510]/80 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70"
             />
             <Button
               type="button"
@@ -140,28 +144,28 @@ export function LocationSettings({ onLocationChange, className }: LocationSettin
               size="sm"
               onClick={detectLocation}
               disabled={isDetecting}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <Navigation className={`h-4 w-4 ${isDetecting ? 'animate-spin' : ''}`} />
-              {isDetecting ? 'Detecting...' : 'Auto'}
+              {isDetecting ? 'Detecting…' : 'Auto'}
             </Button>
           </div>
-          <p className="text-xs text-gray-500">
-            Use city name (e.g., "New York, NY") or coordinates (e.g., "40.7128, -74.0060")
+          <p className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
+            Use city name (e.g., “New York, NY”) or coordinates (e.g., “40.7128, -74.0060”).
           </p>
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <AlertCircle className="h-4 w-4 text-red-500" />
-            <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
+          <div className="flex items-center gap-2 p-3 bg-[#FFF0EC] dark:bg-[#3D211F] border border-[#FF6F61]/40 rounded-2xl">
+            <AlertCircle className="h-4 w-4 text-[#FF6F61]" />
+            <span className="text-sm text-[#FF6F61] dark:text-[#FFA094]">{error}</span>
           </div>
         )}
 
         {savedLocation && (
-          <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <CheckCircle className="h-4 w-4 text-green-500" />
-            <span className="text-sm text-amber-600 dark:text-amber-400">
+          <div className="flex items-center gap-2 p-3 bg-[#ECFDF5] dark:bg-[#1F3D32] border border-[#6EE7B7]/40 rounded-2xl">
+            <CheckCircle className="h-4 w-4 text-[#34D399]" />
+            <span className="text-sm text-[#0F172A] dark:text-[#C4BCB4]">
               Location saved: {savedLocation}
             </span>
           </div>
@@ -171,27 +175,27 @@ export function LocationSettings({ onLocationChange, className }: LocationSettin
           <Button
             onClick={saveLocation}
             disabled={!location.trim() || location.trim() === savedLocation}
-            className="flex items-center gap-1"
+            className="flex items-center gap-2 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white rounded-2xl px-4"
           >
             <Save className="h-4 w-4" />
-            Save Location
+            Save location
           </Button>
           
           {savedLocation && (
             <Button
               variant="outline"
               onClick={clearLocation}
-              className="text-red-600 hover:text-red-700"
+              className="border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               Clear
             </Button>
           )}
         </div>
 
-        <div className="text-xs text-gray-500 space-y-1">
-          <p>• Your location is used to provide accurate weather data for outfit recommendations</p>
-          <p>• Location data is stored locally in your browser</p>
-          <p>• You can update your location anytime</p>
+        <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] space-y-1">
+          <p>• Your location powers accurate weather-aware outfit recommendations.</p>
+          <p>• Location data stays on your device.</p>
+          <p>• Update it anytime to refresh forecasts.</p>
         </div>
       </CardContent>
     </Card>

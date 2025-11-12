@@ -361,27 +361,27 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  <p className="text-stone-600 dark:text-stone-400 text-lg">
+                  <p className="text-[#57534E] dark:text-[#C4BCB4] text-lg leading-relaxed">
                     Your profile is incomplete! To get personalized outfit recommendations and make the most of Easy Outfit, 
                     please complete your style quiz.
                   </p>
                   
-                  <div className="bg-white dark:bg-stone-800 rounded-lg p-6 border border-stone-200 dark:border-stone-700">
-                    <h3 className="font-semibold text-stone-900 dark:text-stone-100 mb-4">Current Profile Status:</h3>
+                  <div className="bg-white/85 dark:bg-[#2C2119]/85 rounded-2xl p-6 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 shadow-lg">
+                    <h3 className="font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-4">Current profile status</h3>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-stone-600 dark:text-stone-400">Basic Information</span>
-                        <span className="text-green-600 dark:text-green-400 font-medium">✓ Complete</span>
+                        <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Basic information</span>
+                        <span className="text-[#4CAF50] dark:text-[#79E2A6] font-medium">✓ Complete</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-stone-600 dark:text-stone-400">Style Preferences</span>
-                        <span className="text-amber-600 dark:text-amber-400 font-medium">
+                        <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Style preferences</span>
+                        <span className="text-[#FF9400] dark:text-amber-300 font-medium">
                           {profile.stylePreferences && Array.isArray(profile.stylePreferences) && profile.stylePreferences.length > 0 ? '✓ Complete' : '○ Incomplete'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-stone-600 dark:text-stone-400">Measurements & Sizes</span>
-                        <span className="text-amber-600 dark:text-amber-400 font-medium">
+                        <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Measurements & sizes</span>
+                        <span className="text-[#FF9400] dark:text-amber-300 font-medium">
                           {profile.measurements ? '✓ Complete' : '○ Incomplete'}
                         </span>
                       </div>
@@ -391,17 +391,17 @@ export default function ProfilePage() {
                   <div className="flex flex-col sm:flex-row gap-3 pt-4">
                     <Button 
                       onClick={() => router.push('/onboarding')}
-                      className="flex-1 bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg"
+                      className="flex-1 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold transition-transform duration-200 hover:scale-[1.02] shadow-lg shadow-amber-500/20"
                     >
                       <Sparkles className="h-5 w-5 mr-2" />
-                      Complete Style Quiz
+                      Complete style quiz
                     </Button>
                     <Button 
                       variant="outline"
                       onClick={() => router.push('/dashboard')}
-                      className="flex-1 border-2 border-stone-300 hover:border-stone-400 text-stone-700 hover:text-stone-900 hover:bg-stone-50 px-6 py-3 rounded-full font-medium transition-all duration-300"
+                      className="flex-1 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] px-6 py-3 rounded-2xl font-semibold transition-transform duration-200 hover:scale-[1.02]"
                     >
-                      Back to Dashboard
+                      Back to dashboard
                     </Button>
                   </div>
                 </div>
@@ -416,28 +416,32 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
       <Navigation />
-      <div className="container mx-auto p-8 pb-24">
-      <div className="flex items-center justify-between mb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-24">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-12 bg-white/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-lg">
         <div>
-          <h1 className="text-4xl font-serif font-bold text-stone-900 dark:text-stone-100 mb-4">My Profile</h1>
-          <p className="text-stone-600 dark:text-stone-400 font-light text-lg">Manage your style preferences and personal information</p>
+          <h1 className="text-4xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-3">My profile</h1>
+          <p className="text-[#57534E] dark:text-[#C4BCB4] text-base leading-relaxed">
+            Tune your preferences so every look feels like you.
+          </p>
         </div>
         <Button 
           onClick={() => setIsEditing(!isEditing)} 
-          variant={isEditing ? "outline" : "default"}
-          className={isEditing ? "border-2 border-stone-300 hover:border-stone-400 text-stone-700 hover:text-stone-900 hover:bg-stone-50 px-6 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105" : "bg-stone-900 hover:bg-stone-800 text-white px-6 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg"}
+          className={isEditing 
+            ? "border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] px-6 py-3 rounded-2xl font-semibold transition-transform duration-200 hover:scale-[1.02]"
+            : "bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          }
         >
-          {isEditing ? "Cancel" : "Edit Profile"}
+          {isEditing ? "Cancel" : "Edit profile"}
         </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Personal Information */}
-        <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+        <Card className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-3xl shadow-lg">
           <CardHeader className="pb-6">
-            <CardTitle className="flex items-center text-xl font-serif text-stone-900 dark:text-stone-100">
-              <User className="h-6 w-6 mr-3 text-stone-600 dark:text-stone-400" />
-              Personal Information
+            <CardTitle className="flex items-center text-xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
+              <User className="h-6 w-6 mr-3 text-[#FFB84C]" />
+              Personal information
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -461,11 +465,11 @@ export default function ProfilePage() {
         </Card>
 
         {/* Style Preferences */}
-        <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+        <Card className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-3xl shadow-lg">
           <CardHeader className="pb-6">
-            <CardTitle className="flex items-center text-xl font-serif text-stone-900 dark:text-stone-100">
-              <Palette className="h-6 w-6 mr-3 text-stone-600 dark:text-stone-400" />
-              Style Preferences
+            <CardTitle className="flex items-center text-xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
+              <Palette className="h-6 w-6 mr-3 text-[#FFB84C]" />
+              Style preferences
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -543,11 +547,11 @@ export default function ProfilePage() {
         </Card>
 
         {/* Measurements & Sizes */}
-        <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+        <Card className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-3xl shadow-lg">
           <CardHeader className="pb-6">
-            <CardTitle className="flex items-center text-xl font-serif text-stone-900 dark:text-stone-100">
-              <Settings className="h-6 w-6 mr-3 text-stone-600 dark:text-stone-400" />
-              Measurements & Sizes
+            <CardTitle className="flex items-center text-xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
+              <Settings className="h-6 w-6 mr-3 text-[#FFB84C]" />
+              Measurements & sizes
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -606,19 +610,19 @@ export default function ProfilePage() {
 
         {/* Style Quiz Responses */}
         {profile.preferences?.style && profile.preferences.style.length > 0 && (
-          <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <Card className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-3xl shadow-lg">
             <CardHeader className="pb-6">
-              <CardTitle className="flex items-center text-xl font-serif text-stone-900 dark:text-stone-100">
-                <Heart className="h-6 w-6 mr-3 text-stone-600 dark:text-stone-400" />
-                Style Quiz Responses
+              <CardTitle className="flex items-center text-xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
+                <Heart className="h-6 w-6 mr-3 text-[#FFB84C]" />
+                Style quiz responses
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Style Preferences</Label>
+                <Label>Style preferences</Label>
                 <div className="flex flex-wrap gap-2">
                   {profile.preferences.style.map((style, index) => (
-                    <span key={index} className="px-2 py-1 bg-primary/10 text-primary rounded-md text-xs">
+                    <span key={index} className="px-3 py-1 rounded-full text-caption bg-[#FFF7E6] text-[#B45309]">
                       {style}
                     </span>
                   ))}
@@ -626,10 +630,10 @@ export default function ProfilePage() {
               </div>
               {profile.preferences.colors && profile.preferences.colors.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Color Preferences</Label>
+                  <Label>Color palette</Label>
                   <div className="flex flex-wrap gap-2">
                     {profile.preferences.colors.map((color, index) => (
-                      <span key={index} className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs">
+                      <span key={index} className="px-3 py-1 rounded-full text-caption border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4]">
                         {color}
                       </span>
                     ))}
@@ -641,21 +645,21 @@ export default function ProfilePage() {
         )}
 
         {/* Account Status */}
-        <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+        <Card className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-3xl shadow-lg">
           <CardHeader className="pb-6">
-            <CardTitle className="flex items-center text-xl font-serif text-stone-900 dark:text-stone-100">
-              <Settings className="h-6 w-6 mr-3 text-stone-600 dark:text-stone-400" />
-              Account Status
+            <CardTitle className="flex items-center text-xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
+              <Settings className="h-6 w-6 mr-3 text-[#FFB84C]" />
+              Account status
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Profile Status</span>
-              <span className="text-sm text-green-600 font-medium">Complete</span>
+              <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Profile status</span>
+              <span className="text-sm font-semibold text-[#4CAF50] dark:text-[#79E2A6]">Complete</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Member Since</span>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Member since</span>
+              <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
                 {(() => {
                   // Prioritize created_at over createdAt since created_at is the newer field
                   const timestamp = profile.created_at || profile.createdAt || 0;
@@ -667,8 +671,8 @@ export default function ProfilePage() {
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Last Updated</span>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Last updated</span>
+              <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
                 {(() => {
                   // Prioritize updated_at over updatedAt since updated_at is the newer field
                   const timestamp = profile.updated_at || profile.updatedAt || 0;
@@ -683,35 +687,35 @@ export default function ProfilePage() {
         </Card>
 
         {/* Quick Actions */}
-        <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+        <Card className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-3xl shadow-lg">
           <CardHeader className="pb-6">
-            <CardTitle className="flex items-center text-xl font-serif text-stone-900 dark:text-stone-100">
-              <Heart className="h-6 w-6 mr-3 text-stone-600 dark:text-stone-400" />
-              Quick Actions
+            <CardTitle className="flex items-center text-xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
+              <Heart className="h-6 w-6 mr-3 text-[#FFB84C]" />
+              Quick actions
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button 
               variant="outline" 
-              className="w-full justify-start"
+              className="w-full justify-start border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]"
               onClick={() => router.push('/onboarding')}
             >
               <Palette className="h-4 w-4 mr-2" />
-              Style Quiz
+              Style quiz
             </Button>
             <Button 
               variant="outline" 
-              className="w-full justify-start"
+              className="w-full justify-start border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]"
               onClick={() => router.push('/style-persona')}
             >
               <Sparkles className="h-4 w-4 mr-2" />
-              Style Persona
+              Style persona
             </Button>
-            <Button variant="outline" className="w-full justify-start">
+            <Button variant="outline" className="w-full justify-start border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]">
               <Heart className="h-4 w-4 mr-2" />
-              Favorite Items
+              Favorite items
             </Button>
-            <Button variant="outline" className="w-full justify-start">
+            <Button variant="outline" className="w-full justify-start border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]">
               <Settings className="h-4 w-4 mr-2" />
               Preferences
             </Button>
@@ -724,16 +728,16 @@ export default function ProfilePage() {
           <Button 
             variant="outline" 
             onClick={() => setIsEditing(false)}
-            className="border-2 border-stone-300 hover:border-stone-400 text-stone-700 hover:text-stone-900 hover:bg-stone-50 px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105"
+            className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] px-8 py-3 rounded-2xl font-semibold transition-transform duration-200 hover:scale-[1.02]"
           >
             Cancel
           </Button>
           <Button 
             onClick={handleSave}
-            className="bg-stone-900 hover:bg-stone-800 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg"
+            className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-8 py-3 rounded-2xl font-semibold transition-transform duration-200 hover:scale-[1.02] shadow-lg shadow-amber-500/20"
           >
             <Save className="h-5 w-5 mr-3" />
-            Save Changes
+            Save changes
           </Button>
         </div>
       )}

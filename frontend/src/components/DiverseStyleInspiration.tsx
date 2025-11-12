@@ -235,7 +235,7 @@ export default function DiverseStyleInspiration({ className = '' }: DiverseStyle
                 ?.outfits.map((outfit) => (
                 <div key={outfit.id} className="group relative">
                   <Card className="overflow-hidden hover:shadow-lg transition-all">
-                    <div className="aspect-[4/5] relative bg-gray-100">
+                    <div className="aspect-[4/5] relative bg-[#F5F0E8] dark:bg-[#2C2119] border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl overflow-hidden">
                       <img
                         src={outfit.image}
                         alt={outfit.title}

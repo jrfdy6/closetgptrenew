@@ -59,17 +59,17 @@ export default function SignUp() {
                      formData.password && formData.password === formData.confirmPassword;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md glass-float-hover glass-shadow-strong">
+    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-white/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/80 rounded-3xl shadow-2xl shadow-amber-500/10 backdrop-blur-xl">
         <CardHeader className="text-center space-y-4 pb-8">
-          <Link href="/" className="inline-flex items-center text-sm text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 mb-6 font-medium">
+          <Link href="/" className="inline-flex items-center text-sm text-[#57534E] hover:text-[#1C1917] dark:text-[#C4BCB4] dark:hover:text-[#F8F5F1] mb-6 font-medium transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>
-          <CardTitle className="text-3xl font-serif font-bold text-stone-900 dark:text-stone-100">
+          <CardTitle className="text-3xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
             Create Account
           </CardTitle>
-          <CardDescription className="text-stone-600 dark:text-stone-400 font-light text-lg">
+          <CardDescription className="text-[#57534E] dark:text-[#C4BCB4] font-light text-lg">
             Join Easy Outfit and discover your perfect style
           </CardDescription>
         </CardHeader>
@@ -220,21 +220,21 @@ export default function SignUp() {
               </div>
             )}
 
-            <Button 
-              type="submit" 
-              className="w-full glass-button-primary px-8 py-4 rounded-full font-medium text-lg glass-transition hover:scale-105"
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-amber-500/25 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
               disabled={isLoading || !isFormValid}
             >
-              {isLoading ? "Creating account..." : "Create Account"}
+              {isLoading ? "Creating account..." : "Create account"}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
               Already have an account?{" "}
               <Link 
                 href="/signin" 
-                className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                className="font-medium text-amber-700 hover:text-amber-800 dark:text-[#FFCC66] dark:hover:text-[#FFB84C]"
               >
                 Sign in
               </Link>

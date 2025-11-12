@@ -359,13 +359,29 @@ export default function Dashboard() {
         
         {/* Welcome Section - "Silent Luxury" Design */}
         <div className="mb-6 sm:mb-8">
-          <div className="card-surface backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-lg border border-gray-200/50 dark:border-[#3D2F24]/50">
+          <div className="card-surface backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60">
             <h1 className="heading-xl bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent mb-2 sm:mb-3">
-              Welcome back
+              Let&apos;s get you dressed ✨
             </h1>
-            <p className="text-body-lg text-gray-600 dark:text-[#C4BCB4]">
-              Ready to explore your wardrobe and create amazing outfits.
+            <p className="text-body-lg text-[#57534E] dark:text-[#C4BCB4]">
+              Your look today is ready when you are.
             </p>
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+              <Button
+                onClick={() => setShowOutfitGenerator(true)}
+                className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/25 hover:from-[#FFB84C] hover:to-[#FF7700] transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                Generate today&apos;s fit
+              </Button>
+              <Button
+                variant="outline"
+                asChild
+                className="px-6 py-3 rounded-2xl border-[#F5F0E8]/70 dark:border-[#3D2F24]/80 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] transition-colors duration-200"
+              >
+                <Link href="/outfits">View saved looks</Link>
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -373,24 +389,24 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row gap-3 mb-6 sm:mb-8">
           <Button 
             onClick={() => setShowBatchUpload(true)}
-            className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02]"
+            className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20 hover:from-[#FFB84C] hover:to-[#FF7700] transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
           >
             <Upload className="w-5 h-5 mr-2" />
-            Add Items with AI
+            Add items with AI
           </Button>
         </div>
 
         {/* Modern Stats Cards - Mobile First Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           {/* Total Items Card */}
-          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-[#3D2F24]/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 hover:shadow-xl transition-transform duration-200 hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
             <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-xl flex items-center justify-center">
-                <Shirt className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600 dark:text-amber-400" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-xl flex items-center justify-center shadow-inner">
+                <Shirt className="h-5 w-5 sm:h-6 sm:w-6 text-[#FF9400] dark:text-[#FFB84C]" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Total Items</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">Total items</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
                   {dashboardData?.totalItems || 0}
                 </p>
               </div>
@@ -398,14 +414,14 @@ export default function Dashboard() {
           </div>
 
           {/* Favorites Card */}
-          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-[#3D2F24]/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 hover:shadow-xl transition-transform duration-200 hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
             <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30 rounded-xl flex items-center justify-center">
-                <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFB84C]/30 to-[#FF6F61]/35 dark:from-[#FF9400]/20 dark:to-[#FF6F61]/25 rounded-xl flex items-center justify-center shadow-inner">
+                <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-[#FF6F61] dark:text-[#FFB4A2]" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Favorites</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">Favorites</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#FF6F61] to-[#FFB84C] bg-clip-text text-transparent">
                   {dashboardData?.favorites || 0}
                 </p>
               </div>
@@ -413,14 +429,14 @@ export default function Dashboard() {
           </div>
 
           {/* Style Goals Card */}
-          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-[#3D2F24]/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 hover:shadow-xl transition-transform duration-200 hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
             <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30 rounded-xl flex items-center justify-center">
-                <Target className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600 dark:text-amber-400" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFCC66]/35 to-[#FFE08F]/40 dark:from-[#FFB84C]/20 dark:to-[#FFD27F]/25 rounded-xl flex items-center justify-center shadow-inner">
+                <Target className="h-5 w-5 sm:h-6 sm:w-6 text-[#FFB84C] dark:text-[#FFD27F]" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Goals</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+                <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">Goals</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#FFB84C] to-[#FFE08F] bg-clip-text text-transparent">
                   {clampedStyleGoalsCompleted}/{totalStyleGoals || 0}
                 </p>
               </div>
@@ -428,14 +444,14 @@ export default function Dashboard() {
           </div>
 
           {/* This Week Card */}
-          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-[#3D2F24]/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 hover:shadow-xl transition-transform duration-200 hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
             <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 rounded-xl flex items-center justify-center">
-                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 dark:from-[#FF9400]/25 dark:to-[#FF7700]/25 rounded-xl flex items-center justify-center shadow-inner">
+                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-[#FF9400] dark:text-[#FFB84C]" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">This Week</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+                <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">This week</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#FF9400] to-[#FFB84C] bg-clip-text text-transparent">
                   {dashboardData?.outfitsThisWeek || 0}
                 </p>
               </div>
@@ -455,17 +471,16 @@ export default function Dashboard() {
 
         {/* Backend Status Message */}
         {dashboardData && dashboardData.totalItems === 0 && (
-          <Card className="mb-8 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+          <Card className="mb-8 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-[#FFF7E6]/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
-                <Info className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                <Info className="h-6 w-6 text-[#FF9400] dark:text-[#FFB84C]" />
                 <div>
-                  <h3 className="text-lg font-semibold text-amber-800 dark:text-amber-200">
-                    Backend Setup in Progress
+                  <h3 className="text-lg font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
+                    Backend setup in progress
                   </h3>
-                  <p className="text-amber-700 dark:text-amber-300">
-                    Your dashboard is working, but the backend data endpoints are still being configured. 
-                    This is normal for new deployments. Your wardrobe data will appear here once the backend is fully set up.
+                  <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                    Your dashboard is live. Wardrobe data will appear as soon as the backend endpoints finish syncing.
                   </p>
                 </div>
               </div>
@@ -475,37 +490,37 @@ export default function Dashboard() {
 
         {/* Today's Outfit Section - Only show if we have backend suggestion data AND no weather generator outfit */}
         {dashboardData?.todaysOutfit && (dashboardData.todaysOutfit as any)?.suggestionId && (
-        <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+        <Card className="mb-12 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/85 dark:bg-[#1A1510]/85 backdrop-blur-xl rounded-3xl">
           <CardHeader className="pb-6">
-            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Today's Outfit Suggestion</CardTitle>
-            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Daily outfit recommendation from our backend</CardDescription>
+            <CardTitle className="text-2xl font-display text-[#1C1917] dark:text-[#F8F5F1]">Today’s outfit suggestion</CardTitle>
+            <CardDescription className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Powered by your Easy Outfit stylist</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboardData?.todaysOutfit ? (
               <div className="space-y-4">
                 <div className="text-center mb-4">
-                  <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">
+                  <p className="text-lg text-[#57534E] dark:text-[#C4BCB4] mb-2">
                     {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                   </p>
-                  <Badge variant="secondary" className="mb-3">
+                  <Badge variant="secondary" className="mb-3 uppercase tracking-wide">
                     {dashboardData.todaysOutfit.occasion}
                   </Badge>
                 </div>
                 
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
-                    <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900 dark:to-orange-900 rounded-lg flex items-center justify-center">
-                      <Shirt className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+                  <div className="flex items-center space-x-4 p-4 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl bg-white/80 dark:bg-[#2C2119]/80">
+                    <div className="w-16 h-16 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/25 dark:to-[#FF9400]/25 rounded-xl flex items-center justify-center">
+                      <Shirt className="w-8 h-8 text-[#FF9400] dark:text-[#FFB84C]" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 dark:text-white text-lg">
+                      <h4 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1] text-lg">
                         {dashboardData.todaysOutfit.outfitName}
                       </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
                         Mood: {dashboardData.todaysOutfit.mood}
                       </p>
                       {dashboardData.todaysOutfit.weather && dashboardData.todaysOutfit.weather.condition && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
                           Weather: {dashboardData.todaysOutfit.weather.condition}, {dashboardData.todaysOutfit.weather.temperature}°C
                         </p>
                       )}
@@ -531,7 +546,7 @@ export default function Dashboard() {
                           Worn Today
                         </Badge>
                       ) : (
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" className="border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] transition-colors">
                           <Calendar className="w-4 h-4 mr-2" />
                           View Details
                         </Button>
@@ -542,12 +557,12 @@ export default function Dashboard() {
                   {/* Outfit Items */}
                   {(dashboardData.todaysOutfit as any).items && (dashboardData.todaysOutfit as any).items.length > 0 && (
                     <div className="space-y-3">
-                      <h5 className="font-medium text-gray-900 dark:text-white text-sm">Outfit Items:</h5>
+                      <h5 className="font-medium text-[#1C1917] dark:text-[#F8F5F1] text-sm uppercase tracking-wide">Outfit items</h5>
                       <div className="grid gap-2">
                         {(dashboardData.todaysOutfit as any).items.map((item: any, index: number) => (
-                          <div key={index} className="flex items-center space-x-3 p-3 glass-inner rounded-lg">
+                          <div key={index} className="flex items-center space-x-3 p-3 bg-white/70 dark:bg-[#2C2119]/70 border border-[#F5F0E8]/50 dark:border-[#3D2F24]/60 rounded-xl">
                             {item.imageUrl ? (
-                              <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
+                              <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
                                 <img 
                                   src={item.imageUrl} 
                                   alt={item.name || 'Wardrobe item'}
@@ -569,20 +584,20 @@ export default function Dashboard() {
                                 />
                               </div>
                             ) : (
-                              <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900 dark:to-orange-900 rounded-md flex items-center justify-center flex-shrink-0">
-                                <Shirt className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                              <div className="w-12 h-12 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/25 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <Shirt className="w-6 h-6 text-[#FF9400] dark:text-[#FFB84C]" />
                               </div>
                             )}
                             <div className="flex-1">
-                              <p className="font-medium text-gray-900 dark:text-white text-sm">
+                              <p className="font-medium text-[#1C1917] dark:text-[#F8F5F1] text-sm">
                                 {item.name || 'Wardrobe Item'}
                               </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                              <p className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
                                 {item.type || 'clothing'} {item.color && `• ${item.color}`}
                               </p>
                             </div>
                             {item.brand && (
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-xs border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
                                 {item.brand}
                               </Badge>
                             )}
@@ -594,26 +609,26 @@ export default function Dashboard() {
                 </div>
                 
                 {dashboardData.todaysOutfit.notes && (
-                  <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                    <p className="text-amber-800 dark:text-amber-200 text-sm">
-                      💡 {dashboardData.todaysOutfit.notes}
+                  <div className="p-4 bg-[#FFF7E6] dark:bg-[#2C2119]/80 rounded-xl border border-[#F5F0E8]/50 dark:border-[#3D2F24]/60">
+                    <p className="text-sm text-[#1C1917] dark:text-[#F8F5F1]">
+                      <span className="mr-2">💡</span>{dashboardData.todaysOutfit.notes}
                     </p>
                   </div>
                 )}
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
+                <p className="text-lg text-[#57534E] dark:text-[#C4BCB4] mb-4">
                   {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                 </p>
-                <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900 dark:to-orange-900 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+                <div className="w-16 h-16 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="w-8 h-8 text-[#FF9400] dark:text-[#FFB84C]" />
                 </div>
-                <p className="text-gray-500 dark:text-gray-500 mb-2 font-medium">
-                  Smart Weather-Perfect Outfits
+                <p className="text-[#57534E] dark:text-[#C4BCB4] mb-2 font-medium">
+                  Smart weather-perfect outfits
                 </p>
-                <p className="text-sm text-gray-400 dark:text-gray-600 mb-6 max-w-md mx-auto">
-                  Use the Smart Weather Outfit Generator above to get instant, location-based outfit recommendations that are perfect for today's weather!
+                <p className="text-sm text-[#8A827A] dark:text-[#C4BCB4] mb-6 max-w-md mx-auto">
+                  Use the Smart Weather Outfit Generator above for instant, weather-matched looks.
                 </p>
                 <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
                   <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
@@ -630,16 +645,16 @@ export default function Dashboard() {
         )}
 
         {/* Wardrobe Insights - Mobile Optimized */}
-        <div className="mb-6 sm:mb-8 lg:mb-12 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 dark:border-gray-800/50">
-          <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-200/50 dark:border-gray-800/50">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">Wardrobe Insights</h2>
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Your top items will appear here based on:</p>
+        <div className="mb-6 sm:mb-8 lg:mb-12 bg-white/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+          <div className="p-4 sm:p-6 lg:p-8 border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+            <h2 className="text-xl sm:text-2xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1 sm:mb-2">Wardrobe insights</h2>
+            <p className="text-sm sm:text-base text-[#57534E] dark:text-[#C4BCB4]">Your top items will appear here based on:</p>
           </div>
           <div className="p-4 sm:p-6 lg:p-8">
             {topItemsByCategory.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                 {topItemsByCategory.map((item) => (
-                  <div key={item.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl sm:rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
+                  <div key={item.id} className="bg-white/90 dark:bg-[#1A1510]/90 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-xl sm:rounded-2xl overflow-hidden hover:shadow-xl transition-transform duration-200 hover:scale-[1.02]">
                     {/* Item Image */}
                     <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 relative">
                       {item.imageUrl && item.imageUrl !== '' && !item.imageUrl.includes('placeholder') ? (
@@ -661,8 +676,8 @@ export default function Dashboard() {
                           }}
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Sparkles className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400" />
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FFCC66]/20 to-[#FF9400]/20">
+                          <Sparkles className="h-8 w-8 sm:h-12 sm:w-12 text-[#FF9400]/70" />
                         </div>
                       )}
                       <div className="absolute top-3 left-3">
@@ -699,15 +714,15 @@ export default function Dashboard() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 sm:py-12 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl sm:rounded-2xl">
-                <Sparkles className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
-                <p className="text-base sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">No top items yet</p>
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 px-4">
-                  Wear your wardrobe items to see your top performers here
+              <div className="text-center py-8 sm:py-12 border-2 border-dashed border-[#F5F0E8]/80 dark:border-[#3D2F24]/70 rounded-xl sm:rounded-2xl bg-white/60 dark:bg-[#1A1510]/60">
+                <Sparkles className="w-12 h-12 sm:w-16 sm:h-16 text-[#FFB84C]/70 dark:text-[#FF9400]/70 mx-auto mb-3 sm:mb-4" />
+                <p className="text-base sm:text-lg font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1 sm:mb-2">No top items yet</p>
+                <p className="text-sm sm:text-base text-[#57534E] dark:text-[#C4BCB4] mb-4 px-4">
+                  Wear pieces from your closet to see your top performers here.
                 </p>
-                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl max-w-md mx-auto">
-                  <p className="text-amber-800 dark:text-amber-200 text-sm sm:text-base">
-                    💡 Add items to your wardrobe and use them in outfits!
+                <div className="mt-4 p-4 bg-[#FFF7E6] dark:bg-[#2C2119]/80 rounded-xl border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 max-w-md mx-auto">
+                  <p className="text-sm sm:text-base text-[#1C1917] dark:text-[#F8F5F1]">
+                    <span className="mr-2">💡</span>Add a few favorites and generate looks to unlock insights.
                   </p>
                 </div>
               </div>
@@ -716,30 +731,30 @@ export default function Dashboard() {
         </div>
 
         {/* Style Goals - Mobile Optimized */}
-        <div className="mb-6 sm:mb-8 lg:mb-12 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 dark:border-gray-800/50">
-          <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-200/50 dark:border-gray-800/50">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">Style Goals</h2>
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Personalized goals based on your style</p>
+        <div className="mb-6 sm:mb-8 lg:mb-12 bg-white/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+          <div className="p-4 sm:p-6 lg:p-8 border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+            <h2 className="text-xl sm:text-2xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1 sm:mb-2">Style goals</h2>
+            <p className="text-sm sm:text-base text-[#57534E] dark:text-[#C4BCB4]">Personalized targets based on your look history</p>
           </div>
           <div className="p-4 sm:p-6 lg:p-8">
             <div className="space-y-4 sm:space-y-6">
               {/* Overall Progress */}
-              <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl sm:rounded-2xl">
-                <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-2">
+              <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-[#FFF7E6] to-[#FFE0B2] dark:from-[#2C2119]/85 dark:to-[#3D2F24]/80 rounded-xl sm:rounded-2xl border border-[#F5F0E8]/50 dark:border-[#3D2F24]/60">
+                <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent mb-2">
                   {dashboardData?.overallProgress || 0}%
                 </div>
-                <p className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-3 sm:mb-4">Overall Progress</p>
+                <p className="text-sm sm:text-base font-medium text-[#57534E] dark:text-[#C4BCB4] mb-3 sm:mb-4">Overall progress</p>
                 <Progress value={dashboardData?.overallProgress || 0} className="w-full max-w-md mx-auto h-2 sm:h-3" />
               </div>
 
               {/* Style Collections */}
               <div className="space-y-3 sm:space-y-4">
-                <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Style Collections</h3>
+                <h3 className="text-base sm:text-lg font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1]">Style collections</h3>
                 {dashboardData?.styleCollections.map((collection, index) => (
-                  <div key={index} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 hover:shadow-lg transition-shadow duration-200">
+                  <div key={index} className="bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-xl sm:rounded-2xl p-4 sm:p-5 hover:shadow-lg transition-shadow duration-200">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">{collection.name}</h4>
-                      <Badge variant="secondary" className="text-xs sm:text-sm font-bold">
+                      <h4 className="text-sm sm:text-base font-semibold text-[#1C1917] dark:text-[#F8F5F1]">{collection.name}</h4>
+                      <Badge variant="secondary" className="text-xs sm:text-sm font-bold uppercase tracking-wide">
                         {collection.progress}/{collection.target}
                       </Badge>
                     </div>
@@ -747,7 +762,7 @@ export default function Dashboard() {
                       value={(collection.progress / collection.target) * 100} 
                       className="mb-2 sm:mb-3 h-2 sm:h-2.5" 
                     />
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{collection.status}</p>
+                    <p className="text-xs sm:text-sm text-[#57534E] dark:text-[#C4BCB4]">{collection.status}</p>
                   </div>
                 ))}
               </div>
@@ -765,10 +780,10 @@ export default function Dashboard() {
         />
 
         {/* Forgotten Gems - Mobile Optimized */}
-        <div className="mb-6 sm:mb-8 lg:mb-12 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 dark:border-gray-800/50">
-          <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-200/50 dark:border-gray-800/50">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">Forgotten Gems</h2>
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Rediscover items you haven't worn in a while</p>
+        <div className="mb-6 sm:mb-8 lg:mb-12 bg-white/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+          <div className="p-4 sm:p-6 lg:p-8 border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+            <h2 className="text-xl sm:text-2xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1 sm:mb-2">Forgotten gems</h2>
+            <p className="text-sm sm:text-base text-[#57534E] dark:text-[#C4BCB4]">Rediscover items you haven’t worn in a while</p>
           </div>
           <div className="p-4 sm:p-6 lg:p-8">
             <ForgottenGems />

@@ -179,12 +179,12 @@ export default function FlatLayViewer({
   const renderFlatLay = () => {
     if ((status === 'pending' || status === 'processing') && !flatLayUrl) {
       return (
-        <div className="aspect-[4/3] max-h-[600px] bg-gray-100 dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center p-8">
+        <div className="aspect-[4/3] max-h-[600px] bg-[#F5F0E8]/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
           <Loader2 className="w-10 h-10 animate-spin text-amber-600 mb-4" />
-          <p className="text-gray-600 dark:text-gray-400 text-center">
+          <p className="text-[#57534E] dark:text-[#C4BCB4] text-center font-semibold">
             Crafting your premium flat lay…
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-500 text-center mt-2">
+          <p className="text-sm text-[#827869] dark:text-[#8A827A] text-center mt-2">
             This usually takes a few seconds.
           </p>
         </div>
@@ -193,22 +193,22 @@ export default function FlatLayViewer({
 
     if ((status === 'awaiting_consent' || status === 'manual_pending') && !flatLayUrl) {
       return (
-        <div className="aspect-[4/3] max-h-[600px] bg-gray-100 dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center p-8">
-          <Eye className="w-12 h-12 text-amber-500 mb-4" />
-          <p className="text-gray-700 dark:text-gray-300 text-center font-medium">
+        <div className="aspect-[4/3] max-h-[600px] bg-[#F5F0E8]/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
+          <Eye className="w-12 h-12 text-[#FFB84C] mb-4" />
+          <p className="text-[#1C1917] dark:text-[#F8F5F1] text-center font-semibold">
             Flat lay not requested yet
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center mt-2 max-w-sm">
+          <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] text-center mt-2 max-w-sm">
             Generate a premium flat lay from the outfit actions to see a styled visual here.
           </p>
           {showItemGrid && outfitItems.length > 0 && (
             <Button 
               variant="outline" 
               onClick={toggleView}
-              className="mt-4"
+              className="mt-4 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <Grid3x3 className="w-4 h-4 mr-2" />
-              View Item Grid
+              View item grid
             </Button>
           )}
         </div>
@@ -217,22 +217,22 @@ export default function FlatLayViewer({
 
     if ((status === 'declined' || status === 'skipped') && !flatLayUrl) {
       return (
-        <div className="aspect-[4/3] max-h-[600px] bg-gray-100 dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center p-8">
-          <ImageOff className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-4" />
-          <p className="text-gray-700 dark:text-gray-300 text-center font-medium">
+        <div className="aspect-[4/3] max-h-[600px] bg-[#F5F0E8]/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
+          <ImageOff className="w-12 h-12 text-[#8A827A] dark:text-[#806A5A] mb-4" />
+          <p className="text-[#1C1917] dark:text-[#F8F5F1] text-center font-semibold">
             Flat lay skipped for this outfit
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center mt-2 max-w-sm">
+          <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] text-center mt-2 max-w-sm">
             You can request a flat lay later if you change your mind.
           </p>
           {showItemGrid && outfitItems.length > 0 && (
             <Button 
               variant="outline" 
               onClick={toggleView}
-              className="mt-4"
+              className="mt-4 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <Grid3x3 className="w-4 h-4 mr-2" />
-              View Item Grid
+              View item grid
             </Button>
           )}
         </div>
@@ -241,13 +241,13 @@ export default function FlatLayViewer({
 
     if (status === 'failed' && !flatLayUrl) {
       return (
-        <div className="aspect-[4/3] max-h-[600px] bg-gray-100 dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center p-8">
-          <ImageOff className="w-16 h-16 text-red-400 dark:text-red-500 mb-4" />
-          <p className="text-gray-600 dark:text-gray-400 text-center mb-2">
+        <div className="aspect-[4/3] max-h-[600px] bg-[#FFF0EC]/90 dark:bg-[#3D211F]/85 border border-[#FF6F61]/40 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
+          <ImageOff className="w-16 h-16 text-[#FF6F61] mb-4" />
+          <p className="text-[#7F1D1D] dark:text-[#FCA5A5] text-center mb-2 font-semibold">
             We couldn't generate this flat lay automatically.
           </p>
           {error && (
-            <p className="text-sm text-gray-500 dark:text-gray-500 text-center max-w-sm">
+            <p className="text-sm text-[#B42318] dark:text-[#FCA5A5] text-center max-w-sm">
               {error}
             </p>
           )}
@@ -255,10 +255,10 @@ export default function FlatLayViewer({
             <Button 
               variant="outline" 
               onClick={toggleView}
-              className="mt-4"
+              className="mt-4 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <Grid3x3 className="w-4 h-4 mr-2" />
-              View Item Grid
+              View item grid
             </Button>
           )}
         </div>
@@ -267,19 +267,19 @@ export default function FlatLayViewer({
 
     if (!flatLayUrl || imageError) {
       return (
-        <div className="aspect-[4/3] max-h-[600px] bg-gray-100 dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center p-8">
-          <ImageOff className="w-16 h-16 text-gray-400 dark:text-gray-600 mb-4" />
-          <p className="text-gray-600 dark:text-gray-400 text-center mb-2">
+        <div className="aspect-[4/3] max-h-[600px] bg-[#F5F0E8]/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
+          <ImageOff className="w-16 h-16 text-[#8A827A] dark:text-[#806A5A] mb-4" />
+          <p className="text-[#57534E] dark:text-[#C4BCB4] text-center mb-2 font-semibold">
             {imageError ? 'Failed to load flat lay image' : 'No flat lay image available'}
           </p>
           {showItemGrid && outfitItems.length > 0 && (
             <Button 
               variant="outline" 
               onClick={toggleView}
-              className="mt-4"
+              className="mt-4 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <Grid3x3 className="w-4 h-4 mr-2" />
-              View Item Grid
+              View item grid
             </Button>
           )}
         </div>
@@ -287,7 +287,7 @@ export default function FlatLayViewer({
     }
 
     return (
-      <div className="relative aspect-[4/3] max-h-[600px] bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+      <div className="relative aspect-[4/3] max-h-[600px] bg-[#F5F0E8]/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl overflow-hidden shadow-xl backdrop-blur">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
@@ -307,8 +307,9 @@ export default function FlatLayViewer({
           <Button
             size="sm"
             variant="secondary"
-            className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm"
+            className="bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 backdrop-blur-sm text-[#1C1917] dark:text-[#F8F5F1] hover:bg-white"
             onClick={() => setIsFullscreen(true)}
+            aria-label="View flat lay in full screen"
           >
             <Maximize2 className="w-4 h-4" />
           </Button>
@@ -317,8 +318,9 @@ export default function FlatLayViewer({
             <Button
               size="sm"
               variant="secondary"
-              className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm"
+              className="bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 backdrop-blur-sm text-[#1C1917] dark:text-[#F8F5F1] hover:bg-white"
               onClick={toggleView}
+              aria-label="Switch to item grid"
             >
               <Grid3x3 className="w-4 h-4" />
             </Button>

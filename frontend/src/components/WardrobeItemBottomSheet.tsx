@@ -119,24 +119,24 @@ export default function WardrobeItemBottomSheet({
         </div>
 
         {/* Stats */}
-        <div className="flex gap-4 p-4 bg-gray-50 dark:bg-[#3D2F24] rounded-xl">
+        <div className="flex gap-4 p-4 bg-[#F5F0E8]/80 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-xl">
           <div className="flex-1 text-center">
             <div className="text-2xl font-bold text-gray-900 dark:text-[#F8F5F1]">
               {item.wearCount || 0}
             </div>
-            <div className="text-caption text-gray-600 dark:text-[#8A827A]">
-              Times Worn
+            <div className="text-caption text-[#57534E] dark:text-[#C4BCB4]">
+              Times worn
             </div>
           </div>
-          <div className="w-px bg-gray-200 dark:bg-[#8A827A]" />
+          <div className="w-px bg-[#F5F0E8] dark:bg-[#3D2F24]" />
           <div className="flex-1 text-center">
             <div className="text-2xl font-bold text-gray-900 dark:text-[#F8F5F1]">
               {item.lastWorn 
                 ? new Date(item.lastWorn).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                 : 'Never'}
             </div>
-            <div className="text-caption text-gray-600 dark:text-[#8A827A]">
-              Last Worn
+            <div className="text-caption text-[#57534E] dark:text-[#C4BCB4]">
+              Last worn
             </div>
           </div>
         </div>
@@ -145,15 +145,15 @@ export default function WardrobeItemBottomSheet({
         <Button
           onClick={handleGenerateOutfit}
           className={cn(
-            "w-full h-14 text-button",
-            "gradient-primary text-white",
-            "hover:opacity-90 transition-opacity",
-            "shadow-lg shadow-[#FFB84C]/20"
+            "w-full h-14 text-button font-semibold rounded-2xl",
+            "bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white",
+            "hover:from-[#FFB84C] hover:to-[#FF7700] transition-transform duration-200 hover:scale-[1.01]",
+            "shadow-lg shadow-amber-500/20"
           )}
           size="lg"
         >
           <Sparkles className="w-5 h-5 mr-2" />
-          Use in Outfit
+          Use in outfit
         </Button>
 
         {/* Secondary Actions */}
@@ -162,14 +162,14 @@ export default function WardrobeItemBottomSheet({
             variant="outline"
             onClick={handleToggleFavorite}
             className={cn(
-              "flex-col h-20 gap-1",
-              item.favorite && "border-red-500 bg-red-50 dark:bg-red-950/20"
+              "flex-col h-20 gap-1 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]",
+              item.favorite && "border-[#FF6F61] bg-[#FFF0EC] dark:bg-[#3D211F] text-[#FF6F61]"
             )}
           >
             <Heart 
               className={cn(
                 "w-5 h-5",
-                item.favorite && "fill-red-500 text-red-500"
+                item.favorite && "fill-[#FF6F61] text-[#FF6F61]"
               )} 
             />
             <span className="text-caption">
@@ -180,10 +180,10 @@ export default function WardrobeItemBottomSheet({
           <Button
             variant="outline"
             onClick={handleIncrementWear}
-            className="flex-col h-20 gap-1"
+            className="flex-col h-20 gap-1 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
           >
             <Calendar className="w-5 h-5" />
-            <span className="text-caption">Wore It</span>
+            <span className="text-caption">Wore it</span>
           </Button>
 
           {onEdit && (
@@ -192,7 +192,7 @@ export default function WardrobeItemBottomSheet({
               onClick={() => {
                 onEdit(item);
               }}
-              className="flex-col h-20 gap-1"
+              className="flex-col h-20 gap-1 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <Edit className="w-5 h-5" />
               <span className="text-caption">Edit</span>
@@ -210,7 +210,7 @@ export default function WardrobeItemBottomSheet({
                 onClose();
               }
             }}
-            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+            className="w-full text-[#FF6F61] hover:text-[#FF4A3A] hover:bg-[#FFF0EC] dark:hover:bg-[#3D211F] rounded-2xl"
           >
             <Trash2 className="w-4 h-4 mr-2" />
             Delete Item

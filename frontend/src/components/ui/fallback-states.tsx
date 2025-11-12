@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
+import { cn } from "@/lib/utils";
+import {
   AlertCircle, 
   Search, 
   Image as ImageIcon, 
@@ -46,28 +47,31 @@ export const EmptyState = ({
   const router = useRouter();
 
   return (
-    <div className={`flex flex-col items-center justify-center py-12 px-4 text-center ${className}`}>
-      <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-        <Icon className="w-8 h-8 text-muted-foreground" />
+    <div className={cn(
+      "flex flex-col items-center justify-center py-12 px-4 text-center bg-white/85 dark:bg-[#2C2119]/80 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl backdrop-blur-xl shadow-lg",
+      className
+    )}>
+      <div className="w-16 h-16 bg-[#F5F0E8] dark:bg-[#2C2119] rounded-full flex items-center justify-center mb-4 shadow-inner">
+        <Icon className="w-8 h-8 text-[#FF9400]" />
       </div>
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-muted-foreground mb-6 max-w-sm">{description}</p>
+      <h3 className="text-xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2">{title}</h3>
+      <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-6 max-w-sm leading-relaxed">{description}</p>
       
       <div className="flex flex-col sm:flex-row gap-3">
         {onAction && actionText && (
-          <Button onClick={onAction} size="sm">
+          <Button onClick={onAction} size="sm" className="px-5 py-2 rounded-2xl bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white shadow-lg shadow-amber-500/15">
             {actionText}
           </Button>
         )}
         {onSecondaryAction && secondaryActionText && (
-          <Button variant="outline" onClick={onSecondaryAction} size="sm">
+          <Button variant="outline" onClick={onSecondaryAction} size="sm" className="px-5 py-2 rounded-2xl border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]">
             {secondaryActionText}
           </Button>
         )}
         {showHomeButton && (
-          <Button variant="ghost" onClick={() => router.push('/')} size="sm">
+          <Button variant="ghost" onClick={() => router.push('/')} size="sm" className="px-5 py-2 rounded-2xl text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]">
             <Home className="w-4 h-4 mr-2" />
-            Go Home
+            Go home
           </Button>
         )}
       </div>
@@ -96,30 +100,33 @@ export const ErrorState = ({
   const router = useRouter();
 
   return (
-    <div className={`flex flex-col items-center justify-center py-12 px-4 text-center ${className}`}>
-      <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
-        <AlertCircle className="w-8 h-8 text-destructive" />
+    <div className={cn(
+      "flex flex-col items-center justify-center py-12 px-4 text-center bg-white/85 dark:bg-[#2C2119]/80 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl backdrop-blur-xl shadow-lg",
+      className
+    )}>
+      <div className="w-16 h-16 bg-[#FFF0EC] dark:bg-[#3D211F] rounded-full flex items-center justify-center mb-4 shadow-inner">
+        <AlertCircle className="w-8 h-8 text-[#FF6F61]" />
       </div>
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-muted-foreground mb-6 max-w-sm">{error}</p>
+      <h3 className="text-xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2">{title}</h3>
+      <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-6 max-w-sm leading-relaxed">{error}</p>
       
       <div className="flex flex-col sm:flex-row gap-3">
         {onRetry && (
-          <Button onClick={onRetry} size="sm">
+          <Button onClick={onRetry} size="sm" className="px-5 py-2 rounded-2xl bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white shadow-lg shadow-amber-500/15">
             <RefreshCw className="w-4 h-4 mr-2" />
             Try again
           </Button>
         )}
         {onGoBack && (
-          <Button variant="outline" onClick={onGoBack} size="sm">
+          <Button variant="outline" onClick={onGoBack} size="sm" className="px-5 py-2 rounded-2xl border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Go back
           </Button>
         )}
         {showHomeButton && (
-          <Button variant="ghost" onClick={() => router.push('/')} size="sm">
+          <Button variant="ghost" onClick={() => router.push('/')} size="sm" className="px-5 py-2 rounded-2xl text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]">
             <Home className="w-4 h-4 mr-2" />
-            Go Home
+            Go home
           </Button>
         )}
       </div>
@@ -146,13 +153,13 @@ export const NoResults = ({
   className = ""
 }: NoResultsProps) => {
   return (
-    <div className={`space-y-6 ${className}`}>
-      <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-        <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-          <Search className="w-8 h-8 text-muted-foreground" />
+    <div className={cn("space-y-6", className)}>
+      <div className="flex flex-col items-center justify-center py-8 px-4 text-center bg-white/85 dark:bg-[#2C2119]/80 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl backdrop-blur-xl shadow-lg">
+        <div className="w-16 h-16 bg-[#F5F0E8] dark:bg-[#2C2119] rounded-full flex items-center justify-center mb-4 shadow-inner">
+          <Search className="w-8 h-8 text-[#FF9400]" />
         </div>
-        <h3 className="text-lg font-semibold mb-2">No results found</h3>
-        <p className="text-muted-foreground mb-4 max-w-sm">
+        <h3 className="text-xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2">No results found</h3>
+        <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-4 max-w-sm leading-relaxed">
           {searchQuery 
             ? `No items match "${searchQuery}"`
             : "No items match your current filters"
@@ -161,13 +168,13 @@ export const NoResults = ({
         
         <div className="flex flex-col sm:flex-row gap-3">
           {onClearFilters && filters.length > 0 && (
-            <Button variant="outline" onClick={onClearFilters} size="sm">
+            <Button variant="outline" onClick={onClearFilters} size="sm" className="px-5 py-2 rounded-2xl border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]">
               <Filter className="w-4 h-4 mr-2" />
               Clear filters
             </Button>
           )}
           {onNewSearch && (
-            <Button onClick={onNewSearch} size="sm">
+            <Button onClick={onNewSearch} size="sm" className="px-5 py-2 rounded-2xl bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white shadow-lg shadow-amber-500/15">
               <Search className="w-4 h-4 mr-2" />
               New search
             </Button>
@@ -177,9 +184,9 @@ export const NoResults = ({
 
       {/* Suggestions */}
       {suggestions.length > 0 && (
-        <Card>
-          <CardContent className="p-4">
-            <h4 className="font-medium mb-3">Try searching for:</h4>
+        <Card className="bg-white/80 dark:bg-[#2C2119]/80 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl shadow-md">
+          <CardContent className="p-5 space-y-3">
+            <h4 className="font-semibold text-sm text-[#1C1917] dark:text-[#F8F5F1] uppercase tracking-wide">Try searching for</h4>
             <div className="flex flex-wrap gap-2">
               {suggestions.map((suggestion, index) => (
                 <Button
@@ -187,7 +194,7 @@ export const NoResults = ({
                   variant="outline"
                   size="sm"
                   onClick={() => onNewSearch?.()}
-                  className="text-xs"
+                  className="text-xs px-3 py-1.5 rounded-full border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
                 >
                   {suggestion}
                 </Button>
@@ -218,7 +225,7 @@ export const OutfitsEmptyState = ({ onGenerateOutfit }: { onGenerateOutfit?: () 
   <EmptyState
     icon={Sparkles}
     title="No outfits yet"
-    description="Generate your first outfit by selecting items from your wardrobe and choosing your preferences."
+    description="Generate your first outfit to unlock personalized ideas tailored for today’s vibe."
     actionText="Generate outfit"
     onAction={onGenerateOutfit}
     secondaryActionText="Browse wardrobe"
@@ -237,7 +244,7 @@ export const SearchEmptyState = ({
   <EmptyState
     icon={Search}
     title={searchQuery ? `No results for "${searchQuery}"` : "No search results"}
-    description="Try adjusting your search terms or browse all items in your wardrobe."
+    description="Try fresh keywords or browse your full wardrobe to spark inspiration."
     actionText="Browse all items"
     onAction={() => window.location.href = '/wardrobe'}
     secondaryActionText="Clear search"
@@ -267,21 +274,20 @@ export const PermissionErrorState = ({ onGoBack }: { onGoBack?: () => void }) =>
 
 // Maintenance mode state
 export const MaintenanceState = () => (
-  <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-    <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
-      <Settings className="w-8 h-8 text-amber-600" />
+  <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-white/85 dark:bg-[#2C2119]/80 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl backdrop-blur-xl shadow-lg">
+    <div className="w-16 h-16 bg-[#FFF7E6] dark:bg-[#3D2F24] rounded-full flex items-center justify-center mb-4 shadow-inner">
+      <Settings className="w-8 h-8 text-[#FF9400]" />
     </div>
-    <h3 className="text-lg font-semibold mb-2">Under maintenance</h3>
-    <p className="text-muted-foreground mb-6 max-w-sm">
-      We're currently updating our system to bring you a better experience. 
-      Please check back in a few minutes.
+    <h3 className="text-xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2">Under maintenance</h3>
+    <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-6 max-w-sm leading-relaxed">
+      We’re upgrading Easy Outfit for an even smoother experience. Sit tight and check back shortly.
     </p>
     <div className="flex flex-col sm:flex-row gap-3">
-      <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+      <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="px-5 py-2 rounded-2xl border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]">
         <RefreshCw className="w-4 h-4 mr-2" />
         Refresh page
       </Button>
-      <Button variant="ghost" size="sm" onClick={() => window.open('/status', '_blank')}>
+      <Button variant="ghost" size="sm" onClick={() => window.open('/status', '_blank')} className="px-5 py-2 rounded-2xl text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]">
         <ExternalLink className="w-4 h-4 mr-2" />
         Check status
       </Button>
@@ -300,7 +306,7 @@ export const FeatureNotAvailableState = ({
   <EmptyState
     icon={HelpCircle}
     title={`${feature} not available`}
-    description={description || `This feature is coming soon. We're working hard to bring you ${feature.toLowerCase()}.`}
+    description={description || `This feature is coming soon. We’re working to bring you ${feature.toLowerCase()} with a luxe Easy Outfit finish.`}
     actionText="Get notified"
     onAction={() => window.open('/notifications', '_blank')}
     secondaryActionText="Learn more"

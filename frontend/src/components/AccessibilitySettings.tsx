@@ -32,28 +32,30 @@ export default function AccessibilitySettings() {
   };
 
   return (
-    <Card className="card-surface">
+    <Card className="bg-white/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl shadow-lg backdrop-blur-xl">
       <CardHeader>
-        <CardTitle className="heading-md">Accessibility & Feedback</CardTitle>
-        <CardDescription className="text-body-sm">
-          Customize your experience for comfort and usability
+        <CardTitle className="text-xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
+          Accessibility & feedback
+        </CardTitle>
+        <CardDescription className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+          Customize your experience for comfort and usability.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Visual Accessibility */}
         <div className="space-y-4">
-          <h3 className="text-button text-gray-900 dark:text-[#F8F5F1]">
-            <Eye className="w-4 h-4 inline mr-2" />
-            Visual
+          <h3 className="text-sm font-semibold tracking-wide uppercase text-[#57534E] dark:text-[#C4BCB4]">
+            <Eye className="w-4 h-4 inline mr-2 text-[#FFB84C]" />
+            Visual comfort
           </h3>
           
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="high-contrast" className="text-label cursor-pointer">
-                High Contrast Mode
+              <Label htmlFor="high-contrast" className="text-sm font-medium text-[#1C1917] dark:text-[#F8F5F1] cursor-pointer">
+                High contrast mode
               </Label>
-              <p className="text-caption text-gray-600 dark:text-[#8A827A]">
-                Increases text contrast to WCAG AAA standards
+              <p className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
+                Increases text contrast to WCAG AAA standards.
               </p>
             </div>
             <Switch
@@ -66,11 +68,11 @@ export default function AccessibilitySettings() {
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="large-text" className="text-label cursor-pointer">
-                Larger Text
+              <Label htmlFor="large-text" className="text-sm font-medium text-[#1C1917] dark:text-[#F8F5F1] cursor-pointer">
+                Larger text
               </Label>
-              <p className="text-caption text-gray-600 dark:text-[#8A827A]">
-                Increases base font size to 18px
+              <p className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
+                Increases base font size to 18px.
               </p>
             </div>
             <Switch
@@ -82,9 +84,9 @@ export default function AccessibilitySettings() {
           </div>
 
           {reducedMotion && (
-            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <p className="text-body-sm text-blue-800 dark:text-blue-200">
-                ✓ Reduced motion is enabled (system setting)
+            <div className="p-3 bg-[#FFF7E6] dark:bg-[#2C2119] border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl">
+              <p className="text-sm text-[#B45309] dark:text-[#FFDD99]">
+                ✓ Reduced motion detected from your system settings.
               </p>
             </div>
           )}
@@ -92,18 +94,18 @@ export default function AccessibilitySettings() {
 
         {/* Audio & Haptic Feedback */}
         <div className="space-y-4">
-          <h3 className="text-button text-gray-900 dark:text-[#F8F5F1]">
-            <Volume2 className="w-4 h-4 inline mr-2" />
-            Sounds & Feedback
+          <h3 className="text-sm font-semibold tracking-wide uppercase text-[#57534E] dark:text-[#C4BCB4]">
+            <Volume2 className="w-4 h-4 inline mr-2 text-[#FFB84C]" />
+            Sounds & feedback
           </h3>
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="sounds" className="text-label cursor-pointer">
-                Sound Effects
+              <Label htmlFor="sounds" className="text-sm font-medium text-[#1C1917] dark:text-[#F8F5F1] cursor-pointer">
+                Sound effects
               </Label>
-              <p className="text-caption text-gray-600 dark:text-[#8A827A]">
-                Plays soft sounds for saves & achievements (silent by default)
+              <p className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
+                Plays soft sounds for saves and achievements (silent by default).
               </p>
             </div>
             <Switch
@@ -116,12 +118,12 @@ export default function AccessibilitySettings() {
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="haptics" className="text-label cursor-pointer">
+              <Label htmlFor="haptics" className="text-sm font-medium text-[#1C1917] dark:text-[#F8F5F1] cursor-pointer">
                 <Vibrate className="w-4 h-4 inline mr-1" />
-                Haptic Feedback
+                Haptic feedback
               </Label>
-              <p className="text-caption text-gray-600 dark:text-[#8A827A]">
-                Vibration feedback for key actions
+              <p className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
+                Subtle vibration feedback for key actions.
               </p>
             </div>
             <Switch
@@ -134,9 +136,9 @@ export default function AccessibilitySettings() {
         </div>
 
         {/* Info Note */}
-        <div className="p-4 bg-gray-50 dark:bg-[#3D2F24] rounded-lg">
-          <p className="text-body-sm text-gray-700 dark:text-[#C4BCB4]">
-            <strong>Note:</strong> Visual feedback is always present. Sound and haptic feedback are optional enhancements for a multisensory experience.
+        <div className="p-4 bg-[#F5F0E8]/80 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl">
+          <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+            <span className="font-semibold text-[#1C1917] dark:text-[#F8F5F1]">Note:</span> Visual feedback is always present. Sound and haptic feedback are optional enhancements for a multisensory experience.
           </p>
         </div>
       </CardContent>

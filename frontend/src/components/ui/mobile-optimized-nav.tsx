@@ -46,14 +46,14 @@ export default function MobileOptimizedNav({
   return (
     <>
       {/* Mobile Header */}
-      <div className="lg:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
+      <div className="lg:hidden bg-[#FAFAF9]/95 dark:bg-[#2C2119]/90 border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 px-4 py-3 backdrop-blur-xl">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/25">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
-            <span className="font-bold text-lg text-gray-900 dark:text-white">Easy Outfit</span>
+            <span className="font-semibold text-lg text-[#1C1917] dark:text-[#F8F5F1]">Easy Outfit</span>
           </Link>
 
           {/* Right side controls */}
@@ -64,7 +64,7 @@ export default function MobileOptimizedNav({
                 variant="ghost"
                 size="sm"
                 onClick={onSearchClick}
-                className="p-2"
+                className="p-2 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#3D2F24]"
               >
                 <Search className="h-5 w-5" />
               </Button>
@@ -75,7 +75,7 @@ export default function MobileOptimizedNav({
               <Button
                 variant="ghost"
                 size="sm"
-                className="p-2 relative"
+                className="p-2 relative text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#3D2F24]"
               >
                 <Bell className="h-5 w-5" />
                 <Badge 
@@ -92,7 +92,7 @@ export default function MobileOptimizedNav({
               variant="ghost"
               size="sm"
               onClick={() => setIsOpen(!isOpen)}
-              className="p-2"
+              className="p-2 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#3D2F24]"
             >
               {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
@@ -107,21 +107,21 @@ export default function MobileOptimizedNav({
             className="absolute inset-0 bg-black/50" 
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white dark:bg-gray-900 shadow-xl">
+          <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-[#FAFAF9] dark:bg-[#1A1510] border-l border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 shadow-xl">
             <div className="p-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/25">
                     <Sparkles className="h-5 w-5 text-white" />
                   </div>
-                  <span className="font-bold text-lg text-gray-900 dark:text-white">Easy Outfit</span>
+                  <span className="font-semibold text-lg text-[#1C1917] dark:text-[#F8F5F1]">Easy Outfit</span>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsOpen(false)}
-                  className="p-2"
+                  className="p-2 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#3D2F24]"
                 >
                   <X className="h-5 w-5" />
                 </Button>
@@ -129,18 +129,18 @@ export default function MobileOptimizedNav({
 
               {/* User Info */}
               {user && (
-                <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="mb-6 p-4 bg-[#F5F0E8] dark:bg-[#2C2119] rounded-xl border border-[#F5F0E8]/70 dark:border-[#3D2F24]/70">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] rounded-full flex items-center justify-center shadow-md shadow-amber-500/20">
                       <span className="text-white font-semibold text-sm">
                         {user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}
                       </span>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
+                      <p className="font-medium text-[#1C1917] dark:text-[#F8F5F1]">
                         {user.displayName || 'User'}
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
                         {user.email}
                       </p>
                     </div>
@@ -159,10 +159,10 @@ export default function MobileOptimizedNav({
                       key={item.href}
                       href={item.href}
                       onClick={() => setIsOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-200 ${
                         active
-                          ? 'bg-purple-100 dark:bg-purple-900/30 text-amber-700 dark:text-amber-300'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                          ? 'border-[#FFB84C]/60 bg-[#F5F0E8] dark:bg-[#2C2119] text-[#1C1917] dark:text-[#F8F5F1]'
+                          : 'border-transparent text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]'
                       }`}
                     >
                       <Icon className="h-5 w-5" />
@@ -173,15 +173,15 @@ export default function MobileOptimizedNav({
               </nav>
 
               {/* Quick Actions */}
-              <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+              <div className="mt-8 pt-6 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+                <h3 className="text-sm font-medium text-[#8A827A] dark:text-[#C4BCB4] mb-3 uppercase tracking-wide">
                   Quick Actions
                 </h3>
                 <div className="space-y-2">
                   <Link
                     href="/outfits/generate"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors"
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white shadow-lg shadow-amber-500/20 hover:from-[#FFB84C] hover:to-[#FF7700] transition-all duration-200"
                   >
                     <Sparkles className="h-5 w-5" />
                     <span className="font-medium">Generate Outfit</span>
@@ -189,7 +189,7 @@ export default function MobileOptimizedNav({
                   <Link
                     href="/wardrobe"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    className="flex items-center gap-3 px-4 py-3 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] rounded-xl transition-all duration-200"
                   >
                     <Shirt className="h-5 w-5" />
                     <span className="font-medium">Add Items</span>
@@ -198,11 +198,11 @@ export default function MobileOptimizedNav({
               </div>
 
               {/* Settings */}
-              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="mt-6 pt-6 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
                 <Link
                   href="/settings"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] rounded-xl transition-all duration-200"
                 >
                   <Settings className="h-5 w-5" />
                   <span className="font-medium">Settings</span>

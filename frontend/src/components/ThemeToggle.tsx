@@ -10,16 +10,14 @@ const ThemeToggle: React.FC = () => {
 
   React.useEffect(() => {
     setMounted(true);
-    console.log('ThemeToggle mounted, current theme:', theme, 'resolvedTheme:', resolvedTheme);
-  }, [theme, resolvedTheme]);
+  }, [resolvedTheme, theme]);
 
   const handleThemeChange = () => {
     try {
       const newTheme = theme === 'dark' ? 'light' : 'dark';
-      console.log('Changing theme from', theme, 'to', newTheme);
       setTheme(newTheme);
     } catch (error) {
-      console.error('Error changing theme:', error);
+      // No-op; theme switching is non-critical
     }
   };
 
@@ -27,10 +25,10 @@ const ThemeToggle: React.FC = () => {
   if (!mounted) {
     return (
       <button
-        className="p-2 rounded-md bg-gray-100 dark:bg-gray-800 transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
+        className="p-2 rounded-2xl bg-white/50 dark:bg-[#2C2119]/70 border border-[#F5F0E8]/50 dark:border-[#3D2F24]/60 backdrop-blur transition-colors"
         aria-label="Loading theme toggle"
       >
-        <div className="w-4 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse" />
+        <div className="w-4 h-4 bg-[#FFB84C]/40 dark:bg-[#FF9400]/40 rounded animate-pulse" />
       </button>
     );
   }
@@ -41,13 +39,13 @@ const ThemeToggle: React.FC = () => {
     <button
       data-testid="theme-toggle"
       onClick={handleThemeChange}
-      className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+      className="p-2 rounded-2xl bg-white/60 dark:bg-[#2C2119]/70 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 backdrop-blur transition-all duration-200 hover:scale-[1.03] shadow-sm shadow-amber-500/10"
       aria-label={`Switch to ${isDark ? 'light' : 'dark'} theme`}
     >
       {isDark ? (
-        <Sun className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+        <Sun className="w-4 h-4 text-[#FFB84C]" />
       ) : (
-        <Moon className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+        <Moon className="w-4 h-4 text-[#FF9400]" />
       )}
     </button>
   );

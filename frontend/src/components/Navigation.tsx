@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { signOutUser } from "@/lib/auth";
@@ -9,6 +9,7 @@ import { useState } from "react";
 import { Menu, X, Sparkles, Home, Shirt, Palette, User, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import dynamic from 'next/dynamic';
 
 const ThemeToggle = dynamic(() => import('@/components/ThemeToggle'), {
@@ -21,6 +22,7 @@ const ThemeToggle = dynamic(() => import('@/components/ThemeToggle'), {
 export default function Navigation() {
   const router = useRouter();
   const { user } = useFirebase();
+  const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -44,7 +46,7 @@ export default function Navigation() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl border-b border-gray-200/50 dark:border-gray-800/50 shadow-sm">
+    <nav className="sticky top-0 z-50 bg-[#FAFAF9]/90 dark:bg-[#2C2119]/85 backdrop-blur-2xl border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 sm:h-18">
           {/* Logo - Cleaner mobile version */}
@@ -61,7 +63,7 @@ export default function Navigation() {
                 priority
                 className="h-8 sm:h-10 w-auto object-contain"
               />
-              <span className="hidden sm:inline text-lg font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+              <span className="hidden sm:inline text-lg font-semibold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
                 Easy Outfit
               </span>
             </Link>
@@ -72,13 +74,23 @@ export default function Navigation() {
             <div className="flex items-center space-x-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
+                const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="group flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all duration-200"
+                    className={cn(
+                      "group flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
+                      "text-[#57534E] dark:text-[#C4BCB4]",
+                      "hover:text-[#1C1917] dark:hover:text-[#F8F5F1]",
+                      "hover:bg-[#F5F0E8] dark:hover:bg-[#3D2F24]",
+                      isActive && "text-[#1C1917] dark:text-[#F8F5F1] bg-[#F5F0E8] dark:bg-[#3D2F24]"
+                    )}
                   >
-                    <Icon className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
+                    <Icon className={cn(
+                      "w-4 h-4 transition-transform duration-200",
+                      isActive ? "text-[#FFB84C]" : "group-hover:scale-110"
+                    )} />
                     <span>{item.label}</span>
                     {item.badge && (
                       <Badge variant="secondary" className="text-xs ml-1">
@@ -99,7 +111,7 @@ export default function Navigation() {
                 onClick={handleSignOut}
                 variant="outline"
                 size="sm"
-                className="rounded-xl border-gray-300 dark:border-gray-700 hover:border-red-400 dark:hover:border-red-600 hover:text-red-600 dark:hover:text-red-400"
+                className="rounded-xl border-[#F5F0E8]/70 dark:border-[#3D2F24]/80 text-[#57534E] dark:text-[#C4BCB4] hover:text-red-600 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-600 transition-colors"
               >
                 Sign Out
               </Button>
@@ -111,7 +123,7 @@ export default function Navigation() {
             <ThemeToggle />
             <button
               onClick={toggleMenu}
-              className="inline-flex items-center justify-center p-2.5 rounded-xl text-gray-700 dark:text-gray-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all duration-200 min-h-[44px] min-w-[44px]"
+              className="inline-flex items-center justify-center p-2.5 rounded-xl text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#3D2F24] transition-all duration-200 min-h-[44px] min-w-[44px]"
               aria-expanded={isMenuOpen}
               aria-label="Toggle menu"
             >
@@ -135,7 +147,7 @@ export default function Navigation() {
           />
           
           {/* Menu Panel */}
-          <div className="fixed inset-x-0 top-16 bottom-0 bg-white dark:bg-gray-900 z-[70] md:hidden animate-in slide-in-from-top duration-300 overflow-y-auto">
+          <div className="fixed inset-x-0 top-16 bottom-0 bg-[#FAFAF9] dark:bg-[#1A1510] z-[70] md:hidden animate-in slide-in-from-top duration-300 overflow-y-auto border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
             <div className="p-4 space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -143,10 +155,10 @@ export default function Navigation() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="flex items-center space-x-4 px-5 py-4 rounded-2xl text-base font-semibold text-gray-900 dark:text-gray-100 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 dark:hover:from-amber-900/20 dark:hover:to-orange-900/20 transition-all duration-200 min-h-[56px] border-2 border-transparent hover:border-amber-200 dark:hover:border-amber-800"
+                    className="flex items-center space-x-4 px-5 py-4 rounded-2xl text-base font-semibold transition-all duration-200 min-h-[56px] border-2 border-transparent text-[#1C1917] dark:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] hover:border-[#FFB84C]/60 dark:hover:border-[#FF9400]/50"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFCC66]/40 to-[#FF9400]/40 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 flex items-center justify-center">
                       <Icon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                     </div>
                     <span className="flex-1">{item.label}</span>
@@ -161,7 +173,7 @@ export default function Navigation() {
               
               {/* Divider */}
               {user && (
-                <div className="border-t border-gray-200 dark:border-gray-800 my-4" />
+                <div className="border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 my-4" />
               )}
               
               {user && (
@@ -170,7 +182,7 @@ export default function Navigation() {
                     handleSignOut();
                     setIsMenuOpen(false);
                   }}
-                  className="flex items-center space-x-4 w-full text-left px-5 py-4 rounded-2xl text-base font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 min-h-[56px] border-2 border-transparent hover:border-red-200 dark:hover:border-red-800"
+                  className="flex items-center space-x-4 w-full text-left px-5 py-4 rounded-2xl text-base font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 min-h-[56px] border-2 border-transparent hover:border-red-200 dark:hover:border-red-700"
                 >
                   <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

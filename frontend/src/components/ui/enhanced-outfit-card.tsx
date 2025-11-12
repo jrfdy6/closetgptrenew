@@ -234,7 +234,7 @@ export default function EnhancedOutfitCard({
           {/* If flat lay exists, show it as the main preview */}
           {outfit.metadata?.flat_lay_url ? (
             <div className="mb-3">
-              <div className="aspect-[9/16] bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+              <div className="aspect-[9/16] bg-[#F5F0E8] dark:bg-[#2C2119] border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl overflow-hidden">
                 <img
                   src={outfit.metadata.flat_lay_url}
                   alt={outfit.name}
@@ -273,7 +273,7 @@ export default function EnhancedOutfitCard({
               <div className="grid grid-cols-2 gap-2">
                 {outfit.items.slice(0, 4).map((item, index) => (
                   <div key={index} className="relative group/item">
-                    <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+                    <div className="aspect-square bg-[#F5F0E8] dark:bg-[#2C2119] border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl overflow-hidden">
                       {item.imageUrl ? (
                         <img
                           src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl}
@@ -286,8 +286,8 @@ export default function EnhancedOutfitCard({
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <div className="text-gray-400 text-xs text-center">
-                            <div className="w-6 h-6 mx-auto mb-1 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                          <div className="text-[#8A827A] text-xs text-center">
+                            <div className="w-6 h-6 mx-auto mb-1 bg-[#E7DDCF] dark:bg-[#4A3526] rounded"></div>
                             <span className="text-xs">{item.type}</span>
                           </div>
                         </div>

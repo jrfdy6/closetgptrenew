@@ -34,7 +34,7 @@ export default function WardrobeGridSimple({
     return (
       <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-5">
         {[...Array(12)].map((_, i) => (
-          <div key={i} className="aspect-square bg-gray-200 dark:bg-[#3D2F24] rounded-xl animate-pulse" />
+          <div key={i} className="aspect-square bg-[#F5F0E8] dark:bg-[#2C2119] border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-xl animate-pulse" />
         ))}
       </div>
     );
@@ -42,8 +42,8 @@ export default function WardrobeGridSimple({
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-body text-gray-600 dark:text-[#C4BCB4]">
+      <div className="text-center py-12 bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl">
+        <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
           No items found
         </p>
       </div>
@@ -59,7 +59,7 @@ export default function WardrobeGridSimple({
           onClick={() => onItemClick(item)}
         >
           {/* Image Container - Clean, Premium */}
-          <div className="relative aspect-square overflow-hidden rounded-xl bg-gray-100 dark:bg-[#3D2F24] transition-transform duration-200 hover:scale-102">
+          <div className="relative aspect-square overflow-hidden rounded-xl bg-[#F5F0E8] dark:bg-[#2C2119] border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 transition-transform duration-200 hover:scale-[1.02]">
             <img
               src={item.imageUrl}
               alt={item.name}
@@ -85,8 +85,8 @@ export default function WardrobeGridSimple({
 
             {/* Favorite indicator - small, clean */}
             {item.favorite && (
-              <div className="absolute top-2 right-2 w-6 h-6 bg-red-500/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
-                <Heart className="w-3.5 h-3.5 text-white fill-current" />
+              <div className="absolute top-2 right-2 w-6 h-6 bg-[#FF6F61]/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg shadow-[#FF6F61]/30">
+                <Heart className="w-3.5 h-3.5 text-white fill-white" />
               </div>
             )}
           </div>

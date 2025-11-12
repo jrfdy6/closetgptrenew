@@ -11,36 +11,36 @@ export default function OutfitsPage() {
     <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
       <Navigation />
       
-      {/* Header with Glass Effect */}
-      <div className="glass-navbar px-4 py-12">
+      {/* Header */}
+      <div className="px-4 py-12">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-white/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-lg">
             <div>
-              <h1 className="text-4xl font-serif font-bold text-stone-900 dark:text-stone-100 mb-4">My Outfits</h1>
-              <p className="text-stone-600 dark:text-stone-400 font-light text-lg leading-relaxed max-w-2xl">
-                View and manage your curated outfits. Each outfit is tailored to your style preferences and occasion needs. Create custom outfits or generate AI-powered combinations.
+              <h1 className="text-4xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-3">My looks</h1>
+              <p className="text-[#57534E] dark:text-[#C4BCB4] text-base leading-relaxed max-w-2xl">
+                Save the fits you love, remix them for new occasions, and generate fresh looks whenever inspiration hits.
               </p>
             </div>
             
             <div className="flex gap-4">
               <Link 
                 href="/outfits/generate"
-                className="group inline-flex items-center px-8 py-4 glass-button-primary font-medium rounded-full glass-transition shadow-lg hover:shadow-xl hover:scale-105 cursor-pointer"
+                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white rounded-2xl font-semibold shadow-lg shadow-amber-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
-                <svg className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                Generate Outfit
+                Generate outfit
               </Link>
               
               <Link 
                 href="/outfits/create"
-                className="group inline-flex items-center px-8 py-4 glass-button-secondary text-stone-900 dark:text-stone-100 font-medium rounded-full glass-transition hover:scale-105 cursor-pointer"
+                className="inline-flex items-center px-6 py-3 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] rounded-2xl font-semibold transition-colors duration-200 hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
               >
-                <svg className="w-5 h-5 mr-3 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Create Outfit
+                Create outfit
               </Link>
             </div>
           </div>

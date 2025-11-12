@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Save, RotateCcw, Palette, Calendar, Tag, FileText } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -227,23 +228,26 @@ export default function OutfitEditModal({
       description: outfit.description || '',
       notes: outfit.notes || ''
     });
-    setSelectedItems(outfit.items || []);
+    const clothingItems = (outfit.items || []).map(toClothingItem);
+    setSelectedItems(clothingItems);
     setErrors({});
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-xl flex items-center justify-center z-50 p-4">
+      <div className="bg-white/90 dark:bg-[#1A1510]/90 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6 border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/60 dark:bg-[#2C2119]/40 backdrop-blur">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-semibold text-gray-900">Edit Outfit</h2>
+            <h2 className="text-2xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
+              Edit outfit
+            </h2>
             {hasChanges() && (
-              <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full">
-                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                Unsaved Changes
+              <div className="flex items-center gap-1 px-2 py-1 bg-[#FFF7E6] text-[#B45309] text-xs font-semibold rounded-full border border-[#FFB84C]/30">
+                <div className="w-2 h-2 bg-[#FF9400] rounded-full"></div>
+                Unsaved changes
               </div>
             )}
           </div>
@@ -251,21 +255,21 @@ export default function OutfitEditModal({
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="h-8 w-8 p-0"
+            className="h-9 w-9 p-0 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]"
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-152px)] bg-white/40 dark:bg-[#1A1510]/40 backdrop-blur-sm">
           {errors.general && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mb-4 p-4 bg-[#FFF0EC] border border-[#FF6F61]/40 rounded-2xl">
               <div className="flex items-start gap-2">
-                <span className="text-red-500 text-lg">⚠️</span>
+                <span className="text-[#FF6F61] text-lg">⚠️</span>
                 <div>
-                  <p className="text-sm font-medium text-red-800">Error</p>
-                  <p className="text-sm text-red-600 mt-1">{errors.general}</p>
+                  <p className="text-sm font-semibold text-[#7F1D1D]">Something needs attention</p>
+                  <p className="text-sm text-[#B42318] mt-1">{errors.general}</p>
                 </div>
               </div>
             </div>
@@ -274,37 +278,47 @@ export default function OutfitEditModal({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column - Basic Info */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Basic Information
+              <h3 className="text-lg font-semibold text-[#1C1917] dark:text-[#F8F5F1] flex items-center gap-2">
+                <FileText className="h-5 w-5 text-[#FFB84C]" />
+                Basic information
               </h3>
               
               {/* Name */}
               <div className="space-y-2">
-                <Label htmlFor="name">Outfit Name *</Label>
+                <Label htmlFor="name" className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
+                  Outfit name *
+                </Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   placeholder="Enter outfit name"
-                  className={errors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}
+                  className={cn(
+                    "bg-white/80 dark:bg-[#1A1510]/80 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 focus:border-[#FFB84C] focus:ring-[#FFB84C]/20",
+                    errors.name && 'border-[#FF6F61] focus:border-[#FF6F61] focus:ring-[#FF6F61]/20'
+                  )}
                 />
                 {errors.name && (
                   <div className="flex items-center gap-1 mt-1">
-                    <span className="text-red-500 text-sm">⚠️</span>
-                    <p className="text-sm text-red-600 font-medium">{errors.name}</p>
+                    <span className="text-[#FF6F61] text-sm">⚠️</span>
+                    <p className="text-sm text-[#B42318] font-medium">{errors.name}</p>
                   </div>
                 )}
               </div>
 
               {/* Occasion */}
               <div className="space-y-2">
-                <Label htmlFor="occasion">Occasion *</Label>
+                <Label htmlFor="occasion" className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
+                  Occasion *
+                </Label>
                 <Select
                   value={formData.occasion}
                   onValueChange={(value) => handleInputChange('occasion', value)}
                 >
-                  <SelectTrigger className={errors.occasion ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}>
+                  <SelectTrigger className={cn(
+                    "border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/80 dark:bg-[#1A1510]/80 focus:border-[#FFB84C] focus:ring-[#FFB84C]/20",
+                    errors.occasion && 'border-[#FF6F61] focus:border-[#FF6F61] focus:ring-[#FF6F61]/20'
+                  )}>
                     <SelectValue placeholder="Select occasion" />
                   </SelectTrigger>
                   <SelectContent>
@@ -317,20 +331,25 @@ export default function OutfitEditModal({
                 </Select>
                 {errors.occasion && (
                   <div className="flex items-center gap-1 mt-1">
-                    <span className="text-red-500 text-sm">⚠️</span>
-                    <p className="text-sm text-red-600 font-medium">{errors.occasion}</p>
+                    <span className="text-[#FF6F61] text-sm">⚠️</span>
+                    <p className="text-sm text-[#B42318] font-medium">{errors.occasion}</p>
                   </div>
                 )}
               </div>
 
               {/* Style */}
               <div className="space-y-2">
-                <Label htmlFor="style">Style *</Label>
+                <Label htmlFor="style" className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
+                  Style *
+                </Label>
                 <Select
                   value={formData.style}
                   onValueChange={(value) => handleInputChange('style', value)}
                 >
-                  <SelectTrigger className={errors.style ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}>
+                  <SelectTrigger className={cn(
+                    "border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/80 dark:bg-[#1A1510]/80 focus:border-[#FFB84C] focus:ring-[#FFB84C]/20",
+                    errors.style && 'border-[#FF6F61] focus:border-[#FF6F61] focus:ring-[#FF6F61]/20'
+                  )}>
                     <SelectValue placeholder="Select style" />
                   </SelectTrigger>
                   <SelectContent>
@@ -343,42 +362,48 @@ export default function OutfitEditModal({
                 </Select>
                 {errors.style && (
                   <div className="flex items-center gap-1 mt-1">
-                    <span className="text-red-500 text-sm">⚠️</span>
-                    <p className="text-sm text-red-600 font-medium">{errors.style}</p>
+                    <span className="text-[#FF6F61] text-sm">⚠️</span>
+                    <p className="text-sm text-[#B42318] font-medium">{errors.style}</p>
                   </div>
                 )}
               </div>
 
               {/* Description */}
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description" className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
+                  Description
+                </Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   placeholder="Describe this outfit..."
                   rows={3}
+                  className="bg-white/80 dark:bg-[#1A1510]/80 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 focus:border-[#FFB84C] focus:ring-[#FFB84C]/20"
                 />
               </div>
 
               {/* Notes */}
               <div className="space-y-2">
-                <Label htmlFor="notes">Personal Notes</Label>
+                <Label htmlFor="notes" className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
+                  Personal notes
+                </Label>
                 <Textarea
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => handleInputChange('notes', e.target.value)}
                   placeholder="Add personal notes about this outfit..."
                   rows={2}
+                  className="bg-white/80 dark:bg-[#1A1510]/80 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 focus:border-[#FFB84C] focus:ring-[#FFB84C]/20"
                 />
               </div>
             </div>
 
             {/* Right Column - Items */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Outfit Items
+              <h3 className="text-lg font-semibold text-[#1C1917] dark:text-[#F8F5F1] flex items-center gap-2">
+                <Palette className="h-5 w-5 text-[#FFB84C]" />
+                Outfit items
               </h3>
               
               <OutfitItemSelector
@@ -393,13 +418,13 @@ export default function OutfitEditModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t bg-gray-50">
+        <div className="flex items-center justify-between p-6 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/60 dark:bg-[#2C2119]/60 backdrop-blur">
           <div className="flex gap-2">
             <Button
               variant="outline"
               onClick={handleReset}
               disabled={isLoading}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <RotateCcw className="h-4 w-4" />
               Reset
@@ -408,10 +433,10 @@ export default function OutfitEditModal({
               variant="outline"
               onClick={resetFormWithFreshData}
               disabled={isLoading}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <RotateCcw className="h-4 w-4" />
-              Refresh Data
+              Refresh data
             </Button>
           </div>
           
@@ -420,16 +445,17 @@ export default function OutfitEditModal({
               variant="outline"
               onClick={onClose}
               disabled={isLoading}
+              className="px-5 rounded-2xl border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
               disabled={isLoading || !hasChanges()}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 px-5 rounded-2xl bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white shadow-lg shadow-amber-500/20 hover:scale-[1.02] transition-transform"
             >
               <Save className="h-4 w-4" />
-              {isLoading ? 'Saving...' : hasChanges() ? 'Save Changes' : 'No Changes'}
+              {isLoading ? 'Saving...' : hasChanges() ? 'Save changes' : 'No changes'}
             </Button>
           </div>
         </div>

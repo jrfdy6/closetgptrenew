@@ -292,17 +292,17 @@ export default function WardrobeItemDetails({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/90 dark:bg-[#1A1510]/90 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl">
         <DialogHeader className="pr-16">
           <div className="flex items-center justify-between gap-4">
-            <DialogTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">
-              Edit Item
+            <DialogTitle className="text-2xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
+              Edit item
             </DialogTitle>
             <Button
               size="sm"
               onClick={handleSave}
               disabled={isSaving}
-              className="bg-stone-900 hover:bg-stone-800 text-white"
+              className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white hover:from-[#FFB84C] hover:to-[#FF7700] rounded-xl"
             >
               <Save className="w-4 h-4 mr-2" />
               {isSaving ? 'Saving...' : 'Save'}
@@ -313,7 +313,7 @@ export default function WardrobeItemDetails({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Image Section */}
           <div className="space-y-4">
-            <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+            <div className="aspect-square bg-[#F5F0E8] dark:bg-[#2C2119] border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl overflow-hidden">
               <img
                 src={item.backgroundRemovedUrl ?? item.imageUrl}
                 alt={item.name}
@@ -329,22 +329,22 @@ export default function WardrobeItemDetails({
             <div className="flex gap-2">
               <Button
                 onClick={() => onGenerateOutfit(item)}
-                className="flex-1 bg-stone-900 hover:bg-stone-800 text-white"
+                className="flex-1 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white hover:from-[#FFB84C] hover:to-[#FF7700]"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
-                Generate Outfit
+                Generate outfit
               </Button>
               <Button
                 variant="outline"
                 onClick={() => onToggleFavorite(item.id)}
-                className={`${item.favorite ? 'bg-red-50 border-red-200 text-red-700' : ''}`}
+                className={`rounded-xl border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 ${item.favorite ? 'bg-[#FFF0EC] text-[#FF6F61]' : 'text-[#57534E] dark:text-[#C4BCB4]'}`}
               >
                 <Heart className={`w-4 h-4 ${item.favorite ? 'fill-current' : ''}`} />
               </Button>
               <Button
                 variant="outline"
                 onClick={() => onIncrementWear(item.id)}
-                className="text-stone-700 hover:text-stone-900"
+                className="text-[#57534E] dark:text-[#C4BCB4] border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-xl hover:text-[#1C1917] dark:hover:text-[#F8F5F1]"
               >
                 <Calendar className="w-4 h-4" />
               </Button>
@@ -357,21 +357,21 @@ export default function WardrobeItemDetails({
             <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name" className="text-stone-700 dark:text-stone-300 font-medium">Name</Label>
+                  <Label htmlFor="name" className="text-[#57534E] dark:text-[#C4BCB4] font-medium">Name</Label>
                     <Input
                       id="name"
                       value={editedItem.name || ''}
                       onChange={(e) => setEditedItem({ ...editedItem, name: e.target.value })}
-                      className="mt-1"
+                    className="mt-1 bg-white/80 dark:bg-[#1A1510]/80 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="type" className="text-stone-700 dark:text-stone-300 font-medium">Type</Label>
+                  <Label htmlFor="type" className="text-[#57534E] dark:text-[#C4BCB4] font-medium">Type</Label>
                     <Select
                       value={editedItem.type || ''}
                       onValueChange={(value) => setEditedItem({ ...editedItem, type: value })}
                     >
-                      <SelectTrigger className="mt-1">
+                    <SelectTrigger className="mt-1 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/80 dark:bg-[#1A1510]/80">
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -387,12 +387,12 @@ export default function WardrobeItemDetails({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="color" className="text-stone-700 dark:text-stone-300 font-medium">Color</Label>
+                  <Label htmlFor="color" className="text-[#57534E] dark:text-[#C4BCB4] font-medium">Color</Label>
                     <Select
                       value={editedItem.color || ''}
                       onValueChange={(value) => setEditedItem({ ...editedItem, color: value })}
                     >
-                      <SelectTrigger className="mt-1">
+                    <SelectTrigger className="mt-1 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/80 dark:bg-[#1A1510]/80">
                         <SelectValue placeholder="Select color" />
                       </SelectTrigger>
                       <SelectContent>
@@ -408,12 +408,12 @@ export default function WardrobeItemDetails({
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="brand" className="text-stone-700 dark:text-stone-300 font-medium">Brand</Label>
+                  <Label htmlFor="brand" className="text-[#57534E] dark:text-[#C4BCB4] font-medium">Brand</Label>
                     <Input
                       id="brand"
                       value={editedItem.brand || ''}
                       onChange={(e) => setEditedItem({ ...editedItem, brand: e.target.value })}
-                      className="mt-1"
+                      className="mt-1 bg-white/80 dark:bg-[#1A1510]/80 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70"
                     />
                   </div>
                 </div>
@@ -421,23 +421,23 @@ export default function WardrobeItemDetails({
                 <div className="grid grid-cols-2 gap-4">
                   {isFieldRelevant('size') && (
                     <div>
-                      <Label htmlFor="size" className="text-stone-700 dark:text-stone-300 font-medium">Size</Label>
+                      <Label htmlFor="size" className="text-[#57534E] dark:text-[#C4BCB4] font-medium">Size</Label>
                       <Input
                         id="size"
                         value={editedItem.size || ''}
                         onChange={(e) => setEditedItem({ ...editedItem, size: e.target.value })}
-                        className="mt-1"
+                        className="mt-1 bg-white/80 dark:bg-[#1A1510]/80 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70"
                       />
                     </div>
                   )}
                   {isFieldRelevant('sleeveLength') && (
                     <div>
-                      <Label htmlFor="sleeveLength" className="text-stone-700 dark:text-stone-300 font-medium">Sleeve Length</Label>
+                      <Label htmlFor="sleeveLength" className="text-[#57534E] dark:text-[#C4BCB4] font-medium">Sleeve length</Label>
                       <Select
                         value={editedItem.sleeveLength || ''}
                         onValueChange={(value) => setEditedItem({ ...editedItem, sleeveLength: value })}
                       >
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="mt-1 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/80 dark:bg-[#1A1510]/80">
                           <SelectValue placeholder="Select sleeve length" />
                         </SelectTrigger>
                         <SelectContent>
@@ -455,12 +455,12 @@ export default function WardrobeItemDetails({
                 <div className="grid grid-cols-2 gap-4">
                   {isFieldRelevant('fit') && (
                     <div>
-                      <Label htmlFor="fit" className="text-stone-700 dark:text-stone-300 font-medium">Fit</Label>
+                      <Label htmlFor="fit" className="text-[#57534E] dark:text-[#C4BCB4] font-medium">Fit</Label>
                       <Select
                         value={editedItem.fit || ''}
                         onValueChange={(value) => setEditedItem({ ...editedItem, fit: value })}
                       >
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="mt-1 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/80 dark:bg-[#1A1510]/80">
                           <SelectValue placeholder="Select fit" />
                         </SelectTrigger>
                         <SelectContent>
@@ -475,12 +475,12 @@ export default function WardrobeItemDetails({
                   )}
                   {isFieldRelevant('neckline') && (
                     <div>
-                      <Label htmlFor="neckline" className="text-stone-700 dark:text-stone-300 font-medium">Neckline</Label>
+                      <Label htmlFor="neckline" className="text-[#57534E] dark:text-[#C4BCB4] font-medium">Neckline</Label>
                       <Select
                         value={editedItem.neckline || ''}
                         onValueChange={(value) => setEditedItem({ ...editedItem, neckline: value })}
                       >
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="mt-1 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/80 dark:bg-[#1A1510]/80">
                           <SelectValue placeholder="Select neckline" />
                         </SelectTrigger>
                         <SelectContent>
@@ -498,12 +498,12 @@ export default function WardrobeItemDetails({
                 <div className="grid grid-cols-2 gap-4">
                   {isFieldRelevant('length') && (
                     <div>
-                      <Label htmlFor="length" className="text-stone-700 dark:text-stone-300 font-medium">Length</Label>
+                      <Label htmlFor="length" className="text-[#57534E] dark:text-[#C4BCB4] font-medium">Length</Label>
                       <Select
                         value={editedItem.length || ''}
                         onValueChange={(value) => setEditedItem({ ...editedItem, length: value })}
                       >
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="mt-1 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/80 dark:bg-[#1A1510]/80">
                           <SelectValue placeholder="Select length" />
                         </SelectTrigger>
                         <SelectContent>
@@ -517,26 +517,31 @@ export default function WardrobeItemDetails({
                   </div>
                   )}
                   <div>
-                    <Label htmlFor="purchasePrice" className="text-stone-700 dark:text-stone-300 font-medium">Purchase Price</Label>
+                    <Label htmlFor="purchasePrice" className="text-[#57534E] dark:text-[#C4BCB4] font-medium">Purchase price</Label>
                     <Input
                       id="purchasePrice"
                       type="number"
                       value={editedItem.purchasePrice || ''}
                       onChange={(e) => setEditedItem({ ...editedItem, purchasePrice: parseFloat(e.target.value) || 0 })}
-                      className="mt-1"
+                      className="mt-1 bg-white/80 dark:bg-[#1A1510]/80 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70"
                       placeholder="0.00"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-stone-700 dark:text-stone-300 font-medium">Materials</Label>
+                  <Label className="text-[#57534E] dark:text-[#C4BCB4] font-medium">Materials</Label>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {MATERIALS.map(material => (
                       <Badge
                         key={material}
                         variant={editedItem.material?.includes(material) ? "default" : "outline"}
-                        className="cursor-pointer"
+                        className={cn(
+                          "cursor-pointer rounded-full px-3 py-1 text-caption",
+                          editedItem.material?.includes(material)
+                            ? "bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white"
+                            : "border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4]"
+                        )}
                         onClick={() => {
                           const currentMaterials = editedItem.material || [];
                           const newMaterials = currentMaterials.includes(material)
@@ -552,24 +557,29 @@ export default function WardrobeItemDetails({
                 </div>
 
                 <div>
-                  <Label htmlFor="description" className="text-stone-700 dark:text-stone-300 font-medium">Description</Label>
+                  <Label htmlFor="description" className="text-[#57534E] dark:text-[#C4BCB4] font-medium">Description</Label>
                   <Textarea
                     id="description"
                     value={editedItem.description || ''}
                     onChange={(e) => setEditedItem({ ...editedItem, description: e.target.value })}
-                    className="mt-1"
+                    className="mt-1 bg-white/80 dark:bg-[#1A1510]/80 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70"
                     rows={3}
                   />
                 </div>
 
                 <div>
-                  <Label className="text-stone-700 dark:text-stone-300 font-medium">Styles</Label>
+                  <Label className="text-[#57534E] dark:text-[#C4BCB4] font-medium">Styles</Label>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {STYLES.map(style => (
                       <Badge
                         key={style}
                         variant={editedItem.style?.includes(style) ? "default" : "outline"}
-                        className="cursor-pointer"
+                        className={cn(
+                          "cursor-pointer rounded-full px-3 py-1 text-caption",
+                          editedItem.style?.includes(style)
+                            ? "bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white"
+                            : "border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4]"
+                        )}
                         onClick={() => {
                           const currentStyles = editedItem.style || [];
                           const newStyles = currentStyles.includes(style)
@@ -585,13 +595,18 @@ export default function WardrobeItemDetails({
                 </div>
 
                 <div>
-                  <Label className="text-stone-700 dark:text-stone-300 font-medium">Seasons</Label>
+                  <Label className="text-[#57534E] dark:text-[#C4BCB4] font-medium">Seasons</Label>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {SEASONS.map(season => (
                       <Badge
                         key={season}
                         variant={editedItem.season?.includes(season) ? "default" : "outline"}
-                        className="cursor-pointer"
+                        className={cn(
+                          "cursor-pointer rounded-full px-3 py-1 text-caption",
+                          editedItem.season?.includes(season)
+                            ? "bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white"
+                            : "border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4]"
+                        )}
                         onClick={() => {
                           const currentSeasons = editedItem.season || [];
                           const newSeasons = currentSeasons.includes(season)
@@ -607,13 +622,18 @@ export default function WardrobeItemDetails({
                 </div>
 
                 <div>
-                  <Label className="text-stone-700 dark:text-stone-300 font-medium">Occasions</Label>
+                  <Label className="text-[#57534E] dark:text-[#C4BCB4] font-medium">Occasions</Label>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {OCCASIONS.map(occasion => (
                       <Badge
                         key={occasion}
                         variant={editedItem.occasion?.includes(occasion) ? "default" : "outline"}
-                        className="cursor-pointer"
+                        className={cn(
+                          "cursor-pointer rounded-full px-3 py-1 text-caption",
+                          editedItem.occasion?.includes(occasion)
+                            ? "bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white"
+                            : "border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4]"
+                        )}
                         onClick={() => {
                           const currentOccasions = editedItem.occasion || [];
                           const newOccasions = currentOccasions.includes(occasion)
@@ -632,14 +652,14 @@ export default function WardrobeItemDetails({
         </div>
 
         {/* Delete Button */}
-        <div className="flex justify-end pt-6 border-t border-stone-200 dark:border-stone-700">
+        <div className="flex justify-end pt-6 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
           <Button
             variant="outline"
             onClick={handleDelete}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+            className="text-[#FF6F61] border-[#FF6F61]/40 hover:text-[#FF4A3A] hover:bg-[#FFF0EC] dark:hover:bg-[#3D211F] rounded-2xl"
           >
             <Trash2 className="w-4 h-4 mr-2" />
-            Delete Item
+            Delete item
           </Button>
         </div>
       </DialogContent>

@@ -6,6 +6,7 @@ import { shoppingService, ShoppingRecommendationsResponse } from '@/lib/services
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { 
   ShoppingBag, 
   ExternalLink, 
@@ -158,10 +159,14 @@ export default function EnhancedWardrobeGapAnalysis({
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'text-red-600 bg-red-100 dark:bg-red-900/20';
-      case 'medium': return 'text-amber-600 bg-yellow-100 dark:bg-yellow-900/20';
-      case 'low': return 'text-amber-600 bg-green-100 dark:bg-green-900/20';
-      default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20';
+      case 'high':
+        return 'text-[#FF4A3A] bg-[#FFF0EC] dark:bg-[#3D211F] border border-[#FF6F61]/40 shadow-sm';
+      case 'medium':
+        return 'text-[#B45309] bg-[#FFF7E6] dark:bg-[#3D2F24] border border-[#FFB84C]/40 shadow-sm';
+      case 'low':
+        return 'text-[#0F766E] bg-[#ECFDF5] dark:bg-[#1F3D32] border border-[#6EE7B7]/40 shadow-sm';
+      default:
+        return 'text-[#57534E] bg-[#F5F0E8]/70 dark:bg-[#2C2119]/70 border border-[#F5F0E8]/50 dark:border-[#3D2F24]/60 shadow-sm';
     }
   };
 
@@ -184,9 +189,9 @@ export default function EnhancedWardrobeGapAnalysis({
   };
 
   const getVersatilityColor = (score: number) => {
-    if (score >= 8) return 'text-amber-600';
-    if (score >= 6) return 'text-amber-600';
-    return 'text-red-600';
+    if (score >= 8) return 'text-[#0F766E]';
+    if (score >= 6) return 'text-[#B45309]';
+    return 'text-[#FF4A3A]';
   };
 
   const sortedRecommendations = shoppingRecommendations?.recommendations.sort((a, b) => {
@@ -206,7 +211,7 @@ export default function EnhancedWardrobeGapAnalysis({
 
   if (!gaps || gaps.length === 0) {
     return (
-      <Card className={className}>
+      <Card className={cn("bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl shadow-lg backdrop-blur-xl", className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-amber-600" />
@@ -214,10 +219,10 @@ export default function EnhancedWardrobeGapAnalysis({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <CheckCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-500 mb-4">No wardrobe gaps found!</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="text-center py-10">
+            <CheckCircle className="w-16 h-16 text-[#FFB84C] mx-auto mb-4" />
+            <p className="text-[#57534E] dark:text-[#C4BCB4] mb-4 font-semibold">No wardrobe gaps found!</p>
+            <p className="text-sm text-[#827869] dark:text-[#8A827A]">
               Your wardrobe is well-balanced. Great job!
             </p>
           </div>
@@ -229,15 +234,20 @@ export default function EnhancedWardrobeGapAnalysis({
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Main Gap Analysis Card */}
-      <Card>
-        <CardHeader>
+      <Card className="bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl shadow-lg backdrop-blur-xl">
+        <CardHeader className="border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <ShoppingBag className="h-5 w-5 text-amber-600" />
+            <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
+              <ShoppingBag className="h-5 w-5 text-[#FFB84C]" />
               Wardrobe Gap Analysis
             </CardTitle>
             {onRefresh && (
-              <Button variant="outline" size="sm" onClick={onRefresh}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRefresh}
+                className="border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              >
                 <TrendingUp className="h-4 w-4 mr-2" />
                 Refresh
               </Button>
@@ -251,19 +261,19 @@ export default function EnhancedWardrobeGapAnalysis({
               const isExpanded = expandedGaps.has(gapId);
               
               return (
-                <div key={index} className="border rounded-lg p-4">
+                <div key={index} className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl p-4 bg-white/80 dark:bg-[#1A1510]/80 shadow-sm">
                   <Collapsible open={isExpanded} onOpenChange={() => toggleGapExpansion(gapId)}>
                     <CollapsibleTrigger asChild>
                       <div className="flex items-center justify-between cursor-pointer">
                         <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg ${getPriorityColor(gap.priority)}`}>
+                          <div className={cn("p-2 rounded-xl flex items-center justify-center transition-colors", getPriorityColor(gap.priority))}>
                             {getPriorityIcon(gap.priority)}
                           </div>
                           <div>
-                            <h4 className="font-medium text-gray-900 dark:text-white">
+                            <h4 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
                               {gap.category}
                             </h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                            <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
                               {gap.currentCount}/{gap.recommendedCount} items
                             </p>
                           </div>
@@ -279,13 +289,13 @@ export default function EnhancedWardrobeGapAnalysis({
                     
                     <CollapsibleContent className="mt-4">
                       <div className="space-y-3">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
                           {gap.description}
                         </p>
                         
                         <div className="flex flex-wrap gap-2">
                           {gap.suggestedItems.map((item, itemIndex) => (
-                            <Badge key={itemIndex} variant="outline">
+                            <Badge key={itemIndex} variant="outline" className="border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4]">
                               {item}
                             </Badge>
                           ))}
@@ -293,11 +303,11 @@ export default function EnhancedWardrobeGapAnalysis({
                         
                         {/* Progress Bar */}
                         <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
+                          <div className="flex justify-between text-sm text-[#57534E] dark:text-[#C4BCB4]">
                             <span>Progress</span>
                             <span>{Math.round((gap.currentCount / gap.recommendedCount) * 100)}%</span>
                           </div>
-                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div className="w-full bg-[#E7DDCF] dark:bg-[#3D2F24] rounded-full h-2">
                             <div 
                               className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-300"
                               style={{ width: `${Math.min((gap.currentCount / gap.recommendedCount) * 100, 100)}%` }}
@@ -316,25 +326,25 @@ export default function EnhancedWardrobeGapAnalysis({
 
       {/* Shopping Recommendations */}
       {(shoppingRecommendations?.success || loadingRecommendations) && (
-        <Card>
-          <CardHeader>
+        <Card className="bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl shadow-lg backdrop-blur-xl">
+          <CardHeader className="border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5 text-amber-600" />
+              <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
+                <ShoppingCart className="h-5 w-5 text-[#FFB84C]" />
                 Shopping Recommendations
                 {loadingRecommendations && (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#6EE7B7]"></div>
                 )}
               </CardTitle>
               <div className="flex items-center gap-2">
                 <Select value={selectedBudget} onValueChange={setSelectedBudget}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-32 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/80 dark:bg-[#1A1510]/80">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">Low Budget</SelectItem>
-                    <SelectItem value="medium">Medium Budget</SelectItem>
-                    <SelectItem value="high">High Budget</SelectItem>
+                    <SelectItem value="low">Low budget</SelectItem>
+                    <SelectItem value="medium">Medium budget</SelectItem>
+                    <SelectItem value="high">High budget</SelectItem>
                     <SelectItem value="luxury">Luxury</SelectItem>
                   </SelectContent>
                 </Select>
@@ -343,12 +353,12 @@ export default function EnhancedWardrobeGapAnalysis({
             {shoppingRecommendations?.success && (
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm text-gray-600">
+                  <DollarSign className="h-4 w-4 text-[#57534E]" />
+                  <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
                     Total: {formatPrice(shoppingRecommendations.total_estimated_cost)}
                   </span>
                 </div>
-                <Badge variant="outline">
+                <Badge variant="outline" className="border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4]">
                   {shoppingRecommendations.budget_range} budget
                 </Badge>
               </div>
@@ -357,35 +367,35 @@ export default function EnhancedWardrobeGapAnalysis({
           <CardContent>
             {loadingRecommendations ? (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
-                <p className="text-gray-500 dark:text-gray-500">Loading shopping recommendations...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6EE7B7] mx-auto mb-4"></div>
+                <p className="text-[#57534E] dark:text-[#C4BCB4]">Loading shopping recommendations…</p>
               </div>
             ) : shoppingRecommendations?.success ? (
               <div className="space-y-6">
                 {/* Shopping Strategy */}
                 {shoppingRecommendations.shopping_strategy && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                <div className="bg-[#ECF2FF]/80 dark:bg-[#1E2840]/70 border border-[#93C5FD]/40 p-4 rounded-2xl">
+                  <h4 className="font-semibold text-[#1D4ED8] dark:text-[#BFDBFE] mb-3">
                     Shopping Strategy
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+                      <div className="text-2xl font-bold text-[#1D4ED8] dark:text-[#BFDBFE]">
                         {shoppingRecommendations.shopping_strategy.total_items_needed}
                       </div>
-                      <div className="text-sm text-amber-600 dark:text-amber-400">Items Needed</div>
+                      <div className="text-sm text-[#B45309] dark:text-[#Fbbf24]">Items needed</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+                      <div className="text-2xl font-bold text-[#1D4ED8] dark:text-[#BFDBFE]">
                         {shoppingRecommendations.shopping_strategy.high_priority_items}
                       </div>
-                      <div className="text-sm text-amber-600 dark:text-amber-400">High Priority</div>
+                      <div className="text-sm text-[#B45309] dark:text-[#Fbbf24]">High priority</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+                      <div className="text-2xl font-bold text-[#1D4ED8] dark:text-[#BFDBFE]">
                         {formatPrice(shoppingRecommendations.shopping_strategy.estimated_total_cost)}
                       </div>
-                      <div className="text-sm text-amber-600 dark:text-amber-400">Total Cost</div>
+                      <div className="text-sm text-[#B45309] dark:text-[#Fbbf24]">Total cost</div>
                     </div>
                   </div>
                 </div>
@@ -394,18 +404,20 @@ export default function EnhancedWardrobeGapAnalysis({
               {/* Shopping Phases */}
               {shoppingRecommendations.shopping_strategy?.shopping_phases && (
                 <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900 dark:text-white">Shopping Phases</h4>
+                  <h4 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1]">Shopping phases</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {shoppingRecommendations.shopping_strategy.shopping_phases.map((phase) => (
-                      <div key={phase.phase} className="border rounded-lg p-4">
+                      <div key={phase.phase} className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl p-4 bg-white/80 dark:bg-[#1A1510]/80 shadow-sm">
                         <div className="flex items-center justify-between mb-2">
-                          <h5 className="font-medium">Phase {phase.phase}: {phase.name}</h5>
-                          <Badge variant="outline">{formatPrice(phase.estimated_cost)}</Badge>
+                          <h5 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1]">Phase {phase.phase}: {phase.name}</h5>
+                          <Badge variant="outline" className="border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4]">
+                            {formatPrice(phase.estimated_cost)}
+                          </Badge>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-2">
                           {phase.description}
                         </p>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-[#827869] dark:text-[#8A827A]">
                           {phase.items.length} items
                         </div>
                       </div>
@@ -417,18 +429,18 @@ export default function EnhancedWardrobeGapAnalysis({
               {/* Store Recommendations */}
               {shoppingRecommendations.store_recommendations && (
                 <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900 dark:text-white">Recommended Stores</h4>
+                  <h4 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1]">Recommended stores</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {shoppingRecommendations.store_recommendations.map((store, index) => (
-                      <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                        <div className="flex items-center gap-2 mb-2">
-                          <MapPin className="h-4 w-4 text-gray-500" />
-                          <h5 className="font-medium">{store.name}</h5>
+                      <div key={index} className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl p-4 bg-white/80 dark:bg-[#1A1510]/75 hover:shadow-xl transition-shadow">
+                        <div className="flex items-center gap-2 mb-2 text-[#57534E] dark:text-[#C4BCB4]">
+                          <MapPin className="h-4 w-4 text-[#FF9400]" />
+                          <h5 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1]">{store.name}</h5>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-2">
                           {store.description}
                         </p>
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4]">
                           {store.price_range}
                         </Badge>
                       </div>
@@ -439,12 +451,12 @@ export default function EnhancedWardrobeGapAnalysis({
 
               {/* Shopping Tips */}
               {shoppingRecommendations.shopping_strategy?.tips && (
-                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">Shopping Tips</h4>
+                <div className="bg-[#F5F0E8]/70 dark:bg-[#2C2119]/80 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 p-4 rounded-2xl shadow-sm">
+                  <h4 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-3">Shopping tips</h4>
                   <ul className="space-y-2">
                     {shoppingRecommendations.shopping_strategy.tips.map((tip, index) => (
-                      <li key={index} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                      <li key={index} className="flex items-start gap-2 text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                        <CheckCircle className="h-4 w-4 text-[#34D399] mt-0.5 flex-shrink-0" />
                         {tip}
                       </li>
                     ))}
@@ -455,8 +467,8 @@ export default function EnhancedWardrobeGapAnalysis({
             ) : (
               <div className="text-center py-8">
                 <AlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-500 mb-4">No shopping recommendations available</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-[#57534E] dark:text-[#C4BCB4] mb-2 font-semibold">No shopping recommendations available</p>
+                <p className="text-sm text-[#827869] dark:text-[#8A827A]">
                   Try refreshing or check back later.
                 </p>
               </div>
