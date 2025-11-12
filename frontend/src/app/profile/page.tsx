@@ -279,9 +279,9 @@ export default function ProfilePage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-[#1A1510] dark:via-[#1A1510] dark:to-[#1A1510]">
         <Navigation />
-        <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -297,9 +297,9 @@ export default function ProfilePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-[#1A1510] dark:via-[#1A1510] dark:to-[#1A1510]">
         <Navigation />
-        <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6">
           <div className="text-center">
             <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Unable to Load Profile</h2>
@@ -313,9 +313,9 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-[#1A1510] dark:via-[#1A1510] dark:to-[#1A1510]">
         <Navigation />
-        <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6">
           <div className="text-center">
             <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
@@ -328,9 +328,9 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-[#1A1510] dark:via-[#1A1510] dark:to-[#1A1510]">
         <Navigation />
-        <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6">
           <div className="text-center">
             <User className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Profile Not Found</h2>
@@ -348,11 +348,11 @@ export default function ProfilePage() {
   
   if (isProfileIncomplete) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-[#1A1510] dark:via-[#1A1510] dark:to-[#1A1510]">
         <Navigation />
-        <div className="container mx-auto p-8">
+      <div className="container mx-auto p-8">
           <div className="max-w-2xl mx-auto">
-            <Card className="border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20 backdrop-blur-sm">
+            <Card className="border border-amber-200 dark:border-[#3D2F24]/70 bg-amber-50/50 dark:bg-[#2C2119]/85 backdrop-blur-sm">
               <CardHeader className="pb-6">
                 <CardTitle className="flex items-center text-2xl font-serif text-amber-900 dark:text-amber-100">
                   <Sparkles className="h-8 w-8 mr-3 text-amber-600 dark:text-amber-400" />
