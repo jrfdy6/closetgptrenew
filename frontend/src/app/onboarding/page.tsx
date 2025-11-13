@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Sparkles, Palette, Camera, TrendingUp, Heart, ArrowRight, CheckCircle } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -458,6 +458,9 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
 
 export default function Onboarding() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const flowMode = searchParams?.get('mode') || searchParams?.get('flow');
+  const isGuestFlow = flowMode === 'guest' || flowMode === 'preauth';
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [userGender, setUserGender] = useState<string | null>(null);
@@ -491,10 +494,10 @@ export default function Onboarding() {
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading && !user && !isGuestFlow) {
       window.location.href = '/';
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, isGuestFlow]);
 
   // Filter questions based on gender
   const getFilteredQuestions = (genderOverride?: string): QuizQuestion[] => {
@@ -630,6 +633,30 @@ export default function Onboarding() {
       likedStyles,
       colorCounts
     };
+  };
+
+  const deriveQuizPreferences = () => {
+    const stylePreferences: string[] = [];
+    const colorPreferences: string[] = [];
+
+    answers.forEach(answer => {
+      const question = QUIZ_QUESTIONS.find(q => q.id === answer.question_id);
+      if (question && question.type === 'visual_yesno' && answer.selected_option === 'Yes') {
+        const styleName = question.style_name;
+        if (styleName && !stylePreferences.includes(styleName)) {
+          stylePreferences.push(styleName);
+        }
+        if (question.colors) {
+          question.colors.forEach(color => {
+            if (!colorPreferences.includes(color)) {
+              colorPreferences.push(color);
+            }
+          });
+        }
+      }
+    });
+
+    return { stylePreferences, colorPreferences };
   };
 
   const determineStylePersona = (): StylePersona => {
@@ -1104,9 +1131,35 @@ export default function Onboarding() {
     console.log('🚀 [submitQuiz] Function called!');
     console.log('🚀 [submitQuiz] User:', !!user);
     console.log('🚀 [submitQuiz] Answers:', answers.length);
+    const colorAnalysis = analyzeColors();
+    const { stylePreferences, colorPreferences } = deriveQuizPreferences();
     
     if (!user) {
-      console.log('❌ [submitQuiz] No user, setting error');
+      if (isGuestFlow) {
+        console.log('✨ [submitQuiz] Guest flow detected, storing quiz results for later signup');
+        try {
+          if (typeof window !== 'undefined') {
+            const persona = determineStylePersona();
+            const pendingSubmission = {
+              answers,
+              colorAnalysis,
+              stylePreferences,
+              colorPreferences,
+              persona,
+              createdAt: Date.now()
+            };
+            sessionStorage.setItem('pendingQuizSubmission', JSON.stringify(pendingSubmission));
+            console.log('💾 [submitQuiz] Stored pending quiz submission in sessionStorage');
+          }
+        } catch (storageError) {
+          console.error('❌ [submitQuiz] Failed to store pending quiz submission:', storageError);
+        }
+
+        router.replace('/finish-profile?from=quiz');
+        return;
+      }
+
+      console.log('❌ [submitQuiz] No user in authenticated flow, setting error');
       setError('Please sign in to complete the quiz');
       return;
     }
@@ -1116,30 +1169,7 @@ export default function Onboarding() {
     setError(null);
 
     try {
-      const colorAnalysis = analyzeColors();
       const token = await user.getIdToken();
-      // Analyze style preferences from quiz answers
-      const stylePreferences: string[] = [];
-      const colorPreferences: string[] = [];
-      
-      answers.forEach(answer => {
-        const question = QUIZ_QUESTIONS.find(q => q.id === answer.question_id);
-        if (question && question.type === 'visual_yesno' && answer.selected_option === 'Yes') {
-          const styleName = question.style_name;
-          if (styleName && !stylePreferences.includes(styleName)) {
-            stylePreferences.push(styleName);
-          }
-          // Extract colors from the question
-          if (question.colors) {
-            question.colors.forEach(color => {
-              if (!colorPreferences.includes(color)) {
-                colorPreferences.push(color);
-              }
-            });
-          }
-        }
-      });
-
       const submissionData = {
           userId: user.uid,
           token: token,
@@ -1193,7 +1223,7 @@ export default function Onboarding() {
       console.error('Error submitting quiz:', error);
       setError('Failed to submit quiz. Please try again.');
       // Use actual user answers as fallback instead of mock data
-      const colorAnalysis = analyzeColors();
+      const fallbackColorAnalysis = analyzeColors();
       const userAnswers = answers.reduce((acc, answer) => {
         acc[answer.question_id] = answer.selected_option;
         return acc;
@@ -1208,7 +1238,7 @@ export default function Onboarding() {
           body_type: userAnswers.body_type_female || userAnswers.body_type_male || "rectangle",
           style_preferences: { "classic": 0.7, "minimalist": 0.3 }
         },
-        colorAnalysis: colorAnalysis,
+        colorAnalysis: fallbackColorAnalysis,
         userAnswers: userAnswers
       });
       

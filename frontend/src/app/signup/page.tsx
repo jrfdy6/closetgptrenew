@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,8 @@ export default function SignUp() {
     confirmPassword: ""
   });
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromQuiz = searchParams?.get("from") === "quiz";
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -41,8 +43,41 @@ export default function SignUp() {
       
       if (result.success) {
         console.log("Signup successful:", result.user?.email);
-        // Redirect to onboarding
-        router.push("/onboarding");
+        if (fromQuiz && typeof window !== "undefined") {
+          try {
+            const pendingRaw = sessionStorage.getItem("pendingQuizSubmission");
+            if (pendingRaw && result.user) {
+              const pending = JSON.parse(pendingRaw);
+              const token = await result.user.getIdToken();
+              const submissionPayload = {
+                userId: result.user.uid,
+                token,
+                answers: pending.answers || [],
+                colorAnalysis: pending.colorAnalysis || null,
+                stylePreferences: pending.stylePreferences || [],
+                colorPreferences: pending.colorPreferences || []
+              };
+
+              await fetch("/api/style-quiz/submit", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(submissionPayload)
+              });
+            }
+
+            sessionStorage.removeItem("pendingQuizSubmission");
+          } catch (quizError) {
+            console.error("Failed to submit pending quiz after signup:", quizError);
+          }
+
+          router.push("/style-persona?from=quiz");
+        } else {
+          // Redirect to onboarding
+          router.push("/onboarding");
+        }
       } else {
         setError(result.error || "Sign up failed");
         console.error("Signup error:", result.error);
