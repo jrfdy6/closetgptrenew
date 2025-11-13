@@ -1802,6 +1802,7 @@ export default function Onboarding() {
 
   const hasAnsweredCurrent = !!answers.find(a => a.question_id === question?.id);
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
+  const questionContent = renderQuestion();
 
   // Show quiz questions
   return (
@@ -1817,248 +1818,65 @@ export default function Onboarding() {
         </div>
 
         <div className="glass-float p-4 flex-1 flex flex-col min-h-0 glass-shadow overflow-hidden">
-          <div className="flex-1 overflow-y-auto pr-1 space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+          <div className="flex-1 overflow-y-auto pr-1 space-y-6">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 Question {currentQuestionIndex + 1} of {questions.length}
               </span>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mx-4">
-                <div 
+              <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div
                   className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-300"
-                  style={{width: `${((currentQuestionIndex + 1) / questions.length) * 100}%`}}
+                  style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
                 ></div>
               </div>
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 {Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}%
               </span>
             </div>
 
-            <div className="flex-shrink-0">
-              <h2 className="text-lg md:text-xl font-serif text-gray-900 dark:text-white mb-3 text-center">
-                {question.question}
-              </h2>
-              {question.type === "visual" && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                  Select the option that best represents your style
-                </p>
-              )}
-              {question.type === "rgb_slider" && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                  Drag the slider to select your skin tone
-                </p>
-              )}
-            </div>
+            {questionContent}
+          </div>
 
-          {question.type === "visual" ? (
-            <div className="flex flex-col">
-              {(question.id === "body_type_female" || question.id === "body_type_male") && (
-                <BodyPositiveMessage variant="profile" className="mb-3 flex-shrink-0" />
-              )}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pb-2">
-                {question.options.map((option, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleAnswer(question.id, option)}
-                    className={`p-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 relative z-10 ${
-                      answers.find(a => a.question_id === question.id)?.selected_option === option
-                        ? 'bg-amber-500 text-white shadow-lg'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-amber-100 dark:hover:bg-amber-900 hover:text-amber-900 dark:hover:text-amber-100'
-                    }`}
-                    style={{ touchAction: 'manipulation' }}
-                  >
-                    <div className="text-center">
-                      <div className="font-semibold text-sm">{option}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : question.type === "visual_yesno" ? (
-            <div className="flex-1 flex flex-col min-h-0">
-              <div className="glass p-3 rounded-lg flex-1 flex flex-col min-h-0">
-                <div className="text-center mb-3 flex-1 min-h-0 relative overflow-hidden rounded-lg">
-                  <img 
-                    src={question.images?.[0]} 
-                    alt="Style example"
-                    className="absolute inset-0 w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = `
-                          <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
-                            <div class="text-center text-gray-500 dark:text-gray-400">
-                              <div class="text-4xl mb-2">📷</div>
-                              <div class="text-sm font-medium">Style image unavailable</div>
-                            </div>
-                          </div>
-                        `;
-                      }
-                    }}
-                  />
-                </div>
-                <div className="flex justify-center space-x-3 flex-shrink-0">
-                  <button
-                    onClick={() => handleAnswer(question.id, "Yes")}
-                    className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
-                      answers.find(a => a.question_id === question.id)?.selected_option === "Yes"
-                        ? 'bg-green-500 text-white shadow-lg'
-                        : 'glass-button text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-300'
-                    }`}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    onClick={() => handleAnswer(question.id, "No")}
-                    className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
-                      answers.find(a => a.question_id === question.id)?.selected_option === "No"
-                        ? 'bg-red-500 text-white shadow-lg'
-                        : 'glass-button text-gray-700 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-700 dark:hover:text-red-300'
-                    }`}
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : question.type === "rgb_slider" ? (
-            <div className="flex-1 flex flex-col">
-              <div className="glass p-4 rounded-lg flex-1 flex flex-col">
-                <div className="text-center mb-4 flex-shrink-0">
-                  <div 
-                    key={skinTone}
-                    className="w-24 h-24 mx-auto rounded-full border-4 border-gray-300 dark:border-gray-600 mb-3" 
-                  style={{
-                    backgroundColor: `hsl(${Math.round(30 - skinTone * 0.2)}, ${Math.round(45 - skinTone * 0.25)}%, ${Math.round(85 - skinTone * 0.65)}%)`
-                  }}
-                    title={`Skin tone: ${skinTone}`}
-                  ></div>
-                  <p className="text-base text-gray-600 dark:text-gray-400">Your skin tone</p>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={skinTone}
-                  onChange={(e) => {
-                    const newValue = parseInt(e.target.value);
-                    console.log('🎨 Skin tone changed to:', newValue);
-                    setSkinTone(newValue);
-                    handleAnswer('skin_tone', newValue.toString());
-                  }}
-                  className="w-full h-3 rounded-lg appearance-none cursor-pointer slider"
-                  style={{
-                    background: 'linear-gradient(to right, #fef3c7, #fde68a, #fcd34d, #f59e0b, #d97706, #b45309, #92400e, #78350f, #451a03, #1f2937)'
-                  }}
-                />
-                <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  <span>Light</span>
-                  <span>Dark</span>
-                </div>
-              </div>
-            </div>
-          ) : question.id === "gender" ? (
-            <div className="pb-2">
-              <div className="grid grid-cols-2 gap-3">
-                {question.options.map((option, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleAnswer(question.id, option)}
-                    className={`p-6 rounded-xl text-center transition-all duration-200 hover:scale-102 relative z-10 ${
-                      answers.find(a => a.question_id === question.id)?.selected_option === option
-                        ? 'gradient-primary text-white shadow-lg shadow-[#FFB84C]/20'
-                        : 'glass-button text-gray-900 dark:text-white hover:bg-amber-100/50 dark:hover:bg-amber-900/30'
-                    }`}
-                    style={{ touchAction: 'manipulation' }}
-                  >
-                    <div className="font-semibold text-base">{option}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : question.id === "daily_activities" || question.id === "style_elements" ? (
-            <div className="pb-2">
-              <div className="grid grid-cols-2 gap-3">
-                {question.options.map((option, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleAnswer(question.id, option)}
-                    className={`p-4 rounded-xl text-left transition-all duration-200 hover:scale-102 relative z-10 ${
-                      answers.find(a => a.question_id === question.id)?.selected_option === option
-                        ? 'gradient-primary text-white shadow-lg shadow-[#FFB84C]/20'
-                        : 'card-surface text-gray-900 dark:text-[#F8F5F1] hover:bg-gray-50 dark:hover:bg-[#3D2F24]'
-                    }`}
-                    style={{ touchAction: 'manipulation' }}
-                  >
-                    <div className="font-semibold text-sm">{option}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="pb-2">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {question.options.map((option, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleAnswer(question.id, option)}
-                    className={`p-4 rounded-xl text-left transition-all duration-200 hover:scale-102 relative z-10 ${
-                      answers.find(a => a.question_id === question.id)?.selected_option === option
-                        ? 'gradient-primary text-white shadow-lg shadow-[#FFB84C]/20'
-                        : 'card-surface text-gray-900 dark:text-[#F8F5F1] hover:bg-gray-50 dark:hover:bg-[#3D2F24]'
-                    }`}
-                    style={{ touchAction: 'manipulation' }}
-                  >
-                    <div className="text-center">
-                      <div className="font-semibold text-sm">{option}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="sticky bottom-0 -mx-4 mt-4 pt-4 bg-white/85 dark:bg-[#1A1510]/90 backdrop-blur-xl border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
-          <div className="px-4 pb-3 sm:pb-0 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-            <button
-              onClick={handlePrevious}
-              disabled={currentQuestionIndex === 0}
-              className="flex w-full sm:w-auto items-center justify-center px-4 py-3 rounded-2xl text-button font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-[#3D2F24] text-gray-700 dark:text-[#F8F5F1] hover:bg-gray-200 dark:hover:bg-[#3D2F24]/80"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2 inline-block" />
-              Previous
-            </button>
-
-            {isLastQuestion ? (
+          <div className="sticky bottom-0 -mx-4 mt-4 pt-4 bg-white/85 dark:bg-[#1A1510]/90 backdrop-blur-xl border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+            <div className="px-4 pb-3 sm:pb-0 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
               <button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-2xl font-semibold text-button gradient-primary text-white shadow-lg shadow-[#FFB84C]/20 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                onClick={handlePrevious}
+                disabled={currentQuestionIndex === 0}
+                className="flex w-full sm:w-auto items-center justify-center px-4 py-3 rounded-2xl text-button font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-[#3D2F24] text-gray-700 dark:text-[#F8F5F1] hover:bg-gray-200 dark:hover:bg-[#3D2F24]/80"
               >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    Discover My Style
-                    <ArrowRight className="h-4 w-4 ml-2 inline-block" />
-                  </>
-                )}
+                <ArrowLeft className="h-4 w-4 mr-2 inline-block" />
+                Previous
               </button>
-            ) : (
-              <button
-                onClick={handleNext}
-                disabled={!hasAnsweredCurrent}
-                className="flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-2xl font-semibold text-button gradient-primary text-white shadow-lg shadow-[#FFB84C]/20 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-              >
-                Next
-                <ArrowRight className="h-4 w-4 ml-2 inline-block" />
-              </button>
-            )}
+
+              {isLastQuestion ? (
+                <button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-2xl font-semibold text-button gradient-primary text-white shadow-lg shadow-[#FFB84C]/20 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      Discover My Style
+                      <ArrowRight className="h-4 w-4 ml-2 inline-block" />
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={handleNext}
+                  disabled={!hasAnsweredCurrent}
+                  className="flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-2xl font-semibold text-button gradient-primary text-white shadow-lg shadow-[#FFB84C]/20 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                >
+                  Next
+                  <ArrowRight className="h-4 w-4 ml-2 inline-block" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
