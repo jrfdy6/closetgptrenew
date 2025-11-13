@@ -72,9 +72,9 @@ export default function SignUp() {
                 },
                 body: JSON.stringify(submissionPayload)
               });
-            }
 
-            sessionStorage.removeItem("pendingQuizSubmission");
+              sessionStorage.removeItem("pendingQuizSubmission");
+            }
           } catch (quizError) {
             console.error("Failed to submit pending quiz after signup:", quizError);
           }

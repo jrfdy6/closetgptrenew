@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,14 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
+  const [fromQuiz, setFromQuiz] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      setFromQuiz(params.get("from") === "quiz");
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,10 +34,43 @@ export default function SignIn() {
     try {
       const result = await signIn(email, password);
       
-      if (result.success) {
-        console.log("Signin successful:", result.user?.email);
-        // Redirect to dashboard
-        router.push("/dashboard");
+      if (result.success && result.user) {
+        console.log("Signin successful:", result.user.email);
+
+        if (fromQuiz && typeof window !== "undefined") {
+          try {
+            const pendingRaw = sessionStorage.getItem("pendingQuizSubmission");
+            if (pendingRaw) {
+              const pending = JSON.parse(pendingRaw);
+              const token = await result.user.getIdToken();
+              const submissionPayload = {
+                userId: result.user.uid,
+                token,
+                answers: pending.answers || [],
+                colorAnalysis: pending.colorAnalysis || null,
+                stylePreferences: pending.stylePreferences || [],
+                colorPreferences: pending.colorPreferences || []
+              };
+
+              await fetch("/api/style-quiz/submit", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(submissionPayload)
+              });
+
+              sessionStorage.removeItem("pendingQuizSubmission");
+            }
+          } catch (quizError) {
+            console.error("Failed to submit pending quiz after signin:", quizError);
+          }
+
+          router.push("/style-persona?from=quiz");
+        } else {
+          router.push("/dashboard");
+        }
       } else {
         setError(result.error || "Sign in failed");
         console.error("Signin error:", result.error);
