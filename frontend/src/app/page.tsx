@@ -9,11 +9,11 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] relative overflow-hidden">
       {/* Modern minimal geometric elements - lighter on mobile */}
-      <div className="absolute inset-0 overflow-hidden opacity-35 md:opacity-55">
-        <div className="absolute top-10 md:top-20 left-5 md:left-10 w-24 md:w-32 h-24 md:h-32 bg-[#FFCC66]/25 dark:bg-[#FFB84C]/20 rounded-full blur-3xl"></div>
-        <div className="absolute top-32 md:top-40 right-10 md:right-20 w-20 md:w-24 h-20 md:h-24 bg-[#FFB84C]/20 dark:bg-[#FF9400]/20 rounded-full blur-2xl"></div>
-        <div className="absolute bottom-20 md:bottom-32 left-1/4 w-16 md:w-20 h-16 md:h-20 bg-[#F5F0E8]/30 dark:bg-[#3D2F24]/50 rounded-full blur-2xl"></div>
-        <div className="absolute bottom-10 md:bottom-20 right-1/3 w-20 md:w-28 h-20 md:h-28 bg-[#FF9400]/15 dark:bg-[#FFB84C]/25 rounded-full blur-3xl"></div>
+      <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-35 md:opacity-55">
+        <div className="pointer-events-none absolute top-10 md:top-20 left-5 md:left-10 w-24 md:w-32 h-24 md:h-32 bg-[#FFCC66]/25 dark:bg-[#FFB84C]/20 rounded-full blur-3xl"></div>
+        <div className="pointer-events-none absolute top-32 md:top-40 right-10 md:right-20 w-20 md:w-24 h-20 md:h-24 bg-[#FFB84C]/20 dark:bg-[#FF9400]/20 rounded-full blur-2xl"></div>
+        <div className="pointer-events-none absolute bottom-20 md:bottom-32 left-1/4 w-16 md:w-20 h-16 md:h-20 bg-[#F5F0E8]/30 dark:bg-[#3D2F24]/50 rounded-full blur-2xl"></div>
+        <div className="pointer-events-none absolute bottom-10 md:bottom-20 right-1/3 w-20 md:w-28 h-20 md:h-28 bg-[#FF9400]/15 dark:bg-[#FFB84C]/25 rounded-full blur-3xl"></div>
       </div>
       
       {/* Hero Section - Mobile Optimized */}
