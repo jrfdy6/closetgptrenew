@@ -1448,8 +1448,25 @@ export default function Onboarding() {
   }
 
   // Redirect if not authenticated
-  if (!user) {
-    return null; // Will redirect via useEffect
+  if (!modeResolved) {
+    return (
+      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB84C] mx-auto mb-4"></div>
+          <p className="text-body text-gray-600 dark:text-[#C4BCB4]">Loading your experience...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user && !isGuestFlow) {
+    return (
+      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] flex items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <p className="text-lg text-gray-700 dark:text-[#C4BCB4]">Redirecting you back home...</p>
+        </div>
+      </div>
+    );
   }
 
 
