@@ -1817,9 +1817,8 @@ export default function Onboarding() {
         </div>
 
         <div className="glass-float p-4 flex-1 flex flex-col min-h-0 glass-shadow overflow-hidden">
-          <div className="flex-1 overflow-y-auto pr-1">
-            <div className="mb-4 flex-shrink-0">
-              <div className="flex justify-between items-center mb-3">
+          <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+            <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                 Question {currentQuestionIndex + 1} of {questions.length}
               </span>
@@ -1832,10 +1831,9 @@ export default function Onboarding() {
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                 {Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}%
               </span>
-              </div>
             </div>
-            
-            <div className="mb-4 flex-shrink-0">
+
+            <div className="flex-shrink-0">
               <h2 className="text-lg md:text-xl font-serif text-gray-900 dark:text-white mb-3 text-center">
                 {question.question}
               </h2>
@@ -1850,7 +1848,7 @@ export default function Onboarding() {
                 </p>
               )}
             </div>
-          
+
           {question.type === "visual" ? (
             <div className="flex flex-col">
               {(question.id === "body_type_female" || question.id === "body_type_male") && (
