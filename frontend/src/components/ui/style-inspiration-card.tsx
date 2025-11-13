@@ -126,7 +126,7 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
 
   if (loading) {
     return (
-      <Card className={`w-full max-w-md ${className}`}>
+      <Card className={`w-full max-w-sm sm:max-w-md ${className}`}>
         <CardHeader>
           <Skeleton className="h-6 w-3/4" />
           <Skeleton className="h-4 w-1/2 mt-2" />
@@ -144,7 +144,7 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
 
   if (error) {
     return (
-      <Card className={`w-full max-w-md ${className}`}>
+      <Card className={`w-full max-w-sm sm:max-w-md ${className}`}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5" />
@@ -164,7 +164,7 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
 
   if (!inspiration) {
     return (
-      <Card className={`w-full max-w-md ${className}`}>
+      <Card className={`w-full max-w-sm sm:max-w-md ${className}`}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5" />
@@ -190,7 +190,7 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
     .slice(0, 3);
 
   return (
-    <Card className={`w-full max-w-md ${className} relative`}>
+    <Card className={`w-full max-w-sm sm:max-w-md ${className} relative`}>
       {/* Header */}
       <CardHeader>
         <div className="flex items-start justify-between">
@@ -219,7 +219,7 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
 
       {/* Image */}
       <CardContent className="space-y-4">
-        <div className="relative rounded-3xl overflow-hidden bg-[#F5F0E8] dark:bg-[#2C2119] border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 h-64 w-full shadow-lg">
+        <div className="relative rounded-3xl overflow-hidden bg-[#F5F0E8] dark:bg-[#2C2119] border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 h-48 sm:h-64 w-full shadow-lg">
           {imageLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-[#F5F0E8] dark:bg-[#2C2119] z-10">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB84C]"></div>

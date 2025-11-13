@@ -251,8 +251,8 @@ export default function ForgottenGems() {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-stretch sm:justify-items-center">
+        <Card className="w-full max-w-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Unworn</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -263,7 +263,7 @@ export default function ForgottenGems() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="w-full max-w-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Rediscovery Potential</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -310,7 +310,7 @@ export default function ForgottenGems() {
             >
               {highPotentialItems.map((item) => (
                 <CarouselSlide key={item.id}>
-                  <Card className="h-full shadow-lg border border-amber-200/80 dark:border-amber-800/60 bg-white dark:bg-stone-950">
+                  <Card className="h-full max-w-sm mx-auto shadow-lg border border-amber-200/80 dark:border-amber-800/60 bg-white dark:bg-stone-950">
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start mb-2">
                         <Badge variant="outline" className="text-xs">

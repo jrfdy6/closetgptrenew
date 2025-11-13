@@ -94,6 +94,7 @@ export default function Dashboard() {
   const [showBatchUpload, setShowBatchUpload] = useState(false);
   const [showOutfitGenerator, setShowOutfitGenerator] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const { user, loading } = useAuthContext();
   
   // Weather hook for automatic location detection
@@ -134,6 +135,22 @@ export default function Dashboard() {
   }, [dashboardData?.topItems]);
   
   console.log('🔍 Dashboard mounted, weather state:', weather?.location);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const query = window.matchMedia('(max-width: 640px)');
+    const update = (event: MediaQueryList | MediaQueryListEvent) => {
+      if ('matches' in event) {
+        setIsMobile(event.matches);
+      } else {
+        setIsMobile(event.currentTarget ? event.currentTarget.matches : query.matches);
+      }
+    };
+    update(query);
+    const handler = (event: MediaQueryListEvent) => update(event);
+    query.addEventListener('change', handler);
+    return () => query.removeEventListener('change', handler);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -368,7 +385,7 @@ export default function Dashboard() {
       <Navigation />
       
       {/* Main Content - Mobile Optimized - Bottom padding for nav */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 pb-24">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 pb-[120px] overflow-x-hidden">
         
         {/* Welcome Section - "Silent Luxury" Design */}
         <div className="mb-6 sm:mb-8">
@@ -382,7 +399,7 @@ export default function Dashboard() {
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <Button
                 onClick={() => setShowOutfitGenerator(true)}
-                className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/25 hover:from-[#FFB84C] hover:to-[#FF7700] transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/25 hover:from-[#FFB84C] hover:to-[#FF7700] transition-transform duration-200 sm:hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Sparkles className="w-5 h-5 mr-2" />
                 Generate today&apos;s fit
@@ -402,7 +419,7 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row gap-3 mb-6 sm:mb-8">
           <Button 
             onClick={() => setShowBatchUpload(true)}
-            className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20 hover:from-[#FFB84C] hover:to-[#FF7700] transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
+            className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20 hover:from-[#FFB84C] hover:to-[#FF7700] transition-transform duration-200 sm:hover:scale-[1.02] active:scale-[0.98]"
           >
             <Upload className="w-5 h-5 mr-2" />
             Add items with AI
@@ -412,7 +429,7 @@ export default function Dashboard() {
         {/* Modern Stats Cards - Mobile First Grid */}
         <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8`}>
           {/* Total Items Card */}
-          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 hover:shadow-xl transition-transform duration-200 hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
             <div className="flex flex-col space-y-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-xl flex items-center justify-center shadow-inner">
                 <Shirt className="h-5 w-5 sm:h-6 sm:w-6 text-[#FF9400] dark:text-[#FFB84C]" />
@@ -427,7 +444,7 @@ export default function Dashboard() {
           </div>
 
           {/* Favorites Card */}
-          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 hover:shadow-xl transition-transform duration-200 hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
             <div className="flex flex-col space-y-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFB84C]/30 to-[#FF6F61]/35 dark:from-[#FF9400]/20 dark:to-[#FF6F61]/25 rounded-xl flex items-center justify-center shadow-inner">
                 <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-[#FF6F61] dark:text-[#FFB4A2]" />
@@ -442,7 +459,7 @@ export default function Dashboard() {
           </div>
 
           {/* Style Goals Card */}
-          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 hover:shadow-xl transition-transform duration-200 hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
             <div className="flex flex-col space-y-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFCC66]/35 to-[#FFE08F]/40 dark:from-[#FFB84C]/20 dark:to-[#FFD27F]/25 rounded-xl flex items-center justify-center shadow-inner">
                 <Target className="h-5 w-5 sm:h-6 sm:w-6 text-[#FFB84C] dark:text-[#FFD27F]" />
@@ -537,7 +554,7 @@ export default function Dashboard() {
 
         {/* Backend Status Message */}
         {dashboardData && dashboardData.totalItems === 0 && (
-          <Card className="mb-8 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-[#FFF7E6]/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-2xl">
+          <Card className="mb-8 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-[#FFF7E6]/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-2xl sm:hover:shadow-lg transition-shadow duration-200">
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
                 <Info className="h-6 w-6 text-[#FF9400] dark:text-[#FFB84C]" />
@@ -720,14 +737,14 @@ export default function Dashboard() {
             {topItemsByCategory.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                 {topItemsByCategory.map((item) => (
-                  <div key={item.id} className="bg-white/90 dark:bg-[#1A1510]/90 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-xl sm:rounded-2xl overflow-hidden hover:shadow-xl transition-transform duration-200 hover:scale-[1.02]">
+                  <div key={item.id} className="bg-white/90 dark:bg-[#1A1510]/90 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02]">
                     {/* Item Image */}
-                    <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 relative">
+                    <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
                       {item.imageUrl && item.imageUrl !== '' && !item.imageUrl.includes('placeholder') ? (
                         <img 
                           src={item.imageUrl} 
                           alt={item.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-32 sm:h-full sm:aspect-square object-cover"
                           onError={(e) => {
                             // Hide broken images and show fallback icon
                             const target = e.target as HTMLImageElement;
@@ -742,7 +759,7 @@ export default function Dashboard() {
                           }}
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FFCC66]/20 to-[#FF9400]/20">
+                        <div className="w-full h-32 sm:h-full sm:aspect-square flex items-center justify-center bg-gradient-to-br from-[#FFCC66]/20 to-[#FF9400]/20">
                           <Sparkles className="h-8 w-8 sm:h-12 sm:w-12 text-[#FF9400]/70" />
                         </div>
                       )}
