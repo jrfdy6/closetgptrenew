@@ -94,7 +94,6 @@ export default function Dashboard() {
   const [showBatchUpload, setShowBatchUpload] = useState(false);
   const [showOutfitGenerator, setShowOutfitGenerator] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const { user, loading } = useAuthContext();
   
   // Weather hook for automatic location detection
@@ -150,18 +149,6 @@ export default function Dashboard() {
     const handler = (event: MediaQueryListEvent) => update(event);
     query.addEventListener('change', handler);
     return () => query.removeEventListener('change', handler);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mql = window.matchMedia('(max-width: 640px)');
-    const updateMatch = (event: MediaQueryListEvent | MediaQueryList) => {
-      setIsMobile(event.matches);
-    };
-    updateMatch(mql);
-    const handler = (event: MediaQueryListEvent) => updateMatch(event);
-    mql.addEventListener('change', handler);
-    return () => mql.removeEventListener('change', handler);
   }, []);
 
   // Automatic location prompt when dashboard loads
