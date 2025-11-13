@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Sparkles, Palette, Camera, TrendingUp, Heart, ArrowRight, CheckCircle } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -458,8 +458,8 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
 
 export default function Onboarding() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const flowMode = searchParams?.get('mode') || searchParams?.get('flow');
+  const [flowMode, setFlowMode] = useState<string | null>(null);
+  const [modeResolved, setModeResolved] = useState(false);
   const isGuestFlow = flowMode === 'guest' || flowMode === 'preauth';
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -494,10 +494,19 @@ export default function Onboarding() {
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (!authLoading && !user && !isGuestFlow) {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const mode = params.get('mode') || params.get('flow');
+      setFlowMode(mode);
+    }
+    setModeResolved(true);
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading && !user && modeResolved && !isGuestFlow) {
       window.location.href = '/';
     }
-  }, [user, authLoading, isGuestFlow]);
+  }, [user, authLoading, isGuestFlow, modeResolved]);
 
   // Filter questions based on gender
   const getFilteredQuestions = (genderOverride?: string): QuizQuestion[] => {
