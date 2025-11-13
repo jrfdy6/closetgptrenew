@@ -1770,6 +1770,9 @@ export default function Onboarding() {
     currentlyAt: `${currentQuestionIndex + 1}/${questions.length}`
   });
 
+  const hasAnsweredCurrent = !!answers.find(a => a.question_id === question?.id);
+  const isLastQuestion = currentQuestionIndex === questions.length - 1;
+
   // Show quiz questions
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950 flex flex-col p-4">
@@ -1783,9 +1786,10 @@ export default function Onboarding() {
           </p>
         </div>
 
-        <div className="glass-float p-4 flex-1 flex flex-col min-h-0 glass-shadow overflow-y-auto">
-        <div className="mb-4 flex-shrink-0">
-            <div className="flex justify-between items-center mb-3">
+        <div className="glass-float p-4 flex-1 flex flex-col min-h-0 glass-shadow overflow-hidden">
+          <div className="flex-1 overflow-y-auto pr-1">
+            <div className="mb-4 flex-shrink-0">
+              <div className="flex justify-between items-center mb-3">
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                 Question {currentQuestionIndex + 1} of {questions.length}
               </span>
@@ -1798,27 +1802,27 @@ export default function Onboarding() {
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                 {Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}%
               </span>
+              </div>
             </div>
-        </div>
-        
-          <div className="mb-4 flex-shrink-0">
-            <h2 className="text-lg md:text-xl font-serif text-gray-900 dark:text-white mb-3 text-center">
-              {question.question}
-            </h2>
-            {question.type === "visual" && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                Select the option that best represents your style
-              </p>
-            )}
-            {question.type === "rgb_slider" && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                Drag the slider to select your skin tone
-              </p>
-            )}
-          </div>
+            
+            <div className="mb-4 flex-shrink-0">
+              <h2 className="text-lg md:text-xl font-serif text-gray-900 dark:text-white mb-3 text-center">
+                {question.question}
+              </h2>
+              {question.type === "visual" && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                  Select the option that best represents your style
+                </p>
+              )}
+              {question.type === "rgb_slider" && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                  Drag the slider to select your skin tone
+                </p>
+              )}
+            </div>
           
           {question.type === "visual" ? (
-            <div className="flex-1 flex flex-col overflow-y-auto">
+            <div className="flex flex-col">
               {(question.id === "body_type_female" || question.id === "body_type_male") && (
                 <BodyPositiveMessage variant="profile" className="mb-3 flex-shrink-0" />
               )}
@@ -1927,7 +1931,7 @@ export default function Onboarding() {
               </div>
             </div>
           ) : question.id === "gender" ? (
-            <div className="flex-1 overflow-y-auto pb-2">
+            <div className="pb-2">
               <div className="grid grid-cols-2 gap-3">
                 {question.options.map((option, index) => (
                   <button
@@ -1946,7 +1950,7 @@ export default function Onboarding() {
               </div>
             </div>
           ) : question.id === "daily_activities" || question.id === "style_elements" ? (
-            <div className="flex-1 overflow-y-auto pb-2">
+            <div className="pb-2">
               <div className="grid grid-cols-2 gap-3">
                 {question.options.map((option, index) => (
                   <button
@@ -1965,7 +1969,7 @@ export default function Onboarding() {
               </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto pb-2">
+            <div className="pb-2">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {question.options.map((option, index) => (
                   <button
@@ -1988,44 +1992,46 @@ export default function Onboarding() {
           )}
         </div>
 
-        <div className="flex justify-between items-center mt-3 flex-shrink-0">
-          <button
-            onClick={handlePrevious}
-            disabled={currentQuestionIndex === 0}
-            className="flex items-center px-4 py-2 rounded-xl text-button font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-[#3D2F24] text-gray-700 dark:text-[#F8F5F1] hover:bg-gray-200 dark:hover:bg-[#3D2F24]/80"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2 inline-block" />
-            Previous
-          </button>
+        <div className="sticky bottom-0 -mx-4 mt-4 pt-4 bg-white/85 dark:bg-[#1A1510]/90 backdrop-blur-xl border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+          <div className="px-4 pb-3 sm:pb-0 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+            <button
+              onClick={handlePrevious}
+              disabled={currentQuestionIndex === 0}
+              className="flex w-full sm:w-auto items-center justify-center px-4 py-3 rounded-2xl text-button font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-[#3D2F24] text-gray-700 dark:text-[#F8F5F1] hover:bg-gray-200 dark:hover:bg-[#3D2F24]/80"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2 inline-block" />
+              Previous
+            </button>
 
-          {currentQuestionIndex === questions.length - 1 ? (
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="flex items-center px-6 py-3 rounded-xl font-semibold text-button gradient-primary text-white shadow-lg shadow-[#FFB84C]/20 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  Discover My Style
-                  <ArrowRight className="h-4 w-4 ml-2 inline-block" />
-                </>
-              )}
-            </button>
-          ) : (
-            <button
-              onClick={handleNext}
-              disabled={!answers.find(a => a.question_id === question.id)}
-              className="flex items-center px-4 py-2 rounded-xl font-medium text-button gradient-primary text-white shadow-lg shadow-[#FFB84C]/20 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-            >
-              Next
-              <ArrowRight className="h-4 w-4 ml-2 inline-block" />
-            </button>
-          )}
+            {isLastQuestion ? (
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-2xl font-semibold text-button gradient-primary text-white shadow-lg shadow-[#FFB84C]/20 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    Discover My Style
+                    <ArrowRight className="h-4 w-4 ml-2 inline-block" />
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                disabled={!hasAnsweredCurrent}
+                className="flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-2xl font-semibold text-button gradient-primary text-white shadow-lg shadow-[#FFB84C]/20 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+              >
+                Next
+                <ArrowRight className="h-4 w-4 ml-2 inline-block" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
