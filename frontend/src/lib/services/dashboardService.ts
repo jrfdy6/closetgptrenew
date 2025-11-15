@@ -256,6 +256,8 @@ class DashboardService {
       console.log('🔍 DEBUG: Using', wardrobeItems.length, 'wardrobe items for top worn calculation');
       
       // Fetch remaining data in parallel, passing wardrobe items to top worn calculator
+      const hasWardrobeItems = Array.isArray(wardrobeItems) && wardrobeItems.length > 0;
+
       const [
         simpleAnalytics,
         trendingStyles,
@@ -265,7 +267,7 @@ class DashboardService {
         fetchWithTimeout(this.getSimpleAnalytics(user, forceFresh), 15000, { success: true, outfits_worn_this_week: 0 }, 'SimpleAnalytics'),
         fetchWithTimeout(this.getTrendingStyles(user), 8000, { success: true, data: { styles: [] } }, 'TrendingStyles'),
         fetchWithTimeout(this.getTodaysOutfit(user), 8000, { success: true, suggestion: null }, 'TodaysOutfit'),
-        fetchWithTimeout(this.getTopWornItems(user, wardrobeItems), 8000, { success: true, data: { items: [] } }, 'TopWornItems')
+        fetchWithTimeout(this.getTopWornItems(user, wardrobeItems, hasWardrobeItems), 8000, { success: true, data: { items: [] } }, 'TopWornItems')
       ]);
 
       console.log('🔍 DEBUG: All API calls completed, processing data...');
@@ -280,7 +282,6 @@ class DashboardService {
       // Extract data from backend responses with proper fallbacks
       // Now using /wardrobe endpoint which returns individual items
       const totalItems = (wardrobeStats as any)?.total_items || wardrobeItems.length || 0;
-      const hasWardrobeItems = Array.isArray(wardrobeItems) && wardrobeItems.length > 0;
       
       const topWornItemsList = (topWornItems as any)?.data?.items || (topWornItems as any)?.items || topWornItems || [];
       const trendingStylesList = (trendingStyles as any)?.data?.styles || (trendingStyles as any)?.styles || trendingStyles || [];
@@ -652,7 +653,7 @@ class DashboardService {
     }
   }
 
-  private async getTopWornItems(user: User, wardrobeItems: any[] = []) {
+  private async getTopWornItems(user: User, wardrobeItems: any[] = [], hasWardrobeItems: boolean = true) {
     try {
       console.log('🔍 DEBUG: Calculating top worn items from wardrobe data');
       console.log('🔍 DEBUG: Wardrobe items count:', wardrobeItems.length);
@@ -717,7 +718,18 @@ class DashboardService {
         };
       }
       
-      // Fallback to API if no wardrobe items provided
+      // If the user truly has no wardrobe items, return empty data instead of demo/fallback items
+      if (!hasWardrobeItems) {
+        console.log('ℹ️ DEBUG: No wardrobe items available for this user, skipping top worn API and returning empty list.');
+        return {
+          success: true,
+          top_worn_items: [],
+          count: 0,
+          message: 'No wardrobe items available'
+        };
+      }
+      
+      // Fallback to API if we expect items but none were passed (e.g., stats endpoint failed)
       console.log('🔍 DEBUG: No wardrobe items, fetching from API');
       const response = await this.makeAuthenticatedRequest('/wardrobe/top-worn-items?limit=5', user, {
         method: 'GET'
