@@ -280,6 +280,7 @@ class DashboardService {
       // Extract data from backend responses with proper fallbacks
       // Now using /wardrobe endpoint which returns individual items
       const totalItems = (wardrobeStats as any)?.total_items || wardrobeItems.length || 0;
+      const hasWardrobeItems = Array.isArray(wardrobeItems) && wardrobeItems.length > 0;
       
       const topWornItemsList = (topWornItems as any)?.data?.items || (topWornItems as any)?.items || topWornItems || [];
       const trendingStylesList = (trendingStyles as any)?.data?.styles || (trendingStyles as any)?.styles || trendingStyles || [];
@@ -292,6 +293,7 @@ class DashboardService {
       console.log('🔍 DEBUG: Extracted data:');
       console.log('🔍 DEBUG: - wardrobeItems:', wardrobeItems.length, 'items (empty - backend only returns stats)');
       console.log('🔍 DEBUG: - totalItems:', totalItems);
+      console.log('🔍 DEBUG: - hasWardrobeItems:', hasWardrobeItems);
       console.log('🔍 DEBUG: - topWornItemsList:', topWornItemsList.length, 'items');
       console.log('🔍 DEBUG: - trendingStylesList:', trendingStylesList.length, 'styles');
       console.log('🔍 DEBUG: - outfitsThisWeek:', outfitsThisWeek);
@@ -306,6 +308,11 @@ class DashboardService {
       const styleCollections = this.buildStyleCollections(wardrobeStats, trendingStyles, userProfile);
       const styleGoalsData = this.calculateStyleGoals(styleCollections);
       
+      const resolvedWardrobeGaps = hasWardrobeItems ? await this.getWardrobeGapsFromBackend(user) : [];
+      if (!hasWardrobeItems) {
+        console.log('ℹ️ DEBUG: No wardrobe items found for user, skipping wardrobe gaps fetch and returning empty insights.');
+      }
+
       const dashboardData: DashboardData = {
         totalItems: totalItems,
         favorites: this.calculateFavorites(wardrobeStats),
@@ -317,7 +324,7 @@ class DashboardService {
         styleExpansions: this.buildStyleExpansions(wardrobeStats, trendingStyles),
         seasonalBalance: this.buildSeasonalBalance(wardrobeStats),
         colorVariety: this.buildColorVariety(wardrobeStats),
-        wardrobeGaps: await this.getWardrobeGapsFromBackend(user),
+        wardrobeGaps: resolvedWardrobeGaps,
         topItems: this.buildTopItems(topWornItems),
         recentOutfits: this.buildRecentOutfits(),
         todaysOutfit: (todaysOutfit as any)?.todaysOutfit || todaysOutfit || null,
