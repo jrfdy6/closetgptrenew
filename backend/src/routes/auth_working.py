@@ -21,12 +21,47 @@ logger = logging.getLogger("auth_working")
 
 router = APIRouter(tags=["authentication"])
 
+@router.get("/profile/health")
+async def profile_health():
+    """Health check for profile route - no authentication required."""
+    logger.info("🔍 PROFILE: Health check called")
+    try:
+        from ..config.firebase import firebase_initialized, db
+        return {
+            "status": "ok",
+            "firebase_initialized": firebase_initialized,
+            "db_available": db is not None
+        }
+    except Exception as e:
+        logger.error(f"🔍 PROFILE: Health check failed: {e}", exc_info=True)
+        return {
+            "status": "error",
+            "error": str(e)
+        }
+
 @router.get("/profile")
 async def get_user_profile(current_user: UserProfile = Depends(get_current_user)):
     """Get current user's profile."""
     import asyncio
     
     try:
+        logger.info(f"🔍 PROFILE: Route handler called for user: {current_user.id if current_user else 'None'}")
+        
+        # Verify we have a valid user object
+        if not current_user:
+            logger.error("🔍 PROFILE: current_user is None - authentication dependency failed")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication failed - user not found"
+            )
+        
+        if not hasattr(current_user, 'id') or not current_user.id:
+            logger.error("🔍 PROFILE: current_user missing id attribute")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication failed - invalid user data"
+            )
+        
         logger.info(f"🔍 PROFILE: Getting profile for user: {current_user.id}")
         
         # Always return at least basic profile from token (fast path)

@@ -34,7 +34,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         )
     
     try:
-        logger.debug(f"🔍 AUTH: get_current_user called - token length: {len(credentials.credentials) if credentials.credentials else 0}")
+        token_length = len(credentials.credentials) if credentials.credentials else 0
+        logger.info(f"🔍 AUTH: get_current_user called - token length: {token_length}, has_token: {bool(credentials.credentials)}")
         # print(f"🔍 DEBUG: Auth service called with credentials: {credentials.credentials[:20]}...")
         # print(f"🔍 DEBUG: Full token length: {len(credentials.credentials)}")
         # Removed full token logging for security
@@ -151,8 +152,11 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
                     headers={"WWW-Authenticate": "Bearer"},
                 )
             
-    except HTTPException:
-        # Re-raise HTTP exceptions (like 401, 503) without modification
+    except HTTPException as http_exc:
+        # Log HTTP exceptions before re-raising
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"❌ AUTH: HTTPException raised: {http_exc.status_code} - {http_exc.detail}")
         raise
     except Exception as e:
         import logging
@@ -165,9 +169,10 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         if isinstance(e, HTTPException):
             raise
         
+        # Don't expose internal errors to client
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Authentication service error: {str(e) if str(e) else 'Unknown error'}"
+            detail=f"Authentication service error"
         )
 
 # Alternative function that doesn't require authentication for testing
