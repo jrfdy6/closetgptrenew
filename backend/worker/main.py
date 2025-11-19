@@ -527,7 +527,6 @@ def generate_openai_flatlay_image(
                     "content": user_content,
                 },
             ],
-            response_format={"type": "output_image"},
             max_output_tokens=0,
         )
 
