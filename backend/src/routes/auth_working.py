@@ -54,11 +54,37 @@ async def get_user_profile(current_user: UserProfile = Depends(get_current_user)
             }
         
         # Query Firestore for real user data (same pattern as wardrobe.py)
-        user_doc = db.collection('users').document(current_user.id).get()
-        
-        if not user_doc.exists:
-            logger.info(f"🔍 DEBUG: No Firestore profile found for user: {current_user.id}")
-            # Return profile from token data (same fallback as outfits.py)
+        try:
+            user_doc = db.collection('users').document(current_user.id).get()
+            
+            if not user_doc.exists:
+                logger.info(f"🔍 DEBUG: No Firestore profile found for user: {current_user.id}")
+                # Return profile from token data (same fallback as outfits.py)
+                return {
+                    "user_id": current_user.id,
+                    "email": current_user.email,
+                    "name": current_user.name,
+                    "avatar_url": None,
+                    "created_at": current_user.createdAt,
+                    "updated_at": current_user.updatedAt
+                }
+            
+            user_data = user_doc.to_dict()
+            logger.info(f"🔍 DEBUG: Profile data retrieved from Firestore: user_id={current_user.id}, fields_count={len(user_data.keys()) if user_data else 0}")
+            
+            # Return the full user profile data instead of just basic fields
+            # This includes measurements, style preferences, and all other profile data
+            return user_data or {
+                "user_id": current_user.id,
+                "email": current_user.email,
+                "name": current_user.name,
+                "avatar_url": None,
+                "created_at": current_user.createdAt,
+                "updated_at": current_user.updatedAt
+            }
+        except Exception as firestore_error:
+            logger.error(f"Firestore query failed: {firestore_error}", exc_info=True)
+            # Return profile from token data as fallback
             return {
                 "user_id": current_user.id,
                 "email": current_user.email,
@@ -68,18 +94,13 @@ async def get_user_profile(current_user: UserProfile = Depends(get_current_user)
                 "updated_at": current_user.updatedAt
             }
         
-        user_data = user_doc.to_dict()
-        logger.info(f"🔍 DEBUG: Profile data retrieved from Firestore: user_id={current_user.id}, fields_count={len(user_data.keys()) if user_data else 0}")
-        
-        # Return the full user profile data instead of just basic fields
-        # This includes measurements, style preferences, and all other profile data
-        return user_data
-        
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Failed to get user profile: {e}")
+        logger.error(f"Failed to get user profile: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get user profile"
+            detail=f"Failed to get user profile: {str(e)}"
         )
 
 @router.put("/profile")
