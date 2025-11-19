@@ -7425,17 +7425,38 @@ class RobustOutfitGenerationService:
         # CRITICAL: Deduplicate by ID to prevent same item appearing twice
         seen_ids = set()
         deduplicated_items = []
+        base_item_in_deduped = False
+        
+        # First pass: Preserve base item if present
+        base_item_to_preserve = None
+        if context.base_item_id:
+            for item in selected_items:
+                item_id = self.safe_get_item_attr(item, 'id', '')
+                if item_id == context.base_item_id:
+                    base_item_to_preserve = item
+                    break
+        
         for item in selected_items:
             item_id = self.safe_get_item_attr(item, 'id', '')
             if item_id and item_id not in seen_ids:
                 seen_ids.add(item_id)
                 deduplicated_items.append(item)
+                if item_id == context.base_item_id:
+                    base_item_in_deduped = True
             else:
                 logger.warning(f"🔧 DEDUP: Removed duplicate item {self.safe_get_item_name(item)} (ID already in outfit)")
         
+        # CRITICAL FIX: Ensure base item is ALWAYS included after deduplication
+        if context.base_item_id and base_item_to_preserve and not base_item_in_deduped:
+            logger.warning(f"⚠️ BASE ITEM LOST IN DEDUP: Restoring base item {context.base_item_id}")
+            # Remove it from its current position if it exists as a duplicate, then add it at the front
+            deduplicated_items = [item for item in deduplicated_items if self.safe_get_item_attr(item, 'id', '') != context.base_item_id]
+            deduplicated_items.insert(0, base_item_to_preserve)
+            logger.info(f"✅ BASE ITEM RESTORED: {self.safe_get_item_name(base_item_to_preserve)} is now first in outfit")
+        
         if len(deduplicated_items) != len(selected_items):
             logger.warning(f"🔧 DEDUPLICATION: Removed {len(selected_items) - len(deduplicated_items)} duplicate items")
-            selected_items = deduplicated_items
+        selected_items = deduplicated_items
         
         logger.info(f"🎯 FINAL SELECTION: {len(selected_items)} items")
 
@@ -7495,6 +7516,11 @@ class RobustOutfitGenerationService:
                     alternative = (safe_get(suggestion, 'alternative') if suggestion else None)
                     
                     if item_to_replace and alternative:
+                        # CRITICAL: Never swap out the base item
+                        if context.base_item_id and self.safe_get_item_attr(item_to_replace, "id", "") == context.base_item_id:
+                            logger.info(f"  ⏭️ Diversity swap skipped: Cannot swap base item {self.safe_get_item_name(item_to_replace)}")
+                            continue
+                            
                         alt_id = self.safe_get_item_attr(alternative, "id", "") if alternative else ""
                         if not _is_monochrome_allowed(alternative, alt_id, None, log_prefix="  "):
                             logger.debug(f"  ⏭️ Diversity swap skipped for {getattr(alternative, 'name', 'Unknown')} due to monochrome palette mismatch")
@@ -7585,6 +7611,34 @@ class RobustOutfitGenerationService:
         if len(unique_selected_items) != len(selected_items):
             logger.info(f"🔁 DEDUPLICATION: Final outfit items reduced from {len(selected_items)} to {len(unique_selected_items)}")
         selected_items = unique_selected_items
+        
+        # CRITICAL FIX: Ensure base item is ALWAYS included in final outfit (even if deduplication removed it)
+        # This is especially important for accessories like sunglasses that might not pass all filters
+        if context.base_item_id:
+            base_item_present = any(
+                self.safe_get_item_attr(item, "id", "") == context.base_item_id 
+                for item in selected_items
+            )
+            if not base_item_present:
+                logger.warning(f"⚠️ BASE ITEM MISSING: Base item {context.base_item_id} not in final outfit, adding it now...")
+                # Search for base item in wardrobe (try wardrobe_original first, then wardrobe)
+                base_item_found = False
+                wardrobe_to_search = []
+                if hasattr(context, 'wardrobe_original') and context.wardrobe_original:
+                    wardrobe_to_search = context.wardrobe_original
+                elif hasattr(context, 'wardrobe') and context.wardrobe:
+                    wardrobe_to_search = context.wardrobe
+                
+                for item in wardrobe_to_search:
+                    if self.safe_get_item_attr(item, "id", "") == context.base_item_id:
+                        # Add base item at the beginning to maintain priority
+                        selected_items.insert(0, item)
+                        logger.info(f"✅ BASE ITEM RESTORED: Added {self.safe_get_item_name(item)} to final outfit")
+                        base_item_found = True
+                        break
+                
+                if not base_item_found:
+                    logger.error(f"❌ BASE ITEM NOT FOUND: Could not find base item {context.base_item_id} in wardrobe!")
         
         # Build summary of top candidate scores for observability
         top_candidates: List[Dict[str, Any]] = []
