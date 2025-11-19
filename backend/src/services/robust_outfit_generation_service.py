@@ -2956,8 +2956,9 @@ class RobustOutfitGenerationService:
                     logger.warning(f"🌡️ HARD FILTER: {self.safe_get_item_name(item)} REMOVED for {temp}°F hot weather")
                     weather_rejected += 1
                     continue
-            elif temp < 40:  # Cold weather - more permissive
-                cold_inappropriate = ['shorts', 'sandals', 'tank', 'light', 'summer']
+            elif temp < 65:  # Cold/cool weather - block summer items
+                # Block shorts, sandals, and other summer items for temperatures below 65°F
+                cold_inappropriate = ['shorts', 'sandals', 'flip flops', 'tank top', 'tank', 'sleeveless']
                 if any(keyword in item_name_lower or keyword in item_type_lower for keyword in cold_inappropriate):
                     logger.warning(f"❄️ HARD FILTER: {self.safe_get_item_name(item)} REMOVED for {temp}°F cold weather")
                     weather_rejected += 1
