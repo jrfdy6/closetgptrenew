@@ -485,7 +485,7 @@ def generate_openai_flatlay_image(
                 {
                     "type": "input_image",
                     "image": {
-                        "base64": encoded,
+                        "data": encoded,
                         "mime_type": "image/png",
                     },
                 }
@@ -507,11 +507,20 @@ def generate_openai_flatlay_image(
             input=[
                 {
                     "role": "system",
-                    "content": (
-                        "You are a senior fashion photographer tasked with generating premium "
-                        "flat lay imagery for an AI wardrobe assistant. Use the provided garment images "
-                        "exactly as reference; do not hallucinate new pieces."
-                    ),
+                    "content": [
+                        {
+                            "type": "input_image_parameters",
+                            "size": "1024x1024"
+                        },
+                        {
+                            "type": "text",
+                            "text": (
+                                "You are a senior fashion photographer tasked with generating premium "
+                                "flat lay imagery for an AI wardrobe assistant. Use the provided garment images "
+                                "exactly as reference; do not hallucinate new pieces."
+                            )
+                        }
+                    ],
                 },
                 {
                     "role": "user",
