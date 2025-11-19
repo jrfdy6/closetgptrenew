@@ -413,7 +413,7 @@ class RobustOutfitGenerationService:
         item_type = str(self.safe_get_item_type(item)).lower()
         item_name = self.safe_get_item_name(item).lower()
         item_name_lower = item_name
-        logger.info(f"✅ COMMIT 378ebeee9: _hard_filter analyzing '{item_name[:40]}'")
+        logger.debug(f"✅ COMMIT 378ebeee9: _hard_filter analyzing '{item_name[:40]}'")
         item_name_lower = item_name
         item_name_lower = item_name
         item_name_lower = item_name
@@ -3038,7 +3038,7 @@ class RobustOutfitGenerationService:
         
         item_name = self.safe_get_item_name(item).lower()
         item_name_lower = item_name
-        logger.info(f"✅ COMMIT 378ebeee9: _hard_filter analyzing '{item_name[:40]}'")
+        logger.debug(f"✅ COMMIT 378ebeee9: _hard_filter analyzing '{item_name[:40]}'")
         # Extract just the enum value, not the full "ClothingType.SHIRT" string
         raw_type = getattr(item, 'type', '')
         if hasattr(raw_type, 'value'):
@@ -3049,11 +3049,12 @@ class RobustOutfitGenerationService:
         style_lower = (style or '').lower()
         item_type_lower = item_type
         
-        logger.info(f"🔍 HARD FILTER ENTRY: Checking '{item_name[:30]}' (type={item_type}) for {occasion}")
+        logger.debug(f"🔍 HARD FILTER ENTRY: Checking '{item_name[:30]}' (type={item_type}) for {occasion}")
         
         # GYM/ATHLETIC HARD BLOCKS FIRST - Block formal/structured items BEFORE anything else
         if occasion_lower in ['gym', 'athletic', 'workout']:
-            logger.info(f"🏋️ GYM FILTER ACTIVE for {occasion}")
+            # Only log once per occasion type (not per item)
+            # logger.debug(f"🏋️ GYM FILTER ACTIVE for {occasion}")
             
             # STRICT PANTS FILTER: METADATA-FIRST APPROACH
             # Check metadata FIRST, name LAST (only as fallback)
@@ -3282,7 +3283,7 @@ class RobustOutfitGenerationService:
                 
                 # Combine checks: name keywords, occasion tags, metadata
                 if is_athletic_shoe or has_athletic_occasion or athletic_shoe_in_metadata:
-                    logger.info(f"✅ GYM HARD FILTER: PASSED ATHLETIC SHOE '{item_name[:40]}'")
+                    logger.debug(f"✅ GYM HARD FILTER: PASSED ATHLETIC SHOE '{item_name[:40]}'")
                 else:
                     logger.info(f"🚫 GYM HARD FILTER: BLOCKED GENERIC/UNCLEAR SHOES '{item_name[:40]}' - Must be explicitly athletic")
                     return False
@@ -3326,7 +3327,7 @@ class RobustOutfitGenerationService:
                     return False
                 else:
                     # Generic shirt without collar = OK for gym
-                    logger.info(f"✅ GYM HARD FILTER: ALLOWED SHIRT '{item_name[:40]}' - No collar detected")
+                    logger.debug(f"✅ GYM HARD FILTER: ALLOWED SHIRT '{item_name[:40]}' - No collar detected")
             
             # Block other formal/structured items (comprehensive list)
             gym_blocks = [
@@ -3346,7 +3347,7 @@ class RobustOutfitGenerationService:
                     logger.info(f"🚫 GYM HARD FILTER: BLOCKED '{item_name[:40]}' - matched '{block}'")
                     return False
             
-            logger.info(f"✅ GYM HARD FILTER: PASSED '{item_name[:40]}'")
+            logger.debug(f"✅ GYM HARD FILTER: PASSED '{item_name[:40]}'")
         
         # FORMAL/BUSINESS/INTERVIEW HARD BLOCKS - Block casual/athletic items
         if occasion_lower in ['formal', 'business', 'interview', 'work', 'professional']:
@@ -3389,7 +3390,7 @@ class RobustOutfitGenerationService:
                     logger.info(f"🚫 BUSINESS HARD FILTER: BLOCKED CASUAL SHORTS '{item_name[:40]}'")
                     return False
             
-            logger.info(f"✅ FORMAL HARD FILTER: PASSED '{item_name[:40]}'")
+            logger.debug(f"✅ FORMAL HARD FILTER: PASSED '{item_name[:40]}'")
         
         # LOUNGEWEAR/HOME HARD BLOCKS - Block formal/structured items
         if occasion_lower in ['loungewear', 'home', 'sleep', 'relax']:
@@ -3422,7 +3423,7 @@ class RobustOutfitGenerationService:
                             logger.info(f"🚫 LOUNGEWEAR ARTSY METADATA: BLOCKED {item_name[:40]} - material={material}")
                             return False
             
-            logger.info(f"✅ LOUNGEWEAR HARD FILTER: PASSED '{item_name[:40]}'")
+            logger.debug(f"✅ LOUNGEWEAR HARD FILTER: PASSED '{item_name[:40]}'")
 
             # --- RELAXED BOTTOMS METADATA ENRICHMENT ---
             def _ensure_relaxed_metadata(meta: dict):
@@ -3597,7 +3598,8 @@ class RobustOutfitGenerationService:
         
         # PARTY/DATE HARD BLOCKS - Block overly casual/athletic items
         if occasion_lower in ['party', 'date', 'night out', 'club', 'dinner']:
-            logger.info(f"🎉 PARTY/DATE FILTER ACTIVE for {occasion}")
+            # Only log once per occasion type (not per item)
+            # logger.debug(f"🎉 PARTY/DATE FILTER ACTIVE for {occasion}")
             
             # Block gym/athletic wear
             athletic_blocks = [
@@ -3607,7 +3609,7 @@ class RobustOutfitGenerationService:
             ]
             
             if any(block in item_name.lower() for block in athletic_blocks):
-                logger.info(f"🚫 PARTY/DATE HARD FILTER: BLOCKED ATHLETIC ITEM '{item_name[:40]}'")
+                logger.warning(f"🚫 PARTY/DATE HARD FILTER: BLOCKED ATHLETIC ITEM '{item_name[:40]}'")
                 return False
             
             # Block overly casual items
@@ -3618,10 +3620,10 @@ class RobustOutfitGenerationService:
             ]
             
             if any(block in item_name.lower() for block in too_casual_blocks):
-                logger.info(f"🚫 PARTY/DATE HARD FILTER: BLOCKED TOO CASUAL '{item_name[:40]}'")
+                logger.warning(f"🚫 PARTY/DATE HARD FILTER: BLOCKED TOO CASUAL '{item_name[:40]}'")
                 return False
             
-            logger.info(f"✅ PARTY/DATE HARD FILTER: PASSED '{item_name[:40]}'")
+            logger.debug(f"✅ PARTY/DATE HARD FILTER: PASSED '{item_name[:40]}'")
         
         if style_lower in ['old money', 'urban professional']:
             logger.info(f"🏛️ OLD MONEY STYLE FILTER ACTIVE for {style}")
@@ -3648,7 +3650,7 @@ class RobustOutfitGenerationService:
                         logger.info(f"🚫 OLD MONEY METADATA: BLOCKED '{item_name[:40]}' (formalLevel={formal_level})")
                         return False
             
-            logger.info(f"✅ OLD MONEY FILTER: PASSED '{item_name[:40]}'")
+            logger.debug(f"✅ OLD MONEY FILTER: PASSED '{item_name[:40]}'")
         
         # Try compatibility matrix (will likely fail but doesn't matter now)
         try:
