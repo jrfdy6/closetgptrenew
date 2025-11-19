@@ -1,0 +1,33 @@
+# Dockerfile for Background Worker Service
+# Processes wardrobe images and flatlays in the background
+
+FROM python:3.11
+
+# Set working directory
+WORKDIR /app
+
+# Copy worker requirements
+COPY worker/requirements.txt ./worker/
+
+# Upgrade pip
+RUN python -m pip install --upgrade pip
+
+# Install worker dependencies
+RUN pip install --no-cache-dir --default-timeout=100 -r worker/requirements.txt
+
+# Install large packages separately to avoid issues
+RUN pip install --no-cache-dir --default-timeout=100 onnxruntime==1.22.1 opencv-python-headless==4.12.0.88 || \
+    pip install --no-cache-dir --default-timeout=100 onnxruntime==1.22.1 opencv-python-headless==4.12.0.88
+
+# Copy worker code
+COPY worker/ ./worker/
+
+# Copy src directory so worker can import subscription_utils
+COPY backend/src/ ./src/
+
+# Set working directory to worker
+WORKDIR /app/worker
+
+# Run the worker
+CMD ["python", "main.py"]
+
