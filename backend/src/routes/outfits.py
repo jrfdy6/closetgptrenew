@@ -4637,6 +4637,102 @@ async def debug_specific_outfit(outfit_id: str):
         "debug_info": debug_info
     }
 
+@router.post("/{outfit_id}/flatlay/process")
+async def process_flatlay(
+    outfit_id: str,
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Trigger flatlay processing for an outfit.
+    This endpoint processes flatlays on-demand instead of waiting for the worker.
+    """
+    try:
+        from ..config.firebase import db
+        if not db:
+            raise HTTPException(status_code=503, detail="Database unavailable")
+        
+        # Get the outfit
+        outfit_ref = db.collection('outfits').document(outfit_id)
+        outfit_doc = outfit_ref.get()
+        
+        if not outfit_doc.exists:
+            raise HTTPException(status_code=404, detail="Outfit not found")
+        
+        outfit_data = outfit_doc.to_dict()
+        
+        # Verify ownership
+        user_id = outfit_data.get('userId') or outfit_data.get('user_id')
+        if user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to process this outfit's flatlay")
+        
+        # Check if already processing or done
+        flat_lay_status = (
+            outfit_data.get('metadata', {}).get('flat_lay_status') or
+            outfit_data.get('flat_lay_status') or
+            'awaiting_consent'
+        )
+        
+        if flat_lay_status == 'done':
+            return {"status": "already_done", "message": "Flatlay already generated"}
+        
+        if flat_lay_status == 'processing':
+            return {"status": "processing", "message": "Flatlay is already being processed"}
+        
+        # Try to import and call the worker function
+        try:
+            import sys
+            from pathlib import Path
+            worker_path = Path(__file__).parent.parent.parent.parent / 'worker' / 'main.py'
+            if worker_path.exists():
+                # Update status to processing
+                outfit_ref.update({
+                    'flat_lay_status': 'processing',
+                    'flatLayStatus': 'processing',
+                    'metadata.flat_lay_status': 'processing',
+                    'metadata.flatLayStatus': 'processing',
+                })
+                
+                # Import worker function
+                sys.path.insert(0, str(worker_path.parent))
+                from worker.main import process_outfit_flat_lay
+                
+                # Process the flatlay
+                process_outfit_flat_lay(outfit_id, outfit_data)
+                
+                return {"status": "processing", "message": "Flatlay processing started"}
+            else:
+                # Worker not available, set to pending for worker to pick up
+                outfit_ref.update({
+                    'flat_lay_status': 'pending',
+                    'flatLayStatus': 'pending',
+                    'metadata.flat_lay_status': 'pending',
+                    'metadata.flatLayStatus': 'pending',
+                })
+                return {
+                    "status": "pending",
+                    "message": "Flatlay queued for processing. Worker service needs to be deployed."
+                }
+        except Exception as worker_error:
+            logger.error(f"Failed to process flatlay directly: {worker_error}")
+            # Fallback: set to pending for worker to pick up
+            outfit_ref.update({
+                'flat_lay_status': 'pending',
+                'flatLayStatus': 'pending',
+                'metadata.flat_lay_status': 'pending',
+                'metadata.flatLayStatus': 'pending',
+            })
+            return {
+                "status": "pending",
+                "message": "Flatlay queued for processing. Worker service needs to be deployed."
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing flatlay: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to process flatlay: {str(e)}")
+
+
 @router.post("/{outfit_id}/worn")
 async def mark_outfit_as_worn(
     outfit_id: str,

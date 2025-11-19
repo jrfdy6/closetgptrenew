@@ -837,6 +837,28 @@ export default function OutfitGenerationPage() {
           : prev
       );
 
+      // Try to trigger processing immediately (fallback if worker isn't running)
+      try {
+        const backendUrl = 'https://closetgptrenew-production.up.railway.app';
+        const processResponse = await fetch(
+          `${backendUrl}/api/outfits/${generatedOutfit.id}/flatlay/process`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${await user.getIdToken()}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        if (processResponse.ok) {
+          const processData = await processResponse.json();
+          console.log('✅ Flatlay processing triggered:', processData);
+        }
+      } catch (processError) {
+        // Silent fail - worker will pick it up if endpoint doesn't work
+        console.warn('Could not trigger immediate processing, worker will pick it up:', processError);
+      }
+
       toast({
         title: "Flat lay on the way!",
         description: "We’ll craft your premium flat lay and notify you once it’s ready.",
