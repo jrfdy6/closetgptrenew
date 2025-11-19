@@ -244,7 +244,7 @@ class OutfitFilteringService:
             if any(item_type_check in item_type for item_type_check in exclude_types):
                 return False
                 
-        elif temperature <= 40:  # Very cold weather (40°F and below)
+        elif temperature < 65:  # Cold/cool weather (below 65°F)
             # Exclude summer items and prefer warm items
             exclude_materials = ['linen', 'light cotton', 'mesh', 'silk']
             exclude_types = ['tank top', 'sleeveless', 'shorts', 'sandals', 'flip flops']
