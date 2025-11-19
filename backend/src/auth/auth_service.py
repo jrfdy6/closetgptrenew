@@ -11,14 +11,30 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     """
     Authenticate user using Firebase JWT token.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     # Import Firebase inside function to prevent import-time crashes
     try:
         from firebase_admin import auth
+        import firebase_admin
+        
+        # Check if Firebase Admin is initialized
+        if not firebase_admin._apps:
+            logger.error("❌ AUTH: Firebase Admin not initialized")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
+                detail="Firebase Admin not initialized - authentication unavailable"
+            )
     except ImportError as e:
-        # print(f"⚠️ Firebase import failed: {e}")
-        raise HTTPException(status_code=500, detail="Authentication service unavailable")
+        logger.error(f"❌ AUTH: Firebase import failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
+            detail="Authentication service unavailable"
+        )
     
     try:
+        logger.debug(f"🔍 AUTH: get_current_user called - token length: {len(credentials.credentials) if credentials.credentials else 0}")
         # print(f"🔍 DEBUG: Auth service called with credentials: {credentials.credentials[:20]}...")
         # print(f"🔍 DEBUG: Full token length: {len(credentials.credentials)}")
         # Removed full token logging for security
@@ -135,13 +151,20 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
                     headers={"WWW-Authenticate": "Bearer"},
                 )
             
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 401, 503) without modification
+        raise
     except Exception as e:
-        # print(f"🔍 DEBUG: Authentication error: {e}")
-        # print(f"🔍 DEBUG: Error type: {type(e)}")
-        # print(f"🔍 DEBUG: Error str: {str(e)}")
-        # print(f"🔍 DEBUG: Error repr: {repr(e)}")
+        import logging
         import traceback
-        # print(f"🔍 DEBUG: Full traceback: {traceback.format_exc()}")
+        logger = logging.getLogger(__name__)
+        logger.error(f"❌ AUTH: Authentication error: {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.error(f"❌ AUTH: Full traceback: {traceback.format_exc()}")
+        
+        # If it's already an HTTPException, re-raise it
+        if isinstance(e, HTTPException):
+            raise
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Authentication service error: {str(e) if str(e) else 'Unknown error'}"
