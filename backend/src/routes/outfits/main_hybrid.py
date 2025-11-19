@@ -1215,3 +1215,130 @@ async def delete_outfit(
     except Exception as e:
         logger.error(f"❌ Error deleting outfit: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{outfit_id}/flatlay/process")
+async def process_flatlay(
+    outfit_id: str,
+    req: Request
+) -> Dict[str, Any]:
+    """
+    Trigger flatlay processing for an outfit.
+    This endpoint processes flatlays on-demand in the background.
+    """
+    try:
+        from src.config.firebase import db
+        if not db:
+            raise HTTPException(status_code=503, detail="Database unavailable")
+        
+        # Extract user ID using robust authentication
+        current_user_id = extract_uid_from_request(req)
+        
+        # Get the outfit
+        outfit_ref = db.collection('outfits').document(outfit_id)
+        outfit_doc = outfit_ref.get()
+        
+        if not outfit_doc.exists:
+            raise HTTPException(status_code=404, detail="Outfit not found")
+        
+        outfit_data = outfit_doc.to_dict()
+        
+        # Verify ownership
+        user_id = outfit_data.get('userId') or outfit_data.get('user_id')
+        if user_id != current_user_id:
+            raise HTTPException(status_code=403, detail="Not authorized to process this outfit's flatlay")
+        
+        # Check if already processing or done
+        flat_lay_status = (
+            outfit_data.get('metadata', {}).get('flat_lay_status') or
+            outfit_data.get('flat_lay_status') or
+            'awaiting_consent'
+        )
+        
+        if flat_lay_status == 'done':
+            return {"status": "already_done", "message": "Flatlay already generated"}
+        
+        if flat_lay_status == 'processing':
+            return {"status": "processing", "message": "Flatlay is already being processed"}
+        
+        # Update status to processing
+        outfit_ref.update({
+            'flat_lay_status': 'processing',
+            'flatLayStatus': 'processing',
+            'metadata.flat_lay_status': 'processing',
+            'metadata.flatLayStatus': 'processing',
+        })
+        
+        # Process flatlay in background using thread pool
+        def process_in_background():
+            try:
+                import sys
+                from pathlib import Path
+                import concurrent.futures
+                
+                # Add worker directory to path
+                worker_dir = Path(__file__).parent.parent.parent.parent / 'worker'
+                if str(worker_dir) not in sys.path:
+                    sys.path.insert(0, str(worker_dir))
+                
+                # Import worker function
+                try:
+                    from worker.main import process_outfit_flat_lay
+                    logger.info(f"🎨 Processing flatlay for outfit {outfit_id} in background")
+                    # Process the flatlay (this is synchronous but runs in thread)
+                    process_outfit_flat_lay(outfit_id, outfit_data)
+                    logger.info(f"✅ Flatlay processing completed for outfit {outfit_id}")
+                except ImportError as import_err:
+                    logger.error(f"Failed to import worker function: {import_err}")
+                    # Fallback: set to pending
+                    outfit_ref.update({
+                        'flat_lay_status': 'pending',
+                        'flatLayStatus': 'pending',
+                        'metadata.flat_lay_status': 'pending',
+                        'metadata.flatLayStatus': 'pending',
+                    })
+                except Exception as process_err:
+                    logger.error(f"Error processing flatlay: {process_err}", exc_info=True)
+                    # Update status to failed
+                    outfit_ref.update({
+                        'flat_lay_status': 'failed',
+                        'flatLayStatus': 'failed',
+                        'flat_lay_error': str(process_err),
+                        'flatLayError': str(process_err),
+                        'metadata.flat_lay_status': 'failed',
+                        'metadata.flatLayStatus': 'failed',
+                        'metadata.flat_lay_error': str(process_err),
+                        'metadata.flatLayError': str(process_err),
+                    })
+            except Exception as bg_error:
+                logger.error(f"Background processing error: {bg_error}", exc_info=True)
+                # Update status to failed
+                try:
+                    outfit_ref.update({
+                        'flat_lay_status': 'failed',
+                        'flatLayStatus': 'failed',
+                        'flat_lay_error': str(bg_error),
+                        'flatLayError': str(bg_error),
+                        'metadata.flat_lay_status': 'failed',
+                        'metadata.flatLayStatus': 'failed',
+                        'metadata.flat_lay_error': str(bg_error),
+                        'metadata.flatLayError': str(bg_error),
+                    })
+                except:
+                    pass
+        
+        # Start background task in thread pool
+        import concurrent.futures
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        executor.submit(process_in_background)
+        
+        return {
+            "status": "processing",
+            "message": "Flatlay processing started in background. You'll be notified when it's ready."
+        }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error initiating flatlay processing: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to initiate flatlay processing: {str(e)}")
