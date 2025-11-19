@@ -1273,23 +1273,47 @@ async def process_flatlay(
         def process_in_background():
             try:
                 import sys
+                import os
                 from pathlib import Path
                 import concurrent.futures
                 
-                # Add worker directory to path
-                worker_dir = Path(__file__).parent.parent.parent.parent / 'worker'
-                if str(worker_dir) not in sys.path:
-                    sys.path.insert(0, str(worker_dir))
+                # Calculate paths - file is at backend/src/routes/outfits/main_hybrid.py
+                # We need to get to backend/worker/main.py
+                current_file = Path(__file__)
+                backend_dir = current_file.parent.parent.parent.parent  # backend/
+                worker_dir = backend_dir / 'worker'
+                worker_main = worker_dir / 'main.py'
+                
+                # Add backend directory to path so we can import worker.main
+                backend_path = str(backend_dir)
+                if backend_path not in sys.path:
+                    sys.path.insert(0, backend_path)
                 
                 # Import worker function
                 try:
-                    from worker.main import process_outfit_flat_lay
+                    # Import using importlib to handle the module properly
+                    import importlib.util
+                    spec = importlib.util.spec_from_file_location("worker_main", str(worker_main))
+                    if spec is None or spec.loader is None:
+                        raise ImportError(f"Could not load spec from {worker_main}")
+                    
+                    worker_module = importlib.util.module_from_spec(spec)
+                    # Set the module's __file__ and __package__ for proper imports
+                    worker_module.__file__ = str(worker_main)
+                    worker_module.__package__ = "worker"
+                    
+                    # Execute the module
+                    spec.loader.exec_module(worker_module)
+                    
+                    # Get the function
+                    process_outfit_flat_lay = getattr(worker_module, 'process_outfit_flat_lay')
+                    
                     logger.info(f"🎨 Processing flatlay for outfit {outfit_id} in background")
                     # Process the flatlay (this is synchronous but runs in thread)
                     process_outfit_flat_lay(outfit_id, outfit_data)
                     logger.info(f"✅ Flatlay processing completed for outfit {outfit_id}")
                 except ImportError as import_err:
-                    logger.error(f"Failed to import worker function: {import_err}")
+                    logger.error(f"Failed to import worker function: {import_err}", exc_info=True)
                     # Fallback: set to pending
                     outfit_ref.update({
                         'flat_lay_status': 'pending',
