@@ -1,0 +1,121 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AI Clone Backend API",
+    "version": "1.0.0",
+    "description": "RAG backend for ingestion, embedding, Firestore storage, and retrieval."
+  },
+  "servers": [
+    {
+      "url": "https://aiclone-production-32dc.up.railway.app"
+    }
+  ],
+  "paths": {
+    "/api/ingest_drive": {
+      "post": {
+        "operationId": "ingestDrive",
+        "summary": "Ingest a Google Drive folder",
+        "description": "Downloads files from a Google Drive folder, extracts text, chunks, embeds, and stores in Firestore.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["user_id", "folder_id"],
+                "properties": {
+                  "user_id": {
+                    "type": "string"
+                  },
+                  "folder_id": {
+                    "type": "string"
+                  },
+                  "max_files": {
+                    "type": "integer",
+                    "default": 10
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Ingestion started"
+          },
+          "200": {
+            "description": "Ingestion completed successfully"
+          }
+        }
+      }
+    },
+    "/api/chat": {
+      "post": {
+        "operationId": "chatRetrieve",
+        "summary": "Perform RAG retrieval against Firestore",
+        "description": "Uses embeddings + vector search to return the most relevant chunks.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "default": 5
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Retrieved matching knowledge chunks"
+          }
+        }
+      }
+    },
+    "/api/knowledge/search": {
+      "get": {
+        "operationId": "knowledgeSearch",
+        "summary": "Search knowledge by keyword",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 10 }
+          }
+        ],
+        "responses": { "200": { "description": "Search results" } }
+      }
+    },
+    "/api/knowledge/get": {
+      "get": {
+        "operationId": "knowledgeGet",
+        "summary": "Get a specific chunk by ID",
+        "parameters": [
+          {
+            "name": "chunk_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "Knowledge chunk" } }
+      }
+    }
+  }
+}
+

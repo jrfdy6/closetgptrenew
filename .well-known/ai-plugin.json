@@ -1,0 +1,18 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "AI Clone Backend",
+  "name_for_model": "aiclone_backend",
+  "description_for_human": "Provides Drive ingestion, knowledge storage, and RAG retrieval for your AI Clone.",
+  "description_for_model": "Backend for ingestion, chunking, embedding, Firestore storage, and retrieval. Use these endpoints to ingest Google Drive folders, retrieve knowledge, and perform grounded reasoning.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://aiclone-production-32dc.up.railway.app/openapi.json"
+  },
+  "logo_url": "https://aiclone-production-32dc.up.railway.app/static/logo.png",
+  "contact_email": "support@yourdomain.com",
+  "legal_info_url": "https://yourdomain.com/legal"
+}
+
