@@ -611,11 +611,11 @@ class CohesiveOutfitCompositionService:
         # Simple weather appropriateness based on item type
         item_type = item.type.lower()
         
-        if temp < 60:  # Cold weather
-            return item_type not in ['shorts', 'sandals', 'tank_top']
+        if temp < 65:  # Cold/cool weather - block summer items
+            return item_type not in ['shorts', 'sandals', 'flip flops', 'tank_top', 'tank', 'sleeveless']
         elif temp > 80:  # Hot weather
             return item_type not in ['jacket', 'sweater', 'hoodie', 'boots']
-        else:  # Moderate weather
+        else:  # Moderate weather (65-80°F)
             return True
 
     def _is_style_appropriate(self, item: ClothingItem, style: str) -> bool:
