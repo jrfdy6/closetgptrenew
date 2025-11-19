@@ -166,6 +166,7 @@ ROUTERS = [
     # ("test_router", ""),                 # Test router with no dependencies
     # ("src.routes.outfit_minimal", ""),   # Minimal outfit router - testing import issues
     # ("src.routes.outfit", ""),           # Original outfit router - testing import errors
+    ("src.routes.outfits", "/api/outfits"),               # Main outfits router with all endpoints including flatlay processing
     ("src.routes.outfits.main_hybrid", "/api/outfits"),   # Main hybrid outfit generation router - MIGRATED FROM PERSONALIZATION DEMO
     ("src.routes.backfill_ultra_simple", "/api/backfill"), # Ultra simple backfill endpoint - just visit the URL!
     # ("src.routes.backfill_simple_test", "/api/backfill"), # Simple backfill test endpoint
