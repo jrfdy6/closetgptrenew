@@ -293,16 +293,18 @@ export default function EnhancedOutfitCard({
                         </div>
                       )}
                     </div>
-                {index === 3 && outfit.items.length > 4 && (
-                  <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-xs font-medium">
-                      +{outfit.items.length - 4}
-                    </span>
+                    {index === 3 && outfit.items.length > 4 && (
+                      <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                        <span className="text-white text-xs font-medium">
+                          +{outfit.items.length - 4}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
 
         {/* Stats and Info */}

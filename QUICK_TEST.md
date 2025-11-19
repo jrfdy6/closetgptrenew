@@ -1,116 +1,149 @@
-# 🏃‍♂️ QUICK GLASS TEST (5 Minutes)
+# Quick Test Guide
 
-## Open: http://localhost:3000
+## 🚀 Start Backend
 
----
-
-## ✅ Visual Test (2 min)
-
-### Look at the hero card:
-- [ ] Card has frosted/blurred appearance
-- [ ] Background shows through (not solid white)
-- [ ] Colored blur circles visible behind card
-- [ ] Subtle shadow around card
-
-### Hover test:
-- [ ] Hover over "✨ AI-Powered" badge
-- [ ] Badge should scale up smoothly
-- [ ] Takes ~0.5 seconds to animate
-
----
-
-## 🔍 Browser Inspector Test (1 min)
-
-### Steps:
-1. **Right-click** on the big "Easy Outfit" title
-2. Select **"Inspect Element"**
-3. Look at the **parent div** (the card container)
-4. In the right panel, find **"Computed"** tab
-
-### Should See These Styles:
-```
-backdrop-filter: blur(24px);
-background-color: rgba(255, 255, 255, 0.4);
-border: 1px solid rgba(255, 255, 255, 0.3);
+```bash
+cd backend
+python3 -m uvicorn app:app --reload --port 3001
 ```
 
-✅ If you see these → **GLASS IS WORKING!**
-❌ If NOT → Glass may not be rendering
+Or if you have a virtual environment:
+```bash
+cd backend
+source venv/bin/activate  # or your venv path
+python -m uvicorn app:app --reload --port 3001
+```
 
----
+## 🧪 Run Test Script
 
-## 🌓 Dark Mode Test (30 seconds)
+In a new terminal:
+```bash
+./test_endpoints.sh
+```
 
-### IF you're logged in and have navigation:
-1. Look for sun/moon icon (theme toggle)
-2. Click it
-3. **Watch the glass elements**
-   - Should transition smoothly
-   - Background should change from white to dark gray
-   - Still should look "glassy"
+## 📋 Manual Test Steps
 
----
+### 1. Test Health Check
+```bash
+curl http://localhost:3001/health
+```
 
-## 📱 Mobile Test (1 min)
+### 2. Upload Test Prospect
+```bash
+curl -X POST http://localhost:3001/api/prospects/upload \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prospects": [{
+      "name": "Test User",
+      "job_title": "VP Sales",
+      "company": "TestCorp",
+      "email": "test@testcorp.com"
+    }],
+    "user_id": "test-user-123",
+    "batch_name": "Quick Test"
+  }'
+```
 
-1. Resize browser window to narrow (< 768px wide)
-2. If you see a hamburger menu (☰), click it
-3. Menu should slide down with **heavy blur**
-4. Background should be strongly blurred
+**Save the `prospect_ids` from the response!**
 
----
+### 3. Generate Analysis Prompt
+```bash
+# Replace PROSPECT_ID_HERE with actual ID from step 2
+curl -X POST http://localhost:3001/api/prospects/manual/prompts/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prospect_ids": ["PROSPECT_ID_HERE"],
+    "user_id": "test-user-123",
+    "audience_profile": {
+      "brand_name": "My Company",
+      "brand_voice": "Professional"
+    }
+  }'
+```
 
-## ⚡ Quick Results:
+**Copy the `prompt.full_prompt` field and paste into ChatGPT!**
 
-### ✅ PASS if:
-- Cards look frosted/translucent
-- Background visible through glass
-- Hover animations smooth
-- Inspector shows backdrop-filter
+### 4. Upload ChatGPT Results
+After getting ChatGPT response, format it and upload:
 
-### ❌ FAIL if:
-- Cards look solid white (no transparency)
-- No blur visible
-- Inspector shows NO backdrop-filter
-- Hover does nothing
+```bash
+curl -X POST http://localhost:3001/api/prospects/manual/upload-analysis \
+  -H "Content-Type: application/json" \
+  -d '{
+    "results": [{
+      "prospect_id": "PROSPECT_ID_HERE",
+      "analysis": {
+        "summary": "VP of Sales at TestCorp...",
+        "fit_likelihood": "High",
+        "suggested_outreach_angle": "Focus on automation",
+        "reasoning": "Role aligns with target",
+        "confidence_score": 0.85
+      }
+    }],
+    "user_id": "test-user-123"
+  }'
+```
 
----
+### 5. Verify Results
+```bash
+curl "http://localhost:3001/api/prospects/list?user_id=test-user-123"
+```
 
-## 🐛 If Tests Fail:
+### 6. Test Phase Status
+```bash
+curl "http://localhost:3001/api/phases/phase-status/test-user-123"
+```
 
-### 1. Check console for errors:
-- F12 → Console tab
-- Look for red errors
+## ✅ Expected Results
 
-### 2. Hard refresh:
-- Mac: Cmd + Shift + R
-- Windows: Ctrl + Shift + R
+- ✅ Health endpoint returns `{"status": "healthy"}` or similar
+- ✅ Upload returns `{"success": true, "prospect_ids": [...]}`
+- ✅ Prompt generation returns formatted prompt
+- ✅ List shows uploaded prospects
+- ✅ Phase status shows current phase (defaults to Phase 1)
 
-### 3. Check browser:
-- Works best in Chrome, Safari, Edge
-- Firefox: may have limited support
+## 🐛 Troubleshooting
 
----
+### Backend Won't Start
+- Check Python version: `python3 --version` (should be 3.8+)
+- Install dependencies: `pip install -r backend/requirements.txt`
+- Check port 3001 is available
 
-## 📸 Take This Screenshot:
+### Import Errors
+- Make sure you're in the backend directory
+- Check Python path includes backend directory
+- Verify all route files exist
 
-**Right-click inspector → Screenshot Node**
-- Capture the hero card with inspector showing styles
-- This will help debug if needed
+### Firebase Errors
+- Check environment variables are set
+- Or Firebase credentials file exists
+- Errors are logged but won't stop route registration
 
----
+### Endpoint Not Found (404)
+- Check routes are mounted in `app.py`
+- Verify route paths match exactly
+- Check backend logs for registration messages
 
-## What's Next?
+## 📝 All Endpoints to Test
 
-### If ALL PASS ✅:
-You're ready! Glass is working perfectly.
+**Prospect Management:**
+- `POST /api/prospects/upload` ✅
+- `POST /api/prospects/manual/prompts/analyze` ✅
+- `POST /api/prospects/manual/upload-analysis` ✅
+- `POST /api/prospects/review` ✅
+- `GET /api/prospects/list` ✅
 
-### If SOME FAIL ⚠️:
-Tell me which test failed and I'll help debug.
+**Outreach:**
+- `POST /api/outreach/manual/prompts/generate` ✅
+- `POST /api/outreach/manual/upload` ✅
+- `GET /api/outreach/drafts` ✅
 
-### If ALL FAIL ❌:
-We may need to check:
-1. Tailwind CSS compilation
-2. Browser compatibility
-3. CSS file loading
+**Phases:**
+- `GET /api/phases/phase-status/{user_id}` ✅
+- `POST /api/phases/phase1/metrics` ✅
+- `POST /api/phases/phase2/metrics` ✅
+- `GET /api/phases/phase1/summary/{user_id}` ✅
 
+**Tracking:**
+- `POST /api/tracking/outreach` ✅
+- `POST /api/phases/phase2/engagement` ✅

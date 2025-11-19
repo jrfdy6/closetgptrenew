@@ -29,11 +29,14 @@ except Exception as e:
 from fastapi import FastAPI, Request, Depends, HTTPException, status
 import re
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse
+from fastapi.staticfiles import StaticFiles
 import importlib
 import traceback
 from datetime import datetime
 from fastapi.routing import APIRouter
+import json
+from pathlib import Path
 
 # Import authentication
 try:
@@ -69,7 +72,11 @@ allowed_origins.extend([
     "https://easyoutfit-frontend-*.vercel.app",
     # New custom domain
     "https://easyoutfitapp.com",
-    "https://www.easyoutfitapp.com"
+    "https://www.easyoutfitapp.com",
+    # ChatGPT plugin origins
+    "https://aiclone-production-32dc.up.railway.app",
+    "https://chat.openai.com",
+    "http://localhost:3000"
 ])
 
 # Add Railway preview URLs if in development
@@ -187,6 +194,8 @@ ROUTERS = [
     ("src.routes.simple_analytics", ""),                     # NEW: Simple, reliable analytics - no prefix needed
     ("src.routes.outfit_history", "/api/outfit-history"),   # Full outfit history router with daily generation
     ("src.routes.style_inspiration", "/api/style-inspiration"), # Style inspiration recommendations - NEW
+    ("src.routes.rag_ingest", "/api"),  # RAG ingestion endpoint at /api/ingest_drive
+    ("src.routes.knowledge", "/api"),  # Knowledge endpoints: /api/chat, /api/knowledge/*
     # ("src.routes.test_debug", ""),       # Router already has /api/test prefix
     # ("src.routes.analytics_dashboard", ""), # Analytics dashboard router
     # ("src.routes.analytics", ""),        # Main analytics router
@@ -471,6 +480,48 @@ async def debug_outfit_filtering(request: Request):
 async def show_all_routes():
     # Routes table removed to reduce Railway rate limiting
     pass
+
+# ---------------- CHATGPT PLUGIN ROUTES ----------------
+# Mount static files directory
+static_dir = Path(__file__).parent.parent / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+# Serve ChatGPT plugin manifest
+@app.get("/.well-known/ai-plugin.json")
+async def ai_plugin_manifest():
+    """Serve the AI plugin manifest for ChatGPT discovery"""
+    plugin_manifest_path = Path(__file__).parent.parent / ".well-known" / "ai-plugin.json"
+    if plugin_manifest_path.exists():
+        return FileResponse(str(plugin_manifest_path), media_type="application/json")
+    else:
+        # Fallback: return default manifest
+        return {
+            "schema_version": "v1",
+            "name_for_human": "AI Clone Backend",
+            "name_for_model": "aiclone_backend",
+            "description_for_human": "Provides Drive ingestion, knowledge storage, and RAG retrieval for your AI Clone.",
+            "description_for_model": "Backend for ingestion, chunking, embedding, Firestore storage, and retrieval. Use these endpoints to ingest Google Drive folders, retrieve knowledge, and perform grounded reasoning.",
+            "auth": {"type": "none"},
+            "api": {
+                "type": "openapi",
+                "url": "https://aiclone-production-32dc.up.railway.app/openapi.json"
+            },
+            "logo_url": "https://aiclone-production-32dc.up.railway.app/static/logo.png",
+            "contact_email": "support@yourdomain.com",
+            "legal_info_url": "https://yourdomain.com/legal"
+        }
+
+# Serve OpenAPI spec
+@app.get("/openapi.json")
+async def openapi_spec():
+    """Serve the OpenAPI specification"""
+    openapi_path = Path(__file__).parent.parent / "openapi.json"
+    if openapi_path.exists():
+        return FileResponse(str(openapi_path), media_type="application/json")
+    else:
+        # Fallback: return auto-generated OpenAPI spec
+        return app.openapi()
 
 # ---------------- ROOT ----------------
 @app.get("/")

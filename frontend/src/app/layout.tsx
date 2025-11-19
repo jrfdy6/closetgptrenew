@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import ToastContainer from "@/components/Toast";
+import { Toaster } from "@/components/ui/toaster";
 
 // Body/UI font - Clean, neutral, readable
 const inter = Inter({ 
@@ -87,6 +88,7 @@ export default function RootLayout({
             {children}
           </div>
           <ToastContainer />
+          <Toaster />
         </Providers>
       </body>
     </html>
