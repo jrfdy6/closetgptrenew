@@ -1350,12 +1350,14 @@ class RobustOutfitGenerationService:
                 outfit.metadata.pop(key, None)
             for key in ['flat_lay_requested', 'flatLayRequested']:
                 outfit.metadata[key] = False
+            # Only set attributes that exist in the model
             for attr in ['flat_lay_status', 'flatLayStatus']:
-                setattr(outfit, attr, 'awaiting_consent')
+                if hasattr(outfit, attr):
+                    setattr(outfit, attr, 'awaiting_consent')
             for attr in ['flat_lay_url', 'flatLayUrl', 'flat_lay_error', 'flatLayError']:
-                setattr(outfit, attr, None)
-            for attr in ['flat_lay_requested', 'flatLayRequested']:
-                setattr(outfit, attr, False)
+                if hasattr(outfit, attr):
+                    setattr(outfit, attr, None)
+            # flat_lay_requested is only in metadata, not as an attribute
             outfit.metadata['flat_lay_worker'] = 'premium_v1'
             logger.info("🎨 Flat lay generation awaiting user request (status=awaiting_consent)")
         
