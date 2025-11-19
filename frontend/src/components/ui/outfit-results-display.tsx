@@ -176,12 +176,9 @@ export default function OutfitResultsDisplay({
   useEffect(() => {
     if (!outfit.id) return;
     if (flatLayState.status === 'done' && flatLayState.url) return;
-    if (listenerAttachedRef.current) return;
 
     let isMounted = true;
     let unsubscribe: (() => void) | null = null;
-
-    listenerAttachedRef.current = true;
 
     (async () => {
       try {
@@ -221,12 +218,14 @@ export default function OutfitResultsDisplay({
         });
       } catch (error) {
         console.error('Failed to attach flat lay listener:', error);
+        listenerAttachedRef.current = false;
       }
     })();
 
     return () => {
       isMounted = false;
       unsubscribe?.();
+      listenerAttachedRef.current = false;
     };
   }, [outfit.id, flatLayState.status, flatLayState.url]);
 

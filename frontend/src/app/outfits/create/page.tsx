@@ -385,7 +385,37 @@ export default function CreateOutfitPage() {
       const subscription = data?.subscription ?? {};
       const rawTier = typeof subscription?.tier === 'string' ? subscription.tier.toLowerCase() : 'tier1';
       const tier = SUBSCRIPTION_TIER_LIMITS[rawTier] !== undefined ? rawTier : 'tier1';
-      const used = Number(subscription?.openai_flatlays_used ?? 0);
+      
+      // Check if week has reset (similar to worker logic)
+      const WEEKLY_ALLOWANCE_SECONDS = 7 * 24 * 60 * 60; // 7 days in seconds
+      const now = new Date();
+      const flatlayWeekStartStr = subscription?.flatlay_week_start;
+      let flatlayWeekStart: Date | null = null;
+      
+      if (flatlayWeekStartStr) {
+        try {
+          // Parse ISO-8601 string (handles both with and without Z suffix)
+          const parsed = flatlayWeekStartStr.endsWith('Z') 
+            ? new Date(flatlayWeekStartStr)
+            : new Date(flatlayWeekStartStr + 'Z');
+          if (!isNaN(parsed.getTime())) {
+            flatlayWeekStart = parsed;
+          }
+        } catch (e) {
+          console.warn('Failed to parse flatlay_week_start:', e);
+        }
+      }
+      
+      // Reset used count if week has passed
+      let used = Number(subscription?.openai_flatlays_used ?? 0);
+      if (flatlayWeekStart) {
+        const secondsSinceWeekStart = (now.getTime() - flatlayWeekStart.getTime()) / 1000;
+        if (secondsSinceWeekStart >= WEEKLY_ALLOWANCE_SECONDS) {
+          // Week has reset, so used should be 0
+          used = 0;
+        }
+      }
+      
       const limit = SUBSCRIPTION_TIER_LIMITS[tier] ?? null;
       const remaining = typeof limit === 'number' ? Math.max(limit - used, 0) : null;
 
