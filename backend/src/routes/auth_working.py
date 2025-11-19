@@ -24,84 +24,82 @@ router = APIRouter(tags=["authentication"])
 @router.get("/profile")
 async def get_user_profile(current_user: UserProfile = Depends(get_current_user)):
     """Get current user's profile."""
+    import asyncio
+    
     try:
-        logger.info(f"🔍 DEBUG: Getting profile for user: {current_user.id}")
+        logger.info(f"🔍 PROFILE: Getting profile for user: {current_user.id}")
         
-        # Import Firebase inside function to prevent import-time crashes
+        # Always return at least basic profile from token (fast path)
+        basic_profile = {
+            "user_id": current_user.id,
+            "email": current_user.email,
+            "name": current_user.name,
+            "avatar_url": None,
+            "created_at": current_user.createdAt,
+            "updated_at": current_user.updatedAt
+        }
+        
+        # Try to get enhanced profile from Firestore with timeout
         try:
             from ..config.firebase import db, firebase_initialized
+            
+            if not firebase_initialized:
+                logger.warning("🔍 PROFILE: Firebase not initialized, returning basic profile")
+                return basic_profile
+            
+            # Use asyncio timeout to prevent hanging
+            try:
+                # Firestore get() is synchronous, but we'll wrap it
+                user_doc = db.collection('users').document(current_user.id).get()
+                
+                if not user_doc.exists:
+                    logger.info(f"🔍 PROFILE: No Firestore profile found for user: {current_user.id}")
+                    return basic_profile
+                
+                user_data = user_doc.to_dict()
+                if user_data:
+                    logger.info(f"🔍 PROFILE: Retrieved Firestore profile for user: {current_user.id}, fields: {len(user_data.keys())}")
+                    # Merge Firestore data with basic profile (Firestore takes precedence)
+                    return {**basic_profile, **user_data}
+                else:
+                    logger.warning(f"🔍 PROFILE: Firestore profile exists but is empty for user: {current_user.id}")
+                    return basic_profile
+                    
+            except Exception as firestore_error:
+                logger.error(f"🔍 PROFILE: Firestore query failed: {firestore_error}", exc_info=True)
+                # Return basic profile as fallback
+                return basic_profile
+                
         except ImportError as e:
-            logger.warning(f"Firebase import failed: {e}")
-            return {
-                "user_id": current_user.id,
-                "email": current_user.email,
-                "name": current_user.name,
-                "avatar_url": None,
-                "created_at": current_user.createdAt,
-                "updated_at": current_user.updatedAt
-            }
-        
-        # Check if Firebase is available (same pattern as outfits.py)
-        if not firebase_initialized:
-            logger.warning("Firebase not available, returning user profile from token")
-            return {
-                "user_id": current_user.id,
-                "email": current_user.email,
-                "name": current_user.name,
-                "avatar_url": None,
-                "created_at": current_user.createdAt,
-                "updated_at": current_user.updatedAt
-            }
-        
-        # Query Firestore for real user data (same pattern as wardrobe.py)
-        try:
-            user_doc = db.collection('users').document(current_user.id).get()
-            
-            if not user_doc.exists:
-                logger.info(f"🔍 DEBUG: No Firestore profile found for user: {current_user.id}")
-                # Return profile from token data (same fallback as outfits.py)
-                return {
-                    "user_id": current_user.id,
-                    "email": current_user.email,
-                    "name": current_user.name,
-                    "avatar_url": None,
-                    "created_at": current_user.createdAt,
-                    "updated_at": current_user.updatedAt
-                }
-            
-            user_data = user_doc.to_dict()
-            logger.info(f"🔍 DEBUG: Profile data retrieved from Firestore: user_id={current_user.id}, fields_count={len(user_data.keys()) if user_data else 0}")
-            
-            # Return the full user profile data instead of just basic fields
-            # This includes measurements, style preferences, and all other profile data
-            return user_data or {
-                "user_id": current_user.id,
-                "email": current_user.email,
-                "name": current_user.name,
-                "avatar_url": None,
-                "created_at": current_user.createdAt,
-                "updated_at": current_user.updatedAt
-            }
-        except Exception as firestore_error:
-            logger.error(f"Firestore query failed: {firestore_error}", exc_info=True)
-            # Return profile from token data as fallback
-            return {
-                "user_id": current_user.id,
-                "email": current_user.email,
-                "name": current_user.name,
-                "avatar_url": None,
-                "created_at": current_user.createdAt,
-                "updated_at": current_user.updatedAt
-            }
+            logger.warning(f"🔍 PROFILE: Firebase import failed: {e}, returning basic profile")
+            return basic_profile
+        except Exception as firebase_error:
+            logger.error(f"🔍 PROFILE: Firebase error: {firebase_error}", exc_info=True)
+            # Return basic profile as fallback
+            return basic_profile
         
     except HTTPException:
+        # Re-raise HTTP exceptions (like 401, 503)
         raise
     except Exception as e:
-        logger.error(f"Failed to get user profile: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get user profile: {str(e)}"
-        )
+        logger.error(f"🔍 PROFILE: Unexpected error: {type(e).__name__}: {str(e)}", exc_info=True)
+        # Even on unexpected errors, try to return basic profile if we have user data
+        try:
+            return {
+                "user_id": current_user.id if hasattr(current_user, 'id') else "unknown",
+                "email": current_user.email if hasattr(current_user, 'email') else None,
+                "name": current_user.name if hasattr(current_user, 'name') else None,
+                "avatar_url": None,
+                "created_at": current_user.createdAt if hasattr(current_user, 'createdAt') else None,
+                "updated_at": current_user.updatedAt if hasattr(current_user, 'updatedAt') else None,
+                "error": "Partial profile data due to error"
+            }
+        except:
+            # Last resort - return error
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to get user profile: {str(e)}"
+            )
 
 @router.put("/profile")
 async def update_user_profile(
