@@ -476,24 +476,51 @@ def generate_openai_flatlay_image(
     user_content: list[dict] = [{"type": "input_text", "text": prompt}]
     image_count = 0
     for item in processed_images:
-        img = item.get("img")
-        if not isinstance(img, Image.Image):
+        item_id = item.get("id")
+        source = item.get("source") or {}
+        
+        # Try to get public URL from source item
+        image_url = (
+            source.get('backgroundRemovedUrl') or 
+            source.get('background_removed_url') or
+            source.get('imageUrl') or
+            source.get('image_url')
+        )
+        
+        # If no URL in source, construct from Firebase Storage blob path
+        if not image_url and item_id:
+            # Try common blob paths and get public URL
+            blob_paths = [
+                f"items/{item_id}/nobg.png",
+                f"items/{item_id}/processed.png",
+                f"items/{item_id}/thumbnail.png",
+            ]
+            for blob_path in blob_paths:
+                try:
+                    blob = bucket.blob(blob_path)
+                    if blob.exists():
+                        # Make sure blob is public and get URL
+                        blob.make_public()
+                        image_url = blob.public_url
+                        break
+                except Exception as blob_error:
+                    continue
+        
+        if not image_url:
+            print(f"⚠️  No public URL available for item {item_id}, skipping")
             continue
+            
         try:
-            encoded = _encode_image_to_base64(img)
             user_content.append(
                 {
                     "type": "input_image",
-                    "image": {
-                        "data": encoded,
-                        "mime_type": "image/png",
-                    },
+                    "image_url": image_url,
                 }
             )
             image_count += 1
-        except Exception as encode_error:
+        except Exception as url_error:
             print(
-                f"⚠️  Failed to encode image for OpenAI prompt (outfit {outfit_id}): {encode_error}"
+                f"⚠️  Failed to add image URL for OpenAI prompt (outfit {outfit_id}): {url_error}"
             )
 
     if image_count == 0:
