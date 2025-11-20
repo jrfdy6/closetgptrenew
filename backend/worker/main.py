@@ -558,15 +558,25 @@ def generate_openai_flatlay_image(
         print(f"🎨 Sending {image_count} images to OpenAI Responses API (gpt-4o) for outfit {outfit_id}")
         
         # Use gpt-4o for image generation
-        response = openai_client.responses.create(
-            model="gpt-4o",
-            input=[
+        # NOTE: The Responses API may not support image generation - it's designed for text responses
+        # If this continues to return text instead of images, we may need to use a different API or approach
+        request_payload = {
+            "model": "gpt-4o",
+            "input": [
                 {
                     "role": "user",
                     "content": user_content,  # Array: input_image objects + input_text instruction
                 },
             ],
-        )
+        }
+        
+        print(f"🔍 Request payload structure:")
+        print(f"   Model: {request_payload['model']}")
+        print(f"   Input items: {len(user_content)}")
+        print(f"   Image inputs: {sum(1 for item in user_content if item.get('type') == 'input_image')}")
+        print(f"   Text inputs: {sum(1 for item in user_content if item.get('type') == 'input_text')}")
+        
+        response = openai_client.responses.create(**request_payload)
 
         # Debug: Log response structure
         print(f"🔍 OpenAI response type: {type(response)}")
