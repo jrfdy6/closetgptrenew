@@ -541,13 +541,77 @@ def generate_openai_flatlay_image(
         }
     )
 
-    # Note: OpenAI Responses API with gpt-4o returns text, not images
-    # The model explicitly says "I'm unable to generate images directly"
-    # OpenAI's Responses API doesn't support image generation from input images
-    # We'll skip OpenAI and use the compositor fallback instead
-    print(f"⚠️  OpenAI Responses API doesn't support image generation with gpt-4o")
-    print(f"⚠️  Skipping OpenAI for outfit {outfit_id}, will use compositor fallback")
-    return None, "openai_responses_api_no_image_support"
+    try:
+        # Responses API structure for gpt-4o image generation:
+        # - Each clothing item as separate input_image object
+        # - Single input_text instruction to generate flat lay
+        # - No max_output_tokens
+        # - Images must be accessible via public URLs
+        print(f"🎨 Sending {image_count} images to OpenAI Responses API (gpt-4o) for outfit {outfit_id}")
+        
+        # Build content array: images first, then instruction
+        content_array = []
+        
+        # Add all images as separate input_image objects
+        for item in user_content:
+            if item.get("type") == "input_image":
+                content_array.append({
+                    "type": "input_image",
+                    "image_url": item.get("image_url")
+                })
+        
+        # Add instruction as single input_text object
+        content_array.append({
+            "type": "input_text",
+            "text": (
+                "Generate a single flat lay image showing all these clothing items arranged "
+                "tastefully on a neutral background. The output image should be exactly 1024x1024 pixels. "
+                "Use the provided garment images exactly as reference; do not hallucinate new pieces. "
+                "Create a cohesive, photorealistic fashion flat lay shot with natural shadows and realistic proportions."
+            )
+        })
+        
+        response = openai_client.responses.create(
+            model="gpt-4o",
+            input=[
+                {
+                    "role": "user",
+                    "content": content_array,
+                },
+            ],
+        )
+
+        # Debug: Log response structure
+        print(f"🔍 OpenAI response type: {type(response)}")
+        if hasattr(response, "output"):
+            print(f"🔍 Response output: {response.output}")
+            # Check for output_image in response
+            for output_item in response.output:
+                if hasattr(output_item, "content"):
+                    for content_item in output_item.content:
+                        content_type = getattr(content_item, "type", None)
+                        print(f"🔍 Content type: {content_type}")
+                        if content_type == "output_image":
+                            print(f"🔍 Found output_image in response!")
+
+        image_bytes = _extract_image_bytes_from_openai_response(response)
+        if not image_bytes:
+            print(f"⚠️  Failed to extract image bytes from OpenAI response for outfit {outfit_id}")
+            print(f"🔍 Response structure: {response}")
+            return None, "no_image_returned"
+
+        image = Image.open(BytesIO(image_bytes)).convert("RGBA")
+
+        TARGET_SIZE = 1024
+        if image.width < TARGET_SIZE or image.height < TARGET_SIZE:
+            image = image.resize((TARGET_SIZE, TARGET_SIZE), Image.Resampling.LANCZOS)
+
+        print(f"✅ OpenAI flat lay generated for outfit {outfit_id} (user {user_id})")
+        return image, None
+
+    except Exception as openai_error:
+        print(f"⚠️  OpenAI flat lay generation failed for outfit {outfit_id}: {openai_error}")
+        return None, str(openai_error)
 
 
 def upload_flatlay_image(image: Image.Image, outfit_id: str, renderer_tag: str = "compositor_v1") -> str | None:
