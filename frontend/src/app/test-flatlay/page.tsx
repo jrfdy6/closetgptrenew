@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Image, RefreshCw, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import Navigation from '@/components/Navigation';
@@ -37,7 +37,7 @@ interface Outfit {
 }
 
 export default function TestFlatLayPage() {
-  const { user } = useAuthContext();
+  const { user, getIdToken } = useAuthContext();
   const { toast } = useToast();
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [selectedOutfit, setSelectedOutfit] = useState<Outfit | null>(null);
@@ -45,26 +45,37 @@ export default function TestFlatLayPage() {
   const [requesting, setRequesting] = useState(false);
   const [polling, setPolling] = useState(false);
 
-  // Fetch user's outfits
+  // Fetch user's outfits via API
   const fetchOutfits = useCallback(async () => {
     if (!user?.uid) return;
 
     setLoading(true);
     try {
-      const outfitsRef = collection(db, 'outfits');
-      const q = query(outfitsRef, where('userId', '==', user.uid));
-      const querySnapshot = await getDocs(q);
-      
-      const outfitsList: Outfit[] = [];
-      querySnapshot.forEach((doc) => {
-        outfitsList.push({
-          id: doc.id,
-          ...doc.data()
-        } as Outfit);
+      const token = await getIdToken();
+      if (!token) {
+        throw new Error('No auth token available');
+      }
+
+      const response = await fetch('/api/outfits', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to fetch outfits: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Handle both array and object responses
+      const outfitsList = Array.isArray(data) ? data : (data.outfits || []);
+      
       // Sort by creation date (newest first)
-      outfitsList.sort((a, b) => {
+      outfitsList.sort((a: Outfit, b: Outfit) => {
         const aDate = a.metadata?.createdAt || (a as any).createdAt || 0;
         const bDate = b.metadata?.createdAt || (b as any).createdAt || 0;
         return bDate - aDate;
@@ -76,13 +87,13 @@ export default function TestFlatLayPage() {
       console.error('❌ Error fetching outfits:', error);
       toast({
         title: 'Error',
-        description: 'Failed to fetch outfits',
+        description: error instanceof Error ? error.message : 'Failed to fetch outfits',
         variant: 'destructive'
       });
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user, getIdToken, toast]);
 
   useEffect(() => {
     fetchOutfits();
