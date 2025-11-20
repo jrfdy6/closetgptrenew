@@ -572,7 +572,15 @@ def generate_openai_flatlay_image(
                 "size": "1024x1024"
             }
             api_response = requests.post(api_url, headers=headers, json=payload, timeout=120)
-            api_response.raise_for_status()
+            if not api_response.ok:
+                error_text = api_response.text
+                print(f"⚠️  API error response: {api_response.status_code} - {error_text[:500]}")
+                try:
+                    error_json = api_response.json()
+                    print(f"⚠️  Error details: {error_json}")
+                except:
+                    pass
+                api_response.raise_for_status()
             response_data = api_response.json()
             
             # Convert to SDK-like response object
