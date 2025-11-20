@@ -543,6 +543,7 @@ def generate_openai_flatlay_image(
 
     try:
         # Responses API structure: user role with content array containing images + text
+        print(f"🎨 Sending {image_count} images to OpenAI Responses API for outfit {outfit_id}")
         response = openai_client.responses.create(
             model="gpt-4o",
             input=[
@@ -553,8 +554,18 @@ def generate_openai_flatlay_image(
             ],
         )
 
+        # Debug: Log response structure
+        print(f"🔍 OpenAI response type: {type(response)}")
+        print(f"🔍 OpenAI response attributes: {dir(response)}")
+        if hasattr(response, "output"):
+            print(f"🔍 Response has output: {response.output}")
+        if hasattr(response, "data"):
+            print(f"🔍 Response has data: {response.data}")
+
         image_bytes = _extract_image_bytes_from_openai_response(response)
         if not image_bytes:
+            print(f"⚠️  Failed to extract image bytes from OpenAI response for outfit {outfit_id}")
+            print(f"🔍 Response structure: {response}")
             return None, "no_image_returned"
 
         image = Image.open(BytesIO(image_bytes)).convert("RGBA")
