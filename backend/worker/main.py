@@ -537,15 +537,50 @@ def generate_openai_flatlay_image(
         print(f"   Prompt: {prompt[:80]}...")
         
         # Use images.generate with gpt-image-1
-        # Note: The images parameter may need to be passed differently depending on OpenAI SDK version
-        # Check OpenAI docs for exact parameter name
-        response = openai_client.images.generate(
-            model="gpt-image-1",
-            prompt=prompt,
-            images=image_urls,  # Array of image URLs
-            size="1024x1024",
-            n=1,
-        )
+        # NOTE: The Python SDK may not support 'images' parameter yet
+        # Try using the raw API call if the SDK doesn't support it
+        try:
+            # First try with the SDK (may not support images parameter yet)
+            response = openai_client.images.generate(
+                model="gpt-image-1",
+                prompt=prompt,
+                size="1024x1024",
+                n=1,
+            )
+        except TypeError as sdk_error:
+            if "unexpected keyword argument 'images'" in str(sdk_error) or "images" in str(sdk_error):
+                # SDK doesn't support images parameter - use raw API call
+                print(f"⚠️  SDK doesn't support 'images' parameter, using raw API call")
+                import json
+                api_url = "https://api.openai.com/v1/images/generations"
+                headers = {
+                    "Authorization": f"Bearer {openai_client.api_key}",
+                    "Content-Type": "application/json"
+                }
+                payload = {
+                    "model": "gpt-image-1",
+                    "prompt": prompt,
+                    "images": image_urls,  # Array of image URLs
+                    "size": "1024x1024",
+                    "n": 1
+                }
+                api_response = requests.post(api_url, headers=headers, json=payload, timeout=60)
+                api_response.raise_for_status()
+                response_data = api_response.json()
+                
+                # Convert to SDK-like response object for compatibility
+                class ImageData:
+                    def __init__(self, data):
+                        self.url = data.get("url")
+                        self.b64_json = data.get("b64_json")
+                
+                class ImageResponse:
+                    def __init__(self, data):
+                        self.data = [ImageData(item) for item in data.get("data", [])]
+                
+                response = ImageResponse(response_data)
+            else:
+                raise
 
         # Extract image from response
         if not hasattr(response, "data") or not response.data:
