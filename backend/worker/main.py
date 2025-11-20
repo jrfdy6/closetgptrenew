@@ -626,7 +626,7 @@ def generate_openai_flatlay_image(
                 self.data = [ImageData(item) for item in data.get("data", [])]
         
         response = ImageResponse(response_data)
-
+        
         # Extract image from response
         if not hasattr(response, "data") or not response.data:
             print(f"⚠️  gpt-image-1 response has no data")
