@@ -626,13 +626,6 @@ def generate_openai_flatlay_image(
                 self.data = [ImageData(item) for item in data.get("data", [])]
         
         response = ImageResponse(response_data)
-        else:
-            response = openai_client.images.edits(
-                model="gpt-image-1",
-                prompt=prompt,
-                input=input_images,  # Array of input_image objects
-                size="1024x1024",
-            )
 
         # Extract image from response
         if not hasattr(response, "data") or not response.data:
