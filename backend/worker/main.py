@@ -1146,23 +1146,10 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
         openai_used = False
         reservation = None
 
+        # Check OpenAI availability (but skip direct multi-image approach)
         if openai_client and user_id:
             reservation = reserve_openai_flatlay_slot(user_id)
-            if reservation.get("allowed"):
-                openai_image, openai_error = generate_openai_flatlay_image(processed_images, doc_id, data, user_id)
-                if openai_image is not None:
-                    uploaded_url = upload_flatlay_image(openai_image, doc_id, renderer_tag="openai_gpt4o")
-                    if uploaded_url:
-                        flat_lay_url = uploaded_url
-                        openai_used = True
-                        metrics['flat_lay_openai'] += 1
-                    else:
-                        openai_error = "upload_failed"
-                if not openai_used:
-                    openai_note = openai_error or "openai_generation_failed"
-                    release_openai_flatlay_slot(user_id)
-                    metrics['flat_lay_openai_failed'] += 1
-            else:
+            if not reservation.get("allowed"):
                 openai_note = reservation.get("reason") or "limit_reached"
                 print(f"ℹ️  Skipping OpenAI for outfit {doc_id}: {openai_note}")
         else:
@@ -1172,35 +1159,6 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                 openai_note = "missing_user_id"
             if openai_note:
                 print(f"ℹ️  Skipping OpenAI for outfit {doc_id}: {openai_note}")
-
-        if openai_used and flat_lay_url:
-            update_payload = {
-                'flat_lay_status': 'done',
-                'flatLayStatus': 'done',
-                'flat_lay_url': flat_lay_url,
-                'flatLayUrl': flat_lay_url,
-                'flat_lay_error': None,
-                'flatLayError': None,
-                'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
-                'flat_lay_renderer': 'openai_gpt4o',
-                'flatLayRenderer': 'openai_gpt4o',
-                'metadata.flat_lay_status': 'done',
-                'metadata.flatLayStatus': 'done',
-                'metadata.flat_lay_url': flat_lay_url,
-                'metadata.flatLayUrl': flat_lay_url,
-                'metadata.flat_lay_error': None,
-                'metadata.flatLayError': None,
-                'metadata.flat_lay_renderer': 'openai_gpt4o',
-                'metadata.flatLayRenderer': 'openai_gpt4o',
-            }
-            if openai_note:
-                update_payload['metadata.flat_lay_renderer_note'] = openai_note
-                update_payload['flat_lay_renderer_note'] = openai_note
-                update_payload['flatLayRendererNote'] = openai_note
-            doc_ref.update(update_payload)
-            metrics['flat_lay_processed'] += 1
-            print(f"🎨 Outfit {doc_id}: OpenAI flat lay ready ({flat_lay_url})")
-            return
 
         # Generate compositor flatlay first, then enhance with OpenAI
         renderer_note = openai_note or 'openai_unavailable'
@@ -1285,14 +1243,23 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                                 }
                                 doc_ref.update(update_payload)
                                 metrics['flat_lay_processed'] += 1
+                                metrics['flat_lay_openai'] += 1
+                                if reservation:
+                                    release_openai_flatlay_slot(user_id)
                                 print(f"✅ Outfit {doc_id}: OpenAI-enhanced flatlay ready ({final_url})")
                                 return
                 
                 # If OpenAI enhancement failed, log and continue to use compositor
                 error_text = api_response.text if not api_response.ok else ""
                 print(f"⚠️  Outfit {doc_id}: OpenAI enhancement failed: {error_text[:200]}")
+                if reservation:
+                    release_openai_flatlay_slot(user_id)
+                    metrics['flat_lay_openai_failed'] += 1
             except Exception as enhance_error:
                 print(f"⚠️  Outfit {doc_id}: OpenAI enhancement error: {enhance_error}")
+                if reservation:
+                    release_openai_flatlay_slot(user_id)
+                    metrics['flat_lay_openai_failed'] += 1
         
         # Fallback: Use compositor image directly
         if compositor_canvas:
