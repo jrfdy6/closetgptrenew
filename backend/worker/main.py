@@ -1153,53 +1153,77 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
             print(f"🎨 Outfit {doc_id}: OpenAI flat lay ready ({flat_lay_url})")
             return
 
-        # No OpenAI image produced – either quota exhausted or error
+        # No OpenAI image produced – fallback to compositor
         renderer_note = openai_note or 'openai_unavailable'
+        print(f"🔄 Outfit {doc_id}: OpenAI unavailable ({renderer_note}), using compositor fallback")
+        
+        # Use compositor to generate flat lay
+        try:
+            canvas = compose_flatlay_image(processed_images)
+            if canvas is not None:
+                compositor_url = upload_flatlay_image(canvas, doc_id, renderer_tag="compositor_v1")
+                if compositor_url:
+                    update_payload = {
+                        'flat_lay_status': 'done',
+                        'flatLayStatus': 'done',
+                        'flat_lay_url': compositor_url,
+                        'flatLayUrl': compositor_url,
+                        'flat_lay_error': None,
+                        'flatLayError': None,
+                        'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
+                        'flat_lay_renderer': 'compositor_v1',
+                        'flatLayRenderer': 'compositor_v1',
+                        'metadata.flat_lay_status': 'done',
+                        'metadata.flatLayStatus': 'done',
+                        'metadata.flat_lay_url': compositor_url,
+                        'metadata.flatLayUrl': compositor_url,
+                        'metadata.flat_lay_error': None,
+                        'metadata.flatLayError': None,
+                        'metadata.flat_lay_renderer': 'compositor_v1',
+                        'metadata.flatLayRenderer': 'compositor_v1',
+                        'metadata.flat_lay_renderer_note': f'openai_fallback: {renderer_note}',
+                        'flat_lay_renderer_note': f'openai_fallback: {renderer_note}',
+                        'flatLayRendererNote': f'openai_fallback: {renderer_note}',
+                    }
+                    doc_ref.update(update_payload)
+                    metrics['flat_lay_processed'] += 1
+                    metrics['flat_lay_renderer_fallbacks'] += 1
+                    print(f"✅ Outfit {doc_id}: Compositor flat lay ready ({compositor_url})")
+                    return
+                else:
+                    print(f"⚠️  Outfit {doc_id}: Compositor generated image but upload failed")
+            else:
+                print(f"⚠️  Outfit {doc_id}: Compositor failed to generate canvas")
+        except Exception as compositor_error:
+            print(f"⚠️  Outfit {doc_id}: Compositor error: {compositor_error}")
+        
+        # Compositor also failed - mark as failed
+        message = f'OpenAI unavailable ({renderer_note}), compositor also failed'
         update_payload = {
+            'flat_lay_status': 'failed',
+            'flatLayStatus': 'failed',
             'flat_lay_url': None,
             'flatLayUrl': None,
+            'flat_lay_error': message,
+            'flatLayError': message,
             'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
-            'flat_lay_renderer': 'wardrobe_grid',
-            'flatLayRenderer': 'wardrobe_grid',
+            'flat_lay_renderer': 'none',
+            'flatLayRenderer': 'none',
+            'metadata.flat_lay_status': 'failed',
+            'metadata.flatLayStatus': 'failed',
             'metadata.flat_lay_url': None,
             'metadata.flatLayUrl': None,
-            'metadata.flat_lay_renderer': 'wardrobe_grid',
-            'metadata.flatLayRenderer': 'wardrobe_grid',
+            'metadata.flat_lay_error': message,
+            'metadata.flatLayError': message,
+            'metadata.flat_lay_renderer': 'none',
+            'metadata.flatLayRenderer': 'none',
             'metadata.flat_lay_renderer_note': renderer_note,
             'flat_lay_renderer_note': renderer_note,
             'flatLayRendererNote': renderer_note,
         }
-
-        if renderer_note == 'limit_reached':
-            message = 'OpenAI weekly flat lay quota reached'
-            update_payload.update({
-                'flat_lay_status': 'skipped',
-                'flatLayStatus': 'skipped',
-                'flat_lay_error': message,
-                'flatLayError': message,
-                'metadata.flat_lay_status': 'skipped',
-                'metadata.flatLayStatus': 'skipped',
-                'metadata.flat_lay_error': message,
-                'metadata.flatLayError': message,
-            })
-            metrics['flat_lay_skipped'] += 1
-            print(f"ℹ️  Outfit {doc_id}: OpenAI quota reached, showing wardrobe grid")
-        else:
-            message = renderer_note or 'OpenAI flat lay unavailable'
-            update_payload.update({
-                'flat_lay_status': 'failed',
-                'flatLayStatus': 'failed',
-                'flat_lay_error': message,
-                'flatLayError': message,
-                'metadata.flat_lay_status': 'failed',
-                'metadata.flatLayStatus': 'failed',
-                'metadata.flat_lay_error': message,
-                'metadata.flatLayError': message,
-            })
-            metrics['flat_lay_failed'] += 1
-            print(f"❌ Outfit {doc_id}: OpenAI flat lay unavailable - {message}")
-
         doc_ref.update(update_payload)
+        metrics['flat_lay_failed'] += 1
+        print(f"❌ Outfit {doc_id}: Both OpenAI and compositor failed - {message}")
         return
 
     except Exception as exc:
