@@ -473,11 +473,9 @@ def generate_openai_flatlay_image(
 
     prompt = build_flatlay_prompt(processed_images, outfit_data)
 
-    # Build user_content: all images first, then text instruction
-    # Each image must be a separate input_image object (not grouped)
-    user_content: list[dict] = []
-    image_count = 0
-    
+    # Collect image URLs for gpt-image-1
+    # Use gpt-image-1 with images.generate API - this is the correct API for combining multiple images
+    image_urls = []
     for item in processed_images:
         item_id = item.get("id")
         source = item.get("source") or {}
@@ -509,52 +507,17 @@ def generate_openai_flatlay_image(
                 except Exception as blob_error:
                     continue
         
-        if not image_url:
+        if image_url:
+            image_urls.append(image_url)
+            print(f"✅ Added image URL for item {item_id}: {image_url[:60]}...")
+        else:
             print(f"⚠️  No public URL available for item {item_id}, skipping")
-            continue
-            
-        try:
-            # Add each image as a separate input_image object
-            user_content.append(
-                {
-                    "type": "input_image",
-                    "image_url": image_url,
-                }
-            )
-            image_count += 1
-        except Exception as url_error:
-            print(
-                f"⚠️  Failed to add image URL for OpenAI prompt (outfit {outfit_id}): {url_error}"
-            )
 
-    if image_count == 0:
-        print(
-            f"⚠️  No images available for OpenAI prompt; cannot generate flatlay for outfit {outfit_id}"
-        )
+    if not image_urls:
+        print(f"⚠️  No image URLs available for gpt-image-1; cannot generate flatlay for outfit {outfit_id}")
         return None, "no_images_available"
     
     try:
-        # Use gpt-image-1 with images.generate API
-        # This is the correct API for combining multiple images into a flatlay
-        image_urls = []
-        for item in processed_images:
-            # Get the public URL for each item's clean.png
-            item_id = item.get("id") or item.get("source", {}).get("id")
-            if not item_id:
-                continue
-            
-            # Try to get the public URL from the processed image data
-            # The image_url should already be set from prepare_flatlay_assets
-            source_item = item.get("source", {})
-            image_url = (
-                source_item.get("backgroundRemovedUrl") or 
-                source_item.get("background_removed_url") or
-                source_item.get("imageUrl") or
-                source_item.get("image_url")
-            )
-            
-            if image_url:
-                image_urls.append(image_url)
         
         if not image_urls:
             print(f"⚠️  No image URLs available for gpt-image-1")
