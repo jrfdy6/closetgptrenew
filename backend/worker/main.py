@@ -1511,9 +1511,19 @@ def run_worker():
 # Entry Point
 # ----------------------------
 if __name__ == "__main__":
-    print("=" * 60)
-    print("🚀 Easy Outfit Background Image Processor")
-    print("=" * 60)
-    print()
-    run_worker()
+    try:
+        print("=" * 60)
+        print("🚀 Easy Outfit Background Image Processor")
+        print("=" * 60)
+        print()
+        run_worker()
+    except KeyboardInterrupt:
+        print("\n👋 Worker stopped by user")
+    except Exception as e:
+        import traceback
+        print(f"❌ Fatal error during worker startup:")
+        print(f"   {str(e)}")
+        print(f"   Traceback:")
+        traceback.print_exc()
+        raise
 
