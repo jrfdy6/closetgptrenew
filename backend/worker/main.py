@@ -534,10 +534,17 @@ def generate_openai_flatlay_image(
         return None, "no_images_available"
     
     # Add text instruction at the end (separate from images)
+    # Must explicitly request image output for Responses API
     user_content.append(
         {
             "type": "input_text",
-            "text": "Generate a single flat lay of these items at 1024x1024 resolution."
+            "text": (
+                "Generate a single flat lay image showing all these clothing items arranged "
+                "tastefully on a neutral background. The output image should be exactly 1024x1024 pixels. "
+                "Use the provided garment images exactly as reference; do not hallucinate new pieces. "
+                "Create a cohesive, photorealistic fashion flat lay shot with natural shadows and realistic proportions. "
+                "Output the result as an image."
+            )
         }
     )
 
