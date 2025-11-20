@@ -509,15 +509,12 @@ def generate_openai_flatlay_image(
                     "role": "system",
                     "content": [
                         {
-                            "type": "input_image_parameters",
-                            "size": "1024x1024"
-                        },
-                        {
                             "type": "text",
                             "text": (
                                 "You are a senior fashion photographer tasked with generating premium "
-                                "flat lay imagery for an AI wardrobe assistant. Use the provided garment images "
-                                "exactly as reference; do not hallucinate new pieces."
+                                "flat lay imagery for an AI wardrobe assistant. "
+                                "Use the provided garment images exactly as reference; do not hallucinate new pieces. "
+                                "Generate a single output image at 1024x1024 resolution."
                             )
                         }
                     ],
