@@ -533,71 +533,75 @@ def generate_openai_flatlay_image(
         )
         return None, "no_images_available"
     
-    # Add text instruction at the end (separate from images)
-    # Must explicitly request image output for Responses API
-    # CRITICAL: The model must generate an IMAGE, not text describing how to create an image
-    user_content.append(
-        {
-            "type": "input_text",
-            "text": (
-                "You MUST generate a single flat lay IMAGE (not text) showing all these clothing items arranged "
-                "tastefully on a neutral background. The output MUST be an image file exactly 1024x1024 pixels. "
-                "Use the provided garment images exactly as reference; do not hallucinate new pieces. "
-                "Create a cohesive, photorealistic fashion flat lay shot with natural shadows and realistic proportions. "
-                "IMPORTANT: Your response must be an IMAGE, not text instructions. Generate the actual flat lay image now."
-            )
-        }
-    )
-
     try:
-        # Responses API structure for gpt-4o image generation:
-        # - Each clothing item as separate input_image object
-        # - Single input_text instruction to generate flat lay
-        # - No max_output_tokens
-        # - Images must be accessible via public URLs
-        print(f"🎨 Sending {image_count} images to OpenAI Responses API (gpt-4o) for outfit {outfit_id}")
-        
-        # Use DALL-E 3 for image generation
-        # Create a text description of the flat lay from the items
-        item_descriptions = []
+        # Use gpt-image-1 with images.generate API
+        # This is the correct API for combining multiple images into a flatlay
+        image_urls = []
         for item in processed_images:
-            category = item.get("category", "item")
-            material = item.get("material", "")
-            desc = f"{material} {category}" if material else category
-            item_descriptions.append(desc)
+            # Get the public URL for each item's clean.png
+            item_id = item.get("id") or item.get("source", {}).get("id")
+            if not item_id:
+                continue
+            
+            # Try to get the public URL from the processed image data
+            # The image_url should already be set from prepare_flatlay_assets
+            source_item = item.get("source", {})
+            image_url = (
+                source_item.get("backgroundRemovedUrl") or 
+                source_item.get("background_removed_url") or
+                source_item.get("imageUrl") or
+                source_item.get("image_url")
+            )
+            
+            if image_url:
+                image_urls.append(image_url)
+        
+        if not image_urls:
+            print(f"⚠️  No image URLs available for gpt-image-1")
+            return None, "no_image_urls"
         
         prompt = (
-            f"Create a professional fashion flat lay image showing these clothing items arranged "
-            f"tastefully on a neutral beige or white background: {', '.join(item_descriptions)}. "
-            f"The flat lay should be photorealistic with natural shadows, proper proportions, "
-            f"and all items clearly visible. Style: modern, clean, commercial fashion photography. "
-            f"Output: single square image, 1024x1024 pixels."
+            "Create a high-quality flatlay of these clothing items. "
+            "Use the images exactly as provided (they already have transparent backgrounds). "
+            "Arrange them neatly like an outfit: top above pants, shoes at bottom, accessories around. "
+            "Lighting soft and consistent. White background. "
+            "Photorealistic fashion flat lay, 1024x1024 pixels."
         )
         
-        print(f"🎨 Using DALL-E 3 for image generation")
-        print(f"   Prompt: {prompt[:100]}...")
-        print(f"   Items: {len(processed_images)}")
+        print(f"🎨 Using gpt-image-1 for flatlay generation")
+        print(f"   Model: gpt-image-1")
+        print(f"   Image URLs: {len(image_urls)}")
+        print(f"   Prompt: {prompt[:80]}...")
         
+        # Use images.generate with gpt-image-1
+        # Note: The images parameter may need to be passed differently depending on OpenAI SDK version
+        # Check OpenAI docs for exact parameter name
         response = openai_client.images.generate(
-            model="dall-e-3",
+            model="gpt-image-1",
             prompt=prompt,
+            images=image_urls,  # Array of image URLs
             size="1024x1024",
-            quality="standard",
             n=1,
         )
 
-        # Extract image URL from DALL-E response
+        # Extract image from response
         if not hasattr(response, "data") or not response.data:
-            print(f"⚠️  DALL-E response has no data")
+            print(f"⚠️  gpt-image-1 response has no data")
             return None, "no_image_returned"
         
-        image_url = response.data[0].url
-        print(f"✅ DALL-E generated image URL: {image_url[:80]}...")
-        
-        # Download the image
-        img_response = requests.get(image_url, timeout=30)
-        img_response.raise_for_status()
-        image_bytes = img_response.content
+        # Check for b64_json (base64 encoded image)
+        image_data = response.data[0]
+        if hasattr(image_data, "b64_json") and image_data.b64_json:
+            image_bytes = base64.b64decode(image_data.b64_json)
+        elif hasattr(image_data, "url") and image_data.url:
+            # Download from URL if b64_json not available
+            print(f"✅ gpt-image-1 generated image URL: {image_data.url[:80]}...")
+            img_response = requests.get(image_data.url, timeout=30)
+            img_response.raise_for_status()
+            image_bytes = img_response.content
+        else:
+            print(f"⚠️  gpt-image-1 response has no image data")
+            return None, "no_image_data"
         
         image = Image.open(BytesIO(image_bytes)).convert("RGBA")
 
