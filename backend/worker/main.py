@@ -1209,49 +1209,146 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
             print(f"🎨 Outfit {doc_id}: OpenAI flat lay ready ({flat_lay_url})")
             return
 
-        # No OpenAI image produced – fallback to compositor
+        # Generate compositor flatlay first, then enhance with OpenAI
         renderer_note = openai_note or 'openai_unavailable'
-        print(f"🔄 Outfit {doc_id}: OpenAI unavailable ({renderer_note}), using compositor fallback")
+        print(f"🎨 Outfit {doc_id}: Generating compositor flatlay first...")
         
-        # Use compositor to generate flat lay
+        compositor_canvas = None
         try:
-            canvas = compose_flatlay_image(processed_images)
-            if canvas is not None:
-                compositor_url = upload_flatlay_image(canvas, doc_id, renderer_tag="compositor_v1")
-                if compositor_url:
-                    update_payload = {
-                        'flat_lay_status': 'done',
-                        'flatLayStatus': 'done',
-                        'flat_lay_url': compositor_url,
-                        'flatLayUrl': compositor_url,
-                        'flat_lay_error': None,
-                        'flatLayError': None,
-                        'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
-                        'flat_lay_renderer': 'compositor_v1',
-                        'flatLayRenderer': 'compositor_v1',
-                        'metadata.flat_lay_status': 'done',
-                        'metadata.flatLayStatus': 'done',
-                        'metadata.flat_lay_url': compositor_url,
-                        'metadata.flatLayUrl': compositor_url,
-                        'metadata.flat_lay_error': None,
-                        'metadata.flatLayError': None,
-                        'metadata.flat_lay_renderer': 'compositor_v1',
-                        'metadata.flatLayRenderer': 'compositor_v1',
-                        'metadata.flat_lay_renderer_note': f'openai_fallback: {renderer_note}',
-                        'flat_lay_renderer_note': f'openai_fallback: {renderer_note}',
-                        'flatLayRendererNote': f'openai_fallback: {renderer_note}',
-                    }
-                    doc_ref.update(update_payload)
-                    metrics['flat_lay_processed'] += 1
-                    metrics['flat_lay_renderer_fallbacks'] += 1
-                    print(f"✅ Outfit {doc_id}: Compositor flat lay ready ({compositor_url})")
-                    return
-                else:
-                    print(f"⚠️  Outfit {doc_id}: Compositor generated image but upload failed")
-            else:
+            compositor_canvas = compose_flatlay_image(processed_images)
+            if compositor_canvas is None:
                 print(f"⚠️  Outfit {doc_id}: Compositor failed to generate canvas")
+                raise Exception("compositor_failed")
+            print(f"✅ Outfit {doc_id}: Compositor flatlay generated, enhancing with OpenAI...")
         except Exception as compositor_error:
             print(f"⚠️  Outfit {doc_id}: Compositor error: {compositor_error}")
+            compositor_canvas = None
+        
+        # If we have a compositor image and OpenAI is available, enhance it
+        if compositor_canvas and openai_client and user_id:
+            # Upload compositor image temporarily to get a URL for OpenAI
+            temp_buffer = BytesIO()
+            compositor_canvas.save(temp_buffer, format="PNG")
+            temp_buffer.seek(0)
+            
+            # Upload to Firebase Storage to get a public URL
+            temp_path = f"flat_lays/temp_{doc_id}_compositor.png"
+            temp_blob = bucket.blob(temp_path)
+            temp_blob.upload_from_file(temp_buffer, content_type="image/png")
+            temp_blob.make_public()
+            compositor_url = temp_blob.public_url
+            
+            print(f"🎨 Outfit {doc_id}: Enhancing compositor image with OpenAI...")
+            
+            # Use OpenAI to enhance the compositor image
+            try:
+                # Download the compositor image to send as file
+                compositor_response = requests.get(compositor_url, timeout=30)
+                compositor_response.raise_for_status()
+                compositor_bytes = compositor_response.content
+                
+                # Use images.edits to enhance the compositor flatlay
+                api_url = "https://api.openai.com/v1/images/edits"
+                headers = {
+                    "Authorization": f"Bearer {openai_client.api_key}",
+                }
+                
+                enhance_prompt = (
+                    "Enhance this fashion flatlay image. Improve lighting, shadows, and composition. "
+                    "Make it look more professional and photorealistic. Keep all items clearly visible. "
+                    "Maintain the same arrangement but refine the visual quality."
+                )
+                
+                files = {
+                    'image': ('compositor.png', compositor_bytes, 'image/png'),
+                    'model': (None, 'gpt-image-1'),
+                    'prompt': (None, enhance_prompt),
+                    'size': (None, '1024x1024'),
+                    'n': (None, '1'),
+                }
+                
+                api_response = requests.post(api_url, headers=headers, files=files, timeout=120)
+                if api_response.ok:
+                    response_data = api_response.json()
+                    if response_data.get("data") and len(response_data["data"]) > 0:
+                        enhanced_url = response_data["data"][0].get("url")
+                        if enhanced_url:
+                            # Download enhanced image
+                            enhanced_response = requests.get(enhanced_url, timeout=30)
+                            enhanced_response.raise_for_status()
+                            enhanced_bytes = enhanced_response.content
+                            enhanced_image = Image.open(BytesIO(enhanced_bytes)).convert("RGBA")
+                            
+                            # Upload final enhanced image
+                            final_url = upload_flatlay_image(enhanced_image, doc_id, renderer_tag="openai_enhanced_compositor")
+                            if final_url:
+                                # Clean up temp file
+                                try:
+                                    temp_blob.delete()
+                                except:
+                                    pass
+                                
+                                update_payload = {
+                                    'flat_lay_status': 'done',
+                                    'flatLayStatus': 'done',
+                                    'flat_lay_url': final_url,
+                                    'flatLayUrl': final_url,
+                                    'flat_lay_error': None,
+                                    'flatLayError': None,
+                                    'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
+                                    'flat_lay_renderer': 'openai_enhanced_compositor',
+                                    'flatLayRenderer': 'openai_enhanced_compositor',
+                                    'metadata.flat_lay_status': 'done',
+                                    'metadata.flatLayStatus': 'done',
+                                    'metadata.flat_lay_url': final_url,
+                                    'metadata.flatLayUrl': final_url,
+                                    'metadata.flat_lay_error': None,
+                                    'metadata.flatLayError': None,
+                                    'metadata.flat_lay_renderer': 'openai_enhanced_compositor',
+                                    'metadata.flatLayRenderer': 'openai_enhanced_compositor',
+                                }
+                                doc_ref.update(update_payload)
+                                metrics['flat_lay_processed'] += 1
+                                print(f"✅ Outfit {doc_id}: OpenAI-enhanced flatlay ready ({final_url})")
+                                return
+                
+                # If OpenAI enhancement failed, log and continue to use compositor
+                error_text = api_response.text if not api_response.ok else ""
+                print(f"⚠️  Outfit {doc_id}: OpenAI enhancement failed: {error_text[:200]}")
+            except Exception as enhance_error:
+                print(f"⚠️  Outfit {doc_id}: OpenAI enhancement error: {enhance_error}")
+        
+        # Fallback: Use compositor image directly
+        if compositor_canvas:
+            compositor_url = upload_flatlay_image(compositor_canvas, doc_id, renderer_tag="compositor_v1")
+            if compositor_url:
+                update_payload = {
+                    'flat_lay_status': 'done',
+                    'flatLayStatus': 'done',
+                    'flat_lay_url': compositor_url,
+                    'flatLayUrl': compositor_url,
+                    'flat_lay_error': None,
+                    'flatLayError': None,
+                    'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
+                    'flat_lay_renderer': 'compositor_v1',
+                    'flatLayRenderer': 'compositor_v1',
+                    'metadata.flat_lay_status': 'done',
+                    'metadata.flatLayStatus': 'done',
+                    'metadata.flat_lay_url': compositor_url,
+                    'metadata.flatLayUrl': compositor_url,
+                    'metadata.flat_lay_error': None,
+                    'metadata.flatLayError': None,
+                    'metadata.flat_lay_renderer': 'compositor_v1',
+                    'metadata.flatLayRenderer': 'compositor_v1',
+                    'metadata.flat_lay_renderer_note': f'openai_enhancement_failed: {renderer_note}',
+                    'flat_lay_renderer_note': f'openai_enhancement_failed: {renderer_note}',
+                    'flatLayRendererNote': f'openai_enhancement_failed: {renderer_note}',
+                }
+                doc_ref.update(update_payload)
+                metrics['flat_lay_processed'] += 1
+                metrics['flat_lay_renderer_fallbacks'] += 1
+                print(f"✅ Outfit {doc_id}: Compositor flatlay ready ({compositor_url})")
+                return
         
         # Compositor also failed - mark as failed
         message = f'OpenAI unavailable ({renderer_note}), compositor also failed'
