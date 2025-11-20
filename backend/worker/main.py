@@ -4,6 +4,11 @@ Worker Service for Background Image Processing
 Runs alpha matting on uploaded wardrobe items in the background
 """
 
+# Early startup logging
+import sys
+print("🔍 Worker script starting...", file=sys.stderr, flush=True)
+print("🔍 Python version:", sys.version, file=sys.stderr, flush=True)
+
 import base64
 import os
 import time
@@ -132,7 +137,7 @@ else:
     openai_client = None
 
 # Initialize Firebase Admin SDK
-print("🔥 Initializing Firebase Admin SDK...")
+print("🔍 Initializing Firebase Admin SDK...", flush=True)
 
 # Build credentials from environment variables
 firebase_creds = {
