@@ -473,8 +473,11 @@ def generate_openai_flatlay_image(
 
     prompt = build_flatlay_prompt(processed_images, outfit_data)
 
-    user_content: list[dict] = [{"type": "input_text", "text": prompt}]
+    # Build user_content: all images first, then text instruction
+    # Each image must be a separate input_image object (not grouped)
+    user_content: list[dict] = []
     image_count = 0
+    
     for item in processed_images:
         item_id = item.get("id")
         source = item.get("source") or {}
@@ -511,6 +514,7 @@ def generate_openai_flatlay_image(
             continue
             
         try:
+            # Add each image as a separate input_image object
             user_content.append(
                 {
                     "type": "input_image",
@@ -525,33 +529,28 @@ def generate_openai_flatlay_image(
 
     if image_count == 0:
         print(
-            f"⚠️  No images available for OpenAI prompt; falling back to text-only generation for outfit {outfit_id}"
+            f"⚠️  No images available for OpenAI prompt; cannot generate flatlay for outfit {outfit_id}"
         )
+        return None, "no_images_available"
+    
+    # Add text instruction at the end (separate from images)
+    user_content.append(
+        {
+            "type": "input_text",
+            "text": "Generate a single flat lay of these items at 1024x1024 resolution."
+        }
+    )
 
     try:
+        # Responses API structure: user role with content array containing images + text
         response = openai_client.responses.create(
             model="gpt-4o",
             input=[
                 {
-                    "role": "system",
-                    "content": [
-                        {
-                            "type": "input_text",
-                            "text": (
-                                "You are a senior fashion photographer tasked with generating premium "
-                                "flat lay imagery for an AI wardrobe assistant. "
-                                "Use the provided garment images exactly as reference; do not hallucinate new pieces. "
-                                "Generate a single output image at 1024x1024 resolution."
-                            )
-                        }
-                    ],
-                },
-                {
                     "role": "user",
-                    "content": user_content,
+                    "content": user_content,  # Array of input_image objects + input_text
                 },
             ],
-            max_output_tokens=0,
         )
 
         image_bytes = _extract_image_bytes_from_openai_response(response)
@@ -677,7 +676,7 @@ def resolve_material(data: dict) -> str:
 # ----------------------------
 
 def generate_radial_background(
-    size: tuple[int, int] = (1200, 1200),
+    size: tuple[int, int] = (1024, 1024),
     base_color: tuple[int, int, int] = (245, 245, 245),
     center_brightness: int = 255
 ) -> Image.Image:
@@ -834,7 +833,7 @@ def smart_grid_layout(items: list[dict], canvas_size: tuple[int, int]) -> list[d
     return positioned
 
 
-def premium_flatlay(items: list[dict], canvas_size: tuple[int, int] = (1200, 1200)) -> Image.Image:
+def premium_flatlay(items: list[dict], canvas_size: tuple[int, int] = (1024, 1024)) -> Image.Image:
     """Compose multiple items into a polished flat lay."""
     canvas = generate_radial_background(size=canvas_size)
     if not items:
