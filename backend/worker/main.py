@@ -557,36 +557,16 @@ def generate_openai_flatlay_image(
         # - Images must be accessible via public URLs
         print(f"🎨 Sending {image_count} images to OpenAI Responses API (gpt-4o) for outfit {outfit_id}")
         
-        # Try gpt-image-1 model first (dedicated image generation model)
-        # Fall back to gpt-4o if gpt-image-1 is not available
-        model_to_use = "gpt-image-1"  # Try dedicated image generation model first
-        
-        try:
-            response = openai_client.responses.create(
-                model=model_to_use,
-                input=[
-                    {
-                        "role": "user",
-                        "content": user_content,  # Array: input_image objects + input_text instruction
-                    },
-                ],
-            )
-        except Exception as model_error:
-            # If gpt-image-1 fails, fall back to gpt-4o
-            if "gpt-image-1" in str(model_error).lower() or "model" in str(model_error).lower():
-                print(f"⚠️  gpt-image-1 not available, falling back to gpt-4o: {model_error}")
-                model_to_use = "gpt-4o"
-                response = openai_client.responses.create(
-                    model=model_to_use,
-                    input=[
-                        {
-                            "role": "user",
-                            "content": user_content,
-                        },
-                    ],
-                )
-            else:
-                raise
+        # Use gpt-4o for image generation
+        response = openai_client.responses.create(
+            model="gpt-4o",
+            input=[
+                {
+                    "role": "user",
+                    "content": user_content,  # Array: input_image objects + input_text instruction
+                },
+            ],
+        )
 
         # Debug: Log response structure
         print(f"🔍 OpenAI response type: {type(response)}")
