@@ -1226,27 +1226,16 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
         
         # If we have a compositor image and OpenAI is available, enhance it
         if compositor_canvas and openai_client and user_id:
-            # Upload compositor image temporarily to get a URL for OpenAI
-            temp_buffer = BytesIO()
-            compositor_canvas.save(temp_buffer, format="PNG")
-            temp_buffer.seek(0)
-            
-            # Upload to Firebase Storage to get a public URL
-            temp_path = f"flat_lays/temp_{doc_id}_compositor.png"
-            temp_blob = bucket.blob(temp_path)
-            temp_blob.upload_from_file(temp_buffer, content_type="image/png")
-            temp_blob.make_public()
-            compositor_url = temp_blob.public_url
-            
             print(f"🎨 Outfit {doc_id}: Enhancing compositor image with OpenAI...")
+            
+            # Convert compositor image directly to bytes (no storage needed)
+            compositor_buffer = BytesIO()
+            compositor_canvas.save(compositor_buffer, format="PNG")
+            compositor_buffer.seek(0)
+            compositor_bytes = compositor_buffer.read()
             
             # Use OpenAI to enhance the compositor image
             try:
-                # Download the compositor image to send as file
-                compositor_response = requests.get(compositor_url, timeout=30)
-                compositor_response.raise_for_status()
-                compositor_bytes = compositor_response.content
-                
                 # Use images.edits to enhance the compositor flatlay
                 api_url = "https://api.openai.com/v1/images/edits"
                 headers = {
@@ -1282,12 +1271,6 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                             # Upload final enhanced image
                             final_url = upload_flatlay_image(enhanced_image, doc_id, renderer_tag="openai_enhanced_compositor")
                             if final_url:
-                                # Clean up temp file
-                                try:
-                                    temp_blob.delete()
-                                except:
-                                    pass
-                                
                                 update_payload = {
                                     'flat_lay_status': 'done',
                                     'flatLayStatus': 'done',
