@@ -557,46 +557,48 @@ def generate_openai_flatlay_image(
         # - Images must be accessible via public URLs
         print(f"🎨 Sending {image_count} images to OpenAI Responses API (gpt-4o) for outfit {outfit_id}")
         
-        # Use gpt-4o for image generation
-        # NOTE: The Responses API may not support image generation - it's designed for text responses
-        # If this continues to return text instead of images, we may need to use a different API or approach
-        request_payload = {
-            "model": "gpt-4o",
-            "input": [
-                {
-                    "role": "user",
-                    "content": user_content,  # Array: input_image objects + input_text instruction
-                },
-            ],
-        }
+        # Use DALL-E 3 for image generation
+        # Create a text description of the flat lay from the items
+        item_descriptions = []
+        for item in processed_images:
+            category = item.get("category", "item")
+            material = item.get("material", "")
+            desc = f"{material} {category}" if material else category
+            item_descriptions.append(desc)
         
-        print(f"🔍 Request payload structure:")
-        print(f"   Model: {request_payload['model']}")
-        print(f"   Input items: {len(user_content)}")
-        print(f"   Image inputs: {sum(1 for item in user_content if item.get('type') == 'input_image')}")
-        print(f"   Text inputs: {sum(1 for item in user_content if item.get('type') == 'input_text')}")
+        prompt = (
+            f"Create a professional fashion flat lay image showing these clothing items arranged "
+            f"tastefully on a neutral beige or white background: {', '.join(item_descriptions)}. "
+            f"The flat lay should be photorealistic with natural shadows, proper proportions, "
+            f"and all items clearly visible. Style: modern, clean, commercial fashion photography. "
+            f"Output: single square image, 1024x1024 pixels."
+        )
         
-        response = openai_client.responses.create(**request_payload)
+        print(f"🎨 Using DALL-E 3 for image generation")
+        print(f"   Prompt: {prompt[:100]}...")
+        print(f"   Items: {len(processed_images)}")
+        
+        response = openai_client.images.generate(
+            model="dall-e-3",
+            prompt=prompt,
+            size="1024x1024",
+            quality="standard",
+            n=1,
+        )
 
-        # Debug: Log response structure
-        print(f"🔍 OpenAI response type: {type(response)}")
-        if hasattr(response, "output"):
-            print(f"🔍 Response output: {response.output}")
-            # Check for output_image in response
-            for output_item in response.output:
-                if hasattr(output_item, "content"):
-                    for content_item in output_item.content:
-                        content_type = getattr(content_item, "type", None)
-                        print(f"🔍 Content type: {content_type}")
-                        if content_type == "output_image":
-                            print(f"🔍 Found output_image in response!")
-
-        image_bytes = _extract_image_bytes_from_openai_response(response)
-        if not image_bytes:
-            print(f"⚠️  Failed to extract image bytes from OpenAI response for outfit {outfit_id}")
-            print(f"🔍 Response structure: {response}")
+        # Extract image URL from DALL-E response
+        if not hasattr(response, "data") or not response.data:
+            print(f"⚠️  DALL-E response has no data")
             return None, "no_image_returned"
-
+        
+        image_url = response.data[0].url
+        print(f"✅ DALL-E generated image URL: {image_url[:80]}...")
+        
+        # Download the image
+        img_response = requests.get(image_url, timeout=30)
+        img_response.raise_for_status()
+        image_bytes = img_response.content
+        
         image = Image.open(BytesIO(image_bytes)).convert("RGBA")
 
         TARGET_SIZE = 1024
