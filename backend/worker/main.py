@@ -551,12 +551,43 @@ def generate_openai_flatlay_image(
         
         print(f"🎨 Using images.edits() for flatlay generation (combining {len(input_images)} images)")
         
-        response = openai_client.images.edits(
-            model="gpt-image-1",
-            prompt=prompt,
-            input=input_images,  # Array of input_image objects
-            size="1024x1024",
-        )
+        # Check if images.edits exists, if not use raw API call
+        if not hasattr(openai_client.images, 'edits'):
+            print(f"⚠️  images.edits() not available in SDK, using raw API call")
+            import json
+            api_url = "https://api.openai.com/v1/images/edits"
+            headers = {
+                "Authorization": f"Bearer {openai_client.api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": "gpt-image-1",
+                "prompt": prompt,
+                "input": input_images,
+                "size": "1024x1024"
+            }
+            api_response = requests.post(api_url, headers=headers, json=payload, timeout=120)
+            api_response.raise_for_status()
+            response_data = api_response.json()
+            
+            # Convert to SDK-like response object
+            class ImageData:
+                def __init__(self, data):
+                    self.url = data.get("url")
+                    self.b64_json = data.get("b64_json")
+            
+            class ImageResponse:
+                def __init__(self, data):
+                    self.data = [ImageData(item) for item in data.get("data", [])]
+            
+            response = ImageResponse(response_data)
+        else:
+            response = openai_client.images.edits(
+                model="gpt-image-1",
+                prompt=prompt,
+                input=input_images,  # Array of input_image objects
+                size="1024x1024",
+            )
 
         # Extract image from response
         if not hasattr(response, "data") or not response.data:
