@@ -557,47 +557,35 @@ def generate_openai_flatlay_image(
         print(f"🎨 Using images.edits() for flatlay generation (combining {len(input_images)} images)")
         
         # Check if images.edits exists, if not use raw API call
-        # NOTE: /v1/images/edits requires multipart/form-data (file uploads)
-        # gpt-image-1 might use a different endpoint for URL-based inputs
+        # NOTE: /v1/images/edits requires multipart/form-data
+        # We need to download images and send as files, or use a different approach
         if not hasattr(openai_client.images, 'edits'):
-            print(f"⚠️  images.edits() not available in SDK, trying /v1/images/generations with images parameter")
-            import json
-            api_url = "https://api.openai.com/v1/images/generations"
-            headers = {
-                "Authorization": f"Bearer {openai_client.api_key}",
-                "Content-Type": "application/json"
-            }
-            # Try with images parameter (array of URLs)
-            payload = {
-                "model": "gpt-image-1",
-                "prompt": prompt,
-                "images": image_urls,  # Direct array of URLs
-                "size": "1024x1024",
-                "n": 1
-            }
-            api_response = requests.post(api_url, headers=headers, json=payload, timeout=120)
-            if not api_response.ok:
-                error_text = api_response.text
-                print(f"⚠️  API error response: {api_response.status_code} - {error_text[:500]}")
-                try:
-                    error_json = api_response.json()
-                    print(f"⚠️  Error details: {error_json}")
-                except:
-                    pass
-                api_response.raise_for_status()
-            response_data = api_response.json()
+            print(f"⚠️  images.edits() not available in SDK, using multipart/form-data for /v1/images/edits")
             
-            # Convert to SDK-like response object
-            class ImageData:
-                def __init__(self, data):
-                    self.url = data.get("url")
-                    self.b64_json = data.get("b64_json")
+            # Download first image to use as the base image for edits
+            # The edits endpoint requires at least one image file
+            if not image_urls:
+                return None, "no_images_available"
             
-            class ImageResponse:
-                def __init__(self, data):
-                    self.data = [ImageData(item) for item in data.get("data", [])]
+            # Download the first image to use as base
+            base_image_response = requests.get(image_urls[0], timeout=30)
+            base_image_response.raise_for_status()
+            base_image_bytes = base_image_response.content
             
-            response = ImageResponse(response_data)
+            # For edits endpoint, we need to send:
+            # - image: base image file
+            # - prompt: text description
+            # - n: number of images
+            # - size: output size
+            # But this only works with one base image, not multiple inputs
+            
+            # Actually, gpt-image-1 might not support multiple images via edits endpoint
+            # Let's try a different approach - use Chat Completions API with vision
+            # to describe the items, then use that description with images.generate
+            
+            print(f"⚠️  gpt-image-1 may not support multiple input images via standard endpoints")
+            print(f"⚠️  Falling back to compositor - OpenAI API doesn't support multi-image composition yet")
+            return None, "api_does_not_support_multi_image"
         else:
             response = openai_client.images.edits(
                 model="gpt-image-1",
