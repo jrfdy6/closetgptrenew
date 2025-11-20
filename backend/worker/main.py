@@ -556,34 +556,12 @@ def generate_openai_flatlay_image(
         # - Images must be accessible via public URLs
         print(f"🎨 Sending {image_count} images to OpenAI Responses API (gpt-4o) for outfit {outfit_id}")
         
-        # Build content array: images first, then instruction
-        content_array = []
-        
-        # Add all images as separate input_image objects
-        for item in user_content:
-            if item.get("type") == "input_image":
-                content_array.append({
-                    "type": "input_image",
-                    "image_url": item.get("image_url")
-                })
-        
-        # Add instruction as single input_text object
-        content_array.append({
-            "type": "input_text",
-            "text": (
-                "Generate a single flat lay image showing all these clothing items arranged "
-                "tastefully on a neutral background. The output image should be exactly 1024x1024 pixels. "
-                "Use the provided garment images exactly as reference; do not hallucinate new pieces. "
-                "Create a cohesive, photorealistic fashion flat lay shot with natural shadows and realistic proportions."
-            )
-        })
-        
         response = openai_client.responses.create(
             model="gpt-4o",
             input=[
                 {
                     "role": "user",
-                    "content": content_array,
+                    "content": user_content,  # Array: input_image objects + input_text instruction
                 },
             ],
         )
