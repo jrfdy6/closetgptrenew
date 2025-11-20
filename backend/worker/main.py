@@ -557,19 +557,23 @@ def generate_openai_flatlay_image(
         print(f"🎨 Using images.edits() for flatlay generation (combining {len(input_images)} images)")
         
         # Check if images.edits exists, if not use raw API call
+        # NOTE: /v1/images/edits requires multipart/form-data (file uploads)
+        # gpt-image-1 might use a different endpoint for URL-based inputs
         if not hasattr(openai_client.images, 'edits'):
-            print(f"⚠️  images.edits() not available in SDK, using raw API call")
+            print(f"⚠️  images.edits() not available in SDK, trying /v1/images/generations with images parameter")
             import json
-            api_url = "https://api.openai.com/v1/images/edits"
+            api_url = "https://api.openai.com/v1/images/generations"
             headers = {
                 "Authorization": f"Bearer {openai_client.api_key}",
                 "Content-Type": "application/json"
             }
+            # Try with images parameter (array of URLs)
             payload = {
                 "model": "gpt-image-1",
                 "prompt": prompt,
-                "input": input_images,
-                "size": "1024x1024"
+                "images": image_urls,  # Direct array of URLs
+                "size": "1024x1024",
+                "n": 1
             }
             api_response = requests.post(api_url, headers=headers, json=payload, timeout=120)
             if not api_response.ok:
