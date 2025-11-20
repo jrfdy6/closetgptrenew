@@ -1194,9 +1194,12 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                 }
                 
                 enhance_prompt = (
-                    "Enhance this fashion flatlay image. Improve lighting, shadows, and composition. "
-                    "Make it look more professional and photorealistic. Keep all items clearly visible. "
-                    "Maintain the same arrangement but refine the visual quality."
+                    "Enhance ONLY the existing items in this fashion flatlay image. "
+                    "DO NOT add any new items. DO NOT add accessories, jewelry, or any clothing items that are not already in the image. "
+                    "Improve lighting, shadows, and composition. Make it look more professional and photorealistic. "
+                    "Keep all existing items clearly visible and maintain their exact same arrangement. "
+                    "Only refine the visual quality - better lighting, natural shadows, improved colors and contrast. "
+                    "The output must contain exactly the same items as the input image, nothing more, nothing less."
                 )
                 
                 files = {
