@@ -1147,8 +1147,19 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
         reservation = None
 
         # Check OpenAI availability (but skip direct multi-image approach)
+        # Check if this is a test request (bypass limit for testing)
+        is_test_mode = (
+            data.get("metadata", {}).get("test_mode") == True or
+            data.get("metadata", {}).get("flat_lay_worker") == "premium_v1" or
+            data.get("test_mode") == True
+        )
+        
         if openai_client and user_id:
-            reservation = reserve_openai_flatlay_slot(user_id)
+            if is_test_mode:
+                print(f"🧪 Test mode detected for outfit {doc_id}: Bypassing OpenAI limit check")
+                reservation = {"allowed": True, "reason": "test_mode", "bypassed": True}
+            else:
+                reservation = reserve_openai_flatlay_slot(user_id)
             if not reservation.get("allowed"):
                 openai_note = reservation.get("reason") or "limit_reached"
                 print(f"ℹ️  Skipping OpenAI for outfit {doc_id}: {openai_note}")
@@ -1247,7 +1258,7 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                                 doc_ref.update(update_payload)
                                 metrics['flat_lay_processed'] += 1
                                 metrics['flat_lay_openai'] += 1
-                                if reservation:
+                                if reservation and not reservation.get("bypassed"):
                                     release_openai_flatlay_slot(user_id)
                                 print(f"✅ Outfit {doc_id}: OpenAI-enhanced flatlay ready ({final_url})")
                                 return
@@ -1255,12 +1266,12 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                 # If OpenAI enhancement failed, log and continue to use compositor
                 error_text = api_response.text if not api_response.ok else ""
                 print(f"⚠️  Outfit {doc_id}: OpenAI enhancement failed: {error_text[:200]}")
-                if reservation:
+                if reservation and not reservation.get("bypassed"):
                     release_openai_flatlay_slot(user_id)
                     metrics['flat_lay_openai_failed'] += 1
             except Exception as enhance_error:
                 print(f"⚠️  Outfit {doc_id}: OpenAI enhancement error: {enhance_error}")
-                if reservation:
+                if reservation and not reservation.get("bypassed"):
                     release_openai_flatlay_slot(user_id)
                     metrics['flat_lay_openai_failed'] += 1
         

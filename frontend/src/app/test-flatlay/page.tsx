@@ -149,6 +149,8 @@ export default function TestFlatLayPage() {
         'metadata.flatLayError': null,
         'metadata.flat_lay_worker': 'premium_v1',
         'metadata.flatLayWorker': 'premium_v1',
+        'metadata.test_mode': true,  // Bypass limit for test page
+        test_mode: true,
       });
 
       toast({
