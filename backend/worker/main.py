@@ -1253,7 +1253,36 @@ def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dic
         reprocessed = False
         if not has_transparency:
             try:
-                processed_bytes = remove(source_bytes)
+                # Check if image has white/light background for better removal
+                # Convert to RGB to analyze background
+                rgb_img = img.convert("RGB")
+                # Sample edges to detect white background
+                width, height = rgb_img.size
+                edge_pixels = []
+                # Sample top, bottom, left, right edges
+                for x in range(width):
+                    edge_pixels.append(rgb_img.getpixel((x, 0)))
+                    edge_pixels.append(rgb_img.getpixel((x, height - 1)))
+                for y in range(height):
+                    edge_pixels.append(rgb_img.getpixel((0, y)))
+                    edge_pixels.append(rgb_img.getpixel((width - 1, y)))
+                
+                # Calculate average brightness of edge pixels
+                avg_brightness = sum(sum(pixel) for pixel in edge_pixels) / (len(edge_pixels) * 3)
+                is_white_background = avg_brightness > 200  # Threshold for white/light background
+                
+                category = item.get('category') or source.get('category') or source.get('type') or ''
+                is_accessory = 'accessory' in category.lower() or 'sunglasses' in category.lower()
+                
+                # Use improved alpha matting for white backgrounds or accessories
+                if is_white_background or is_accessory:
+                    print(f"{debug_prefix} 🔍 Detected white background or accessory, using enhanced alpha matting")
+                    # Use more aggressive alpha matting for white backgrounds
+                    processed_bytes = _alpha_matting(source_bytes)
+                else:
+                    # Standard background removal
+                    processed_bytes = remove(source_bytes)
+                
                 img = Image.open(BytesIO(processed_bytes)).convert("RGBA")
                 reprocessed = True
             except Exception as remove_error:
@@ -1340,7 +1369,23 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
             return
 
         user_id = get_outfit_user_id(data)
-        processed_images = prepare_flatlay_assets(items, doc_id)
+        
+        # Deduplicate items by ID to prevent duplicates in flatlay
+        seen_ids = set()
+        unique_items = []
+        for item in items:
+            item_id = item.get('id') or item.get('itemId') or item.get('item_id')
+            if item_id and item_id in seen_ids:
+                print(f"⚠️  Outfit {doc_id}: Skipping duplicate item {item_id}")
+                continue
+            if item_id:
+                seen_ids.add(item_id)
+            unique_items.append(item)
+        
+        if len(unique_items) < len(items):
+            print(f"ℹ️  Outfit {doc_id}: Removed {len(items) - len(unique_items)} duplicate item(s)")
+        
+        processed_images = prepare_flatlay_assets(unique_items, doc_id)
         if not processed_images:
             failure_reason = 'No valid images available for flat lay composition'
             doc_ref.update({
