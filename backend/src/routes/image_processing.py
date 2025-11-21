@@ -106,8 +106,52 @@ async def upload_image(
         if not contents:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
 
+        # Convert AVIF/HEIC to PNG if needed (OpenAI doesn't support AVIF)
+        file_extension = (file.filename or "").split('.')[-1].lower() or 'jpg'
+        original_format = file_extension
+        
+        # Convert unsupported formats to PNG (OpenAI and rembg don't support AVIF)
+        if file_extension in ['avif', 'heic', 'heif']:
+            try:
+                logger.info(f"🔄 Converting {file_extension.upper()} to PNG for compatibility...")
+                # Try to open with PIL
+                # Note: AVIF support requires pillow-avif-plugin, HEIC requires pillow-heif
+                try:
+                    input_image = Image.open(io.BytesIO(contents))
+                    logger.info(f"✅ Opened {file_extension.upper()} image: {input_image.size}, mode: {input_image.mode}")
+                    
+                    # Convert to RGB if needed (AVIF might be RGBA)
+                    if input_image.mode in ('RGBA', 'LA'):
+                        # Create white background for RGBA
+                        rgb_image = Image.new('RGB', input_image.size, (255, 255, 255))
+                        rgb_image.paste(input_image, mask=input_image.split()[-1] if input_image.mode == 'RGBA' else None)
+                        input_image = rgb_image
+                    elif input_image.mode != 'RGB':
+                        input_image = input_image.convert('RGB')
+                    
+                    # Save as PNG
+                    png_buffer = io.BytesIO()
+                    input_image.save(png_buffer, format='PNG')
+                    contents = png_buffer.getvalue()
+                    file_extension = 'png'
+                    logger.info(f"✅ Converted {original_format.upper()} to PNG ({len(contents)} bytes)")
+                except Exception as convert_error:
+                    logger.error(f"❌ Could not convert {file_extension}: {convert_error}")
+                    # If PIL can't open it, we need to tell the user
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Could not process {original_format.upper()} image. Please convert to PNG, JPEG, or WebP. Error: {str(convert_error)}"
+                    )
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"❌ Error converting image format: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Unsupported image format: {original_format}. Please convert to PNG, JPEG, or WebP."
+                )
+
         # Build filename
-        file_extension = (file.filename or "").split('.')[-1] or 'jpg'
         user_id = current_user.id if current_user else "anonymous"
         item_id = str(uuid.uuid4())
         filename = f"wardrobe/{user_id}/{item_id}.{file_extension}"
@@ -150,7 +194,13 @@ async def upload_image(
                 logger.info("🎨 Starting automatic background removal with ALPHA MATTING...")
                 
                 # Process image with rembg + alpha matting for BEST quality
-                input_image = Image.open(io.BytesIO(contents))
+                # Ensure we can open the image (should be PNG/JPEG after conversion)
+                try:
+                    input_image = Image.open(io.BytesIO(contents))
+                    logger.info(f"✅ Opened image: {input_image.size}, mode: {input_image.mode}")
+                except Exception as open_error:
+                    logger.error(f"❌ Failed to open image for background removal: {open_error}")
+                    raise
                 
                 try:
                     # Try with alpha matting first (best quality)

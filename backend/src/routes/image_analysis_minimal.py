@@ -253,16 +253,45 @@ async def analyze_image(
         # Download image
         try:
             logger.info("Downloading image...")
-            response = (requests.get(image_url, timeout=30) if requests else timeout=30)
+            response = requests.get(image_url, timeout=30)
             response.raise_for_status()
             logger.info(f"Downloaded image, size: {len(response.content)} bytes")
         except Exception as e:
             logger.error(f"Failed to download image: {e}")
             raise HTTPException(status_code=400, detail=f"Failed to download image: {str(e)}")
         
+        # Convert AVIF/HEIC to PNG/JPEG if needed (OpenAI doesn't support AVIF)
+        image_content = response.content
+        try:
+            from PIL import Image
+            import io
+            
+            # Try to open the image
+            img = Image.open(io.BytesIO(image_content))
+            img_format = img.format or 'JPEG'
+            
+            # Check if format is unsupported by OpenAI
+            if img_format in ('AVIF', 'HEIC', 'HEIF') or image_url.lower().endswith(('.avif', '.heic', '.heif')):
+                logger.info(f"🔄 Converting {img_format} to PNG for OpenAI compatibility...")
+                # Convert to RGB if needed
+                if img.mode in ('RGBA', 'LA'):
+                    rgb_img = Image.new('RGB', img.size, (255, 255, 255))
+                    rgb_img.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                    img = rgb_img
+                elif img.mode != 'RGB':
+                    img = img.convert('RGB')
+                
+                # Save as PNG
+                png_buffer = io.BytesIO()
+                img.save(png_buffer, format='PNG')
+                image_content = png_buffer.getvalue()
+                logger.info(f"✅ Converted to PNG ({len(image_content)} bytes)")
+        except Exception as convert_error:
+            logger.warning(f"⚠️ Could not convert image format: {convert_error}. Proceeding with original...")
+        
         # Create temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
-            temp_file.write(response.content)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
+            temp_file.write(image_content)
             temp_path = temp_file.name
         
         try:
