@@ -827,8 +827,8 @@ def normalize_item_for_flatlay(img: Image.Image, max_dim: int = 400, category: s
     debug_val("img.size BEFORE validation", getattr(img, "size", None))
     debug_val("item metadata", {"max_dim": max_dim, "category": category})
     
-    # Remove hangers - detect vertical lines at top of image (common hanger pattern)
-    img = remove_hangers(img)
+    # Note: Hanger removal is skipped during flatlay processing for performance
+    # Hangers should already be removed during initial item processing
     
     # Get image size - ensure it's a tuple
     size = img.size
