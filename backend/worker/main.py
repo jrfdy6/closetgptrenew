@@ -1846,11 +1846,11 @@ def run_worker():
 # ----------------------------
 if __name__ == "__main__":
     try:
-    print("=" * 60)
-    print("🚀 Easy Outfit Background Image Processor")
-    print("=" * 60)
-    print()
-    run_worker()
+        print("=" * 60)
+        print("🚀 Easy Outfit Background Image Processor")
+        print("=" * 60)
+        print()
+        run_worker()
     except KeyboardInterrupt:
         print("\n👋 Worker stopped by user")
     except Exception as e:
