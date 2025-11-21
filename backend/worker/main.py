@@ -140,32 +140,58 @@ else:
 # Initialize Firebase Admin SDK
 print("🔍 Initializing Firebase Admin SDK...", flush=True)
 
-# Build credentials from environment variables
-firebase_creds = {
-    "type": "service_account",
-    "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
-    "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
-    "private_key": os.environ.get("FIREBASE_PRIVATE_KEY", "").replace("\\n", "\n"),
-    "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
-    "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL")
-}
-
-# Initialize Firebase
-cred = credentials.Certificate(firebase_creds)
-firebase_admin.initialize_app(cred, {
-    "storageBucket": FIREBASE_BUCKET_NAME
-})
-
-# Get Firebase clients
-db = firestore.client()
-bucket = storage.bucket()
-
-print(f"✅ Connected to Firestore collection: {FIRESTORE_COLLECTION}")
-print(f"✅ Connected to Storage bucket: {bucket.name}")
+try:
+    # Check if Firebase is already initialized
+    try:
+        firebase_admin.get_app()
+        print("ℹ️  Firebase already initialized, reusing existing app", flush=True)
+    except ValueError:
+        # Not initialized, proceed with initialization
+        print("🔍 Building Firebase credentials...", flush=True)
+        
+        # Build credentials from environment variables
+        firebase_creds = {
+            "type": "service_account",
+            "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
+            "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
+            "private_key": os.environ.get("FIREBASE_PRIVATE_KEY", "").replace("\\n", "\n"),
+            "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
+            "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL")
+        }
+        
+        # Validate required fields
+        required_fields = ["project_id", "private_key", "client_email"]
+        missing_fields = [field for field in required_fields if not firebase_creds.get(field)]
+        if missing_fields:
+            raise ValueError(f"Missing Firebase credentials: {', '.join(missing_fields)}")
+        
+        print("🔍 Creating Firebase credentials object...", flush=True)
+        cred = credentials.Certificate(firebase_creds)
+        
+        print("🔍 Initializing Firebase app...", flush=True)
+        firebase_admin.initialize_app(cred, {
+            "storageBucket": FIREBASE_BUCKET_NAME
+        })
+        print("✅ Firebase app initialized", flush=True)
+    
+    # Get Firebase clients
+    print("🔍 Getting Firestore client...", flush=True)
+    db = firestore.client()
+    print("🔍 Getting Storage bucket...", flush=True)
+    bucket = storage.bucket()
+    
+    print(f"✅ Connected to Firestore collection: {FIRESTORE_COLLECTION}", flush=True)
+    print(f"✅ Connected to Storage bucket: {bucket.name}", flush=True)
+    
+except Exception as e:
+    print(f"❌ Firebase initialization failed: {type(e).__name__}: {e}", flush=True)
+    import traceback
+    traceback.print_exc()
+    raise
 
 
 # ----------------------------
