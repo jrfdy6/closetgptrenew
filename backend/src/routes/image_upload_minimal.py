@@ -20,13 +20,19 @@ def get_heif_support():
 
 def process_image_file(contents: bytes, filename: str, content_type: str) -> tuple[bytes, str]:
     """
-    Process image file, converting HEIC to JPEG if needed
+    Process image file, converting HEIC/AVIF to PNG/JPEG if needed
     Returns: (processed_contents, new_content_type)
     """
     try:
+        import io
+        
         # Check if it's a HEIC file
         is_heic = (filename.lower().endswith(('.heic', '.heif')) or 
                   content_type in ['image/heic', 'image/heif'])
+        
+        # Check if it's an AVIF file
+        is_avif = (filename.lower().endswith('.avif') or 
+                  content_type == 'image/avif')
         
         if is_heic:
             logger.info(f"Processing HEIC file: {filename}")
@@ -65,14 +71,50 @@ def process_image_file(contents: bytes, filename: str, content_type: str) -> tup
                 # Clean up temporary files
                 try:
                     os.unlink(temp_heic_path)
-                    os.unlink(temp_jpg.name)
+                    if 'temp_jpg' in locals():
+                        os.unlink(temp_jpg.name)
                 except:
                     pass
+                    
+        elif is_avif:
+            logger.info(f"🔄 Converting AVIF to PNG for compatibility: {filename}")
+            
+            try:
+                # Try to open AVIF with PIL (requires pillow-avif-plugin, but will try anyway)
+                img = Image.open(io.BytesIO(contents))
+                logger.info(f"✅ Opened AVIF image: {img.size}, mode: {img.mode}")
+                
+                # Convert to RGB if needed (AVIF might be RGBA)
+                if img.mode in ('RGBA', 'LA'):
+                    # Create white background for RGBA
+                    rgb_img = Image.new('RGB', img.size, (255, 255, 255))
+                    rgb_img.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                    img = rgb_img
+                elif img.mode != 'RGB':
+                    img = img.convert('RGB')
+                
+                # Save as PNG to bytes
+                png_buffer = io.BytesIO()
+                img.save(png_buffer, format='PNG')
+                png_contents = png_buffer.getvalue()
+                
+                logger.info(f"✅ Converted AVIF to PNG: {len(contents)} -> {len(png_contents)} bytes")
+                return png_contents, 'image/png'
+                
+            except Exception as avif_error:
+                logger.error(f"❌ Could not convert AVIF: {avif_error}")
+                # If PIL can't open AVIF, we need pillow-avif-plugin
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"AVIF conversion failed. PIL cannot open AVIF files without pillow-avif-plugin. Error: {str(avif_error)}"
+                )
         else:
-            # Not a HEIC file, return as-is
+            # Not a HEIC/AVIF file, return as-is
             logger.info(f"Processing regular image file: {filename}")
             return contents, content_type
             
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error processing image file: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=f"Failed to process image: {str(e)}")
@@ -262,7 +304,8 @@ async def upload_image(
         
         logger.info(f"Original file size: {len(contents)} bytes")
         
-        # Process image file (convert HEIC to JPEG if needed)
+        # Process image file (convert HEIC/AVIF to JPEG/PNG if needed)
+        processed_content_type = file.content_type or "application/octet-stream"
         try:
             processed_contents, processed_content_type = process_image_file(
                 contents, file.filename or "unknown", file.content_type or "application/octet-stream"
@@ -271,7 +314,6 @@ async def upload_image(
             
             # Use processed contents for upload
             contents = processed_contents
-            file.content_type = processed_content_type
             
         except HTTPException:
             raise
