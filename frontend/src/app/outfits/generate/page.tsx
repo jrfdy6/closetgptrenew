@@ -355,26 +355,31 @@ export default function OutfitGenerationPage() {
     'sunny', 'rainy', 'cloudy', 'cold', 'warm', 'hot', 'mild'
   ];
 
-  // ENHANCED: Gender-aware style filtering
+  // Smart gender-aware style filtering - filters only obviously gender-specific styles
+  // Styles that can work for both genders (like Romantic, Boho) are kept available
   const filterStylesByGender = (styles: string[], gender: string) => {
-    // If no gender is provided, default to male filtering (since user is male)
     const effectiveGender = gender || 'male';
     
-    const feminineStyles = [
-      'French Girl', 'Romantic', 'Pinup', 'Boho', 'Cottagecore',
-      'Coastal Grandmother', 'Clean Girl'
+    // Only filter styles that are VERY obviously gender-specific
+    // These styles have strong gender associations that don't translate well
+    const obviouslyFeminineStyles = [
+      'Coastal Grandmother',  // Very feminine aesthetic (linen dresses, straw accessories)
+      'French Girl',          // Parisian women's fashion
+      'Pinup',                // 1950s women's pinup style
+      'Clean Girl'            // TikTok women's aesthetic
     ];
     
-    const masculineStyles = [
-      'Techwear', 'Grunge', 'Streetwear'
+    const obviouslyMasculineStyles = [
+      'Techwear'              // Very masculine tech/utility aesthetic
     ];
+    
+    // Styles like Romantic, Boho, Cottagecore can work for both genders with adjustments
+    // So we keep them available - backend will handle appropriate item selection
     
     if (effectiveGender.toLowerCase() === 'male') {
-      const filtered = styles.filter(style => !feminineStyles.includes(style));
-      console.log('🔍 Filtered styles for male user:', filtered.length, 'of', styles.length);
-      return filtered;
+      return styles.filter(style => !obviouslyFeminineStyles.includes(style));
     } else if (effectiveGender.toLowerCase() === 'female') {
-      return styles.filter(style => !masculineStyles.includes(style));
+      return styles.filter(style => !obviouslyMasculineStyles.includes(style));
     }
     
     return styles;

@@ -462,6 +462,140 @@ class RobustOutfitGenerationService:
         else:
             return 0
     
+    def _is_shirt(self, item) -> bool:
+        """Check if item is a shirt (not a sweater, hoodie, or outerwear)."""
+        item_type = str(self.safe_get_item_type(item)).lower()
+        item_name = self.safe_get_item_name(item).lower()
+        
+        # Check metadata for coreCategory
+        if hasattr(item, 'metadata') and item.metadata:
+            if isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    core_category = (visual_attrs.get('coreCategory') or '').lower()
+                    if core_category in ['top', 'tops', 'shirt']:
+                        # But exclude if it's actually outerwear
+                        if any(kw in item_name for kw in ['jacket', 'coat', 'blazer']):
+                            return False
+                        # Exclude sweaters, hoodies, cardigans
+                        if any(kw in item_name or kw in item_type for kw in ['sweater', 'hoodie', 'cardigan', 'vest']):
+                            return False
+                        return True
+        
+        # Check type and name
+        shirt_keywords = ['shirt', 't-shirt', 't_shirt', 'blouse', 'polo', 'button-up', 'button up', 'dress shirt', 'oxford']
+        if any(kw in item_type or kw in item_name for kw in shirt_keywords):
+            # Exclude sweaters, hoodies, cardigans
+            if any(kw in item_name or kw in item_type for kw in ['sweater', 'hoodie', 'cardigan', 'vest']):
+                return False
+            return True
+        
+        return False
+    
+    def _is_turtleneck(self, item) -> bool:
+        """Check if item is a turtleneck."""
+        item_name = self.safe_get_item_name(item).lower()
+        item_type = str(self.safe_get_item_type(item)).lower()
+        
+        # Check metadata
+        if hasattr(item, 'metadata') and item.metadata:
+            if isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    neckline = (visual_attrs.get('neckline') or '').lower()
+                    if 'turtleneck' in neckline or 'turtle' in neckline:
+                        return True
+        
+        # Check name/type
+        return 'turtleneck' in item_name or 'turtle' in item_name
+    
+    def _is_collared(self, item) -> bool:
+        """Check if item has a collar."""
+        item_name = self.safe_get_item_name(item).lower()
+        item_type = str(self.safe_get_item_type(item)).lower()
+        
+        # Check metadata
+        if hasattr(item, 'metadata') and item.metadata:
+            if isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    neckline = (visual_attrs.get('neckline') or '').lower()
+                    collar_type = (visual_attrs.get('collarType') or '').lower()
+                    if 'collar' in neckline or 'collar' in collar_type or 'polo' in neckline:
+                        return True
+        
+        # Check name/type
+        collar_keywords = ['collar', 'collared', 'polo', 'button-up', 'button up', 'dress shirt', 'oxford']
+        return any(kw in item_name or kw in item_type for kw in collar_keywords)
+    
+    def _is_sweater_vest(self, item) -> bool:
+        """Check if item is a sweater vest (sleeveless sweater)."""
+        item_name = self.safe_get_item_name(item).lower()
+        item_type = str(self.safe_get_item_type(item)).lower()
+        
+        # Check metadata
+        if hasattr(item, 'metadata') and item.metadata:
+            if isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    sleeve_length = (visual_attrs.get('sleeveLength') or '').lower()
+                    if 'vest' in item_name and ('sweater' in item_name or 'sweater' in item_type):
+                        return True
+                    if 'sleeveless' in sleeve_length and ('sweater' in item_name or 'sweater' in item_type):
+                        return True
+        
+        # Check name/type
+        return ('vest' in item_name and 'sweater' in item_name) or ('sweater vest' in item_name)
+    
+    def _get_sleeve_length(self, item) -> str:
+        """Get sleeve length from metadata or infer from name/type."""
+        # Check metadata first
+        if hasattr(item, 'metadata') and item.metadata:
+            if isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    sleeve_length = visual_attrs.get('sleeveLength')
+                    if sleeve_length:
+                        return str(sleeve_length).lower()
+        
+        # Fallback: infer from name/type
+        item_name = self.safe_get_item_name(item).lower()
+        item_type = str(self.safe_get_item_type(item)).lower()
+        
+        if any(kw in item_name for kw in ['sleeveless', 'tank', 'vest']):
+            return 'sleeveless'
+        elif any(kw in item_name for kw in ['short sleeve', 'short-sleeve', 't-shirt', 'tee']):
+            return 'short'
+        elif any(kw in item_name for kw in ['3/4', 'three quarter']):
+            return '3/4'
+        elif any(kw in item_name for kw in ['long sleeve', 'long-sleeve', 'button up', 'button-up']):
+            return 'long'
+        
+        # Default based on type
+        if 'sweater' in item_type or 'sweater' in item_name:
+            return 'long'  # Most sweaters are long sleeve
+        elif 'shirt' in item_type or 'shirt' in item_name:
+            return 'long'  # Most shirts are long sleeve
+        
+        return 'unknown'
+    
+    def _is_hoodie(self, item) -> bool:
+        """Check if item is a hoodie."""
+        item_name = self.safe_get_item_name(item).lower()
+        item_type = str(self.safe_get_item_type(item)).lower()
+        return 'hoodie' in item_name or 'hoodie' in item_type
+    
+    def _is_outerwear(self, item) -> bool:
+        """Check if item is outerwear (jacket, coat, blazer)."""
+        category = self._get_item_category(item)
+        if category == 'outerwear':
+            return True
+        
+        item_name = self.safe_get_item_name(item).lower()
+        item_type = str(self.safe_get_item_type(item)).lower()
+        outerwear_keywords = ['jacket', 'coat', 'blazer', 'suit jacket', 'sport coat']
+        return any(kw in item_name or kw in item_type for kw in outerwear_keywords)
+    
     def _is_forbidden_combination(self, new_item, existing_items: List) -> bool:
         """
         Check if adding new_item would create a forbidden fashion combination.
@@ -470,8 +604,10 @@ class RobustOutfitGenerationService:
         - Blazer/suit jacket + shorts
         - Dress shoes + athletic shorts
         - Tuxedo + sneakers
-        - Formal gown + casual sneakers
-        - Tie + t-shirt (unless blazer present)
+        - Two shirts (not proper layering)
+        - Collared shirt + turtleneck (not OK)
+        - Short-sleeve sweater over long-sleeve shirt (not OK unless sweater vest)
+        - BUT: Hoodie + coat is OK (preserve this)
         
         Returns:
             True if combination is forbidden, False if allowed
@@ -515,6 +651,58 @@ class RobustOutfitGenerationService:
             if (is_tuxedo and is_sneakers) or (is_existing_tuxedo and is_new_sneakers):
                 logger.info(f"  🚫 FORBIDDEN: Tuxedo + sneakers combination blocked")
                 return True
+            
+            # RULE 4: No two shirts (not proper layering)
+            # Exception: Hoodie + coat is OK (preserve this)
+            new_is_shirt = self._is_shirt(new_item)
+            existing_is_shirt = self._is_shirt(existing)
+            new_is_hoodie = self._is_hoodie(new_item)
+            existing_is_hoodie = self._is_hoodie(existing)
+            new_is_outerwear = self._is_outerwear(new_item)
+            existing_is_outerwear = self._is_outerwear(existing)
+            
+            # Allow hoodie + coat/outerwear
+            if (new_is_hoodie and existing_is_outerwear) or (existing_is_hoodie and new_is_outerwear):
+                continue  # This is OK, skip to next item
+            
+            # Block two shirts
+            if new_is_shirt and existing_is_shirt:
+                logger.info(f"  🚫 FORBIDDEN: Two shirts combination blocked ({self.safe_get_item_name(new_item)} + {self.safe_get_item_name(existing)})")
+                return True
+            
+            # RULE 5: No collared shirt + turtleneck
+            new_is_collared = self._is_collared(new_item)
+            existing_is_turtleneck = self._is_turtleneck(existing)
+            existing_is_collared = self._is_collared(existing)
+            new_is_turtleneck = self._is_turtleneck(new_item)
+            
+            if (new_is_collared and existing_is_turtleneck) or (existing_is_collared and new_is_turtleneck):
+                logger.info(f"  🚫 FORBIDDEN: Collared shirt + turtleneck combination blocked")
+                return True
+            
+            # RULE 6: No short-sleeve sweater over long-sleeve shirt (unless sweater vest)
+            new_is_sweater = 'sweater' in new_item_name or 'sweater' in new_item_type
+            existing_is_sweater = 'sweater' in existing_name or 'sweater' in existing_type
+            new_is_sweater_vest = self._is_sweater_vest(new_item)
+            existing_is_sweater_vest = self._is_sweater_vest(existing)
+            
+            if new_is_sweater and not new_is_sweater_vest:
+                new_sleeve = self._get_sleeve_length(new_item)
+                existing_sleeve = self._get_sleeve_length(existing)
+                
+                # Check if sweater is short-sleeve and existing is long-sleeve shirt
+                if new_sleeve == 'short' and existing_sleeve == 'long' and existing_is_shirt:
+                    logger.info(f"  🚫 FORBIDDEN: Short-sleeve sweater over long-sleeve shirt blocked (only sweater vests allowed)")
+                    return True
+            
+            if existing_is_sweater and not existing_is_sweater_vest:
+                existing_sleeve = self._get_sleeve_length(existing)
+                new_sleeve = self._get_sleeve_length(new_item)
+                
+                # Check if existing sweater is short-sleeve and new item is long-sleeve shirt
+                if existing_sleeve == 'short' and new_sleeve == 'long' and new_is_shirt:
+                    logger.info(f"  🚫 FORBIDDEN: Short-sleeve sweater over long-sleeve shirt blocked (only sweater vests allowed)")
+                    return True
         
         return False  # Combination is allowed
     
@@ -7018,6 +7206,15 @@ class RobustOutfitGenerationService:
                         if self._is_forbidden_combination(item, selected_items):
                             logger.warning(f"  🚫 FORBIDDEN COMBO: {self.safe_get_item_name(item)} creates forbidden combination with existing items")
                             continue  # Skip this item
+                        
+                        # ✅ NEW: Check for two shirts in Phase 1 (prevent from the start)
+                        if category == 'tops':
+                            is_shirt = self._is_shirt(item)
+                            has_shirt = any(self._is_shirt(i) for i in selected_items)
+                            if is_shirt and has_shirt:
+                                logger.warning(f"  🚫 FORBIDDEN: Two shirts not allowed in Phase 1 - {self.safe_get_item_name(item)} skipped")
+                                continue
+                        
                         if category == 'shoes' and requires_minimalist_party_polish:
                             if not _is_polished_party_shoe(item):
                                 logger.info(f"  ⏭️ Essential shoes: {self.safe_get_item_name(item)} skipped — not polished enough for minimalist {context.occasion}")
@@ -7278,6 +7475,20 @@ class RobustOutfitGenerationService:
                     for i in selected_items
                 )
                 
+                # ✅ NEW: Check if this would create two shirts (not proper)
+                is_shirt = self._is_shirt(item)
+                has_shirt = any(self._is_shirt(i) for i in selected_items)
+                
+                # ✅ NEW: Check for forbidden layering combinations
+                if self._is_forbidden_combination(item, selected_items):
+                    logger.warning(f"  🚫 FORBIDDEN COMBO: {self.safe_get_item_name(item)} would create forbidden layering combination")
+                    continue
+                
+                # Block adding a second shirt
+                if is_shirt and has_shirt:
+                    logger.warning(f"  🚫 FORBIDDEN: Two shirts not allowed - {self.safe_get_item_name(item)} skipped (already have a shirt)")
+                    continue
+                
                 if is_mid_layer and not has_mid_layer and temp < 70:
                     if _is_monochrome_allowed(item, item_id, score_data, log_prefix="  "):
                         selected_items.append(item)
@@ -7285,6 +7496,11 @@ class RobustOutfitGenerationService:
                         logger.warning(f"  ✅ Mid-layer: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                 elif is_mid_layer and has_mid_layer:
                     logger.warning(f"  ⏭️ Mid-layer: {self.safe_get_item_name(item)} - SKIPPED (already have mid-layer)")
+                elif is_shirt and not has_shirt:
+                    # Allow adding a shirt if we don't have one yet
+                    if _is_monochrome_allowed(item, item_id, score_data, log_prefix="  "):
+                        selected_items.append(item)
+                        logger.warning(f"  ✅ Top: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
             
             elif category == 'accessories' and score_data['composite_score'] > accessory_threshold:
                 # Accessories can have multiple items (belts, watches, etc.)

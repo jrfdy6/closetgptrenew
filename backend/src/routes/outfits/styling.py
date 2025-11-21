@@ -2013,17 +2013,35 @@ def calculate_style_appropriateness_score(style: str, item: Dict[str, Any], occa
     if mood:
         mood_lower = mood.lower()
         
-        # ROMANTIC MOOD: Prefer soft, delicate, feminine, flowy pieces
+        # ROMANTIC MOOD: Prefer soft, elegant, refined pieces (gender-neutral)
         if mood_lower == 'romantic':
-            romantic_keywords = ['romantic', 'soft', 'delicate', 'flowy', 'lace', 'silk', 'chiffon', 'satin', 'pastel', 'pink', 'cream', 'feminine', 'elegant', 'dress', 'skirt', 'floral']
+            # Universal romantic keywords that work for both genders
+            romantic_keywords = [
+                'romantic', 'soft', 'delicate', 'flowy', 'elegant', 'refined', 'sophisticated',
+                'silk', 'chiffon', 'satin', 'cashmere', 'velvet',  # Elegant materials
+                'pastel', 'cream', 'rose', 'lavender', 'soft blue', 'soft pink',  # Soft colors
+                'floral', 'lace', 'embroidery',  # Delicate details
+                'tailored', 'fitted', 'draped'  # Refined fits
+            ]
             has_romantic = any(keyword in item_text for keyword in romantic_keywords)
             
-            harsh_keywords = ['harsh', 'rigid', 'athletic', 'sport', 'cargo', 'utility', 'tactical']
+            # Gender-specific romantic items (boost if item matches user's typical items)
+            # Note: These are checked but don't penalize if missing (works for both genders)
+            feminine_romantic = ['dress', 'skirt', 'blouse']
+            masculine_romantic = ['button-up', 'dress shirt', 'blazer', 'suit']
+            has_feminine_romantic = any(keyword in item_text for keyword in feminine_romantic)
+            has_masculine_romantic = any(keyword in item_text for keyword in masculine_romantic)
+            
+            harsh_keywords = ['harsh', 'rigid', 'athletic', 'sport', 'cargo', 'utility', 'tactical', 'military']
             has_harsh = any(keyword in item_text for keyword in harsh_keywords)
             
             if has_romantic:
                 logger.info(f"💕 Romantic mood: Boosting romantic item")
                 total_score += 15
+            # Additional boost for gender-appropriate romantic items (if present)
+            if has_feminine_romantic or has_masculine_romantic:
+                logger.info(f"💕 Romantic mood: Additional boost for romantic item type")
+                total_score += 5
             if has_harsh:
                 logger.info(f"💕 Romantic mood: Penalizing harsh item")
                 total_score -= 10

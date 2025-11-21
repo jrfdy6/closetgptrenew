@@ -286,6 +286,15 @@ OCCASION_RULES = {
         accessory_requirements=[Accessory.WATCH],
         notes="Casual yet put-together brunch attire"
     ),
+    "weekend": OccasionRule(
+        occasion=OccasionType.CASUAL,  # Weekend is a type of casual
+        required_items=[ClothingType.SHIRT, ClothingType.PANTS],
+        forbidden_items=[ClothingType.DRESS_SHOES, ClothingType.DRESS_SHIRT, ClothingType.SUIT],
+        style_preferences=["relaxed", "comfortable", "casual", "effortless", "weekend_ready"],
+        material_preferences=[Material.COTTON, Material.DENIM, Material.LINEN],
+        accessory_requirements=[],
+        notes="Comfortable and relaxed weekend wear - no formal items"
+    ),
     "wedding_guest": OccasionRule(
         occasion=OccasionType.WEDDING_GUEST,
         required_items=[ClothingType.SHIRT, ClothingType.PANTS, ClothingType.DRESS_SHOES],
@@ -609,6 +618,10 @@ def get_occasion_rule(occasion: str) -> Optional[OccasionRule]:
         return (OCCASION_RULES.get("party") if OCCASION_RULES else None)
     elif "date" in occasion_lower:
         return (OCCASION_RULES.get("date_night") if OCCASION_RULES else None)
+    elif "weekend" in occasion_lower:
+        return (OCCASION_RULES.get("weekend") if OCCASION_RULES else None)
+    elif "loungewear" in occasion_lower or "lounge" in occasion_lower:
+        return (OCCASION_RULES.get("loungewear") if OCCASION_RULES else None)
     
     return None
 
