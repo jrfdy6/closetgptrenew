@@ -25,6 +25,9 @@ COPY worker/ ./worker/
 # Copy src directory so worker can import subscription_utils
 COPY backend/src/ ./src/
 
+# Copy scripts directory for admin scripts
+COPY backend/scripts/ ./scripts/
+
 # Set working directory to worker
 WORKDIR /app/worker
 
