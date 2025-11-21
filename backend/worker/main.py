@@ -1403,17 +1403,44 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                     "Authorization": f"Bearer {openai_client.api_key}",
                 }
                 
+                # Build explicit list of items that MUST be included
+                required_items = []
+                for item in processed_images:
+                    source = item.get("source") or {}
+                    category = item.get("category") or source.get("category") or source.get("type") or "item"
+                    name = source.get("name") or source.get("title") or f"{category}"
+                    colors = []
+                    dominant_colors = source.get("dominantColors") or source.get("dominant_colors")
+                    if isinstance(dominant_colors, list) and dominant_colors:
+                        first_color = dominant_colors[0]
+                        if isinstance(first_color, dict):
+                            color_name = first_color.get("name")
+                            if color_name:
+                                colors.append(color_name)
+                        elif isinstance(first_color, str):
+                            colors.append(first_color)
+                    if isinstance(source.get("color"), str):
+                        colors.append(source["color"])
+                    color_str = f" ({', '.join(dict.fromkeys(colors))})" if colors else ""
+                    required_items.append(f"- {name} ({category}{color_str})")
+                
+                items_list = "\n".join(required_items)
+                total_items = len(processed_images)
+                
                 enhance_prompt = (
-                    "Enhance ONLY the existing items in this fashion flatlay image. "
-                    "CRITICAL: DO NOT show any hangers, hooks, or hanging hardware. Remove any hangers if present. "
-                    "DO NOT add any new items. DO NOT add accessories, jewelry, or any clothing items that are not already in the image. "
-                    "PRESERVE the exact appearance of each item - keep colors, patterns, textures, and details exactly as they appear in the original. "
-                    "Do not change the style, design, or visual characteristics of any item. "
-                    "Improve lighting, shadows, and composition. Make it look more professional and photorealistic. "
-                    "Keep all existing items clearly visible and maintain their exact same arrangement. "
-                    "Only refine the visual quality - better lighting, natural shadows, improved colors and contrast. "
-                    "The output must contain exactly the same items as the input image, nothing more, nothing less. "
-                    "Items should appear as if laid flat on a surface, never hanging."
+                    f"Enhance this fashion flatlay image. The image contains EXACTLY {total_items} items that MUST all be visible in the output:\n\n"
+                    f"{items_list}\n\n"
+                    "CRITICAL REQUIREMENTS:\n"
+                    "1. ALL items listed above MUST be clearly visible in the enhanced image. Do not omit, hide, or remove any item.\n"
+                    "2. DO NOT show any hangers, hooks, or hanging hardware. Remove any hangers if present.\n"
+                    "3. DO NOT add any new items. DO NOT add accessories, jewelry, or any clothing items that are not in the list above.\n"
+                    "4. PRESERVE the exact appearance of each item - keep colors, patterns, textures, and details exactly as they appear in the original.\n"
+                    "5. Do not change the style, design, or visual characteristics of any item.\n"
+                    "6. Improve lighting, shadows, and composition. Make it look more professional and photorealistic.\n"
+                    "7. Keep all items clearly visible with proper sizing and placement.\n"
+                    "8. Only refine the visual quality - better lighting, natural shadows, improved colors and contrast.\n"
+                    "9. The output must contain exactly the same {total_items} items as listed above, nothing more, nothing less.\n"
+                    "10. Items should appear as if laid flat on a surface, never hanging."
                 )
                 
                 files = {
