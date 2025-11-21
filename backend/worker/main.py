@@ -951,7 +951,8 @@ def smart_grid_layout(items: list[dict], canvas_size: tuple[int, int]) -> list[d
     def vary_pos(base_x, base_y):
         x_var = random.uniform(-variation, variation) * width
         y_var = random.uniform(-variation, variation) * height
-        return (base_x + x_var, base_y + y_var)
+        result = (float(base_x + x_var), float(base_y + y_var))
+        return result
 
     slots = {
         "top_left": vary_pos(width * 0.28, height * 0.28),
@@ -962,6 +963,12 @@ def smart_grid_layout(items: list[dict], canvas_size: tuple[int, int]) -> list[d
         "top_center": vary_pos(center_x, height * 0.22),
         "center": vary_pos(center_x, center_y),
     }
+    
+    # Ensure all slots are tuples
+    for slot_name, slot_pos in slots.items():
+        if not isinstance(slot_pos, (tuple, list)) or len(slot_pos) < 2:
+            print(f"⚠️  Invalid slot position for {slot_name}: {slot_pos}, using center")
+            slots[slot_name] = (float(center_x), float(center_y))
     
     # Shuffle slot assignment order for variety
     slot_names = list(slots.keys())
@@ -1044,7 +1051,13 @@ def premium_flatlay(items: list[dict], canvas_size: tuple[int, int] = (1024, 102
         img = smooth_edges(img)
         img = add_material_shadow(img, material=item.get("material", "cotton"))
 
-        x_center, y_center = item["slot_pos"]
+        # Get slot position - ensure it's a tuple
+        slot_pos = item.get("slot_pos")
+        if not isinstance(slot_pos, (tuple, list)) or len(slot_pos) < 2:
+            print(f"⚠️  Invalid slot_pos for item {item.get('id')}: {slot_pos}, using center")
+            slot_pos = (canvas_size[0] / 2, canvas_size[1] / 2)
+        
+        x_center, y_center = float(slot_pos[0]), float(slot_pos[1])
         x = int(x_center - img.width / 2)
         y = int(y_center - img.height / 2)
         x = max(0, min(x, canvas_size[0] - img.width))
