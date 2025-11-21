@@ -1469,32 +1469,32 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                         # Upload final enhanced image
                         final_url = upload_flatlay_image(enhanced_image, doc_id, renderer_tag="openai_enhanced_compositor")
                         if final_url:
-            update_payload = {
-                'flat_lay_status': 'done',
-                'flatLayStatus': 'done',
+                            update_payload = {
+                                'flat_lay_status': 'done',
+                                'flatLayStatus': 'done',
                                 'flat_lay_url': final_url,
                                 'flatLayUrl': final_url,
-                'flat_lay_error': None,
-                'flatLayError': None,
-                'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
+                                'flat_lay_error': None,
+                                'flatLayError': None,
+                                'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
                                 'flat_lay_renderer': 'openai_enhanced_compositor',
                                 'flatLayRenderer': 'openai_enhanced_compositor',
-                'metadata.flat_lay_status': 'done',
-                'metadata.flatLayStatus': 'done',
+                                'metadata.flat_lay_status': 'done',
+                                'metadata.flatLayStatus': 'done',
                                 'metadata.flat_lay_url': final_url,
                                 'metadata.flatLayUrl': final_url,
-                'metadata.flat_lay_error': None,
-                'metadata.flatLayError': None,
+                                'metadata.flat_lay_error': None,
+                                'metadata.flatLayError': None,
                                 'metadata.flat_lay_renderer': 'openai_enhanced_compositor',
                                 'metadata.flatLayRenderer': 'openai_enhanced_compositor',
-            }
-            doc_ref.update(update_payload)
-            metrics['flat_lay_processed'] += 1
+                            }
+                            doc_ref.update(update_payload)
+                            metrics['flat_lay_processed'] += 1
                             metrics['flat_lay_openai'] += 1
                             if reservation and not reservation.get("bypassed"):
                                 release_openai_flatlay_slot(user_id)
                             print(f"✅ Outfit {doc_id}: OpenAI-enhanced flatlay ready ({final_url})")
-            return
+                            return
                     except Exception as parse_error:
                         print(f"⚠️  Outfit {doc_id}: Error parsing OpenAI response: {parse_error}")
                         print(f"⚠️  Response status: {api_response.status_code}, text: {api_response.text[:500]}")
