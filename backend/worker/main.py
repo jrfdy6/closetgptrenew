@@ -28,6 +28,7 @@ from openai import OpenAI
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
 from google.cloud.firestore_v1 import FieldFilter
+from debug_utils import debug_val, debug_section, debug_exception
 
 # Ensure backend/src is importable when worker runs standalone
 CURRENT_DIR = Path(__file__).resolve().parent
@@ -795,6 +796,10 @@ def normalize_item_for_flatlay(img: Image.Image, max_dim: int = 400, category: s
     """Scale item to proper size for flatlay while preserving aspect ratio.
     Uses category-based sizing for realistic proportions.
     Also removes hangers if detected."""
+    debug_section("NORMALIZE ITEM")
+    debug_val("img.size BEFORE validation", getattr(img, "size", None))
+    debug_val("item metadata", {"max_dim": max_dim, "category": category})
+    
     # Remove hangers - detect vertical lines at top of image (common hanger pattern)
     img = remove_hangers(img)
     
@@ -942,6 +947,10 @@ def categorize_item_type(source_item: dict) -> str:
 def smart_grid_layout(items: list[dict], canvas_size: tuple[int, int]) -> list[dict]:
     """Assign adaptive positions based on item categories and count with variety."""
     import random
+    debug_section("LAYOUT ENGINE")
+    debug_val("canvas_size BEFORE unpack", canvas_size)
+    debug_val("items passed to layout", items)
+    
     # Ensure canvas_size is a tuple
     if not isinstance(canvas_size, (tuple, list)) or len(canvas_size) < 2:
         print(f"⚠️  Invalid canvas_size in smart_grid_layout: {canvas_size}, using default")
@@ -1047,6 +1056,9 @@ def smart_grid_layout(items: list[dict], canvas_size: tuple[int, int]) -> list[d
 
 def premium_flatlay(items: list[dict], canvas_size: tuple[int, int] = (1024, 1024)) -> Image.Image:
     """Compose multiple items into a polished flat lay."""
+    debug_section("PREMIUM FLATLAY START")
+    debug_val("canvas_size RAW", canvas_size)
+    
     # Ensure canvas_size is a tuple
     if not isinstance(canvas_size, (tuple, list)) or len(canvas_size) < 2:
         print(f"⚠️  Invalid canvas_size: {canvas_size}, using default (1024, 1024)")
@@ -1060,6 +1072,8 @@ def premium_flatlay(items: list[dict], canvas_size: tuple[int, int] = (1024, 102
     positioned = smart_grid_layout(items, canvas_size)
 
     for item in positioned:
+        debug_val("slot_pos RAW", item.get("slot_pos"))
+        
         category = item.get("category")
         img = normalize_item_for_flatlay(item["img"], max_dim=420, category=category)
         img = smooth_edges(img)
@@ -1067,6 +1081,8 @@ def premium_flatlay(items: list[dict], canvas_size: tuple[int, int] = (1024, 102
 
         # Get slot position - ensure it's a tuple
         slot_pos = item.get("slot_pos")
+        debug_val("slot_pos BEFORE UNPACK", slot_pos)
+        
         if not isinstance(slot_pos, (tuple, list)) or len(slot_pos) < 2:
             print(f"⚠️  Invalid slot_pos for item {item.get('id')}: {slot_pos}, using center")
             slot_pos = (float(canvas_size[0]) / 2, float(canvas_size[1]) / 2)
@@ -1078,6 +1094,9 @@ def premium_flatlay(items: list[dict], canvas_size: tuple[int, int] = (1024, 102
         x = max(0, min(x, canvas_w - img.width))
         y = max(0, min(y, canvas_h - img.height))
 
+        debug_val("paste position", (x, y))
+        debug_val("item image size", getattr(img, "size", None))
+
         canvas.alpha_composite(img, (x, y))
 
     return canvas
@@ -1085,9 +1104,15 @@ def premium_flatlay(items: list[dict], canvas_size: tuple[int, int] = (1024, 102
 
 def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dict]:
     """Download, normalize, and enrich outfit items for flat lay composition."""
+    debug_section(f"FIREBASE RAW ITEM DATA - Outfit {outfit_id}")
     processed_images = []
     
     for item in outfit_items:
+        debug_section(f"FIREBASE RAW ITEM DATA - Item {item.get('id')}")
+        debug_val("Raw Firestore Item", item)
+        debug_val("Item metadata", item.get("metadata"))
+        debug_val("Item slot_pos pre-compositor", item.get("slot_pos"))
+        
         item_id = item.get('id') or item.get('itemId') or item.get('item_id')
         image_url = item.get('backgroundRemovedUrl') or item.get('background_removed_url')
 
