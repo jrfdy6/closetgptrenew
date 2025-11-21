@@ -798,8 +798,15 @@ def normalize_item_for_flatlay(img: Image.Image, max_dim: int = 400, category: s
     # Remove hangers - detect vertical lines at top of image (common hanger pattern)
     img = remove_hangers(img)
     
-    w, h = img.size
-    if not w or not h:
+    # Get image size - ensure it's a tuple
+    size = img.size
+    if not isinstance(size, (tuple, list)) or len(size) < 2:
+        print(f"⚠️  Invalid image size: {size}, returning original")
+        return img
+    
+    w, h = int(size[0]), int(size[1])
+    if not w or not h or w <= 0 or h <= 0:
+        print(f"⚠️  Invalid dimensions: {w}x{h}, returning original")
         return img
     
     # Use category-specific base size for more realistic proportions
@@ -823,12 +830,22 @@ def normalize_item_for_flatlay(img: Image.Image, max_dim: int = 400, category: s
     else:
         scale = 1.0
     
-    new_size = (int(w * scale), int(h * scale))
+    new_w = int(w * scale)
+    new_h = int(h * scale)
+    new_size = (new_w, new_h)
+    
     # Ensure minimum size for visibility
-    if new_size[0] < 50 or new_size[1] < 50:
+    if new_w < 50 or new_h < 50:
         min_scale = 50 / min(w, h) if min(w, h) > 0 else 1.0
         scale = max(scale, min_scale)
-        new_size = (int(w * scale), int(h * scale))
+        new_w = int(w * scale)
+        new_h = int(h * scale)
+        new_size = (new_w, new_h)
+    
+    # Ensure new_size is valid
+    if new_w <= 0 or new_h <= 0:
+        print(f"⚠️  Calculated invalid size: {new_size}, using original")
+        return img
     
     return img.resize(new_size, Image.Resampling.LANCZOS)
 
