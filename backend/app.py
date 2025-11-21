@@ -171,6 +171,7 @@ ROUTERS = [
     ("src.routes.backfill_ultra_simple", "/api/backfill"), # Ultra simple backfill endpoint - just visit the URL!
     # ("src.routes.backfill_simple_test", "/api/backfill"), # Simple backfill test endpoint
     # ("src.routes.backfill_trigger", "/api/backfill"),      # Database backfill trigger endpoint - TEMPORARILY DISABLED DUE TO IMPORT ISSUES
+    ("src.routes.reprocess_trigger", "/api/reprocess"),    # Reprocess wardrobe items with alpha matting
     # ("src.routes.semantic_telemetry", ""),                # Semantic filtering telemetry router - TEMPORARILY DISABLED DUE TO IMPORT ISSUES
     # ("src.routes.outfits.working_complex", "/api/outfits"),   # Working complex router - TEMPORARILY DISABLED TO TEST RUNTIME ISSUE
     # ("src.routes.personalization_demo.simple_routes", ""),    # Simple personalization demo router - TEMPORARILY DISABLED DUE TO RUNTIME ISSUES
