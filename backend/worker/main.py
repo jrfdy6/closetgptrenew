@@ -1160,8 +1160,12 @@ def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dic
             source.get('image_url')
         )
 
+        # Prioritize processed images (nobg.png is fastest, then processed.png, thumbnail as last resort)
         blob_candidates: list[str] = []
         if item_id:
+            # Prefer nobg.png (background removed, ready for flatlay)
+            # Then processed.png (fully processed with shadows/styling)
+            # Thumbnail only as fallback
             blob_candidates.extend([
                 f"items/{item_id}/nobg.png",
                 f"items/{item_id}/processed.png",
@@ -1247,36 +1251,19 @@ def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dic
             print(f"⚠️  Failed to decode image for flat lay: {e}")
             continue
 
-        # Ensure the image actually has transparency. If not, run background removal now.
+        # Check if image has transparency (items should already be processed)
         alpha_channel = img.split()[3]
         has_transparency = alpha_channel.getextrema() != (255, 255)
-        reprocessed = False
+        
+        # Skip background removal during flatlay for performance - items should already be processed
+        # If no transparency, skip this item and log a warning (don't block flatlay generation)
         if not has_transparency:
-            try:
-                # Always use enhanced alpha matting for better edge detection on all items
-                print(f"{debug_prefix} 🔍 Using enhanced alpha matting for background removal")
-                processed_bytes = _alpha_matting(source_bytes)
-                img = Image.open(BytesIO(processed_bytes)).convert("RGBA")
-                reprocessed = True
-            except Exception as remove_error:
-                print(f"⚠️  Failed to reprocess background removal for {item_id}: {remove_error}")
-                continue
+            print(f"{debug_prefix} ⚠️  Item missing transparency - skipping (should be processed first)")
+            print(f"{debug_prefix} ℹ️  Item will be processed by worker, then flatlay can be regenerated")
+            continue
 
         # Always crop to the garment silhouette to keep layout math accurate
         img = crop_to_alpha(img)
-
-        # If we regenerated transparency, persist it so future runs skip this work
-        if reprocessed and item_id:
-            try:
-                nobg_path = f"items/{item_id}/nobg.png"
-                buffer = BytesIO()
-                img.save(buffer, format="PNG")
-                buffer.seek(0)
-                blob = bucket.blob(nobg_path)
-                blob.upload_from_file(buffer, content_type="image/png")
-                blob.make_public()
-            except Exception as upload_error:
-                print(f"⚠️  Failed to upload regenerated nobg.png for {item_id}: {upload_error}")
 
         material = item.get("material") or resolve_material(item) or "cotton"
 
