@@ -1696,14 +1696,6 @@ async def proxy_flatlay_image(outfit_id: str, request: Request):
     except Exception as e:
         logger.error(f"Error proxying flatlay image: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to load flatlay image: {str(e)}")
-        
-        except Exception as e:
-            return {
-                "success": False,
-                "suggestion": None,
-                "isWorn": False,
-                "message": f"Error: {str(e)}"
-            }
 
 # Flatlay image proxy endpoint to fix CORS issues
 @app.get("/api/flatlay/{outfit_id}")
