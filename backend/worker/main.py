@@ -1774,6 +1774,10 @@ def process_item(doc_id, data):
 
             output_img = Image.open(BytesIO(output_bytes)).convert("RGBA")
             print(f"✅ {doc_id}: Background removal complete using {processing_mode} mode")
+            
+            # Remove hangers if present
+            output_img = remove_hangers(output_img)
+            print(f"✅ {doc_id}: Hanger removal applied")
 
         # 6. Stylize silhouette for cohesive flatlay aesthetics
         output_img = smooth_edges(output_img)
