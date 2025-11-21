@@ -1193,9 +1193,12 @@ def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dic
                             return unquote(encoded)
             return None
 
+        # Only add processed image paths to candidates, skip original.png
+        # (original.png doesn't have transparency and will be skipped anyway)
         if image_url:
             blob_path = blob_from_url(image_url)
-            if blob_path:
+            if blob_path and not blob_path.endswith('/original.png'):
+                # Only add if it's a processed image, not original
                 blob_candidates.insert(0, blob_path)
 
         debug_section(f"IMAGE LOAD - Item {item_id}")
@@ -1205,6 +1208,10 @@ def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dic
         last_error = None
         chosen_path = None
         for blob_path in blob_candidates:
+            # Skip original.png - it doesn't have transparency and will be rejected anyway
+            if blob_path.endswith('/original.png'):
+                print(f"{debug_prefix} ⏭️  skipping original.png (no transparency)")
+                continue
             try:
                 blob = bucket.blob(blob_path)
                 if blob.exists():
