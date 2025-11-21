@@ -1648,6 +1648,54 @@ async def get_todays_outfit_suggestion(current_user_id: str = Depends(get_curren
                 "isWorn": False,
                 "message": f"Failed to generate suggestion: {str(e)}"
             }
+
+# Flatlay image proxy endpoint to fix CORS issues
+@app.get("/api/flatlay/{outfit_id}")
+async def proxy_flatlay_image(outfit_id: str, request: Request):
+    """
+    Proxy endpoint to serve flatlay images with proper CORS headers.
+    This fixes CORS issues when loading flatlay images from Firebase Storage.
+    """
+    try:
+        from firebase_admin import storage
+        import requests
+        
+        # Construct the Firebase Storage URL
+        bucket_name = "closetgptrenew.firebasestorage.app"
+        path = f"flat_lays/outfit_{outfit_id}.png"
+        
+        # Get the blob
+        bucket = storage.bucket(bucket_name)
+        blob = bucket.blob(path)
+        
+        if not blob.exists():
+            raise HTTPException(status_code=404, detail="Flatlay image not found")
+        
+        # Download the image
+        image_data = blob.download_as_bytes()
+        
+        # Get origin from request for CORS
+        origin = request.headers.get("origin", "*")
+        
+        # Create response with CORS headers
+        from fastapi.responses import Response
+        response = Response(
+            content=image_data,
+            media_type="image/png",
+            headers={
+                "Access-Control-Allow-Origin": origin if origin in allowed_origins else "*",
+                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type",
+                "Cache-Control": "public, max-age=3600",  # Cache for 1 hour
+            }
+        )
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error proxying flatlay image: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to load flatlay image: {str(e)}")
         
     except Exception as e:
         return {
