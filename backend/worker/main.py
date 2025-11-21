@@ -1702,10 +1702,6 @@ def process_item(doc_id, data):
         # 1. Fetch or decode the original image bytes
         if original_url.startswith("data:"):
             original_bytes = decode_data_uri(original_url)
-            if len(original_bytes) > MAX_IMAGE_BYTES:
-                mark_failure(doc_id, "skipped_large_data_uri", "Data URI exceeds 5MB limit", retry_count)
-                metrics["skipped"] += 1
-                return
         else:
             if not original_url.lower().startswith(("http://", "https://")):
                 mark_failure(doc_id, "failed", "Unsupported image URL format", retry_count)
@@ -1714,10 +1710,6 @@ def process_item(doc_id, data):
             response = requests.get(original_url, timeout=30)
             response.raise_for_status()
             original_bytes = response.content
-            if len(original_bytes) > MAX_IMAGE_BYTES:
-                mark_failure(doc_id, "failed", "Original image exceeds 5MB limit", retry_count)
-                metrics["failed"] += 1
-                return
 
         # 2. Open image and normalize to RGBA
         try:
@@ -1728,12 +1720,28 @@ def process_item(doc_id, data):
             return
 
         original_size = original_image.size
+        
+        # 3. Resize image if it's too large (either by file size or dimensions)
+        # Check if file size exceeds limit OR if dimensions are very large
+        needs_resize = False
+        if len(original_bytes) > MAX_IMAGE_BYTES:
+            print(f"📏 {doc_id}: Image file size ({len(original_bytes) / 1024 / 1024:.1f}MB) exceeds 5MB limit, resizing...")
+            needs_resize = True
+        elif original_size[0] > 2048 or original_size[1] > 2048:
+            print(f"📏 {doc_id}: Image dimensions ({original_size[0]}x{original_size[1]}) are large, resizing for efficiency...")
+            needs_resize = True
+        
+        if needs_resize:
+            # Resize to max 2048x2048 to reduce file size while maintaining quality
+            original_image = resize_image(original_image, max_width=2048, max_height=2048)
+            print(f"✅ {doc_id}: Resized to {original_image.size[0]}x{original_image.size[1]}")
+            original_size = original_image.size
 
-        # 3. Check if image already has transparency (skip rembg if it does)
+        # 4. Check if image already has transparency (skip rembg if it does)
         alpha_channel = np.array(original_image.split()[3])  # Get alpha channel
         has_transparency = np.any(alpha_channel < 255)  # Check if any pixel is not fully opaque
 
-        # 4. Store original image in standard location
+        # 5. Store original image in standard location
         print(f"📤 {doc_id}: Uploading original ({original_size[0]}x{original_size[1]})...")
         original_storage_path = f"items/{doc_id}/original.png"
         original_storage_url = upload_png(original_image, original_storage_path)
@@ -1773,7 +1781,7 @@ def process_item(doc_id, data):
             output_img = remove_hangers(output_img)
             print(f"✅ {doc_id}: Hanger removal applied")
 
-        # 6. Stylize silhouette for cohesive flatlay aesthetics
+        # 7. Stylize silhouette for cohesive flatlay aesthetics
         output_img = smooth_edges(output_img)
         output_img = add_material_shadow(output_img, material_type)
         output_img = apply_light_gradient(output_img)

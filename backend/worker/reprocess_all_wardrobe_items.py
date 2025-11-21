@@ -131,11 +131,6 @@ def process_item(item_id: str, item_data: dict) -> dict:
             response.raise_for_status()
             original_bytes = response.content
         
-        if len(original_bytes) > MAX_IMAGE_BYTES:
-            result["status"] = "skipped"
-            result["error"] = "Image too large"
-            return result
-        
         # Open and convert to RGBA
         try:
             original_image = Image.open(BytesIO(original_bytes)).convert("RGBA")
@@ -145,6 +140,21 @@ def process_item(item_id: str, item_data: dict) -> dict:
             return result
         
         original_size = original_image.size
+        
+        # Resize image if it's too large (either by file size or dimensions)
+        needs_resize = False
+        if len(original_bytes) > MAX_IMAGE_BYTES:
+            print(f"📏 {item_id}: Image file size ({len(original_bytes) / 1024 / 1024:.1f}MB) exceeds 5MB limit, resizing...")
+            needs_resize = True
+        elif original_size[0] > 2048 or original_size[1] > 2048:
+            print(f"📏 {item_id}: Image dimensions ({original_size[0]}x{original_size[1]}) are large, resizing for efficiency...")
+            needs_resize = True
+        
+        if needs_resize:
+            # Resize to max 2048x2048 to reduce file size while maintaining quality
+            original_image = resize_image(original_image, max_width=2048, max_height=2048)
+            print(f"✅ {item_id}: Resized to {original_image.size[0]}x{original_image.size[1]}")
+            original_size = original_image.size
         
         # Check if already has transparency
         if HAS_NUMPY:
