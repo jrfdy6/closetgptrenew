@@ -84,15 +84,27 @@ alpha_executor = ProcessPoolExecutor(
 )
 
 
-def check_item_needs_processing(item_id: str) -> bool:
-    """Check if item needs processing (missing nobg.png or processed.png)."""
+def check_item_needs_processing(item_id: str, item_data: dict) -> bool:
+    """Check if item needs processing with alpha matting.
+    Only skip if it was already processed with alpha matting."""
+    # Check if item was processed with alpha matting
+    processing_mode = item_data.get("processing_mode")
+    if processing_mode == "alpha":
+        # Already processed with alpha matting, skip
+        return False
+    
+    # Check if processed images exist
     nobg_path = f"items/{item_id}/nobg.png"
     processed_path = f"items/{item_id}/processed.png"
     
     nobg_blob = bucket.blob(nobg_path)
     processed_blob = bucket.blob(processed_path)
     
-    return not (nobg_blob.exists() or processed_blob.exists())
+    has_processed_images = nobg_blob.exists() or processed_blob.exists()
+    
+    # If it has processed images but wasn't processed with alpha matting, reprocess
+    # If it doesn't have processed images, definitely needs processing
+    return True  # Always reprocess to ensure alpha matting was used
 
 
 def process_item(item_id: str, item_data: dict) -> dict:
@@ -264,10 +276,11 @@ def main():
         item_id = doc.id
         item_data = doc.to_dict()
         
-        if check_item_needs_processing(item_id):
+        if check_item_needs_processing(item_id, item_data):
             items_to_process.append((item_id, item_data))
         else:
-            print(f"⏭️  {item_id}: Already processed, skipping")
+            processing_mode = item_data.get("processing_mode", "unknown")
+            print(f"⏭️  {item_id}: Already processed with alpha matting (mode: {processing_mode}), skipping")
     
     print(f"🎯 {len(items_to_process)} items need processing")
     print("=" * 60)
