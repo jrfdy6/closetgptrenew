@@ -942,9 +942,13 @@ def categorize_item_type(source_item: dict) -> str:
 def smart_grid_layout(items: list[dict], canvas_size: tuple[int, int]) -> list[dict]:
     """Assign adaptive positions based on item categories and count with variety."""
     import random
-    width, height = canvas_size
-    center_x = width / 2
-    center_y = height / 2
+    # Ensure canvas_size is a tuple
+    if not isinstance(canvas_size, (tuple, list)) or len(canvas_size) < 2:
+        print(f"⚠️  Invalid canvas_size in smart_grid_layout: {canvas_size}, using default")
+        canvas_size = (1024, 1024)
+    width, height = int(canvas_size[0]), int(canvas_size[1])
+    center_x = float(width) / 2
+    center_y = float(height) / 2
 
     # Add random variation to slot positions for variety
     variation = 0.08  # 8% variation
