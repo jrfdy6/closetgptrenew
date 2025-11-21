@@ -1211,58 +1211,79 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                 }
                 
                 api_response = requests.post(api_url, headers=headers, files=files, timeout=120)
-                if api_response.ok:
-                    response_data = api_response.json()
-                    if response_data.get("data") and len(response_data["data"]) > 0:
-                        enhanced_url = response_data["data"][0].get("url")
-                        if enhanced_url:
-                            # Download enhanced image
-                            enhanced_response = requests.get(enhanced_url, timeout=30)
-                            enhanced_response.raise_for_status()
-                            enhanced_bytes = enhanced_response.content
-                            enhanced_image = Image.open(BytesIO(enhanced_bytes)).convert("RGBA")
-                            
-                            # Upload final enhanced image
-                            final_url = upload_flatlay_image(enhanced_image, doc_id, renderer_tag="openai_enhanced_compositor")
-                            if final_url:
-                                update_payload = {
-                                    'flat_lay_status': 'done',
-                                    'flatLayStatus': 'done',
-                                    'flat_lay_url': final_url,
-                                    'flatLayUrl': final_url,
-                                    'flat_lay_error': None,
-                                    'flatLayError': None,
-                                    'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
-                                    'flat_lay_renderer': 'openai_enhanced_compositor',
-                                    'flatLayRenderer': 'openai_enhanced_compositor',
-                                    'metadata.flat_lay_status': 'done',
-                                    'metadata.flatLayStatus': 'done',
-                                    'metadata.flat_lay_url': final_url,
-                                    'metadata.flatLayUrl': final_url,
-                                    'metadata.flat_lay_error': None,
-                                    'metadata.flatLayError': None,
-                                    'metadata.flat_lay_renderer': 'openai_enhanced_compositor',
-                                    'metadata.flatLayRenderer': 'openai_enhanced_compositor',
-                                }
-                                doc_ref.update(update_payload)
-                                metrics['flat_lay_processed'] += 1
-                                metrics['flat_lay_openai'] += 1
-                                if reservation and not reservation.get("bypassed"):
-                                    release_openai_flatlay_slot(user_id)
-                                print(f"✅ Outfit {doc_id}: OpenAI-enhanced flatlay ready ({final_url})")
-                                return
                 
-                # If OpenAI enhancement failed, log and continue to use compositor
-                error_text = api_response.text if not api_response.ok else ""
-                print(f"⚠️  Outfit {doc_id}: OpenAI enhancement failed: {error_text[:200]}")
-                if reservation and not reservation.get("bypassed"):
-                    release_openai_flatlay_slot(user_id)
+                if not api_response.ok:
+                    # Log detailed error information
+                    error_text = api_response.text
+                    try:
+                        error_json = api_response.json()
+                        error_msg = f"Status {api_response.status_code}: {error_json}"
+                    except:
+                        error_msg = f"Status {api_response.status_code}: {error_text[:500]}"
+                    print(f"⚠️  Outfit {doc_id}: OpenAI enhancement API error: {error_msg}")
+                    if reservation and not reservation.get("bypassed"):
+                        release_openai_flatlay_slot(user_id)
                     metrics['flat_lay_openai_failed'] += 1
+                else:
+                    try:
+                        response_data = api_response.json()
+                        if response_data.get("data") and len(response_data["data"]) > 0:
+                            enhanced_url = response_data["data"][0].get("url")
+                            if enhanced_url:
+                                # Download enhanced image
+                                enhanced_response = requests.get(enhanced_url, timeout=30)
+                                enhanced_response.raise_for_status()
+                                enhanced_bytes = enhanced_response.content
+                                enhanced_image = Image.open(BytesIO(enhanced_bytes)).convert("RGBA")
+                                
+                                # Upload final enhanced image
+                                final_url = upload_flatlay_image(enhanced_image, doc_id, renderer_tag="openai_enhanced_compositor")
+                                if final_url:
+                                    update_payload = {
+                                        'flat_lay_status': 'done',
+                                        'flatLayStatus': 'done',
+                                        'flat_lay_url': final_url,
+                                        'flatLayUrl': final_url,
+                                        'flat_lay_error': None,
+                                        'flatLayError': None,
+                                        'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
+                                        'flat_lay_renderer': 'openai_enhanced_compositor',
+                                        'flatLayRenderer': 'openai_enhanced_compositor',
+                                        'metadata.flat_lay_status': 'done',
+                                        'metadata.flatLayStatus': 'done',
+                                        'metadata.flat_lay_url': final_url,
+                                        'metadata.flatLayUrl': final_url,
+                                        'metadata.flat_lay_error': None,
+                                        'metadata.flatLayError': None,
+                                        'metadata.flat_lay_renderer': 'openai_enhanced_compositor',
+                                        'metadata.flatLayRenderer': 'openai_enhanced_compositor',
+                                    }
+                                    doc_ref.update(update_payload)
+                                    metrics['flat_lay_processed'] += 1
+                                    metrics['flat_lay_openai'] += 1
+                                    if reservation and not reservation.get("bypassed"):
+                                        release_openai_flatlay_slot(user_id)
+                                    print(f"✅ Outfit {doc_id}: OpenAI-enhanced flatlay ready ({final_url})")
+                                    return
+                            else:
+                                print(f"⚠️  Outfit {doc_id}: OpenAI response missing URL in data[0]")
+                        else:
+                            print(f"⚠️  Outfit {doc_id}: OpenAI response missing data array")
+                            print(f"⚠️  Response: {response_data}")
+                    except Exception as parse_error:
+                        print(f"⚠️  Outfit {doc_id}: Error parsing OpenAI response: {parse_error}")
+                        print(f"⚠️  Response status: {api_response.status_code}, text: {api_response.text[:500]}")
+                        if reservation and not reservation.get("bypassed"):
+                            release_openai_flatlay_slot(user_id)
+                        metrics['flat_lay_openai_failed'] += 1
             except Exception as enhance_error:
-                print(f"⚠️  Outfit {doc_id}: OpenAI enhancement error: {enhance_error}")
+                import traceback
+                error_trace = traceback.format_exc()
+                print(f"⚠️  Outfit {doc_id}: OpenAI enhancement exception: {enhance_error}")
+                print(f"⚠️  Traceback: {error_trace[:500]}")
                 if reservation and not reservation.get("bypassed"):
                     release_openai_flatlay_slot(user_id)
-                    metrics['flat_lay_openai_failed'] += 1
+                metrics['flat_lay_openai_failed'] += 1
         
         # Fallback: Use compositor image directly
         if compositor_canvas:
