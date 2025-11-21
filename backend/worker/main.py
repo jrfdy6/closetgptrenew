@@ -1422,7 +1422,7 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
         if compositor_canvas:
             compositor_url = upload_flatlay_image(compositor_canvas, doc_id, renderer_tag="compositor_v1")
             if compositor_url:
-        update_payload = {
+                update_payload = {
                     'flat_lay_status': 'done',
                     'flatLayStatus': 'done',
                     'flat_lay_url': compositor_url,
