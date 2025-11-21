@@ -1043,6 +1043,12 @@ def smart_grid_layout(items: list[dict], canvas_size: tuple[int, int]) -> list[d
 
 def premium_flatlay(items: list[dict], canvas_size: tuple[int, int] = (1024, 1024)) -> Image.Image:
     """Compose multiple items into a polished flat lay."""
+    # Ensure canvas_size is a tuple
+    if not isinstance(canvas_size, (tuple, list)) or len(canvas_size) < 2:
+        print(f"⚠️  Invalid canvas_size: {canvas_size}, using default (1024, 1024)")
+        canvas_size = (1024, 1024)
+    canvas_size = (int(canvas_size[0]), int(canvas_size[1]))
+    
     canvas = generate_radial_background(size=canvas_size)
     if not items:
         return canvas
@@ -1059,13 +1065,14 @@ def premium_flatlay(items: list[dict], canvas_size: tuple[int, int] = (1024, 102
         slot_pos = item.get("slot_pos")
         if not isinstance(slot_pos, (tuple, list)) or len(slot_pos) < 2:
             print(f"⚠️  Invalid slot_pos for item {item.get('id')}: {slot_pos}, using center")
-            slot_pos = (canvas_size[0] / 2, canvas_size[1] / 2)
+            slot_pos = (float(canvas_size[0]) / 2, float(canvas_size[1]) / 2)
         
         x_center, y_center = float(slot_pos[0]), float(slot_pos[1])
         x = int(x_center - img.width / 2)
         y = int(y_center - img.height / 2)
-        x = max(0, min(x, canvas_size[0] - img.width))
-        y = max(0, min(y, canvas_size[1] - img.height))
+        canvas_w, canvas_h = int(canvas_size[0]), int(canvas_size[1])
+        x = max(0, min(x, canvas_w - img.width))
+        y = max(0, min(y, canvas_h - img.height))
 
         canvas.alpha_composite(img, (x, y))
 
