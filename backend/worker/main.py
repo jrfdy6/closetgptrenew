@@ -1253,17 +1253,18 @@ def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dic
         reprocessed = False
         if not has_transparency:
             try:
-                # Check if image has white/light background for better removal
-                # Convert to RGB to analyze background
+                # Check if image has white/light background or is an accessory (like sunglasses)
+                # These need enhanced alpha matting for better edge detection
                 rgb_img = img.convert("RGB")
-                # Sample edges to detect white background
                 width, height = rgb_img.size
+                
+                # Sample edges to detect white background
                 edge_pixels = []
-                # Sample top, bottom, left, right edges
-                for x in range(width):
+                sample_step = max(1, min(width, height) // 20)  # Sample every Nth pixel for efficiency
+                for x in range(0, width, sample_step):
                     edge_pixels.append(rgb_img.getpixel((x, 0)))
                     edge_pixels.append(rgb_img.getpixel((x, height - 1)))
-                for y in range(height):
+                for y in range(0, height, sample_step):
                     edge_pixels.append(rgb_img.getpixel((0, y)))
                     edge_pixels.append(rgb_img.getpixel((width - 1, y)))
                 
@@ -1272,15 +1273,21 @@ def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dic
                 is_white_background = avg_brightness > 200  # Threshold for white/light background
                 
                 category = item.get('category') or source.get('category') or source.get('type') or ''
-                is_accessory = 'accessory' in category.lower() or 'sunglasses' in category.lower()
+                category_lower = category.lower()
+                is_accessory = (
+                    'accessory' in category_lower or 
+                    'sunglasses' in category_lower or 
+                    'glasses' in category_lower or
+                    'watch' in category_lower or
+                    'jewelry' in category_lower
+                )
                 
-                # Use improved alpha matting for white backgrounds or accessories
+                # Use enhanced alpha matting for white backgrounds or accessories (better edge detection)
                 if is_white_background or is_accessory:
-                    print(f"{debug_prefix} 🔍 Detected white background or accessory, using enhanced alpha matting")
-                    # Use more aggressive alpha matting for white backgrounds
+                    print(f"{debug_prefix} 🔍 Detected white background or accessory ({category}), using enhanced alpha matting")
                     processed_bytes = _alpha_matting(source_bytes)
                 else:
-                    # Standard background removal
+                    # Standard background removal for other items
                     processed_bytes = remove(source_bytes)
                 
                 img = Image.open(BytesIO(processed_bytes)).convert("RGBA")
@@ -1369,23 +1376,7 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
             return
 
         user_id = get_outfit_user_id(data)
-        
-        # Deduplicate items by ID to prevent duplicates in flatlay
-        seen_ids = set()
-        unique_items = []
-        for item in items:
-            item_id = item.get('id') or item.get('itemId') or item.get('item_id')
-            if item_id and item_id in seen_ids:
-                print(f"⚠️  Outfit {doc_id}: Skipping duplicate item {item_id}")
-                continue
-            if item_id:
-                seen_ids.add(item_id)
-            unique_items.append(item)
-        
-        if len(unique_items) < len(items):
-            print(f"ℹ️  Outfit {doc_id}: Removed {len(items) - len(unique_items)} duplicate item(s)")
-        
-        processed_images = prepare_flatlay_assets(unique_items, doc_id)
+        processed_images = prepare_flatlay_assets(items, doc_id)
         if not processed_images:
             failure_reason = 'No valid images available for flat lay composition'
             doc_ref.update({
@@ -1464,9 +1455,18 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                     "Authorization": f"Bearer {openai_client.api_key}",
                 }
                 
-                # Build explicit list of items that MUST be included
+                # Build explicit list of items that MUST be included (deduplicated by ID)
+                seen_item_ids = set()
                 required_items = []
                 for item in processed_images:
+                    item_id = item.get("id")
+                    # Skip duplicates
+                    if item_id and item_id in seen_item_ids:
+                        print(f"⚠️  Outfit {doc_id}: Skipping duplicate item {item_id} in OpenAI prompt")
+                        continue
+                    if item_id:
+                        seen_item_ids.add(item_id)
+                    
                     source = item.get("source") or {}
                     category = item.get("category") or source.get("category") or source.get("type") or "item"
                     name = source.get("name") or source.get("title") or f"{category}"
@@ -1486,22 +1486,23 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                     required_items.append(f"- {name} ({category}{color_str})")
                 
                 items_list = "\n".join(required_items)
-                total_items = len(processed_images)
+                total_items = len(required_items)
                 
                 enhance_prompt = (
-                    f"Enhance this fashion flatlay image. The image contains EXACTLY {total_items} items that MUST all be visible in the output:\n\n"
+                    f"Enhance this fashion flatlay image. The image contains EXACTLY {total_items} UNIQUE items that MUST all be visible in the output:\n\n"
                     f"{items_list}\n\n"
                     "CRITICAL REQUIREMENTS:\n"
-                    "1. ALL items listed above MUST be clearly visible in the enhanced image. Do not omit, hide, or remove any item.\n"
-                    "2. DO NOT show any hangers, hooks, or hanging hardware. Remove any hangers if present.\n"
-                    "3. DO NOT add any new items. DO NOT add accessories, jewelry, or any clothing items that are not in the list above.\n"
-                    "4. PRESERVE the exact appearance of each item - keep colors, patterns, textures, and details exactly as they appear in the original.\n"
-                    "5. Do not change the style, design, or visual characteristics of any item.\n"
-                    "6. Improve lighting, shadows, and composition. Make it look more professional and photorealistic.\n"
-                    "7. Keep all items clearly visible with proper sizing and placement.\n"
-                    "8. Only refine the visual quality - better lighting, natural shadows, improved colors and contrast.\n"
-                    "9. The output must contain exactly the same {total_items} items as listed above, nothing more, nothing less.\n"
-                    "10. Items should appear as if laid flat on a surface, never hanging."
+                    f"1. ALL {total_items} items listed above MUST be clearly visible in the enhanced image. Do not omit, hide, or remove any item.\n"
+                    "2. DO NOT duplicate any item. Each item in the list above should appear EXACTLY ONCE in the output.\n"
+                    "3. DO NOT show any hangers, hooks, or hanging hardware. Remove any hangers if present.\n"
+                    "4. DO NOT add any new items. DO NOT add accessories, jewelry, or any clothing items that are not in the list above.\n"
+                    "5. PRESERVE the exact appearance of each item - keep colors, patterns, textures, and details exactly as they appear in the original.\n"
+                    "6. Do not change the style, design, or visual characteristics of any item.\n"
+                    "7. Improve lighting, shadows, and composition. Make it look more professional and photorealistic.\n"
+                    "8. Keep all items clearly visible with proper sizing and placement.\n"
+                    "9. Only refine the visual quality - better lighting, natural shadows, improved colors and contrast.\n"
+                    f"10. The output must contain exactly {total_items} items - no more, no less. Each item appears once.\n"
+                    "11. Items should appear as if laid flat on a surface, never hanging."
                 )
                 
                 files = {
