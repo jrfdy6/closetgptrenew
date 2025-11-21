@@ -1150,8 +1150,12 @@ def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dic
             if blob_path:
                 blob_candidates.insert(0, blob_path)
 
+        debug_section(f"IMAGE LOAD - Item {item_id}")
+        debug_val("candidate paths", blob_candidates)
+        
         image_bytes = None
         last_error = None
+        chosen_path = None
         for blob_path in blob_candidates:
             try:
                 blob = bucket.blob(blob_path)
@@ -1159,6 +1163,7 @@ def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dic
                     candidate_bytes = blob.download_as_bytes()
                     if candidate_bytes:
                         image_bytes = candidate_bytes
+                        chosen_path = blob_path
                         print(f"{debug_prefix} ✅ loaded {blob_path} ({len(candidate_bytes)} bytes)")
                         break
                     else:
@@ -1327,12 +1332,21 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
         
         compositor_canvas = None
         try:
+            debug_section(f"BEGIN FLATLAY OUTFIT {doc_id}")
+            debug_val("outfit_id", doc_id)
+            debug_val("items list", processed_images)
+            debug_val("items count", len(processed_images))
+            
             compositor_canvas = compose_flatlay_image(processed_images)
             if compositor_canvas is None:
                 print(f"⚠️  Outfit {doc_id}: Compositor failed to generate canvas")
                 raise Exception("compositor_failed")
             print(f"✅ Outfit {doc_id}: Compositor flatlay generated, enhancing with OpenAI...")
+            debug_section("END FLATLAY SUCCESS")
+            debug_val("result canvas", compositor_canvas.size if compositor_canvas else None)
         except Exception as compositor_error:
+            debug_section("COMPOSITOR EXCEPTION")
+            debug_exception(f"compositor for outfit {doc_id}", compositor_error)
             print(f"⚠️  Outfit {doc_id}: Compositor error: {compositor_error}")
             compositor_canvas = None
         
