@@ -93,18 +93,9 @@ def check_item_needs_processing(item_id: str, item_data: dict) -> bool:
         # Already processed with alpha matting, skip
         return False
     
-    # Check if processed images exist
-    nobg_path = f"items/{item_id}/nobg.png"
-    processed_path = f"items/{item_id}/processed.png"
-    
-    nobg_blob = bucket.blob(nobg_path)
-    processed_blob = bucket.blob(processed_path)
-    
-    has_processed_images = nobg_blob.exists() or processed_blob.exists()
-    
-    # If it has processed images but wasn't processed with alpha matting, reprocess
-    # If it doesn't have processed images, definitely needs processing
-    return True  # Always reprocess to ensure alpha matting was used
+    # If processing_mode is not "alpha" (could be "fast", "preserved", missing, etc.),
+    # or if the item doesn't have processed images, it needs reprocessing
+    return True
 
 
 def process_item(item_id: str, item_data: dict) -> dict:
