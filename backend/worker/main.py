@@ -1376,7 +1376,23 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
             return
 
         user_id = get_outfit_user_id(data)
-        processed_images = prepare_flatlay_assets(items, doc_id)
+        
+        # Deduplicate items by ID to prevent duplicates in flatlay
+        seen_ids = set()
+        unique_items = []
+        for item in items:
+            item_id = item.get('id') or item.get('itemId') or item.get('item_id')
+            if item_id and item_id in seen_ids:
+                print(f"⚠️  Outfit {doc_id}: Skipping duplicate item {item_id}")
+                continue
+            if item_id:
+                seen_ids.add(item_id)
+            unique_items.append(item)
+        
+        if len(unique_items) < len(items):
+            print(f"ℹ️  Outfit {doc_id}: Removed {len(items) - len(unique_items)} duplicate item(s)")
+        
+        processed_images = prepare_flatlay_assets(unique_items, doc_id)
         if not processed_images:
             failure_reason = 'No valid images available for flat lay composition'
             doc_ref.update({
