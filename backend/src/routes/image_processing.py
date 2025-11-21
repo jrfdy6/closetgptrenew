@@ -48,6 +48,45 @@ except ImportError:
 # Set up logging
 logger = logging.getLogger(__name__)
 
+def remove_hangers(img: Image.Image) -> Image.Image:
+    """Remove hangers from clothing items by detecting and cropping out top horizontal hanger bars."""
+    if img.mode != "RGBA":
+        img = img.convert("RGBA")
+    
+    w, h = img.size
+    alpha = img.split()[3]  # This is a single-channel (L mode) image
+    
+    # Check top 15% of image for hanger patterns
+    # Look for horizontal lines of opaque pixels (hanger bars)
+    top_region_height = int(h * 0.15)
+    top_region = alpha.crop((0, 0, w, top_region_height))
+    
+    # Find the lowest row with significant opaque content (likely the top of the garment)
+    # Skip rows that are mostly transparent (hanger area)
+    min_opaque_threshold = 50  # Minimum alpha value to consider opaque
+    min_opaque_pixels = w * 0.3  # At least 30% of width should be opaque
+    
+    garment_top = 0
+    for y in range(top_region_height):
+        row = top_region.crop((0, y, w, y + 1))
+        # For single-channel (L mode) images, getdata() returns integers, not tuples
+        row_data = list(row.getdata())
+        # row_data is a list of integers (alpha values), not tuples
+        opaque_count = sum(1 for pixel_alpha in row_data if pixel_alpha >= min_opaque_threshold)
+        
+        if opaque_count >= min_opaque_pixels:
+            garment_top = y
+            break
+    
+    # If we found a garment top below the very top, crop out the hanger area
+    if garment_top > 0:
+        # Crop from garment_top, keeping a small margin
+        margin = max(2, int(garment_top * 0.1))
+        crop_top = max(0, garment_top - margin)
+        img = img.crop((0, crop_top, w, h))
+    
+    return img
+
 router = APIRouter(tags=["image"])
 
 @router.post("/upload")
@@ -128,6 +167,10 @@ async def upload_image(
                     logger.warning(f"⚠️ Alpha matting failed, using fast mode: {alpha_error}")
                     output_image = remove(input_image)
                     logger.info("✅ Background removed with fast mode (standard quality)")
+                
+                # Remove hangers if present
+                output_image = remove_hangers(output_image)
+                logger.info("✅ Hanger removal applied")
                 
                 # Convert to bytes
                 img_byte_arr = io.BytesIO()
