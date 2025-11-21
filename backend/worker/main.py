@@ -511,7 +511,7 @@ def generate_openai_flatlay_image(
                         image_url = blob.public_url
                         break
                 except Exception as blob_error:
-                    continue
+            continue
         
         if image_url:
             image_urls.append(image_url)
@@ -646,7 +646,7 @@ def generate_openai_flatlay_image(
         else:
             print(f"⚠️  gpt-image-1 response has no image data")
             return None, "no_image_data"
-        
+
         image = Image.open(BytesIO(image_bytes)).convert("RGBA")
 
         TARGET_SIZE = 1024
@@ -820,7 +820,7 @@ def normalize_item_for_flatlay(img: Image.Image, max_dim: int = 400, category: s
     else:
         # Default size based on category scale
         target_size = max_dim
-        if category and category in CATEGORY_SIZE_SCALE:
+    if category and category in CATEGORY_SIZE_SCALE:
             target_size = max_dim * CATEGORY_SIZE_SCALE[category]
     
     # Scale to fit within target size while preserving aspect ratio
@@ -864,7 +864,7 @@ def remove_hangers(img: Image.Image) -> Image.Image:
         img = img.convert("RGBA")
     
     w, h = img.size
-    alpha = img.split()[3]
+    alpha = img.split()[3]  # This is a single-channel (L mode) image
     
     # Check top 15% of image for hanger patterns
     # Look for horizontal lines of opaque pixels (hanger bars)
@@ -879,8 +879,10 @@ def remove_hangers(img: Image.Image) -> Image.Image:
     garment_top = 0
     for y in range(top_region_height):
         row = top_region.crop((0, y, w, y + 1))
+        # For single-channel (L mode) images, getdata() returns integers, not tuples
         row_data = list(row.getdata())
-        opaque_count = sum(1 for pixel in row_data if pixel[3] >= min_opaque_threshold)
+        # row_data is a list of integers (alpha values), not tuples
+        opaque_count = sum(1 for pixel_alpha in row_data if pixel_alpha >= min_opaque_threshold)
         
         if opaque_count >= min_opaque_pixels:
             garment_top = y
@@ -1155,7 +1157,7 @@ def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dic
 
         debug_section(f"IMAGE LOAD - Item {item_id}")
         debug_val("candidate paths", blob_candidates)
-        
+
         image_bytes = None
         last_error = None
         chosen_path = None
@@ -1467,32 +1469,32 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                         # Upload final enhanced image
                         final_url = upload_flatlay_image(enhanced_image, doc_id, renderer_tag="openai_enhanced_compositor")
                         if final_url:
-                            update_payload = {
-                                'flat_lay_status': 'done',
-                                'flatLayStatus': 'done',
+            update_payload = {
+                'flat_lay_status': 'done',
+                'flatLayStatus': 'done',
                                 'flat_lay_url': final_url,
                                 'flatLayUrl': final_url,
-                                'flat_lay_error': None,
-                                'flatLayError': None,
-                                'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
+                'flat_lay_error': None,
+                'flatLayError': None,
+                'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
                                 'flat_lay_renderer': 'openai_enhanced_compositor',
                                 'flatLayRenderer': 'openai_enhanced_compositor',
-                                'metadata.flat_lay_status': 'done',
-                                'metadata.flatLayStatus': 'done',
+                'metadata.flat_lay_status': 'done',
+                'metadata.flatLayStatus': 'done',
                                 'metadata.flat_lay_url': final_url,
                                 'metadata.flatLayUrl': final_url,
-                                'metadata.flat_lay_error': None,
-                                'metadata.flatLayError': None,
+                'metadata.flat_lay_error': None,
+                'metadata.flatLayError': None,
                                 'metadata.flat_lay_renderer': 'openai_enhanced_compositor',
                                 'metadata.flatLayRenderer': 'openai_enhanced_compositor',
-                            }
-                            doc_ref.update(update_payload)
-                            metrics['flat_lay_processed'] += 1
+            }
+            doc_ref.update(update_payload)
+            metrics['flat_lay_processed'] += 1
                             metrics['flat_lay_openai'] += 1
                             if reservation and not reservation.get("bypassed"):
                                 release_openai_flatlay_slot(user_id)
                             print(f"✅ Outfit {doc_id}: OpenAI-enhanced flatlay ready ({final_url})")
-                            return
+            return
                     except Exception as parse_error:
                         print(f"⚠️  Outfit {doc_id}: Error parsing OpenAI response: {parse_error}")
                         print(f"⚠️  Response status: {api_response.status_code}, text: {api_response.text[:500]}")
@@ -1512,7 +1514,7 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
         if compositor_canvas:
             compositor_url = upload_flatlay_image(compositor_canvas, doc_id, renderer_tag="compositor_v1")
             if compositor_url:
-                update_payload = {
+        update_payload = {
                     'flat_lay_status': 'done',
                     'flatLayStatus': 'done',
                     'flat_lay_url': compositor_url,
@@ -1844,11 +1846,11 @@ def run_worker():
 # ----------------------------
 if __name__ == "__main__":
     try:
-        print("=" * 60)
-        print("🚀 Easy Outfit Background Image Processor")
-        print("=" * 60)
-        print()
-        run_worker()
+    print("=" * 60)
+    print("🚀 Easy Outfit Background Image Processor")
+    print("=" * 60)
+    print()
+    run_worker()
     except KeyboardInterrupt:
         print("\n👋 Worker stopped by user")
     except Exception as e:
