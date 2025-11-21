@@ -1648,6 +1648,13 @@ async def get_todays_outfit_suggestion(current_user_id: str = Depends(get_curren
                 "isWorn": False,
                 "message": f"Failed to generate suggestion: {str(e)}"
             }
+    except Exception as e:
+        return {
+            "success": False,
+            "suggestion": None,
+            "isWorn": False,
+            "message": f"Error: {str(e)}"
+        }
 
 # Flatlay image proxy endpoint to fix CORS issues
 @app.get("/api/flatlay/{outfit_id}")
