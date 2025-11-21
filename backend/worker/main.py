@@ -1146,7 +1146,19 @@ def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dic
         debug_val("Item slot_pos pre-compositor", item.get("slot_pos"))
         
         item_id = item.get('id') or item.get('itemId') or item.get('item_id')
-        image_url = item.get('backgroundRemovedUrl') or item.get('background_removed_url')
+        source = item.get('source') or {}
+        
+        # Try to get image URL from various sources (prefer background-removed, fallback to original)
+        image_url = (
+            item.get('backgroundRemovedUrl') or 
+            item.get('background_removed_url') or
+            source.get('backgroundRemovedUrl') or
+            source.get('background_removed_url') or
+            item.get('imageUrl') or
+            item.get('image_url') or
+            source.get('imageUrl') or
+            source.get('image_url')
+        )
 
         blob_candidates: list[str] = []
         if item_id:
@@ -1209,19 +1221,23 @@ def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dic
         
         debug_val("chosen asset path", chosen_path)
         debug_val("image bytes length", len(image_bytes) if image_bytes else None)
+        debug_val("fallback image_url available", bool(image_url))
 
+        # Fallback to original imageUrl if no storage blobs found (for legacy items)
         if image_bytes is None and image_url:
             try:
+                print(f"{debug_prefix} 🔄 Falling back to original imageUrl (legacy item): {image_url[:80]}...")
                 response = requests.get(image_url, timeout=30)
                 response.raise_for_status()
                 image_bytes = response.content
-                print(f"{debug_prefix} ✅ fetched via HTTP {image_url} ({len(image_bytes)} bytes)")
+                print(f"{debug_prefix} ✅ fetched via HTTP fallback {image_url} ({len(image_bytes)} bytes)")
             except Exception as e:
                 last_error = e
                 print(f"{debug_prefix} ⚠️ HTTP fetch failed {image_url}: {e}")
 
         if not image_bytes:
             print(f"⚠️  Failed to load item image for flat lay: {last_error or 'no image bytes'}")
+            print(f"{debug_prefix} ❌ Item will be skipped - no image available from blobs or imageUrl")
             continue
 
         try:
