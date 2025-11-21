@@ -1031,7 +1031,11 @@ def smart_grid_layout(items: list[dict], canvas_size: tuple[int, int]) -> list[d
     positioned: list[dict] = []
     for item in items:
         slot_name = assignments.get(item["id"], "center")
-        slot_pos = slots.get(slot_name, (center_x, center_y))
+        slot_pos = slots.get(slot_name, (float(center_x), float(center_y)))
+        # Ensure slot_pos is a valid tuple
+        if not isinstance(slot_pos, (tuple, list)) or len(slot_pos) < 2:
+            print(f"⚠️  Invalid slot_pos for {slot_name}, using center")
+            slot_pos = (float(center_x), float(center_y))
         positioned.append({**item, "slot": slot_name, "slot_pos": slot_pos})
 
     return positioned
