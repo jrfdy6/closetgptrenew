@@ -1177,6 +1177,9 @@ def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dic
                 last_error = e
                 print(f"{debug_prefix} ⚠️ error downloading {blob_path}: {e}")
                 continue
+        
+        debug_val("chosen asset path", chosen_path)
+        debug_val("image bytes length", len(image_bytes) if image_bytes else None)
 
         if image_bytes is None and image_url:
             try:
