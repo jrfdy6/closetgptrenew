@@ -1514,14 +1514,14 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
         if compositor_canvas:
             compositor_url = upload_flatlay_image(compositor_canvas, doc_id, renderer_tag="compositor_v1")
             if compositor_url:
-        update_payload = {
+                update_payload = {
                     'flat_lay_status': 'done',
                     'flatLayStatus': 'done',
                     'flat_lay_url': compositor_url,
                     'flatLayUrl': compositor_url,
                     'flat_lay_error': None,
                     'flatLayError': None,
-            'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
+                    'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
                     'flat_lay_renderer': 'compositor_v1',
                     'flatLayRenderer': 'compositor_v1',
                     'metadata.flat_lay_status': 'done',
