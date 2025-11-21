@@ -255,7 +255,9 @@ export default function OutfitResultsDisplay({
     if (!flatLayUrl) return;
     
     try {
-      const response = await fetch(flatLayUrl);
+      // Use proxy endpoint to avoid CORS issues
+      const proxyUrl = `/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}`;
+      const response = await fetch(proxyUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -273,15 +275,25 @@ export default function OutfitResultsDisplay({
   const handleShare = async () => {
     if (!flatLayUrl) return;
     
+    // Prevent multiple simultaneous share operations
     if (navigator.share) {
       try {
+        // Fetch image via proxy to include in share
+        const proxyUrl = `/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}`;
+        const response = await fetch(proxyUrl);
+        const blob = await response.blob();
+        const file = new File([blob], `${outfit.name}-flat-lay.png`, { type: 'image/png' });
+        
         await navigator.share({
           title: outfit.name,
           text: 'Check out this outfit!',
-          url: flatLayUrl
+          files: [file]
         });
-      } catch (error) {
-        console.error('Error sharing:', error);
+      } catch (error: any) {
+        // Ignore AbortError (user cancelled) and other expected errors
+        if (error.name !== 'AbortError' && error.name !== 'InvalidStateError') {
+          console.error('Error sharing:', error);
+        }
       }
     } else {
       navigator.clipboard.writeText(flatLayUrl);

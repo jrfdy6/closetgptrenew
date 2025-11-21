@@ -95,46 +95,75 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
       </CardHeader>
 
       <CardContent className="pt-0">
-        {/* Outfit Items Preview */}
+        {/* Outfit Preview - Flat Lay or Items */}
         <div className="mb-4">
-          <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-2">Items ({outfit.items.length}):</p>
-          <div className="grid grid-cols-2 gap-2">
-            {outfit.items.slice(0, 4).map((item, index) => (
-              <div key={index} className="relative group">
-                {item.imageUrl ? (
-                  <div className="aspect-square rounded-xl overflow-hidden border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-[#F5F0E8]/60 dark:bg-[#2C2119]/70">
+          {/* Check for flatlay URL in metadata or direct property */}
+          {(outfit as any).metadata?.flat_lay_url || (outfit as any).metadata?.flatLayUrl || (outfit as any).flat_lay_url || (outfit as any).flatLayUrl ? (
+            // Show flatlay image if available
+            <div className="mb-3">
+              <div className="aspect-[9/16] bg-[#F5F0E8] dark:bg-[#2C2119] border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl overflow-hidden">
+                {(() => {
+                  const flatLayUrl = (outfit as any).metadata?.flat_lay_url || (outfit as any).metadata?.flatLayUrl || (outfit as any).flat_lay_url || (outfit as any).flatLayUrl;
+                  const useProxy = flatLayUrl?.includes('storage.googleapis.com') || flatLayUrl?.includes('firebasestorage.googleapis.com');
+                  return (
                     <img
-                      src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl}
-                      alt={item.name}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                      onError={(e) => {
-                        // Fallback to text if image fails to load
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const fallback = target.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.style.display = 'block';
-                      }}
+                      src={useProxy ? `/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}` : flatLayUrl}
+                      alt={outfit.name}
+                      className="w-full h-full object-contain hover:scale-105 transition-transform duration-200"
                     />
-                    <div 
-                      className="hidden text-xs text-[#57534E] dark:text-[#C4BCB4] bg-white/80 dark:bg-[#2C2119]/80 px-2 py-1 rounded absolute inset-0 flex items-center justify-center"
-                      style={{ display: 'none' }}
-                    >
-                      {item.name}
-                    </div>
+                  );
+                })()}
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <Badge variant="secondary" className="text-xs">
+                  <Eye className="h-3 w-3 mr-1" />
+                  Flat Lay View
+                </Badge>
+              </div>
+            </div>
+          ) : (
+            // Fallback: Show item grid preview
+            <>
+              <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-2">Items ({outfit.items.length}):</p>
+              <div className="grid grid-cols-2 gap-2">
+                {outfit.items.slice(0, 4).map((item, index) => (
+                  <div key={index} className="relative group">
+                    {item.imageUrl ? (
+                      <div className="aspect-square rounded-xl overflow-hidden border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-[#F5F0E8]/60 dark:bg-[#2C2119]/70">
+                        <img
+                          src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl}
+                          alt={item.name}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                          onError={(e) => {
+                            // Fallback to text if image fails to load
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'block';
+                          }}
+                        />
+                        <div 
+                          className="hidden text-xs text-[#57534E] dark:text-[#C4BCB4] bg-white/80 dark:bg-[#2C2119]/80 px-2 py-1 rounded absolute inset-0 flex items-center justify-center"
+                          style={{ display: 'none' }}
+                        >
+                          {item.name}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] bg-[#F5F0E8]/60 dark:bg-[#2C2119]/70 px-2 py-1 rounded-xl aspect-square flex items-center justify-center text-center">
+                        {item.name}
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] bg-[#F5F0E8]/60 dark:bg-[#2C2119]/70 px-2 py-1 rounded-xl aspect-square flex items-center justify-center text-center">
-                    {item.name}
+                ))}
+                {outfit.items.length > 4 && (
+                  <div className="text-xs text-[#8A827A] bg-[#F5F0E8]/60 dark:bg-[#2C2119]/70 px-2 py-1 rounded-xl aspect-square flex items-center justify-center">
+                    +{outfit.items.length - 4} more
                   </div>
                 )}
               </div>
-            ))}
-            {outfit.items.length > 4 && (
-              <div className="text-xs text-[#8A827A] bg-[#F5F0E8]/60 dark:bg-[#2C2119]/70 px-2 py-1 rounded-xl aspect-square flex items-center justify-center">
-                +{outfit.items.length - 4} more
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
         {/* Outfit Stats */}

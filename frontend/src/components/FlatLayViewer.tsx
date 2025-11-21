@@ -140,7 +140,9 @@ export default function FlatLayViewer({
     if (!flatLayUrl) return;
     
     try {
-      const response = await fetch(flatLayUrl);
+      // Use proxy endpoint to avoid CORS issues
+      const proxyUrl = `/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}`;
+      const response = await fetch(proxyUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -300,7 +302,9 @@ export default function FlatLayViewer({
         )}
         
         <img
-          src={flatLayUrl}
+          src={flatLayUrl?.includes('storage.googleapis.com') || flatLayUrl?.includes('firebasestorage.googleapis.com') 
+            ? `/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}`
+            : flatLayUrl}
           alt={outfitName || 'Outfit flat lay'}
           className="w-full h-full object-contain"
           onLoad={handleImageLoad}
@@ -330,27 +334,6 @@ export default function FlatLayViewer({
               <Grid3x3 className="w-4 h-4" />
             </Button>
           )}
-        </div>
-        
-        {/* Download and share buttons */}
-        <div className="absolute bottom-4 right-4 flex gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm"
-            onClick={handleDownload}
-          >
-            <Download className="w-4 h-4" />
-          </Button>
-          
-          <Button
-            size="sm"
-            variant="secondary"
-            className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm"
-            onClick={handleShare}
-          >
-            <Share2 className="w-4 h-4" />
-          </Button>
         </div>
         
         {/* Flat Lay Badge */}
@@ -485,7 +468,9 @@ export default function FlatLayViewer({
         </Button>
         
         <img
-          src={flatLayUrl}
+          src={flatLayUrl?.includes('storage.googleapis.com') || flatLayUrl?.includes('firebasestorage.googleapis.com')
+            ? `/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}`
+            : flatLayUrl}
           alt={outfitName || 'Outfit flat lay'}
           className="max-w-full max-h-full object-contain"
           onClick={(e) => e.stopPropagation()}
