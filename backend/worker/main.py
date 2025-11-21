@@ -511,7 +511,7 @@ def generate_openai_flatlay_image(
                         image_url = blob.public_url
                         break
                 except Exception as blob_error:
-            continue
+                    pass  # Continue to next blob_path
         
         if image_url:
             image_urls.append(image_url)
