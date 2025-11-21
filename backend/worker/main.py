@@ -839,6 +839,8 @@ def normalize_item_for_flatlay(img: Image.Image, max_dim: int = 400, category: s
     new_h = int(h * scale)
     new_size = (new_w, new_h)
     
+    debug_val("new_size BEFORE resize", new_size)
+    
     # Ensure minimum size for visibility
     if new_w < 50 or new_h < 50:
         min_scale = 50 / min(w, h) if min(w, h) > 0 else 1.0
@@ -846,6 +848,7 @@ def normalize_item_for_flatlay(img: Image.Image, max_dim: int = 400, category: s
         new_w = int(w * scale)
         new_h = int(h * scale)
         new_size = (new_w, new_h)
+        debug_val("new_size AFTER min size adjustment", new_size)
     
     # Ensure new_size is valid
     if new_w <= 0 or new_h <= 0:
