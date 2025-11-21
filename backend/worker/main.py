@@ -1227,49 +1227,87 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                 else:
                     try:
                         response_data = api_response.json()
+                        print(f"🔍 Outfit {doc_id}: OpenAI response structure: {list(response_data.keys())}")
+                        
+                        # Check for different response formats
+                        enhanced_url = None
+                        enhanced_b64 = None
+                        
+                        # Format 1: Standard images API response with data array
                         if response_data.get("data") and len(response_data["data"]) > 0:
-                            enhanced_url = response_data["data"][0].get("url")
-                            if enhanced_url:
-                                # Download enhanced image
-                                enhanced_response = requests.get(enhanced_url, timeout=30)
-                                enhanced_response.raise_for_status()
-                                enhanced_bytes = enhanced_response.content
-                                enhanced_image = Image.open(BytesIO(enhanced_bytes)).convert("RGBA")
-                                
-                                # Upload final enhanced image
-                                final_url = upload_flatlay_image(enhanced_image, doc_id, renderer_tag="openai_enhanced_compositor")
-                                if final_url:
-                                    update_payload = {
-                                        'flat_lay_status': 'done',
-                                        'flatLayStatus': 'done',
-                                        'flat_lay_url': final_url,
-                                        'flatLayUrl': final_url,
-                                        'flat_lay_error': None,
-                                        'flatLayError': None,
-                                        'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
-                                        'flat_lay_renderer': 'openai_enhanced_compositor',
-                                        'flatLayRenderer': 'openai_enhanced_compositor',
-                                        'metadata.flat_lay_status': 'done',
-                                        'metadata.flatLayStatus': 'done',
-                                        'metadata.flat_lay_url': final_url,
-                                        'metadata.flatLayUrl': final_url,
-                                        'metadata.flat_lay_error': None,
-                                        'metadata.flatLayError': None,
-                                        'metadata.flat_lay_renderer': 'openai_enhanced_compositor',
-                                        'metadata.flatLayRenderer': 'openai_enhanced_compositor',
-                                    }
-                                    doc_ref.update(update_payload)
-                                    metrics['flat_lay_processed'] += 1
-                                    metrics['flat_lay_openai'] += 1
-                                    if reservation and not reservation.get("bypassed"):
-                                        release_openai_flatlay_slot(user_id)
-                                    print(f"✅ Outfit {doc_id}: OpenAI-enhanced flatlay ready ({final_url})")
-                                    return
-                            else:
-                                print(f"⚠️  Outfit {doc_id}: OpenAI response missing URL in data[0]")
+                            first_item = response_data["data"][0]
+                            enhanced_url = first_item.get("url")
+                            enhanced_b64 = first_item.get("b64_json")
+                            print(f"🔍 Outfit {doc_id}: Found data array, first item keys: {list(first_item.keys()) if isinstance(first_item, dict) else 'not a dict'}")
+                        
+                        # Format 2: Direct URL or b64_json at top level
+                        elif "url" in response_data:
+                            enhanced_url = response_data.get("url")
+                            print(f"🔍 Outfit {doc_id}: Found URL at top level")
+                        elif "b64_json" in response_data:
+                            enhanced_b64 = response_data.get("b64_json")
+                            print(f"🔍 Outfit {doc_id}: Found b64_json at top level")
+                        
+                        # Format 3: Check for output_images (Responses API format)
+                        elif "output_images" in response_data:
+                            output_images = response_data.get("output_images", [])
+                            if output_images and len(output_images) > 0:
+                                first_output = output_images[0]
+                                if isinstance(first_output, dict):
+                                    enhanced_url = first_output.get("url")
+                                    enhanced_b64 = first_output.get("b64_json")
+                                print(f"🔍 Outfit {doc_id}: Found output_images array")
+                        
+                        if enhanced_url:
+                            # Download enhanced image from URL
+                            print(f"🔍 Outfit {doc_id}: Downloading enhanced image from URL...")
+                            enhanced_response = requests.get(enhanced_url, timeout=30)
+                            enhanced_response.raise_for_status()
+                            enhanced_bytes = enhanced_response.content
+                            enhanced_image = Image.open(BytesIO(enhanced_bytes)).convert("RGBA")
+                        elif enhanced_b64:
+                            # Decode base64 image
+                            print(f"🔍 Outfit {doc_id}: Decoding base64 enhanced image...")
+                            import base64
+                            enhanced_bytes = base64.b64decode(enhanced_b64)
+                            enhanced_image = Image.open(BytesIO(enhanced_bytes)).convert("RGBA")
                         else:
-                            print(f"⚠️  Outfit {doc_id}: OpenAI response missing data array")
-                            print(f"⚠️  Response: {response_data}")
+                            print(f"⚠️  Outfit {doc_id}: OpenAI response missing URL or b64_json")
+                            print(f"⚠️  Full response structure: {response_data}")
+                            if reservation and not reservation.get("bypassed"):
+                                release_openai_flatlay_slot(user_id)
+                            metrics['flat_lay_openai_failed'] += 1
+                            return  # Skip to compositor fallback
+                        
+                        # Upload final enhanced image
+                        final_url = upload_flatlay_image(enhanced_image, doc_id, renderer_tag="openai_enhanced_compositor")
+                        if final_url:
+                            update_payload = {
+                                'flat_lay_status': 'done',
+                                'flatLayStatus': 'done',
+                                'flat_lay_url': final_url,
+                                'flatLayUrl': final_url,
+                                'flat_lay_error': None,
+                                'flatLayError': None,
+                                'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
+                                'flat_lay_renderer': 'openai_enhanced_compositor',
+                                'flatLayRenderer': 'openai_enhanced_compositor',
+                                'metadata.flat_lay_status': 'done',
+                                'metadata.flatLayStatus': 'done',
+                                'metadata.flat_lay_url': final_url,
+                                'metadata.flatLayUrl': final_url,
+                                'metadata.flat_lay_error': None,
+                                'metadata.flatLayError': None,
+                                'metadata.flat_lay_renderer': 'openai_enhanced_compositor',
+                                'metadata.flatLayRenderer': 'openai_enhanced_compositor',
+                            }
+                            doc_ref.update(update_payload)
+                            metrics['flat_lay_processed'] += 1
+                            metrics['flat_lay_openai'] += 1
+                            if reservation and not reservation.get("bypassed"):
+                                release_openai_flatlay_slot(user_id)
+                            print(f"✅ Outfit {doc_id}: OpenAI-enhanced flatlay ready ({final_url})")
+                            return
                     except Exception as parse_error:
                         print(f"⚠️  Outfit {doc_id}: Error parsing OpenAI response: {parse_error}")
                         print(f"⚠️  Response status: {api_response.status_code}, text: {api_response.text[:500]}")
