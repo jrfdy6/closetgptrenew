@@ -55,7 +55,7 @@ async def upload_image(
     file: UploadFile = File(...),
     category: Optional[str] = "clothing",
     name: Optional[str] = None,
-    remove_bg: bool = False,  # DISABLED: Temporarily disabled for performance
+    remove_bg: bool = True,  # ENABLED: Always use alpha matting for best quality
     current_user: Optional[UserProfile] = Depends(get_current_user_optional) if AUTH_AVAILABLE else None
 ):
     try:
