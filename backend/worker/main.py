@@ -1375,12 +1375,14 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
         openai_used = False
         reservation = None
 
-        # Check OpenAI availability (but skip direct multi-image approach)
-        # TEMPORARY: Limit check disabled for testing
+        # Check OpenAI availability and weekly limit
         if openai_client and user_id:
-            # Bypass limit check - allow all requests for testing
-            reservation = {"allowed": True, "reason": "limit_disabled_for_testing", "bypassed": True}
-            print(f"🧪 Limit check disabled for testing - allowing OpenAI flatlay for outfit {doc_id}")
+            reservation = reserve_openai_flatlay_slot(user_id)
+            if not reservation.get("allowed"):
+                openai_note = reservation.get("reason") or "limit_reached"
+                limit = reservation.get("limit", 0)
+                used = reservation.get("used", 0)
+                print(f"⛔ Outfit {doc_id}: OpenAI flatlay limit reached ({used}/{limit} used this week)")
         else:
             if not openai_client:
                 openai_note = "openai_client_unavailable"
