@@ -547,8 +547,8 @@ def generate_openai_flatlay_image(
         
         # Format input images as array of input_image objects
         input_images = [
-            {
-                "type": "input_image",
+                {
+                    "type": "input_image",
                 "url": url
             }
             for url in image_urls
@@ -631,7 +631,7 @@ def generate_openai_flatlay_image(
         if not hasattr(response, "data") or not response.data:
             print(f"⚠️  gpt-image-1 response has no data")
             return None, "no_image_returned"
-        
+
         # Check for b64_json (base64 encoded image)
         image_data = response.data[0]
         if hasattr(image_data, "b64_json") and image_data.b64_json:
@@ -783,13 +783,55 @@ CATEGORY_SIZE_SCALE = {
 
 
 def normalize_item_for_flatlay(img: Image.Image, max_dim: int = 400, category: str | None = None) -> Image.Image:
-    """Scale item to max width/height while preserving aspect ratio and applying category multipliers."""
+    """Scale item to max width/height while preserving aspect ratio and applying category multipliers.
+    Also removes hangers if detected."""
+    # Remove hangers - detect vertical lines at top of image (common hanger pattern)
+    img = remove_hangers(img)
+    
     w, h = img.size
     scale = min(max_dim / w, max_dim / h, 1.0)
     if category and category in CATEGORY_SIZE_SCALE:
         scale *= CATEGORY_SIZE_SCALE[category]
     new_size = (int(w * scale), int(h * scale))
     return img.resize(new_size, Image.Resampling.LANCZOS)
+
+
+def remove_hangers(img: Image.Image) -> Image.Image:
+    """Remove hangers from clothing items by detecting and cropping out top horizontal hanger bars."""
+    if img.mode != "RGBA":
+        img = img.convert("RGBA")
+    
+    w, h = img.size
+    alpha = img.split()[3]
+    
+    # Check top 15% of image for hanger patterns
+    # Look for horizontal lines of opaque pixels (hanger bars)
+    top_region_height = int(h * 0.15)
+    top_region = alpha.crop((0, 0, w, top_region_height))
+    
+    # Find the lowest row with significant opaque content (likely the top of the garment)
+    # Skip rows that are mostly transparent (hanger area)
+    min_opaque_threshold = 50  # Minimum alpha value to consider opaque
+    min_opaque_pixels = w * 0.3  # At least 30% of width should be opaque
+    
+    garment_top = 0
+    for y in range(top_region_height):
+        row = top_region.crop((0, y, w, y + 1))
+        row_data = list(row.getdata())
+        opaque_count = sum(1 for pixel in row_data if pixel[3] >= min_opaque_threshold)
+        
+        if opaque_count >= min_opaque_pixels:
+            garment_top = y
+            break
+    
+    # If we found a garment top below the very top, crop out the hanger area
+    if garment_top > 0:
+        # Crop from garment_top, keeping a small margin
+        margin = max(2, int(garment_top * 0.1))
+        crop_top = max(0, garment_top - margin)
+        img = img.crop((0, crop_top, w, h))
+    
+    return img
 
 
 def crop_to_alpha(img: Image.Image) -> Image.Image:
@@ -844,20 +886,32 @@ def categorize_item_type(source_item: dict) -> str:
 
 
 def smart_grid_layout(items: list[dict], canvas_size: tuple[int, int]) -> list[dict]:
-    """Assign adaptive positions based on item categories and count."""
+    """Assign adaptive positions based on item categories and count with variety."""
+    import random
     width, height = canvas_size
     center_x = width / 2
     center_y = height / 2
 
+    # Add random variation to slot positions for variety
+    variation = 0.08  # 8% variation
+    def vary_pos(base_x, base_y):
+        x_var = random.uniform(-variation, variation) * width
+        y_var = random.uniform(-variation, variation) * height
+        return (base_x + x_var, base_y + y_var)
+
     slots = {
-        "top_left": (width * 0.28, height * 0.28),
-        "top_right": (width * 0.72, height * 0.28),
-        "bottom_left": (width * 0.28, height * 0.72),
-        "bottom_right": (width * 0.72, height * 0.72),
-        "bottom_center": (center_x, height * 0.82),
-        "top_center": (center_x, height * 0.22),
-        "center": (center_x, center_y),
+        "top_left": vary_pos(width * 0.28, height * 0.28),
+        "top_right": vary_pos(width * 0.72, height * 0.28),
+        "bottom_left": vary_pos(width * 0.28, height * 0.72),
+        "bottom_right": vary_pos(width * 0.72, height * 0.72),
+        "bottom_center": vary_pos(center_x, height * 0.82),
+        "top_center": vary_pos(center_x, height * 0.22),
+        "center": vary_pos(center_x, center_y),
     }
+    
+    # Shuffle slot assignment order for variety
+    slot_names = list(slots.keys())
+    random.shuffle(slot_names)
 
     categorized = {"outerwear": [], "top": [], "bottom": [], "shoes": [], "accessory": []}
     for item in items:
@@ -1195,11 +1249,15 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                 
                 enhance_prompt = (
                     "Enhance ONLY the existing items in this fashion flatlay image. "
+                    "CRITICAL: DO NOT show any hangers, hooks, or hanging hardware. Remove any hangers if present. "
                     "DO NOT add any new items. DO NOT add accessories, jewelry, or any clothing items that are not already in the image. "
+                    "PRESERVE the exact appearance of each item - keep colors, patterns, textures, and details exactly as they appear in the original. "
+                    "Do not change the style, design, or visual characteristics of any item. "
                     "Improve lighting, shadows, and composition. Make it look more professional and photorealistic. "
                     "Keep all existing items clearly visible and maintain their exact same arrangement. "
                     "Only refine the visual quality - better lighting, natural shadows, improved colors and contrast. "
-                    "The output must contain exactly the same items as the input image, nothing more, nothing less."
+                    "The output must contain exactly the same items as the input image, nothing more, nothing less. "
+                    "Items should appear as if laid flat on a surface, never hanging."
                 )
                 
                 files = {
@@ -1327,14 +1385,14 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
         if compositor_canvas:
             compositor_url = upload_flatlay_image(compositor_canvas, doc_id, renderer_tag="compositor_v1")
             if compositor_url:
-                update_payload = {
+        update_payload = {
                     'flat_lay_status': 'done',
                     'flatLayStatus': 'done',
                     'flat_lay_url': compositor_url,
                     'flatLayUrl': compositor_url,
                     'flat_lay_error': None,
                     'flatLayError': None,
-                    'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
+            'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
                     'flat_lay_renderer': 'compositor_v1',
                     'flatLayRenderer': 'compositor_v1',
                     'metadata.flat_lay_status': 'done',
@@ -1358,21 +1416,21 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
         # Compositor also failed - mark as failed
         message = f'OpenAI unavailable ({renderer_note}), compositor also failed'
         update_payload = {
-            'flat_lay_status': 'failed',
-            'flatLayStatus': 'failed',
+                'flat_lay_status': 'failed',
+                'flatLayStatus': 'failed',
             'flat_lay_url': None,
             'flatLayUrl': None,
-            'flat_lay_error': message,
-            'flatLayError': message,
+                'flat_lay_error': message,
+                'flatLayError': message,
             'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
             'flat_lay_renderer': 'none',
             'flatLayRenderer': 'none',
-            'metadata.flat_lay_status': 'failed',
-            'metadata.flatLayStatus': 'failed',
+                'metadata.flat_lay_status': 'failed',
+                'metadata.flatLayStatus': 'failed',
             'metadata.flat_lay_url': None,
             'metadata.flatLayUrl': None,
-            'metadata.flat_lay_error': message,
-            'metadata.flatLayError': message,
+                'metadata.flat_lay_error': message,
+                'metadata.flatLayError': message,
             'metadata.flat_lay_renderer': 'none',
             'metadata.flatLayRenderer': 'none',
             'metadata.flat_lay_renderer_note': renderer_note,
@@ -1659,11 +1717,11 @@ def run_worker():
 # ----------------------------
 if __name__ == "__main__":
     try:
-        print("=" * 60)
-        print("🚀 Easy Outfit Background Image Processor")
-        print("=" * 60)
-        print()
-        run_worker()
+    print("=" * 60)
+    print("🚀 Easy Outfit Background Image Processor")
+    print("=" * 60)
+    print()
+    run_worker()
     except KeyboardInterrupt:
         print("\n👋 Worker stopped by user")
     except Exception as e:
