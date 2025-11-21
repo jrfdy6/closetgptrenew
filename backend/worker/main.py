@@ -1253,43 +1253,9 @@ def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dic
         reprocessed = False
         if not has_transparency:
             try:
-                # Check if image has white/light background or is an accessory (like sunglasses)
-                # These need enhanced alpha matting for better edge detection
-                rgb_img = img.convert("RGB")
-                width, height = rgb_img.size
-                
-                # Sample edges to detect white background
-                edge_pixels = []
-                sample_step = max(1, min(width, height) // 20)  # Sample every Nth pixel for efficiency
-                for x in range(0, width, sample_step):
-                    edge_pixels.append(rgb_img.getpixel((x, 0)))
-                    edge_pixels.append(rgb_img.getpixel((x, height - 1)))
-                for y in range(0, height, sample_step):
-                    edge_pixels.append(rgb_img.getpixel((0, y)))
-                    edge_pixels.append(rgb_img.getpixel((width - 1, y)))
-                
-                # Calculate average brightness of edge pixels
-                avg_brightness = sum(sum(pixel) for pixel in edge_pixels) / (len(edge_pixels) * 3)
-                is_white_background = avg_brightness > 200  # Threshold for white/light background
-                
-                category = item.get('category') or source.get('category') or source.get('type') or ''
-                category_lower = category.lower()
-                is_accessory = (
-                    'accessory' in category_lower or 
-                    'sunglasses' in category_lower or 
-                    'glasses' in category_lower or
-                    'watch' in category_lower or
-                    'jewelry' in category_lower
-                )
-                
-                # Use enhanced alpha matting for white backgrounds or accessories (better edge detection)
-                if is_white_background or is_accessory:
-                    print(f"{debug_prefix} 🔍 Detected white background or accessory ({category}), using enhanced alpha matting")
-                    processed_bytes = _alpha_matting(source_bytes)
-                else:
-                    # Standard background removal for other items
-                    processed_bytes = remove(source_bytes)
-                
+                # Always use enhanced alpha matting for better edge detection on all items
+                print(f"{debug_prefix} 🔍 Using enhanced alpha matting for background removal")
+                processed_bytes = _alpha_matting(source_bytes)
                 img = Image.open(BytesIO(processed_bytes)).convert("RGBA")
                 reprocessed = True
             except Exception as remove_error:
