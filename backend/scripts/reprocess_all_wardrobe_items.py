@@ -155,12 +155,14 @@ def process_item(item_id: str, item_data: dict) -> dict:
             alpha_channel = original_image.split()[3]
             has_transparency = alpha_channel.getextrema() != (255, 255)
         
-        # Upload original if not already uploaded
+        # Upload original if not already uploaded (keep original, don't overwrite)
         original_storage_path = f"items/{item_id}/original.png"
         original_blob = bucket.blob(original_storage_path)
         if not original_blob.exists():
             print(f"📤 {item_id}: Uploading original...")
             upload_png(original_image, original_storage_path)
+        else:
+            print(f"ℹ️  {item_id}: Original already exists, keeping it")
         
         # Determine material
         material_type = resolve_material(item_data)
@@ -209,17 +211,20 @@ def process_item(item_id: str, item_data: dict) -> dict:
         # Generate thumbnail
         thumbnail_img = generate_thumbnail(output_img)
         
-        # Upload processed images
-        print(f"📤 {item_id}: Uploading processed images...")
+        # Upload processed images (overwriting existing ones with same filenames)
+        print(f"📤 {item_id}: Uploading processed images (replacing old ones)...")
         nobg_path = f"items/{item_id}/nobg.png"
         processed_path = f"items/{item_id}/processed.png"
         thumbnail_path = f"items/{item_id}/thumbnail.png"
         
+        # Overwrite existing images with new alpha-matted versions
         upload_png(output_img, nobg_path)
         upload_png(output_img, processed_path)
         upload_png(thumbnail_img, thumbnail_path)
         
-        # Update Firestore
+        print(f"✅ {item_id}: Replaced old processed images with alpha-matted versions")
+        
+        # Update Firestore with new URLs (same filenames, but updated URLs)
         doc_ref = db.collection(FIRESTORE_COLLECTION).document(item_id)
         nobg_url = bucket.blob(nobg_path).public_url
         processed_url = bucket.blob(processed_path).public_url
@@ -231,7 +236,7 @@ def process_item(item_id: str, item_data: dict) -> dict:
             "thumbnailUrl": thumbnail_url,
             "backgroundRemoved": True,
             "processing_status": "done",
-            "processing_mode": processing_mode,
+            "processing_mode": "alpha",  # Always mark as alpha since we're using alpha matting
         })
         
         total_time = time.time() - start_time
