@@ -774,25 +774,62 @@ def generate_radial_background(
 
 
 CATEGORY_SIZE_SCALE = {
-    "outerwear": 1.00,
-    "top": 0.90,
-    "bottom": 0.88,
-    "shoes": 0.65,
-    "accessory": 0.55,
+    "outerwear": 1.0,   # Jackets, coats - largest
+    "top": 0.85,        # Shirts, sweaters - medium-large
+    "bottom": 0.80,     # Pants, shorts - medium-large
+    "shoes": 0.50,      # Shoes - smaller
+    "accessory": 0.40,  # Accessories - smallest
+}
+
+# Base sizes for different categories (in pixels on 1024x1024 canvas)
+CATEGORY_BASE_SIZES = {
+    "outerwear": 450,   # Jackets/coats
+    "top": 380,         # Shirts/sweaters
+    "bottom": 360,      # Pants/shorts
+    "shoes": 220,       # Shoes
+    "accessory": 180,   # Accessories
 }
 
 
 def normalize_item_for_flatlay(img: Image.Image, max_dim: int = 400, category: str | None = None) -> Image.Image:
-    """Scale item to max width/height while preserving aspect ratio and applying category multipliers.
+    """Scale item to proper size for flatlay while preserving aspect ratio.
+    Uses category-based sizing for realistic proportions.
     Also removes hangers if detected."""
     # Remove hangers - detect vertical lines at top of image (common hanger pattern)
     img = remove_hangers(img)
     
     w, h = img.size
-    scale = min(max_dim / w, max_dim / h, 1.0)
-    if category and category in CATEGORY_SIZE_SCALE:
-        scale *= CATEGORY_SIZE_SCALE[category]
+    if not w or not h:
+        return img
+    
+    # Use category-specific base size for more realistic proportions
+    if category and category in CATEGORY_BASE_SIZES:
+        target_size = CATEGORY_BASE_SIZES[category]
+    else:
+        # Default size based on category scale
+        target_size = max_dim
+        if category and category in CATEGORY_SIZE_SCALE:
+            target_size = max_dim * CATEGORY_SIZE_SCALE[category]
+    
+    # Scale to fit within target size while preserving aspect ratio
+    # Use the larger dimension to determine scale
+    max_item_dim = max(w, h)
+    if max_item_dim > 0:
+        scale = target_size / max_item_dim
+        # Don't upscale small items too much (max 2x)
+        scale = min(scale, 2.0)
+        # Don't downscale too aggressively (min 0.3x)
+        scale = max(scale, 0.3)
+    else:
+        scale = 1.0
+    
     new_size = (int(w * scale), int(h * scale))
+    # Ensure minimum size for visibility
+    if new_size[0] < 50 or new_size[1] < 50:
+        min_scale = 50 / min(w, h) if min(w, h) > 0 else 1.0
+        scale = max(scale, min_scale)
+        new_size = (int(w * scale), int(h * scale))
+    
     return img.resize(new_size, Image.Resampling.LANCZOS)
 
 
