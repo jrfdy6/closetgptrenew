@@ -18,6 +18,16 @@ def get_heif_support():
         logger.warning("pillow_heif not available, HEIC support disabled")
         return False
 
+# Lazy import for AVIF support
+def get_avif_support():
+    try:
+        from pillow_avif import register_avif_opener
+        register_avif_opener()
+        return True
+    except ImportError:
+        logger.warning("pillow_avif_plugin not available, AVIF support may be limited")
+        return False
+
 def process_image_file(contents: bytes, filename: str, content_type: str) -> tuple[bytes, str]:
     """
     Process image file, converting HEIC/AVIF to PNG/JPEG if needed
@@ -79,8 +89,11 @@ def process_image_file(contents: bytes, filename: str, content_type: str) -> tup
         elif is_avif:
             logger.info(f"🔄 Converting AVIF to PNG for compatibility: {filename}")
             
+            # Register AVIF opener if available
+            get_avif_support()
+            
             try:
-                # Try to open AVIF with PIL (requires pillow-avif-plugin, but will try anyway)
+                # Try to open AVIF with PIL (requires pillow-avif-plugin)
                 img = Image.open(io.BytesIO(contents))
                 logger.info(f"✅ Opened AVIF image: {img.size}, mode: {img.mode}")
                 
