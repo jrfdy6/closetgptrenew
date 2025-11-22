@@ -37,10 +37,27 @@ def subscription_defaults(
     tier: str = DEFAULT_SUBSCRIPTION_TIER,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
+    """Generate default subscription fields using new Stripe payment system schema."""
     now = now or datetime.now(timezone.utc)
     return {
-        "tier": tier,
-        "openai_flatlays_used": 0,
-        "flatlay_week_start": format_iso8601(now),
+        "role": tier,  # Use 'role' instead of 'tier' for Stripe compatibility
+        "status": "active",
+        "priceId": "free" if tier == "tier1" else None,
     }
+
+
+def quotas_defaults(
+    tier: str = DEFAULT_SUBSCRIPTION_TIER,
+    now: Optional[datetime] = None,
+) -> Dict[str, Any]:
+    """Generate default quotas using new Stripe payment system schema."""
+    now = now or datetime.now(timezone.utc)
+    now_timestamp = int(now.timestamp())
+    limit = TIER_LIMITS.get(tier, 1)
+    
+    return {
+        "flatlaysRemaining": limit,
+        "lastRefillAt": now_timestamp,
+    }
+
 

@@ -378,14 +378,17 @@ def reserve_openai_flatlay_slot(user_id: str | None) -> dict:
         if snapshot.exists:
             txn.update(doc_ref, update_payload)
         else:
-            # Create new user document with proper structure
+            # Create new user document with proper structure (should rarely happen - users created via auth.py)
+            try:
+                from subscription_utils import quotas_defaults
+            except ImportError:
+                from src.services.subscription_utils import quotas_defaults
+            
             subscription_payload = subscription_defaults(tier=role, now=now)
-            subscription_payload["role"] = role
             subscription_payload["last_updated"] = firestore.SERVER_TIMESTAMP
-            quotas_payload = {
-                "flatlaysRemaining": new_remaining,
-                "lastRefillAt": int(now.timestamp()),
-            }
+            quotas_payload = quotas_defaults(tier=role, now=now)
+            quotas_payload["flatlaysRemaining"] = new_remaining  # Override with actual remaining
+            
             txn.set(doc_ref, {
                 "subscription": subscription_payload,
                 "quotas": quotas_payload

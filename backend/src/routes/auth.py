@@ -24,7 +24,9 @@ from ..models.analytics_event import AnalyticsEvent
 from ..services.analytics_service import log_analytics_event
 from ..services.subscription_utils import (
     DEFAULT_SUBSCRIPTION_TIER,
+    TIER_LIMITS,
     subscription_defaults,
+    quotas_defaults,
 )
 
 # HTTP Bearer scheme for token extraction
@@ -187,7 +189,12 @@ async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depe
         now_utc = datetime.now(timezone.utc)
 
         if not user_doc.exists:
+            # Create new user with Stripe payment system schema
             subscription_payload = subscription_defaults(
+                tier=DEFAULT_SUBSCRIPTION_TIER,
+                now=now_utc,
+            )
+            quotas_payload = quotas_defaults(
                 tier=DEFAULT_SUBSCRIPTION_TIER,
                 now=now_utc,
             )
@@ -200,26 +207,43 @@ async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depe
                 'updated_at': now_utc,
                 'firebase_uid': user_id,
                 'subscription': subscription_payload,
+                'quotas': quotas_payload,
             }
             user_doc_ref.set(user_doc_data)
         else:
+            # Update existing user - migrate to new schema if needed
             user_data = user_doc.to_dict() or {}
             subscription = user_data.get('subscription') or {}
+            quotas = user_data.get('quotas', {})
             subscription_updates = {}
+            quotas_updates = {}
 
-            if not subscription.get('tier'):
-                subscription_updates['subscription.tier'] = DEFAULT_SUBSCRIPTION_TIER
-            if 'openai_flatlays_used' not in subscription:
-                subscription_updates['subscription.openai_flatlays_used'] = 0
-            if 'flatlay_week_start' not in subscription:
-                subscription_updates['subscription.flatlay_week_start'] = subscription_defaults(
-                    tier=subscription.get('tier') or DEFAULT_SUBSCRIPTION_TIER,
-                    now=now_utc,
-                )['flatlay_week_start']
+            # Migrate tier -> role if needed
+            if not subscription.get('role') and subscription.get('tier'):
+                subscription_updates['subscription.role'] = subscription.get('tier')
+            elif not subscription.get('role') and not subscription.get('tier'):
+                subscription_updates['subscription.role'] = DEFAULT_SUBSCRIPTION_TIER
+            
+            # Ensure status is set
+            if not subscription.get('status'):
+                subscription_updates['subscription.status'] = 'active'
+            
+            # Migrate quotas if missing
+            if 'flatlaysRemaining' not in quotas:
+                role = subscription.get('role') or subscription.get('tier') or DEFAULT_SUBSCRIPTION_TIER
+                limit = TIER_LIMITS.get(role, 1)
+                # Calculate remaining from old schema if available
+                old_used = subscription.get('openai_flatlays_used', 0) or 0
+                remaining = max(0, limit - old_used)
+                quotas_updates['quotas.flatlaysRemaining'] = remaining
+                quotas_updates['quotas.lastRefillAt'] = int(now_utc.timestamp())
 
-            if subscription_updates:
-                subscription_updates['subscription.last_updated'] = firestore.SERVER_TIMESTAMP
-                user_doc_ref.update(subscription_updates)
+            if subscription_updates or quotas_updates:
+                if subscription_updates:
+                    subscription_updates['subscription.last_updated'] = firestore.SERVER_TIMESTAMP
+                    user_doc_ref.update(subscription_updates)
+                if quotas_updates:
+                    user_doc_ref.update(quotas_updates)
         
         return {
             "user_id": user_id,
