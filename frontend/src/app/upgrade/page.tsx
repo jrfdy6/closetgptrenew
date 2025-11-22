@@ -98,7 +98,7 @@ export default function UpgradePage() {
         'Wardrobe organization and tagging',
         'Mobile-friendly outfit builder'
       ],
-      cta: 'You're here now'
+      cta: "You're here now"
     },
     {
       id: 'tier2',
