@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Sparkles, Crown } from 'lucide-react';
+import { Lock, Sparkles, Crown, BookOpen } from 'lucide-react';
 
 interface UpgradePromptProps {
-  feature: 'semantic_filtering' | 'style_persona' | 'advanced_features';
+  feature: 'semantic_filtering' | 'style_persona' | 'advanced_features' | 'learn_from_outfit';
   currentTier?: 'tier1' | 'tier2' | 'tier3';
   className?: string;
 }
@@ -47,6 +47,19 @@ const FEATURE_INFO = {
       'All advanced features',
       'Priority support',
       'Early access to new features'
+    ]
+  },
+  learn_from_outfit: {
+    title: 'Learn from This Outfit',
+    description: 'Unlock AI-powered style insights to understand what makes outfits work',
+    icon: <BookOpen className="h-6 w-6" />,
+    requiredTier: 'tier2',
+    features: [
+      'AI-powered outfit analysis',
+      'Color strategy insights',
+      'Texture and pattern balance tips',
+      'Style synergy explanations',
+      'Personalized style recommendations'
     ]
   }
 };

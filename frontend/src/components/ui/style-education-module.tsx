@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -13,6 +13,8 @@ import {
   CheckCircle,
   Info
 } from 'lucide-react';
+import { useFirebase } from '@/lib/firebase-context';
+import UpgradePrompt from '@/components/UpgradePrompt';
 
 interface OutfitAnalysis {
   textureAnalysis?: {
@@ -69,7 +71,37 @@ export default function StyleEducationModule({
   outfitAnalysis,
   className = "" 
 }: StyleEducationModuleProps) {
+  const { user } = useFirebase();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [hasAccess, setHasAccess] = useState(true); // Default to true for now, will check
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (!user) {
+        setHasAccess(false);
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const { subscriptionService } = await import('@/lib/services/subscriptionService');
+        const sub = await subscriptionService.getCurrentSubscription(user);
+        setSubscription(sub);
+        // Require Pro or Premium for "Learn from This Outfit"
+        setHasAccess(sub.role === 'tier2' || sub.role === 'tier3');
+      } catch (err) {
+        console.error('Error checking subscription:', err);
+        // Default to no access if check fails
+        setHasAccess(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkSubscription();
+  }, [user]);
 
   // Convert technical strategy name to user-friendly description
   const getStrategyDescription = (strategy?: string) => {
@@ -253,6 +285,31 @@ export default function StyleEducationModule({
   const toggleSection = (sectionId: string) => {
     setExpandedSection(expandedSection === sectionId ? null : sectionId);
   };
+
+  // Show upgrade prompt if user doesn't have access
+  if (!loading && !hasAccess) {
+    return (
+      <div className={className}>
+        <UpgradePrompt 
+          feature="learn_from_outfit"
+          currentTier={subscription?.role || 'tier1'}
+        />
+      </div>
+    );
+  }
+
+  // Show loading state while checking subscription
+  if (loading) {
+    return (
+      <div className={className}>
+        <Card className="border-2 border-amber-200 dark:border-amber-800">
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className={`space-y-4 ${className}`}>

@@ -5,7 +5,6 @@ import logging
 from typing import List, Dict, Tuple
 from ..services.style_analysis_service import style_analyzer
 from ..auth.auth_service import get_current_user_id
-from ..services.subscription_feature_access import check_feature_access
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/style-analysis", tags=["Style Analysis"])
@@ -17,21 +16,7 @@ async def analyze_style(
 ):
     """
     Analyze a clothing item image and return ranked style matches using CLIP embeddings.
-    
-    Requires Pro (tier2) or Premium (tier3) subscription.
     """
-    # Check subscription access (Feature #6: Style Persona Analysis)
-    allowed, error_msg, subscription_info = check_feature_access(
-        user_id, 
-        'style_persona_analysis'
-    )
-    
-    if not allowed:
-        raise HTTPException(
-            status_code=403, 
-            detail=error_msg or "Style persona analysis requires Pro or Premium subscription"
-        )
-    
     try:
         # Validate file type
         if not file.content_type.startswith('image/'):
@@ -66,21 +51,7 @@ async def get_top_styles(
 ):
     """
     Get top-k style matches for a clothing item image.
-    
-    Requires Pro (tier2) or Premium (tier3) subscription.
     """
-    # Check subscription access
-    allowed, error_msg, subscription_info = check_feature_access(
-        user_id, 
-        'style_persona_analysis'
-    )
-    
-    if not allowed:
-        raise HTTPException(
-            status_code=403, 
-            detail=error_msg or "Style persona analysis requires Pro or Premium subscription"
-        )
-    
     try:
         # Validate file type
         if not file.content_type.startswith('image/'):
@@ -119,21 +90,7 @@ async def get_style_confidence(
 ):
     """
     Get confidence score for a specific style.
-    
-    Requires Pro (tier2) or Premium (tier3) subscription.
     """
-    # Check subscription access
-    allowed, error_msg, subscription_info = check_feature_access(
-        user_id, 
-        'style_persona_analysis'
-    )
-    
-    if not allowed:
-        raise HTTPException(
-            status_code=403, 
-            detail=error_msg or "Style persona analysis requires Pro or Premium subscription"
-        )
-    
     try:
         if not style_name:
             raise HTTPException(status_code=400, detail="style_name parameter is required")
@@ -170,21 +127,7 @@ async def get_style_breakdown(
 ):
     """
     Get confidence scores for all supported styles.
-    
-    Requires Pro (tier2) or Premium (tier3) subscription.
     """
-    # Check subscription access
-    allowed, error_msg, subscription_info = check_feature_access(
-        user_id, 
-        'style_persona_analysis'
-    )
-    
-    if not allowed:
-        raise HTTPException(
-            status_code=403, 
-            detail=error_msg or "Style persona analysis requires Pro or Premium subscription"
-        )
-    
     try:
         # Validate file type
         if not file.content_type.startswith('image/'):
