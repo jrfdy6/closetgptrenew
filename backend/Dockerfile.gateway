@@ -6,7 +6,9 @@ WORKDIR /app
 
 # Copy requirements and install
 COPY backend/requirements-gateway.txt .
-RUN pip install --no-cache-dir -r requirements-gateway.txt
+RUN pip install --no-cache-dir -r requirements-gateway.txt && \
+    pip list | grep firebase-admin && \
+    python -c "import firebase_admin; print('✅ firebase_admin installed successfully')"
 
 # Copy gateway file and start script
 COPY backend/mcp_http_gateway.py .
