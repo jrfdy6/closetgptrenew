@@ -62,6 +62,30 @@ def check_feature_access(
         # Determine role/tier
         role = subscription.get('role') or subscription.get('tier', 'tier1')
         status = subscription.get('status', 'active')
+        period_end = subscription.get('currentPeriodEnd', 0)
+        cancel_at_period_end = subscription.get('cancelAtPeriodEnd', False)
+        
+        # Check if subscription period has ended
+        from datetime import datetime, timezone
+        now_timestamp = int(datetime.now(timezone.utc).timestamp())
+        if period_end > 0 and now_timestamp >= period_end:
+            # Period has ended - downgrade to free tier
+            if cancel_at_period_end or status == 'canceled':
+                role = 'tier1'
+                status = 'canceled'
+                # Update user document
+                from ..config.firebase import db
+                from ..services.subscription_utils import DEFAULT_SUBSCRIPTION_TIER, TIER_LIMITS
+                user_ref = db.collection('users').document(user_id)
+                flatlay_limit = TIER_LIMITS.get(DEFAULT_SUBSCRIPTION_TIER, 1)
+                user_ref.update({
+                    'subscription.role': DEFAULT_SUBSCRIPTION_TIER,
+                    'subscription.status': 'canceled',
+                    'subscription.priceId': 'free',
+                    'quotas.flatlaysRemaining': flatlay_limit,
+                    'quotas.lastRefillAt': now_timestamp,
+                })
+                logger.info(f"Period ended for user {user_id}, downgraded to {DEFAULT_SUBSCRIPTION_TIER}")
         
         # Check subscription status
         if require_active and status not in ACTIVE_STATUSES:

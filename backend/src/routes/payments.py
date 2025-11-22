@@ -57,7 +57,7 @@ class SubscriptionResponse(BaseModel):
 async def get_current_subscription(
     user_id: str = Depends(get_current_user_id)
 ) -> SubscriptionResponse:
-    """Get current user subscription details"""
+    """Get current user subscription details - checks period end and downgrades if needed"""
     try:
         user_doc = db.collection('users').document(user_id).get()
         if not user_doc.exists:
@@ -69,6 +69,28 @@ async def get_current_subscription(
         subscription = user_data.get('subscription', {})
         role = subscription.get('role') or subscription.get('tier', DEFAULT_ROLE)
         status = subscription.get('status', 'active')
+        period_end = subscription.get('currentPeriodEnd', 0)
+        cancel_at_period_end = subscription.get('cancelAtPeriodEnd', False)
+        
+        now_timestamp = int(datetime.now(timezone.utc).timestamp())
+        
+        # Check if subscription period has ended and user should be downgraded
+        if period_end > 0 and now_timestamp >= period_end:
+            # Period has ended - check if subscription was canceled
+            if cancel_at_period_end or status == 'canceled':
+                # Downgrade to free tier
+                flatlay_limit = ROLE_LIMITS.get(DEFAULT_ROLE, 1)
+                user_ref = db.collection('users').document(user_id)
+                user_ref.update({
+                    'subscription.role': DEFAULT_ROLE,
+                    'subscription.status': 'canceled',
+                    'subscription.priceId': 'free',
+                    'quotas.flatlaysRemaining': flatlay_limit,
+                    'quotas.lastRefillAt': now_timestamp,
+                })
+                role = DEFAULT_ROLE
+                status = 'canceled'
+                logger.info(f"Period ended for user {user_id}, downgraded to {DEFAULT_ROLE}")
         
         # Get quotas (new schema) or calculate from old schema
         quotas = user_data.get('quotas', {})
@@ -315,7 +337,7 @@ async def handle_checkout_completed(session: Dict[str, Any]):
 
 
 async def handle_subscription_updated(subscription: Dict[str, Any]):
-    """Handle subscription updates"""
+    """Handle subscription updates - including cancellation scheduling"""
     customer_id = subscription.get('customer')
     subscription_id = subscription.get('id')
     
@@ -327,21 +349,48 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
         logger.warning(f"No user found for customer {customer_id}")
         return
     
-    # Determine role from price ID (simplified - you'd map price IDs to roles)
-    role = 'tier2'  # Default, should be determined from subscription items
+    # Determine role from subscription items
+    items = subscription.get('items', {}).get('data', [])
+    role = 'tier2'  # Default
+    if items:
+        price_id = items[0].get('price', {}).get('id', '')
+        if price_id == STRIPE_PRICE_IDS.get('tier3'):
+            role = 'tier3'
+        elif price_id == STRIPE_PRICE_IDS.get('tier2'):
+            role = 'tier2'
+    
     period_end = subscription.get('current_period_end', 0)
     status = subscription.get('status', 'active')
+    cancel_at_period_end = subscription.get('cancel_at_period_end', False)
     
     now_timestamp = int(datetime.now(timezone.utc).timestamp())
     
     doc = docs[0]
-    doc.reference.update({
+    
+    # If subscription is scheduled to cancel, mark it but keep premium access until period ends
+    updates = {
         'subscription.role': role,
         'subscription.status': status,
         'subscription.currentPeriodEnd': period_end,
+        'subscription.cancelAtPeriodEnd': cancel_at_period_end,
         'subscription.last_updated': firestore.SERVER_TIMESTAMP,
-    })
-    logger.info(f"Updated subscription {subscription_id} for user {doc.id}")
+    }
+    
+    # If period has already ended and subscription is canceled, downgrade now
+    if period_end > 0 and now_timestamp >= period_end and (status == 'canceled' or cancel_at_period_end):
+        flatlay_limit = ROLE_LIMITS.get(DEFAULT_ROLE, 1)
+        updates.update({
+            'subscription.role': DEFAULT_ROLE,
+            'subscription.status': 'canceled',
+            'subscription.priceId': 'free',
+            'quotas.flatlaysRemaining': flatlay_limit,
+            'quotas.lastRefillAt': now_timestamp,
+        })
+        logger.info(f"Period ended for subscription {subscription_id}, downgraded user {doc.id} to {DEFAULT_ROLE}")
+    else:
+        logger.info(f"Updated subscription {subscription_id} for user {doc.id} - cancel_at_period_end: {cancel_at_period_end}, period_end: {period_end}")
+    
+    doc.reference.update(updates)
 
 
 async def handle_subscription_created(subscription: Dict[str, Any]):
