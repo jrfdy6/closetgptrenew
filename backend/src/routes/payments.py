@@ -172,6 +172,50 @@ async def create_checkout_session(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/checkout/create-portal-session")
+async def create_portal_session(
+    user_id: str = Depends(get_current_user_id)
+):
+    """Create Stripe customer portal session for subscription management"""
+    if not STRIPE_AVAILABLE:
+        raise HTTPException(
+            status_code=503, 
+            detail="Payment processing not configured"
+        )
+    
+    try:
+        user_doc = db.collection('users').document(user_id).get()
+        if not user_doc.exists:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_data = user_doc.to_dict() or {}
+        billing = user_data.get('billing', {})
+        customer_id = billing.get('stripeCustomerId')
+        
+        if not customer_id:
+            raise HTTPException(
+                status_code=400, 
+                detail="No Stripe customer found. Please subscribe first."
+            )
+        
+        portal_session = stripe.billing_portal.Session.create(
+            customer=customer_id,
+            return_url=f"{FRONTEND_URL}/subscription",
+        )
+        
+        logger.info(f"Created portal session for user {user_id}")
+        
+        return {
+            "url": portal_session.url
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating portal session: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/webhook")
 async def stripe_webhook(request: Request):
     """Handle Stripe webhooks for subscription events"""
@@ -207,12 +251,21 @@ async def stripe_webhook(request: Request):
         if event_type == 'checkout.session.completed':
             session = event['data']['object']
             await handle_checkout_completed(session)
+        elif event_type == 'customer.subscription.created':
+            subscription = event['data']['object']
+            await handle_subscription_created(subscription)
         elif event_type == 'customer.subscription.updated':
             subscription = event['data']['object']
             await handle_subscription_updated(subscription)
         elif event_type == 'customer.subscription.deleted':
             subscription = event['data']['object']
             await handle_subscription_deleted(subscription)
+        elif event_type == 'invoice.payment_succeeded':
+            invoice = event['data']['object']
+            await handle_invoice_payment_succeeded(invoice)
+        elif event_type == 'invoice.payment_failed':
+            invoice = event['data']['object']
+            await handle_invoice_payment_failed(invoice)
         else:
             logger.info(f"Unhandled webhook event type: {event_type}")
         
@@ -291,6 +344,46 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
     logger.info(f"Updated subscription {subscription_id} for user {doc.id}")
 
 
+async def handle_subscription_created(subscription: Dict[str, Any]):
+    """Handle new subscription creation"""
+    customer_id = subscription.get('customer')
+    subscription_id = subscription.get('id')
+    
+    users_ref = db.collection('users')
+    query = users_ref.where('billing.stripeCustomerId', '==', customer_id).limit(1)
+    docs = list(query.stream())
+    
+    if not docs:
+        logger.warning(f"No user found for customer {customer_id}")
+        return
+    
+    # Determine role from subscription items
+    items = subscription.get('items', {}).get('data', [])
+    role = 'tier2'  # Default
+    if items:
+        price_id = items[0].get('price', {}).get('id', '')
+        if price_id == STRIPE_PRICE_IDS.get('tier3'):
+            role = 'tier3'
+        elif price_id == STRIPE_PRICE_IDS.get('tier2'):
+            role = 'tier2'
+    
+    period_end = subscription.get('current_period_end', 0)
+    status = subscription.get('status', 'active')
+    flatlay_limit = ROLE_LIMITS.get(role, 1)
+    now_timestamp = int(datetime.now(timezone.utc).timestamp())
+    
+    doc = docs[0]
+    doc.reference.update({
+        'subscription.role': role,
+        'subscription.status': status,
+        'subscription.stripeSubscriptionId': subscription_id,
+        'subscription.currentPeriodEnd': period_end,
+        'quotas.flatlaysRemaining': flatlay_limit,
+        'quotas.lastRefillAt': now_timestamp,
+    })
+    logger.info(f"Created subscription {subscription_id} for user {doc.id}, role: {role}")
+
+
 async def handle_subscription_deleted(subscription: Dict[str, Any]):
     """Handle subscription cancellation - downgrade to tier1"""
     customer_id = subscription.get('customer')
@@ -317,4 +410,57 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
         'quotas.lastRefillAt': now_timestamp,
     })
     logger.info(f"Canceled subscription for user {doc.id}, downgraded to {DEFAULT_ROLE}")
+
+
+async def handle_invoice_payment_succeeded(invoice: Dict[str, Any]):
+    """Handle successful invoice payment - refill quotas"""
+    customer_id = invoice.get('customer')
+    subscription_id = invoice.get('subscription')
+    
+    if not subscription_id:
+        logger.info(f"Invoice {invoice.get('id')} has no subscription, skipping")
+        return
+    
+    users_ref = db.collection('users')
+    query = users_ref.where('billing.stripeCustomerId', '==', customer_id).limit(1)
+    docs = list(query.stream())
+    
+    if not docs:
+        logger.warning(f"No user found for customer {customer_id}")
+        return
+    
+    doc = docs[0]
+    user_data = doc.to_dict() or {}
+    subscription = user_data.get('subscription', {})
+    current_role = subscription.get('role', DEFAULT_ROLE)
+    
+    # Refill quotas based on current role
+    flatlay_limit = ROLE_LIMITS.get(current_role, 1)
+    now_timestamp = int(datetime.now(timezone.utc).timestamp())
+    
+    doc.reference.update({
+        'subscription.status': 'active',
+        'quotas.flatlaysRemaining': flatlay_limit,
+        'quotas.lastRefillAt': now_timestamp,
+    })
+    logger.info(f"Refilled quotas for user {doc.id} after successful payment")
+
+
+async def handle_invoice_payment_failed(invoice: Dict[str, Any]):
+    """Handle failed invoice payment"""
+    customer_id = invoice.get('customer')
+    
+    users_ref = db.collection('users')
+    query = users_ref.where('billing.stripeCustomerId', '==', customer_id).limit(1)
+    docs = list(query.stream())
+    
+    if not docs:
+        logger.warning(f"No user found for customer {customer_id}")
+        return
+    
+    doc = docs[0]
+    doc.reference.update({
+        'subscription.status': 'past_due',
+    })
+    logger.warning(f"Payment failed for user {doc.id}, subscription marked as past_due")
 
