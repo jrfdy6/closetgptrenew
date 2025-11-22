@@ -3,11 +3,10 @@ import logging
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
-from ..auth.auth_service import get_current_user, get_current_user_id
+from ..auth.auth_service import get_current_user
 from ..custom_types.wardrobe import ClothingItem
 from ..services.item_analytics_service import ItemAnalyticsService
 from ..services.wardrobe_analysis_service import WardrobeAnalysisService
-from ..services.subscription_feature_access import check_feature_access
 
 # Note: app.py mounts this under /api/wardrobe. We add a secondary
 # namespace here to avoid collisions with dynamic wardrobe routes
@@ -40,13 +39,10 @@ class ForgottenGemsResponse(BaseModel):
 async def get_forgotten_gems(
     days_threshold: int = 30,
     min_rediscovery_potential: float = 20.0,
-    current_user = Depends(get_current_user),
-    user_id: str = Depends(get_current_user_id)
+    current_user = Depends(get_current_user)
 ) -> ForgottenGemsResponse:
     """
     Get forgotten gems - items that haven't been worn recently.
-    
-    Requires Pro (tier2) or Premium (tier3) subscription.
     
     Args:
         days_threshold: Minimum days since last worn to be considered "forgotten"
@@ -57,18 +53,6 @@ async def get_forgotten_gems(
         List of forgotten items with analysis and recommendations
     """
     try:
-        # Check subscription access
-        allowed, error_msg, subscription_info = check_feature_access(
-            user_id, 
-            'forgotten_gems'
-        )
-        
-        if not allowed:
-            raise HTTPException(
-                status_code=403, 
-                detail=error_msg or "Forgotten gems requires Pro or Premium subscription"
-            )
-        
         if not current_user:
             raise HTTPException(status_code=400, detail="User not found")
             
