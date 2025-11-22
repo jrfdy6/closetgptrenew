@@ -4,6 +4,7 @@
 [build]
 builder = "dockerfile"
 dockerfilePath = "backend/Dockerfile.gateway"
+# Build context is the backend directory (where Dockerfile.gateway is located)
 # Force Dockerfile usage - don't auto-detect with Nixpacks
 
 [deploy]
