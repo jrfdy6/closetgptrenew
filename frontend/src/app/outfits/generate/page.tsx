@@ -27,6 +27,7 @@ import OutfitService from '@/lib/services/outfitService';
 import BodyPositiveMessage from '@/components/BodyPositiveMessage';
 import { useAutoWeather } from '@/hooks/useWeather';
 import type { WeatherData } from '@/types/weather';
+import { subscriptionService, SUBSCRIPTION_TIERS } from '@/lib/services/subscriptionService';
 
 // Import new enhanced components
 import OutfitGenerationForm from '@/components/ui/outfit-generation-form';
@@ -97,12 +98,6 @@ interface FlatLayUsage {
   remaining: number | null;
 }
 
-const SUBSCRIPTION_TIER_LIMITS: Record<string, number | null> = {
-  tier1: 1,
-  tier2: 7,
-  tier3: 30,
-};
-
 export default function OutfitGenerationPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useFirebase();
@@ -118,7 +113,7 @@ export default function OutfitGenerationPage() {
   const [flatLayActionLoading, setFlatLayActionLoading] = useState(false);
   
   const loadFlatLayUsage = useCallback(async () => {
-    if (!user?.uid) {
+    if (!user) {
       setFlatLayUsage(null);
       return;
     }
@@ -127,53 +122,20 @@ export default function OutfitGenerationPage() {
     setFlatLayError(null);
 
     try {
-      const [{ db }, firestore] = await Promise.all([
-        import('@/lib/firebase/config'),
-        import('firebase/firestore'),
-      ]);
-
-      const userDocRef = firestore.doc(db, 'users', user.uid);
-      const snapshot = await firestore.getDoc(userDocRef);
-      const data = snapshot.exists() ? (snapshot.data() as any) : {};
-      const subscription = data?.subscription ?? {};
-      const rawTier =
-        typeof subscription?.tier === 'string' ? subscription.tier.toLowerCase() : 'tier1';
-      const tier = Object.prototype.hasOwnProperty.call(SUBSCRIPTION_TIER_LIMITS, rawTier)
-        ? rawTier
-        : 'tier1';
+      // Use subscription service to get current subscription from payment system
+      const subscription = await subscriptionService.getCurrentSubscription(user);
+      const tier = subscription.role || 'tier1';
       
-      // Check if week has reset (similar to worker logic)
-      const WEEKLY_ALLOWANCE_SECONDS = 7 * 24 * 60 * 60; // 7 days in seconds
-      const now = new Date();
-      const flatlayWeekStartStr = subscription?.flatlay_week_start;
-      let flatlayWeekStart: Date | null = null;
+      // Get tier info to get the limit
+      const tierInfo = subscriptionService.getTierInfo(tier);
+      const limitStr = tierInfo?.limit || '1 flat lay/week';
+      const limit = parseInt(limitStr.split('/')[0]) || 1;
       
-      if (flatlayWeekStartStr) {
-        try {
-          // Parse ISO-8601 string (handles both with and without Z suffix)
-          const parsed = flatlayWeekStartStr.endsWith('Z') 
-            ? new Date(flatlayWeekStartStr)
-            : new Date(flatlayWeekStartStr + 'Z');
-          if (!isNaN(parsed.getTime())) {
-            flatlayWeekStart = parsed;
-          }
-        } catch (e) {
-          console.warn('Failed to parse flatlay_week_start:', e);
-        }
-      }
+      // Get remaining from subscription (already calculated by backend)
+      const remaining = subscription.flatlays_remaining ?? 0;
       
-      // Reset used count if week has passed
-      let used = Number(subscription?.openai_flatlays_used ?? 0);
-      if (flatlayWeekStart) {
-        const secondsSinceWeekStart = (now.getTime() - flatlayWeekStart.getTime()) / 1000;
-        if (secondsSinceWeekStart >= WEEKLY_ALLOWANCE_SECONDS) {
-          // Week has reset, so used should be 0
-          used = 0;
-        }
-      }
-      
-      const limit = SUBSCRIPTION_TIER_LIMITS[tier] ?? null;
-      const remaining = typeof limit === 'number' ? Math.max(limit - used, 0) : null;
+      // Calculate used
+      const used = Math.max(0, limit - remaining);
 
       setFlatLayUsage({ tier, limit, used, remaining });
     } catch (error) {
@@ -183,7 +145,7 @@ export default function OutfitGenerationPage() {
     } finally {
       setFlatLayLoading(false);
     }
-  }, [user?.uid]);
+  }, [user]);
   
   // Extract base item ID from URL parameters
   useEffect(() => {
