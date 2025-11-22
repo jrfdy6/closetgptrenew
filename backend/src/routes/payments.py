@@ -365,6 +365,16 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
         # Fallback: get from subscription item if not at subscription level
         period_end = items[0].get('current_period_end', 0)
     
+    # If still 0, try to get from latest_invoice or fetch from Stripe API
+    if not period_end:
+        try:
+            # Fetch subscription from Stripe to get current_period_end
+            stripe_sub = stripe.Subscription.retrieve(subscription_id)
+            period_end = stripe_sub.get('current_period_end', 0)
+            logger.info(f"Fetched period_end from Stripe API: {period_end}")
+        except Exception as e:
+            logger.warning(f"Failed to fetch subscription from Stripe: {e}")
+    
     status = subscription.get('status', 'active')
     cancel_at_period_end = subscription.get('cancel_at_period_end', False)
     
@@ -439,6 +449,16 @@ async def handle_subscription_created(subscription: Dict[str, Any]):
     if not period_end and items:
         # Fallback: get from subscription item if not at subscription level
         period_end = items[0].get('current_period_end', 0)
+    
+    # If still 0, try to get from latest_invoice or fetch from Stripe API
+    if not period_end:
+        try:
+            # Fetch subscription from Stripe to get current_period_end
+            stripe_sub = stripe.Subscription.retrieve(subscription_id)
+            period_end = stripe_sub.get('current_period_end', 0)
+            logger.info(f"Fetched period_end from Stripe API for created subscription: {period_end}")
+        except Exception as e:
+            logger.warning(f"Failed to fetch subscription from Stripe: {e}")
     
     status = subscription.get('status', 'active')
     flatlay_limit = ROLE_LIMITS.get(role, 1)
