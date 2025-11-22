@@ -600,15 +600,25 @@ export default function OutfitGrid({
    * Intersection observer for automatic infinite scroll
    */
   useEffect(() => {
+    // Don't set up observer if there's no more to load or we're already loading
+    if (!hasMore || loadingMore) {
+      return;
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
         const first = entries[0];
-        if (first.isIntersecting && hasMore && !loadingMore) {
+        // Only trigger if:
+        // 1. Element is intersecting
+        // 2. We have more to load
+        // 3. We're not currently loading
+        // 4. We're not refreshing
+        if (first.isIntersecting && hasMore && !loadingMore && !isRefreshing) {
           console.log('🔄 [OutfitGrid] Load more trigger reached, loading more outfits');
           loadMoreOutfits();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1, rootMargin: '100px' } // Add rootMargin to trigger slightly before element is visible
     );
 
     const currentRef = loadMoreRef.current;
@@ -621,7 +631,7 @@ export default function OutfitGrid({
         observer.unobserve(currentRef);
       }
     };
-  }, [hasMore, loadingMore, loadMoreOutfits]);
+  }, [hasMore, loadingMore, loadMoreOutfits, isRefreshing]);
 
   // ===== EVENT HANDLERS =====
   const handleFiltersChange = (newFilters: OutfitFilters) => {

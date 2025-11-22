@@ -202,7 +202,8 @@ export function useOutfits(): UseOutfitsReturn {
       setOutfits(normalizedOutfits);
       
       // Check if there are more to load
-      setHasMore(normalizedOutfits.length === INITIAL_PAGE_SIZE);
+      // If we got fewer items than requested, there are no more
+      setHasMore(normalizedOutfits.length > 0 && normalizedOutfits.length === INITIAL_PAGE_SIZE);
       
       console.log(`✅ [useOutfits] Successfully fetched ${fetchedOutfits.length} initial outfits`);
       
@@ -282,13 +283,26 @@ export function useOutfits(): UseOutfitsReturn {
         ? moreOutfitsRaw.map(normalizeOutfitData)
         : [];
       
-      // Append to existing outfits
-      setOutfits(prev => [...prev, ...moreOutfits]);
+      // Filter out duplicates (in case backend returns same outfits) and update state
+      let actualNewCount = 0;
+      setOutfits(prev => {
+        const existingIds = new Set(prev.map(o => o.id));
+        const newOutfits = moreOutfits.filter(o => !existingIds.has(o.id));
+        actualNewCount = newOutfits.length;
+        return [...prev, ...newOutfits];
+      });
       
       // Check if there are more to load
-      setHasMore(moreOutfits.length === PAGE_SIZE);
+      // If we got fewer items than requested, or 0 items, there are no more
+      setHasMore(actualNewCount > 0 && actualNewCount === PAGE_SIZE);
       
-      console.log(`✅ [useOutfits] Successfully loaded ${moreOutfits.length} more outfits (total: ${outfits.length + moreOutfits.length})`);
+      console.log(`✅ [useOutfits] Successfully loaded ${actualNewCount} new outfits`);
+      
+      // If we got no new outfits, explicitly set hasMore to false
+      if (actualNewCount === 0) {
+        console.log('🛑 [useOutfits] No new outfits returned, setting hasMore to false');
+        setHasMore(false);
+      }
       
     } catch (error) {
       handleError(error as Error);
