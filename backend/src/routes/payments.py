@@ -225,16 +225,30 @@ async def create_portal_session(
                 detail="No Stripe customer found. Please subscribe first."
             )
         
-        portal_session = stripe.billing_portal.Session.create(
-            customer=customer_id,
-            return_url=f"{FRONTEND_URL}/subscription",
-        )
-        
-        logger.info(f"Created portal session for user {user_id}")
-        
-        return {
-            "url": portal_session.url
-        }
+        try:
+            portal_session = stripe.billing_portal.Session.create(
+                customer=customer_id,
+                return_url=f"{FRONTEND_URL}/subscription",
+            )
+            
+            logger.info(f"Created portal session for user {user_id}")
+            
+            return {
+                "url": portal_session.url
+            }
+        except stripe.error.InvalidRequestError as e:
+            # Customer ID exists in Firestore but not in Stripe (likely from test mode)
+            if "No such customer" in str(e):
+                logger.warning(f"Customer {customer_id} not found in Stripe for user {user_id}. Clearing invalid customer ID.")
+                # Clear the invalid customer ID from Firestore
+                db.collection('users').document(user_id).update({
+                    'billing.stripeCustomerId': firestore.DELETE_FIELD
+                })
+                raise HTTPException(
+                    status_code=400,
+                    detail="Your previous subscription was created in test mode. Please subscribe again to create a new account."
+                )
+            raise
     
     except HTTPException:
         raise
