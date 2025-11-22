@@ -359,7 +359,12 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
         elif price_id == STRIPE_PRICE_IDS.get('tier2'):
             role = 'tier2'
     
+    # Get period end from subscription object or subscription items
     period_end = subscription.get('current_period_end', 0)
+    if not period_end and items:
+        # Fallback: get from subscription item if not at subscription level
+        period_end = items[0].get('current_period_end', 0)
+    
     status = subscription.get('status', 'active')
     cancel_at_period_end = subscription.get('cancel_at_period_end', False)
     
@@ -371,6 +376,9 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
     price_id = None
     if items:
         price_id = items[0].get('price', {}).get('id', '')
+    
+    # Log for debugging
+    logger.info(f"Processing subscription update: subscription_id={subscription_id}, price_id={price_id}, role={role}, period_end={period_end}, status={status}")
     
     # If subscription is scheduled to cancel, mark it but keep premium access until period ends
     updates = {
@@ -426,7 +434,12 @@ async def handle_subscription_created(subscription: Dict[str, Any]):
         elif price_id == STRIPE_PRICE_IDS.get('tier2'):
             role = 'tier2'
     
+    # Get period end from subscription object or subscription items
     period_end = subscription.get('current_period_end', 0)
+    if not period_end and items:
+        # Fallback: get from subscription item if not at subscription level
+        period_end = items[0].get('current_period_end', 0)
+    
     status = subscription.get('status', 'active')
     flatlay_limit = ROLE_LIMITS.get(role, 1)
     now_timestamp = int(datetime.now(timezone.utc).timestamp())
@@ -444,6 +457,9 @@ async def handle_subscription_created(subscription: Dict[str, Any]):
     # Set priceId if we have it
     if price_id:
         updates['subscription.priceId'] = price_id
+    
+    # Log for debugging
+    logger.info(f"Processing subscription created: subscription_id={subscription_id}, price_id={price_id}, role={role}, period_end={period_end}")
     
     doc.reference.update(updates)
     logger.info(f"Created subscription {subscription_id} for user {doc.id}, role: {role}, priceId: {price_id}")
