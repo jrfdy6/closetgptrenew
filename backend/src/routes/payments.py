@@ -67,12 +67,35 @@ async def get_current_subscription(
         
         # Support both old and new schema
         subscription = user_data.get('subscription', {})
+        billing = user_data.get('billing', {})
+        customer_id = billing.get('stripeCustomerId')
         role = subscription.get('role') or subscription.get('tier', DEFAULT_ROLE)
         status = subscription.get('status', 'active')
         period_end = subscription.get('currentPeriodEnd', 0)
         cancel_at_period_end = subscription.get('cancelAtPeriodEnd', False)
         
         now_timestamp = int(datetime.now(timezone.utc).timestamp())
+        
+        # Reset test mode subscriptions: if user has premium subscription but no customer ID, reset to free
+        if role != DEFAULT_ROLE and not customer_id:
+            logger.warning(f"User {user_id} has subscription (role={role}) but no customer ID. Resetting to free tier.")
+            flatlay_limit = ROLE_LIMITS.get(DEFAULT_ROLE, 1)
+            user_ref = db.collection('users').document(user_id)
+            user_ref.update({
+                'subscription.role': DEFAULT_ROLE,
+                'subscription.status': 'active',
+                'subscription.priceId': 'free',
+                'subscription.currentPeriodEnd': 0,
+                'subscription.cancelAtPeriodEnd': False,
+                'subscription.stripeSubscriptionId': firestore.DELETE_FIELD,
+                'quotas.flatlaysRemaining': flatlay_limit,
+                'quotas.lastRefillAt': now_timestamp,
+                'subscription.last_updated': firestore.SERVER_TIMESTAMP,
+            })
+            role = DEFAULT_ROLE
+            status = 'active'
+            period_end = 0
+            cancel_at_period_end = False
         
         # Check if subscription period has ended and user should be downgraded
         if period_end > 0 and now_timestamp >= period_end:
@@ -218,11 +241,31 @@ async def create_portal_session(
         user_data = user_doc.to_dict() or {}
         billing = user_data.get('billing', {})
         customer_id = billing.get('stripeCustomerId')
+        subscription = user_data.get('subscription', {})
         
         if not customer_id:
+            # Check if user has test mode subscription data that needs to be reset
+            role = subscription.get('role', DEFAULT_ROLE)
+            if role != DEFAULT_ROLE:
+                logger.warning(f"User {user_id} has subscription data (role={role}) but no customer ID. Resetting to free tier.")
+                # Reset subscription to free tier
+                now_timestamp = int(datetime.now(timezone.utc).timestamp())
+                flatlay_limit = ROLE_LIMITS.get(DEFAULT_ROLE, 1)
+                db.collection('users').document(user_id).update({
+                    'subscription.role': DEFAULT_ROLE,
+                    'subscription.status': 'active',
+                    'subscription.priceId': 'free',
+                    'subscription.currentPeriodEnd': 0,
+                    'subscription.cancelAtPeriodEnd': False,
+                    'subscription.stripeSubscriptionId': firestore.DELETE_FIELD,
+                    'quotas.flatlaysRemaining': flatlay_limit,
+                    'quotas.lastRefillAt': now_timestamp,
+                    'subscription.last_updated': firestore.SERVER_TIMESTAMP,
+                })
+            
             raise HTTPException(
                 status_code=400, 
-                detail="No Stripe customer found. Please subscribe first."
+                detail="No Stripe customer found. Please subscribe first to access the Customer Portal."
             )
         
         try:
