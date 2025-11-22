@@ -367,6 +367,11 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
     
     doc = docs[0]
     
+    # Determine priceId from subscription items
+    price_id = None
+    if items:
+        price_id = items[0].get('price', {}).get('id', '')
+    
     # If subscription is scheduled to cancel, mark it but keep premium access until period ends
     updates = {
         'subscription.role': role,
@@ -375,6 +380,10 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
         'subscription.cancelAtPeriodEnd': cancel_at_period_end,
         'subscription.last_updated': firestore.SERVER_TIMESTAMP,
     }
+    
+    # Update priceId if we have it
+    if price_id:
+        updates['subscription.priceId'] = price_id
     
     # If period has already ended and subscription is canceled, downgrade now
     if period_end > 0 and now_timestamp >= period_end and (status == 'canceled' or cancel_at_period_end):
@@ -409,6 +418,7 @@ async def handle_subscription_created(subscription: Dict[str, Any]):
     # Determine role from subscription items
     items = subscription.get('items', {}).get('data', [])
     role = 'tier2'  # Default
+    price_id = None
     if items:
         price_id = items[0].get('price', {}).get('id', '')
         if price_id == STRIPE_PRICE_IDS.get('tier3'):
@@ -422,15 +432,21 @@ async def handle_subscription_created(subscription: Dict[str, Any]):
     now_timestamp = int(datetime.now(timezone.utc).timestamp())
     
     doc = docs[0]
-    doc.reference.update({
+    updates = {
         'subscription.role': role,
         'subscription.status': status,
         'subscription.stripeSubscriptionId': subscription_id,
         'subscription.currentPeriodEnd': period_end,
         'quotas.flatlaysRemaining': flatlay_limit,
         'quotas.lastRefillAt': now_timestamp,
-    })
-    logger.info(f"Created subscription {subscription_id} for user {doc.id}, role: {role}")
+    }
+    
+    # Set priceId if we have it
+    if price_id:
+        updates['subscription.priceId'] = price_id
+    
+    doc.reference.update(updates)
+    logger.info(f"Created subscription {subscription_id} for user {doc.id}, role: {role}, priceId: {price_id}")
 
 
 async def handle_subscription_deleted(subscription: Dict[str, Any]):
