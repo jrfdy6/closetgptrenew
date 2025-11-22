@@ -601,9 +601,11 @@ export default function OutfitGrid({
    */
   useEffect(() => {
     // Don't set up observer if there's no more to load or we're already loading
-    if (!hasMore || loadingMore) {
+    if (!hasMore || loadingMore || isRefreshing) {
       return;
     }
+
+    let timeoutId: NodeJS.Timeout | null = null;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -614,11 +616,21 @@ export default function OutfitGrid({
         // 3. We're not currently loading
         // 4. We're not refreshing
         if (first.isIntersecting && hasMore && !loadingMore && !isRefreshing) {
-          console.log('🔄 [OutfitGrid] Load more trigger reached, loading more outfits');
-          loadMoreOutfits();
+          // Debounce: Clear any pending timeout and set a new one
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+          timeoutId = setTimeout(() => {
+            console.log('🔄 [OutfitGrid] Load more trigger reached, loading more outfits');
+            loadMoreOutfits();
+          }, 300); // 300ms debounce
+        } else if (!first.isIntersecting && timeoutId) {
+          // Cancel pending load if element is no longer visible
+          clearTimeout(timeoutId);
+          timeoutId = null;
         }
       },
-      { threshold: 0.1, rootMargin: '100px' } // Add rootMargin to trigger slightly before element is visible
+      { threshold: 0.1, rootMargin: '50px' } // Reduced rootMargin to prevent premature triggering
     );
 
     const currentRef = loadMoreRef.current;
@@ -627,6 +639,9 @@ export default function OutfitGrid({
     }
 
     return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       if (currentRef) {
         observer.unobserve(currentRef);
       }

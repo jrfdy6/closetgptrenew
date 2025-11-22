@@ -99,10 +99,14 @@ export function useOutfits(): UseOutfitsReturn {
   const [retryCount, setRetryCount] = useState(0);
   const [currentFilters, setCurrentFilters] = useState<OutfitFilters>({});
   const [error, setError] = useState<string | null>(null);
+  const [lastLoadTime, setLastLoadTime] = useState<number>(0);
+  const [consecutiveEmptyLoads, setConsecutiveEmptyLoads] = useState(0);
 
   // Pagination constants
   const INITIAL_PAGE_SIZE = 50; // Load 20 outfits initially
   const PAGE_SIZE = 12; // Load 12 more each time
+  const MAX_OUTFITS = 1000; // Maximum outfits to load to prevent infinite loops
+  const MAX_CONSECUTIVE_EMPTY = 2; // Stop after 2 consecutive loads with no new outfits
 
   // ===== ERROR HANDLING =====
   const clearError = useCallback(() => {
@@ -201,6 +205,9 @@ export function useOutfits(): UseOutfitsReturn {
       const normalizedOutfits = fetchedOutfits.map(normalizeOutfitData);
       setOutfits(normalizedOutfits);
       
+      // Reset consecutive empty loads on initial fetch
+      setConsecutiveEmptyLoads(0);
+      
       // Check if there are more to load
       // If we got fewer items than requested, there are no more
       setHasMore(normalizedOutfits.length > 0 && normalizedOutfits.length === INITIAL_PAGE_SIZE);
@@ -237,13 +244,36 @@ export function useOutfits(): UseOutfitsReturn {
       return;
     }
 
+    // Prevent rapid successive calls (debounce)
+    const now = Date.now();
+    if (now - lastLoadTime < 500) {
+      console.log('⏸️ [useOutfits] Debouncing load more request');
+      return;
+    }
+    setLastLoadTime(now);
+
     try {
       setLoadingMore(true);
       clearError();
       
+      // Get current outfit count before making request
+      let currentOutfitCount = 0;
+      setOutfits(prev => {
+        currentOutfitCount = prev.length;
+        return prev;
+      });
+
+      // Check if we've exceeded maximum
+      if (currentOutfitCount >= MAX_OUTFITS) {
+        console.log(`🛑 [useOutfits] Reached maximum outfits limit (${MAX_OUTFITS}), stopping`);
+        setHasMore(false);
+        setLoadingMore(false);
+        return;
+      }
+      
       const finalFilters = {
         limit: PAGE_SIZE,
-        offset: outfits.length, // Use current length as offset
+        offset: currentOutfitCount, // Use current length as offset
         ...currentFilters,
       };
       
@@ -285,23 +315,41 @@ export function useOutfits(): UseOutfitsReturn {
       
       // Filter out duplicates (in case backend returns same outfits) and update state
       let actualNewCount = 0;
+      let finalOutfitCount = 0;
       setOutfits(prev => {
         const existingIds = new Set(prev.map(o => o.id));
         const newOutfits = moreOutfits.filter(o => !existingIds.has(o.id));
         actualNewCount = newOutfits.length;
+        finalOutfitCount = prev.length + newOutfits.length;
         return [...prev, ...newOutfits];
       });
       
+      // Calculate new consecutive empty loads count
+      const newConsecutiveEmptyLoads = actualNewCount === 0 ? consecutiveEmptyLoads + 1 : 0;
+      setConsecutiveEmptyLoads(newConsecutiveEmptyLoads);
+      
       // Check if there are more to load
-      // If we got fewer items than requested, or 0 items, there are no more
-      setHasMore(actualNewCount > 0 && actualNewCount === PAGE_SIZE);
+      // Stop if:
+      // 1. We got no new outfits (all duplicates or empty response) - and this happened multiple times
+      // 2. We got fewer items than requested (backend has no more)
+      // 3. We've reached the maximum limit
+      // 4. We've had multiple consecutive loads with no new outfits (backend is looping)
+      const shouldStop = (actualNewCount === 0 && newConsecutiveEmptyLoads >= MAX_CONSECUTIVE_EMPTY) ||
+                        (actualNewCount > 0 && actualNewCount < PAGE_SIZE) ||
+                        finalOutfitCount >= MAX_OUTFITS;
       
-      console.log(`✅ [useOutfits] Successfully loaded ${actualNewCount} new outfits`);
+      setHasMore(!shouldStop);
       
-      // If we got no new outfits, explicitly set hasMore to false
-      if (actualNewCount === 0) {
-        console.log('🛑 [useOutfits] No new outfits returned, setting hasMore to false');
-        setHasMore(false);
+      console.log(`✅ [useOutfits] Successfully loaded ${actualNewCount} new outfits (total: ${finalOutfitCount}, hasMore: ${!shouldStop}, consecutiveEmpty: ${newConsecutiveEmptyLoads})`);
+      
+      if (shouldStop) {
+        if (actualNewCount === 0 && newConsecutiveEmptyLoads >= MAX_CONSECUTIVE_EMPTY) {
+          console.log(`🛑 [useOutfits] ${newConsecutiveEmptyLoads} consecutive loads with no new outfits, setting hasMore to false`);
+        } else if (actualNewCount > 0 && actualNewCount < PAGE_SIZE) {
+          console.log(`🛑 [useOutfits] Got fewer outfits than requested (${actualNewCount} < ${PAGE_SIZE}), setting hasMore to false`);
+        } else if (finalOutfitCount >= MAX_OUTFITS) {
+          console.log(`🛑 [useOutfits] Reached maximum limit (${finalOutfitCount} >= ${MAX_OUTFITS}), setting hasMore to false`);
+        }
       }
       
     } catch (error) {
@@ -309,7 +357,7 @@ export function useOutfits(): UseOutfitsReturn {
     } finally {
       setLoadingMore(false);
     }
-  }, [user, hasMore, loadingMore, outfits.length, currentFilters, clearError, handleError, PAGE_SIZE]);
+  }, [user, hasMore, loadingMore, lastLoadTime, consecutiveEmptyLoads, currentFilters, clearError, handleError, PAGE_SIZE, MAX_OUTFITS, MAX_CONSECUTIVE_EMPTY]);
 
   /**
    * Add a new outfit to the beginning of the list (for newly generated outfits)
