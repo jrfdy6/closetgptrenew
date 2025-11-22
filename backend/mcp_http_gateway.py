@@ -1,4 +1,5 @@
 # mcp_http_gateway.py
+# OpenAI Apps SDK Gateway - OAuth and API proxy
 import os
 import httpx
 import secrets
