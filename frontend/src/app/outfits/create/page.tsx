@@ -439,6 +439,11 @@ export default function CreateOutfitPage() {
         return;
       }
 
+      // Consume quota immediately when user requests flat lay
+      if (user) {
+        await subscriptionService.consumeFlatLayQuota(user);
+      }
+      
       const outfitRef = doc(db, 'outfits', createdOutfitId);
       await updateDoc(outfitRef, {
         flat_lay_status: 'pending',
@@ -453,8 +458,11 @@ export default function CreateOutfitPage() {
 
       toast({
         title: "Flat lay on the way!",
-        description: "We’ll craft your premium flat lay and notify you once it’s ready.",
+        description: "We'll craft your premium flat lay and notify you once it's ready.",
       });
+      
+      // Refresh quota display
+      loadFlatLayUsage();
     } catch (error) {
       console.error('Error requesting flat lay:', error);
       toast({

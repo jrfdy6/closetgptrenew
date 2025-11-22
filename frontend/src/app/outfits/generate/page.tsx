@@ -751,6 +751,9 @@ export default function OutfitGenerationPage() {
     setFlatLayActionLoading(true);
 
     try {
+      // Consume quota immediately when user requests flat lay
+      await subscriptionService.consumeFlatLayQuota(user);
+      
       const [{ db }, firestore] = await Promise.all([
         import('@/lib/firebase/config'),
         import('firebase/firestore'),
@@ -806,9 +809,10 @@ export default function OutfitGenerationPage() {
 
       toast({
         title: "Flat lay on the way!",
-        description: "We’ll craft your premium flat lay and notify you once it’s ready.",
+        description: "We'll craft your premium flat lay and notify you once it's ready.",
       });
 
+      // Refresh quota display to show updated count
       loadFlatLayUsage();
     } catch (error) {
       console.error('Error requesting flat lay:', error);

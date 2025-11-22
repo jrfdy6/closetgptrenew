@@ -148,6 +148,25 @@ class SubscriptionService {
     // Both features require tier2 or tier3
     return role === 'tier2' || role === 'tier3';
   }
+
+  async consumeFlatLayQuota(user: User | null): Promise<{ remaining: number; limit: number }> {
+    const token = await this.getAuthToken(user);
+    
+    const response = await fetch(`${API_URL}/api/payments/flatlay/consume`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to consume flat lay quota' }));
+      throw new Error(error.detail || 'Failed to consume flat lay quota');
+    }
+
+    return response.json();
+  }
 }
 
 export const subscriptionService = new SubscriptionService();

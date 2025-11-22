@@ -464,3 +464,76 @@ async def handle_invoice_payment_failed(invoice: Dict[str, Any]):
     })
     logger.warning(f"Payment failed for user {doc.id}, subscription marked as past_due")
 
+
+@router.post("/flatlay/consume")
+async def consume_flatlay_quota(
+    user_id: str = Depends(get_current_user_id)
+):
+    """Consume one flat lay credit when user requests a flat lay"""
+    try:
+        user_ref = db.collection('users').document(user_id)
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_data = user_doc.to_dict() or {}
+        subscription = user_data.get('subscription', {})
+        role = subscription.get('role') or subscription.get('tier', DEFAULT_ROLE)
+        quotas = user_data.get('quotas', {})
+        
+        # Get current remaining
+        remaining = quotas.get('flatlaysRemaining', 0)
+        try:
+            remaining = int(remaining)
+        except (TypeError, ValueError):
+            remaining = 0
+        
+        # Check if quota needs weekly refill
+        last_refill_at = quotas.get('lastRefillAt')
+        now_timestamp = int(datetime.now(timezone.utc).timestamp())
+        
+        if last_refill_at:
+            try:
+                last_refill_timestamp = int(last_refill_at)
+                seconds_since_refill = now_timestamp - last_refill_timestamp
+                if seconds_since_refill >= WEEKLY_ALLOWANCE_SECONDS:
+                    # Week has passed, refill quota
+                    limit = ROLE_LIMITS.get(role, 1)
+                    remaining = limit
+            except (TypeError, ValueError):
+                limit = ROLE_LIMITS.get(role, 1)
+                remaining = limit
+        else:
+            # No refill timestamp, assume fresh start
+            limit = ROLE_LIMITS.get(role, 1)
+            remaining = limit
+        
+        # Check if user has credits
+        if remaining <= 0:
+            raise HTTPException(
+                status_code=403,
+                detail=f"No flat lay credits remaining. You have {remaining} of {ROLE_LIMITS.get(role, 1)} credits."
+            )
+        
+        # Decrement quota
+        new_remaining = max(0, remaining - 1)
+        
+        user_ref.update({
+            'quotas.flatlaysRemaining': new_remaining,
+            'quotas.lastRefillAt': now_timestamp,
+        })
+        
+        logger.info(f"Consumed flat lay credit for user {user_id}: {remaining} -> {new_remaining}")
+        
+        return {
+            "success": True,
+            "remaining": new_remaining,
+            "limit": ROLE_LIMITS.get(role, 1)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error consuming flat lay quota: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+

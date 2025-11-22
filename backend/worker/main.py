@@ -304,12 +304,13 @@ def _extract_image_bytes_from_openai_response(response) -> bytes | None:
 
 
 def reserve_openai_flatlay_slot(user_id: str | None) -> dict:
-    """Attempt to reserve an OpenAI flat lay usage for the user."""
+    """Attempt to reserve an OpenAI flat lay usage for the user using new payment system schema."""
     result = {
         "allowed": False,
         "tier": DEFAULT_SUBSCRIPTION_TIER,
         "limit": TIER_LIMITS.get(DEFAULT_SUBSCRIPTION_TIER),
         "used": 0,
+        "remaining": 0,
         "week_start": None,
         "reservation_active": False,
         "reason": None,
@@ -333,44 +334,70 @@ def reserve_openai_flatlay_slot(user_id: str | None) -> dict:
             data = {}
 
         subscription = data.get("subscription") or {}
-        tier = subscription.get("tier") or DEFAULT_SUBSCRIPTION_TIER
-        limit = TIER_LIMITS.get(tier, 0)
-
-        used_raw = subscription.get("openai_flatlays_used", 0) or 0
+        # Use new schema: subscription.role instead of subscription.tier
+        role = subscription.get("role") or subscription.get("tier") or DEFAULT_SUBSCRIPTION_TIER
+        limit = TIER_LIMITS.get(role, 1)
+        
+        # Use new schema: quotas.flatlaysRemaining instead of openai_flatlays_used
+        quotas = data.get("quotas", {})
+        remaining_raw = quotas.get("flatlaysRemaining", 0)
         try:
-            used = int(used_raw)
+            remaining = int(remaining_raw)
         except (TypeError, ValueError):
-            used = 0
+            remaining = 0
+        
+        # Check if we need to refill (weekly reset)
+        last_refill_at = quotas.get("lastRefillAt")
+        if last_refill_at:
+            try:
+                last_refill_timestamp = int(last_refill_at)
+                last_refill_dt = datetime.fromtimestamp(last_refill_timestamp, tz=timezone.utc)
+                seconds_since_refill = (now - last_refill_dt).total_seconds()
+                if seconds_since_refill >= WEEKLY_ALLOWANCE_SECONDS:
+                    # Week has passed, refill quota
+                    remaining = limit
+            except (TypeError, ValueError):
+                # Invalid timestamp, refill to limit
+                remaining = limit
+        else:
+            # No refill timestamp, assume fresh start
+            remaining = limit
 
-        week_start = parse_iso8601(subscription.get("flatlay_week_start"))
-        if not week_start or (now - week_start).total_seconds() >= WEEKLY_ALLOWANCE_SECONDS:
-            used = 0
-            week_start = now
+        allowed = remaining > 0
+        new_remaining = max(0, remaining - 1) if allowed else remaining
+        used = limit - new_remaining
 
-        allowed = (limit is None) or (used < limit)
-        new_used = used + 1 if allowed else used
-
+        # Update using new schema
         update_payload = {
-            "subscription.tier": tier,
-            "subscription.flatlay_week_start": format_iso8601(week_start),
-            "subscription.openai_flatlays_used": new_used if allowed else used,
+            "subscription.role": role,
+            "quotas.flatlaysRemaining": new_remaining,
+            "quotas.lastRefillAt": int(now.timestamp()),
             "subscription.last_updated": firestore.SERVER_TIMESTAMP,
         }
 
         if snapshot.exists:
             txn.update(doc_ref, update_payload)
         else:
-            subscription_payload = subscription_defaults(tier=tier, now=week_start)
-            subscription_payload["openai_flatlays_used"] = new_used if allowed else used
+            # Create new user document with proper structure
+            subscription_payload = subscription_defaults(tier=role, now=now)
+            subscription_payload["role"] = role
             subscription_payload["last_updated"] = firestore.SERVER_TIMESTAMP
-            txn.set(doc_ref, {"subscription": subscription_payload}, merge=True)
+            quotas_payload = {
+                "flatlaysRemaining": new_remaining,
+                "lastRefillAt": int(now.timestamp()),
+            }
+            txn.set(doc_ref, {
+                "subscription": subscription_payload,
+                "quotas": quotas_payload
+            }, merge=True)
 
         return {
             "allowed": allowed,
-            "tier": tier,
+            "tier": role,
             "limit": limit,
-            "used": new_used if allowed else used,
-            "week_start": week_start,
+            "used": used,
+            "remaining": new_remaining,
+            "week_start": now,
             "reservation_active": allowed,
             "reason": None if allowed else "limit_reached",
         }
@@ -386,7 +413,7 @@ def reserve_openai_flatlay_slot(user_id: str | None) -> dict:
 
 
 def release_openai_flatlay_slot(user_id: str | None):
-    """Release a previously reserved OpenAI flat lay slot (e.g., after fallback)."""
+    """Release a previously reserved OpenAI flat lay slot (e.g., after fallback) using new payment system schema."""
     if not user_id:
         return
 
@@ -400,18 +427,22 @@ def release_openai_flatlay_slot(user_id: str | None):
             return
 
         data = snapshot.to_dict() or {}
-        subscription = data.get("subscription") or {}
-        used_raw = subscription.get("openai_flatlays_used", 0) or 0
+        quotas = data.get("quotas", {})
+        remaining_raw = quotas.get("flatlaysRemaining", 0)
 
         try:
-            used = int(used_raw)
+            remaining = int(remaining_raw)
         except (TypeError, ValueError):
-            used = 0
+            remaining = 0
 
-        if used <= 0:
-            return
+        subscription = data.get("subscription", {})
+        role = subscription.get("role") or subscription.get("tier") or DEFAULT_SUBSCRIPTION_TIER
+        limit = TIER_LIMITS.get(role, 1)
+        
+        # Increment remaining (but don't exceed limit)
+        new_remaining = min(limit, remaining + 1)
 
-        txn.update(doc_ref, {"subscription.openai_flatlays_used": used - 1})
+        txn.update(doc_ref, {"quotas.flatlaysRemaining": new_remaining})
 
     try:
         _release(transaction)
