@@ -81,13 +81,18 @@ async def get_current_subscription(
                 # Downgrade to free tier
                 flatlay_limit = ROLE_LIMITS.get(DEFAULT_ROLE, 1)
                 user_ref = db.collection('users').document(user_id)
-                user_ref.update({
+                updates = {
                     'subscription.role': DEFAULT_ROLE,
                     'subscription.status': 'canceled',
                     'subscription.priceId': 'free',
                     'quotas.flatlaysRemaining': flatlay_limit,
                     'quotas.lastRefillAt': now_timestamp,
-                })
+                    # Clean up legacy fields
+                    'subscription.tier': firestore.DELETE_FIELD,
+                    'subscription.openai_flatlays_used': firestore.DELETE_FIELD,
+                    'subscription.flatlay_week_start': firestore.DELETE_FIELD,
+                }
+                user_ref.update(updates)
                 role = DEFAULT_ROLE
                 status = 'canceled'
                 logger.info(f"Period ended for user {user_id}, downgraded to {DEFAULT_ROLE}")
@@ -332,6 +337,13 @@ async def handle_checkout_completed(session: Dict[str, Any]):
     if subscription_id:
         updates['subscription.stripeSubscriptionId'] = subscription_id
     
+    # Clean up legacy fields
+    updates.update({
+        'subscription.tier': firestore.DELETE_FIELD,
+        'subscription.openai_flatlays_used': firestore.DELETE_FIELD,
+        'subscription.flatlay_week_start': firestore.DELETE_FIELD,
+    })
+    
     user_ref.update(updates)
     logger.info(f"Updated user {user_id} subscription to {role}")
 
@@ -402,6 +414,13 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
     # Update priceId if we have it
     if price_id:
         updates['subscription.priceId'] = price_id
+    
+    # Clean up legacy fields
+    updates.update({
+        'subscription.tier': firestore.DELETE_FIELD,
+        'subscription.openai_flatlays_used': firestore.DELETE_FIELD,
+        'subscription.flatlay_week_start': firestore.DELETE_FIELD,
+    })
     
     # If period has already ended and subscription is canceled, downgrade now
     if period_end > 0 and now_timestamp >= period_end and (status == 'canceled' or cancel_at_period_end):
@@ -478,6 +497,13 @@ async def handle_subscription_created(subscription: Dict[str, Any]):
     if price_id:
         updates['subscription.priceId'] = price_id
     
+    # Clean up legacy fields
+    updates.update({
+        'subscription.tier': firestore.DELETE_FIELD,
+        'subscription.openai_flatlays_used': firestore.DELETE_FIELD,
+        'subscription.flatlay_week_start': firestore.DELETE_FIELD,
+    })
+    
     # Log for debugging
     logger.info(f"Processing subscription created: subscription_id={subscription_id}, price_id={price_id}, role={role}, period_end={period_end}")
     
@@ -502,14 +528,19 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
     flatlay_limit = ROLE_LIMITS.get(DEFAULT_ROLE, 1)
     
     doc = docs[0]
-    doc.reference.update({
+    updates = {
         'subscription.role': DEFAULT_ROLE,
         'subscription.status': 'canceled',
         'subscription.currentPeriodEnd': next_period_end,
         'subscription.priceId': 'free',
         'quotas.flatlaysRemaining': flatlay_limit,
         'quotas.lastRefillAt': now_timestamp,
-    })
+        # Clean up legacy fields
+        'subscription.tier': firestore.DELETE_FIELD,
+        'subscription.openai_flatlays_used': firestore.DELETE_FIELD,
+        'subscription.flatlay_week_start': firestore.DELETE_FIELD,
+    }
+    doc.reference.update(updates)
     logger.info(f"Canceled subscription for user {doc.id}, downgraded to {DEFAULT_ROLE}")
 
 
@@ -539,11 +570,16 @@ async def handle_invoice_payment_succeeded(invoice: Dict[str, Any]):
     flatlay_limit = ROLE_LIMITS.get(current_role, 1)
     now_timestamp = int(datetime.now(timezone.utc).timestamp())
     
-    doc.reference.update({
+    updates = {
         'subscription.status': 'active',
         'quotas.flatlaysRemaining': flatlay_limit,
         'quotas.lastRefillAt': now_timestamp,
-    })
+        # Clean up legacy fields
+        'subscription.tier': firestore.DELETE_FIELD,
+        'subscription.openai_flatlays_used': firestore.DELETE_FIELD,
+        'subscription.flatlay_week_start': firestore.DELETE_FIELD,
+    }
+    doc.reference.update(updates)
     logger.info(f"Refilled quotas for user {doc.id} after successful payment")
 
 
