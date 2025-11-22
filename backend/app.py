@@ -198,6 +198,7 @@ ROUTERS = [
     ("src.routes.style_inspiration", "/api/style-inspiration"), # Style inspiration recommendations - NEW
     ("src.routes.rag_ingest", "/api"),  # RAG ingestion endpoint at /api/ingest_drive
     ("src.routes.knowledge", "/api"),  # Knowledge endpoints: /api/chat, /api/knowledge/*
+    ("src.routes.payments", "/api/payments"),  # Payment and subscription management
     # ("src.routes.test_debug", ""),       # Router already has /api/test prefix
     # ("src.routes.analytics_dashboard", ""), # Analytics dashboard router
     # ("src.routes.analytics", ""),        # Main analytics router
