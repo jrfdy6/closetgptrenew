@@ -4,6 +4,7 @@
 [build]
 builder = "dockerfile"
 dockerfilePath = "backend/Dockerfile.gateway"
+# Force Dockerfile usage - don't auto-detect with Nixpacks
 
 [deploy]
 startCommand = "./start_gateway.sh"

@@ -4,12 +4,12 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copy requirements and install
-COPY backend/requirements-gateway.txt .
+COPY requirements-gateway.txt .
 RUN pip install --no-cache-dir -r requirements-gateway.txt
 
 # Copy gateway file and start script
-COPY backend/mcp_http_gateway.py .
-COPY backend/start_gateway.sh .
+COPY mcp_http_gateway.py .
+COPY start_gateway.sh .
 RUN chmod +x start_gateway.sh
 
 # Expose port (Railway uses $PORT env var)
