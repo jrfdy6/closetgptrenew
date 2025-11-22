@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Lock, Sparkles, Crown, BookOpen } from 'lucide-react';
 
 interface UpgradePromptProps {
-  feature: 'semantic_filtering' | 'style_persona' | 'advanced_features' | 'learn_from_outfit';
+  feature: 'semantic_filtering' | 'style_persona' | 'advanced_features' | 'learn_from_outfit' | 'forgotten_gems';
   currentTier?: 'tier1' | 'tier2' | 'tier3';
   className?: string;
 }
@@ -60,6 +60,19 @@ const FEATURE_INFO = {
       'Texture and pattern balance tips',
       'Style synergy explanations',
       'Personalized style recommendations'
+    ]
+  },
+  forgotten_gems: {
+    title: 'Forgotten Gems',
+    description: 'Rediscover items in your wardrobe you haven\'t worn in a while',
+    icon: <Sparkles className="h-6 w-6" />,
+    requiredTier: 'tier2',
+    features: [
+      'Rediscover unworn wardrobe items',
+      'AI-powered rediscovery potential scoring',
+      'Personalized outfit suggestions',
+      'Wardrobe analytics and insights',
+      'Save money by using existing items'
     ]
   }
 };

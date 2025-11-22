@@ -20,6 +20,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useFirebase } from "@/lib/firebase-context";
 import Carousel from "@/components/ui/carousel/Carousel";
 import CarouselSlide from "@/components/ui/carousel/CarouselSlide";
+import UpgradePrompt from "@/components/UpgradePrompt";
 
 interface ForgottenItem {
   id: string;
@@ -50,14 +51,43 @@ export default function ForgottenGems() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingItem, setProcessingItem] = useState<string | null>(null);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [hasAccess, setHasAccess] = useState(false);
+  const [checkingSubscription, setCheckingSubscription] = useState(true);
   const { toast } = useToast();
   const { user } = useFirebase();
 
   useEffect(() => {
     if (user) {
-      fetchForgottenGems();
+      checkSubscription();
+    } else {
+      setHasAccess(false);
+      setCheckingSubscription(false);
     }
   }, [user]);
+
+  const checkSubscription = async () => {
+    if (!user) return;
+    
+    try {
+      setCheckingSubscription(true);
+      const { subscriptionService } = await import('@/lib/services/subscriptionService');
+      const sub = await subscriptionService.getCurrentSubscription(user);
+      setSubscription(sub);
+      // Require Pro or Premium for forgotten gems
+      const canAccess = sub.role === 'tier2' || sub.role === 'tier3';
+      setHasAccess(canAccess);
+      
+      if (canAccess) {
+        fetchForgottenGems();
+      }
+    } catch (err) {
+      console.error('Error checking subscription:', err);
+      setHasAccess(false);
+    } finally {
+      setCheckingSubscription(false);
+    }
+  };
 
   const fetchForgottenGems = async () => {
     try {
@@ -173,7 +203,18 @@ export default function ForgottenGems() {
     ? data.forgottenItems.filter((item) => item.rediscoveryPotential >= 70)
     : [];
 
-  if (loading) {
+  // Show upgrade prompt if user doesn't have access
+  if (!checkingSubscription && !hasAccess) {
+    return (
+      <UpgradePrompt 
+        feature="forgotten_gems"
+        currentTier={subscription?.role || 'tier1'}
+      />
+    );
+  }
+
+  // Show loading while checking subscription or fetching data
+  if (checkingSubscription || loading) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">

@@ -19,6 +19,7 @@ FEATURE_ACCESS_MATRIX = {
     'flatlay_generation': ['tier1', 'tier2', 'tier3'],  # All tiers, but with different limits
     'advanced_personalization': ['tier2', 'tier3'],
     'wardrobe_analytics': ['tier2', 'tier3'],
+    'forgotten_gems': ['tier2', 'tier3'],  # Forgotten gems wardrobe insights
     'unlimited_history': ['tier3'],
 }
 
