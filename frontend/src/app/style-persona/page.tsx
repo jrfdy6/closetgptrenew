@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useFirebase } from '@/lib/firebase-context';
 import { useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
+import UpgradePrompt from '@/components/UpgradePrompt';
 import { ArrowRight, Sparkles } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -288,6 +289,8 @@ export default function StylePersonaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cameFromQuiz, setCameFromQuiz] = useState(false);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -297,11 +300,28 @@ export default function StylePersonaPage() {
 
   useEffect(() => {
     if (user && !authLoading) {
+      checkSubscription();
       fetchProfile();
     } else if (!user && !authLoading) {
       router.push('/');
     }
   }, [user, authLoading, router]);
+
+  const checkSubscription = async () => {
+    if (!user) return;
+    
+    try {
+      // Import subscription service dynamically
+      const { subscriptionService } = await import('@/lib/services/subscriptionService');
+      const sub = await subscriptionService.getCurrentSubscription(user);
+      setSubscription(sub);
+      setHasAccess(subscriptionService.canAccessFeature(sub.role, 'style_persona'));
+    } catch (err) {
+      console.error('Error checking subscription:', err);
+      // Default to no access if check fails
+      setHasAccess(false);
+    }
+  };
 
   // Force refresh when page loads (e.g., coming from quiz)
   useEffect(() => {
@@ -509,6 +529,21 @@ export default function StylePersonaPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Loading your style persona...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check subscription access before showing content
+  if (!hasAccess && subscription) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+        <Navigation />
+        <div className="container mx-auto p-6 max-w-2xl mt-12">
+          <UpgradePrompt 
+            feature="style_persona" 
+            currentTier={subscription.role || 'tier1'}
+          />
         </div>
       </div>
     );

@@ -1,62 +1,142 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import ClientOnlyNav from '@/components/ClientOnlyNav';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Crown, Sparkles } from 'lucide-react';
-
-const tiers = [
-  {
-    id: 'tier1',
-    name: 'Style Starter',
-    description: 'Everything you need to catalogue outfits and start building your personal lookbook.',
-    price: '$0',
-    cadence: 'Included',
-    highlight: 'New wardrobe creators',
-    perks: [
-      '1 premium flat lay credit each week',
-      'Unlimited manual outfits',
-      'Wardrobe organization and tagging',
-      'Mobile-friendly outfit builder'
-    ],
-    cta: 'You’re here now'
-  },
-  {
-    id: 'tier2',
-    name: 'Style Plus',
-    description: 'Upgrade for weekly outfit visuals, priority processing, and deeper personalization.',
-    price: '$6',
-    cadence: 'per month',
-    annual: '$36 per year (save 50%)',
-    highlight: 'Style enthusiasts',
-    perks: [
-      '7 premium flat lay credits per week',
-      'Priority flat lay rendering queue',
-      'Unlimited saved outfits & notes',
-      'Occasion-based wardrobe insights',
-      'Early access to styling experiments'
-    ],
-    cta: 'Join Style Plus'
-  },
-  {
-    id: 'tier3',
-    name: 'Style Premium',
-    description: 'For creators and teams who want premium visuals on demand and concierge support.',
-    price: '$10',
-    cadence: 'per month',
-    highlight: 'Creators & stylists',
-    perks: [
-      '30 premium flat lay credits per week',
-      'Concierge flat lay rush requests',
-      'Branded export-ready visuals',
-      'Shared workspaces & collaboration',
-      'Quarterly wardrobe performance review'
-    ],
-    cta: 'Request access'
-  }
-];
+import { Check, Crown, Sparkles, Loader2, CreditCard } from 'lucide-react';
+import { useFirebase } from '@/lib/firebase-context';
+import { 
+  subscriptionService, 
+  SUBSCRIPTION_TIERS, 
+  type Subscription 
+} from '@/lib/services/subscriptionService';
 
 export default function UpgradePage() {
+  const { user, loading: authLoading } = useFirebase();
+  const router = useRouter();
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [upgrading, setUpgrading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user && !authLoading) {
+      fetchSubscription();
+    } else if (!authLoading && !user) {
+      router.push('/signin');
+    }
+  }, [user, authLoading]);
+
+  const fetchSubscription = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      const sub = await subscriptionService.getCurrentSubscription(user);
+      setSubscription(sub);
+    } catch (err) {
+      console.error('Error fetching subscription:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load subscription');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpgrade = async (role: string) => {
+    if (role === 'tier1' || !user) return;
+    
+    setUpgrading(role);
+    setError(null);
+    
+    try {
+      const { checkout_url } = await subscriptionService.createCheckoutSession(user, role);
+      // Redirect to Stripe checkout
+      window.location.href = checkout_url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start checkout');
+      setUpgrading(null);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    if (!user) return;
+    
+    try {
+      const { url } = await subscriptionService.createPortalSession(user);
+      window.location.href = url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to open customer portal');
+    }
+  };
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  const currentRole = subscription?.role || 'tier1';
+  const currentTierInfo = subscriptionService.getTierInfo(currentRole);
+
+  const tiers = [
+    {
+      id: 'tier1',
+      name: 'Free',
+      description: 'Everything you need to catalogue outfits and start building your personal lookbook.',
+      price: '$0',
+      cadence: 'Included',
+      highlight: 'New wardrobe creators',
+      perks: [
+        '1 premium flat lay credit each week',
+        'Unlimited manual outfits',
+        'Wardrobe organization and tagging',
+        'Mobile-friendly outfit builder'
+      ],
+      cta: 'You're here now'
+    },
+    {
+      id: 'tier2',
+      name: 'Pro',
+      description: 'Upgrade for weekly outfit visuals, priority processing, and deeper personalization.',
+      price: '$9.99',
+      cadence: 'per month',
+      highlight: 'Style enthusiasts',
+      perks: [
+        '7 premium flat lay credits per week',
+        'Priority flat lay rendering queue',
+        'Unlimited saved outfits & notes',
+        'Style persona analysis',
+        'Advanced outfit filtering',
+        'Early access to styling experiments'
+      ],
+      cta: 'Join Pro',
+      popular: true
+    },
+    {
+      id: 'tier3',
+      name: 'Premium',
+      description: 'For creators and teams who want premium visuals on demand and concierge support.',
+      price: '$29.99',
+      cadence: 'per month',
+      highlight: 'Creators & stylists',
+      perks: [
+        '30 premium flat lay credits per week',
+        'Concierge flat lay rush requests',
+        'Branded export-ready visuals',
+        'All Pro features',
+        'Premium support',
+        'Quarterly wardrobe performance review'
+      ],
+      cta: 'Join Premium'
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
       <Navigation />
@@ -73,6 +153,18 @@ export default function UpgradePage() {
             Easy Outfit caters to every type of closet. Keep your free plan for casual outfit saving or
             upgrade for magazine-ready flat lays, priority rendering, and concierge support.
           </p>
+          {subscription && (
+            <div className="mt-4">
+              <Badge variant="secondary">
+                Current Plan: {currentTierInfo?.name || 'Free'} • {subscription.flatlays_remaining} flat lays remaining
+              </Badge>
+            </div>
+          )}
+          {error && (
+            <div className="mt-4 p-4 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg max-w-md mx-auto">
+              {error}
+            </div>
+          )}
         </section>
 
         <section className="grid gap-6 lg:grid-cols-3">
@@ -127,15 +219,28 @@ export default function UpgradePage() {
                 </ul>
 
                 <div className="pt-2">
-                  {tier.id === 'tier1' ? (
+                  {tier.id === currentRole ? (
+                    <Button disabled className="w-full" variant="outline">
+                      Current Plan
+                    </Button>
+                  ) : tier.id === 'tier1' ? (
                     <Button disabled className="w-full bg-stone-300 text-stone-600" variant="secondary">
                       {tier.cta}
                     </Button>
                   ) : (
-                    <Button asChild className="w-full bg-stone-900 text-white hover:bg-stone-800">
-                      <a href="mailto:hello@easyoutfitapp.com" target="_blank" rel="noopener noreferrer">
-                        {tier.cta}
-                      </a>
+                    <Button 
+                      onClick={() => handleUpgrade(tier.id)}
+                      disabled={upgrading === tier.id}
+                      className="w-full bg-stone-900 text-white hover:bg-stone-800"
+                    >
+                      {upgrading === tier.id ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        tier.cta
+                      )}
                     </Button>
                   )}
                 </div>
@@ -183,6 +288,26 @@ export default function UpgradePage() {
             </CardContent>
           </Card>
         </section>
+
+        {/* Manage Subscription Section */}
+        {subscription && subscription.role !== 'tier1' && (
+          <Card className="border-2 border-stone-200 dark:border-stone-700">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-stone-900 dark:text-stone-100">
+                Manage Subscription
+              </CardTitle>
+              <CardDescription>
+                Update your payment method, cancel, or change your plan
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={handleManageSubscription} variant="outline" className="w-full">
+                <CreditCard className="mr-2 h-4 w-4" />
+                Open Customer Portal
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </main>
 
       <ClientOnlyNav />
