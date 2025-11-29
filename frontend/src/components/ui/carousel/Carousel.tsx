@@ -73,18 +73,50 @@ export default function Carousel({
   const slides = useMemo(() => React.Children.toArray(children), [children]);
   const totalSlides = slides.length;
 
+  // Create stable keys for slides by extracting keys from children
+  const slideKeys = useMemo(() => {
+    return slides.map((slide, idx) => {
+      if (React.isValidElement(slide) && slide.key != null) {
+        return String(slide.key);
+      }
+      // Try to find a key in the slide's children
+      if (React.isValidElement(slide) && React.isValidElement(slide.props?.children)) {
+        const child = slide.props.children;
+        if (child && typeof child === 'object' && 'key' in child && child.key != null) {
+          return String(child.key);
+        }
+      }
+      return `slide-${idx}`;
+    });
+  }, [slides]);
+
   const maxIndex = useMemo(() => {
-    const visible = Math.max(1, Math.ceil(currentSlidesPerView));
+    const visible = Math.max(1, Math.floor(currentSlidesPerView));
     return Math.max(0, totalSlides - visible);
   }, [currentSlidesPerView, totalSlides]);
 
   const updateTransform = useCallback(
     (index: number) => {
-      if (!trackRef.current) return;
-      const offset = (100 / currentSlidesPerView) * index;
-      trackRef.current.style.transform = `translateX(-${offset}%)`;
+      if (!trackRef.current || !containerRef.current) return;
+      
+      // Use pixel-based transform to account for margins properly
+      requestAnimationFrame(() => {
+        if (!trackRef.current || !containerRef.current) return;
+        
+        const containerWidth = containerRef.current.offsetWidth;
+        if (containerWidth === 0) return;
+        
+        // Calculate slide width (percentage of container)
+        const slideWidthPercent = 100 / currentSlidesPerView;
+        const slideWidthPx = (containerWidth * slideWidthPercent) / 100;
+        
+        // Calculate offset: slide width * index + margin * index
+        const offset = (slideWidthPx * index) + (spaceBetween * index);
+        
+        trackRef.current.style.transform = `translateX(-${offset}px)`;
+      });
     },
-    [currentSlidesPerView]
+    [currentSlidesPerView, spaceBetween]
   );
 
   useEffect(() => {
@@ -99,13 +131,36 @@ export default function Carousel({
     return () => window.removeEventListener("resize", handleResize);
   }, [slidesPerView]);
 
+  // Reset index when slides change significantly (e.g., items removed/added)
+  const prevTotalSlidesRef = useRef(totalSlides);
   useEffect(() => {
+    // If items were removed and current index is now out of bounds, reset to 0
+    if (prevTotalSlidesRef.current !== totalSlides) {
+      const prevTotal = prevTotalSlidesRef.current;
+      prevTotalSlidesRef.current = totalSlides;
+      
+      // Reset to 0 if items were removed or significantly changed
+      if (totalSlides < prevTotal || (prevTotal > 0 && totalSlides === 0)) {
+        setCurrentIndex(0);
+        updateTransform(0);
+        return;
+      }
+    }
+    
+    // Clamp current index to valid range
     setCurrentIndex((prev) => {
-      const clamped = Math.min(prev, maxIndex);
-      updateTransform(clamped);
+      const clamped = Math.min(prev, Math.max(0, maxIndex));
+      if (clamped !== prev) {
+        updateTransform(clamped);
+      }
       return clamped;
     });
-  }, [maxIndex, updateTransform]);
+  }, [totalSlides, maxIndex, updateTransform]);
+
+  // Update transform when currentIndex or slidesPerView changes
+  useEffect(() => {
+    updateTransform(currentIndex);
+  }, [currentIndex, updateTransform]);
 
   const handleNext = useCallback(() => {
     setCurrentIndex((prev) => {
@@ -136,7 +191,7 @@ export default function Carousel({
   }, [autoPlay, autoPlayInterval, handleNext, totalSlides, currentSlidesPerView]);
 
   const indicatorCount = useMemo(() => {
-    const visible = Math.max(1, Math.ceil(currentSlidesPerView));
+    const visible = Math.max(1, Math.floor(currentSlidesPerView));
     return Math.max(1, totalSlides - visible + 1);
   }, [currentSlidesPerView, totalSlides]);
 
@@ -145,6 +200,7 @@ export default function Carousel({
     updateTransform(index);
   };
 
+  // Slide width as percentage - gaps are handled via margin
   const slideWidth = `${100 / currentSlidesPerView}%`;
 
   return (
@@ -153,13 +209,17 @@ export default function Carousel({
         <div
           ref={trackRef}
           className="flex transition-transform duration-500 ease-out"
-          style={{ gap: `${spaceBetween}px` }}
         >
           {slides.map((child, index) => (
             <div
-              key={index}
+              key={slideKeys[index]}
               className="flex-shrink-0"
-              style={{ flexBasis: slideWidth, maxWidth: slideWidth }}
+              style={{ 
+                flexBasis: slideWidth, 
+                maxWidth: slideWidth, 
+                minWidth: 0,
+                marginRight: index < slides.length - 1 ? `${spaceBetween}px` : 0
+              }}
             >
               {child}
             </div>
