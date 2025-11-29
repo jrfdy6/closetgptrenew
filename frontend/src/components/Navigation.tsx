@@ -5,7 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { signOutUser } from "@/lib/auth";
 import { useFirebase } from "@/lib/firebase-context";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Menu, X, Sparkles, Home, Shirt, Palette, User, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,13 @@ export default function Navigation() {
   const { user } = useFirebase();
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Ensure component is mounted on client before rendering Portal
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -35,8 +43,35 @@ export default function Navigation() {
   };
 
   const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
+    setIsMenuOpen((prev) => {
+      const newState = !prev;
+      console.log(' Menu toggle clicked! State changing from', prev, 'to', newState);
+      return newState;
+    });
   };
+
+  // Handle body scroll lock when menu opens/closes
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (isMenuOpen) {
+        // Lock body scroll when menu is open
+        document.body.style.overflow = 'hidden';
+        console.log('✅ Menu opened - body scroll locked');
+      } else {
+        // Restore body scroll when menu closes
+        document.body.style.overflow = '';
+        console.log('✅ Menu closed - body scroll restored');
+      }
+    }
+    
+    // Cleanup function
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+      }
+    };
+  }, [isMenuOpen]);
+
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -80,7 +115,7 @@ export default function Navigation() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "group flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
+                      "group flex items-center space-x-2 px-4 py-2.5 min-h-[44px] h-[44px] rounded-xl text-sm font-medium transition-all duration-200",
                       "text-[#57534E] dark:text-[#C4BCB4]",
                       "hover:text-[#1C1917] dark:hover:text-[#F8F5F1]",
                       "hover:bg-[#F5F0E8] dark:hover:bg-[#3D2F24]",
@@ -122,8 +157,13 @@ export default function Navigation() {
           <div className="md:hidden flex items-center space-x-2">
             <ThemeToggle />
             <button
-              onClick={toggleMenu}
-              className="inline-flex items-center justify-center p-2.5 rounded-xl text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#3D2F24] transition-all duration-200 min-h-[44px] min-w-[44px]"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleMenu();
+              }}
+              type="button"
+              className="inline-flex items-center justify-center p-2.5 rounded-xl text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#3D2F24] transition-all duration-200 min-h-[44px] min-w-[44px] relative z-[100]"
               aria-expanded={isMenuOpen}
               aria-label="Toggle menu"
             >
@@ -137,17 +177,44 @@ export default function Navigation() {
         </div>
       </div>
 
-      {/* Modern Mobile Navigation - Full screen overlay */}
-      {isMenuOpen && (
+      {/* Modern Mobile Navigation - Rendered via Portal for proper z-index */}
+      {isMounted && isMenuOpen && typeof document !== 'undefined' && createPortal(
         <>
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[60] md:hidden animate-in fade-in duration-200"
-            onClick={() => setIsMenuOpen(false)}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] md:hidden transition-opacity duration-200"
+            onClick={() => {
+              console.log('🔴 Backdrop clicked, closing menu');
+              setIsMenuOpen(false);
+            }}
+            aria-hidden="true"
           />
           
           {/* Menu Panel */}
-          <div className="fixed inset-x-0 top-16 bottom-0 bg-[#FAFAF9] dark:bg-[#1A1510] z-[70] md:hidden animate-in slide-in-from-top duration-300 overflow-y-auto border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+          <div 
+            className="fixed inset-x-0 top-16 bottom-0 bg-[#FAFAF9] dark:bg-[#1A1510] z-[70] md:hidden overflow-y-auto shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
+          >
+            {/* Menu Header with Close Button */}
+            <div className="sticky top-0 z-[71] bg-[#FAFAF9] dark:bg-[#1A1510] border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 px-4 py-3 flex justify-between items-center">
+              <span className="font-semibold text-lg text-[#1C1917] dark:text-[#F8F5F1]">Menu</span>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('🔴 Close button clicked');
+                  setIsMenuOpen(false);
+                }}
+                className="inline-flex items-center justify-center p-2 rounded-xl text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#3D2F24] transition-all duration-200 min-h-[44px] min-w-[44px]"
+                aria-label="Close menu"
+                type="button"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
             <div className="p-4 space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -155,8 +222,11 @@ export default function Navigation() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="flex items-center space-x-4 px-5 py-4 rounded-2xl text-base font-semibold transition-all duration-200 min-h-[56px] border-2 border-transparent text-[#1C1917] dark:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] hover:border-[#FFB84C]/60 dark:hover:border-[#FF9400]/50"
-                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center space-x-4 px-5 py-4 rounded-2xl text-base font-semibold transition-all duration-200 min-h-[56px] h-[56px] border-2 border-transparent text-[#1C1917] dark:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] hover:border-[#FFB84C]/60 dark:hover:border-[#FF9400]/50"
+                    onClick={() => {
+                      console.log('🔴 Menu link clicked:', item.href);
+                      setIsMenuOpen(false);
+                    }}
                   >
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFCC66]/40 to-[#FF9400]/40 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 flex items-center justify-center">
                       <Icon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
@@ -194,7 +264,8 @@ export default function Navigation() {
               )}
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </nav>
   );

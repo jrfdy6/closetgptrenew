@@ -406,7 +406,7 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row gap-3 mb-6 sm:mb-8">
           <Button 
             onClick={() => setShowBatchUpload(true)}
-            className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20 hover:from-[#FFB84C] hover:to-[#FF7700] transition-transform duration-200 sm:hover:scale-[1.02] active:scale-[0.98]"
+            className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 min-h-[44px] rounded-2xl font-semibold shadow-lg shadow-amber-500/20 hover:from-[#FFB84C] hover:to-[#FF7700] transition-transform duration-200 sm:hover:scale-[1.02] active:scale-[0.98]"
           >
             <Upload className="w-5 h-5 mr-2" />
             Add items with AI
