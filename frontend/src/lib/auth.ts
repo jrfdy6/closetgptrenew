@@ -4,7 +4,9 @@ import {
   signOut,
   onAuthStateChanged,
   User,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  signInWithPopup,
+  GoogleAuthProvider
 } from 'firebase/auth';
 import { auth } from './firebase/config';
 
@@ -65,6 +67,28 @@ export const signUp = async (email: string, password: string) => {
     return { 
       success: false, 
       error: error.message || 'Sign up failed' 
+    };
+  }
+};
+
+// Sign in with Google
+export const signInWithGoogle = async () => {
+  try {
+    // Clear any cached outfit data from previous user sessions
+    clearOutfitCache();
+    
+    const provider = new GoogleAuthProvider();
+    // Request additional scopes if needed
+    provider.addScope('profile');
+    provider.addScope('email');
+    
+    const userCredential = await signInWithPopup(auth, provider);
+    return { success: true, user: userCredential.user };
+  } catch (error: any) {
+    console.error('Google sign in error:', error);
+    return { 
+      success: false, 
+      error: error.message || 'Google sign in failed' 
     };
   }
 };
