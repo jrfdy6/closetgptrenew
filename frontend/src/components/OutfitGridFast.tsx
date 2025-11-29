@@ -459,7 +459,7 @@ export default function OutfitGridFast({
                 <SelectValue placeholder="Favorites" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Outfits</SelectItem>
+                <SelectItem value="">All Looks</SelectItem>
                 <SelectItem value="true">Favorites Only</SelectItem>
                 <SelectItem value="false">Non-Favorites</SelectItem>
               </SelectContent>

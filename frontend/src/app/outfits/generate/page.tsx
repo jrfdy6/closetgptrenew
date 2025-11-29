@@ -1216,7 +1216,7 @@ export default function OutfitGenerationPage() {
             className="flex items-center gap-2 glass-button-secondary text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-sm sm:text-base font-medium glass-transition hover:scale-105"
           >
             <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-            Back to Outfits
+            Back to My Looks
           </Button>
           <div className="space-y-2">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold flex items-center gap-3 text-stone-900 dark:text-stone-100">

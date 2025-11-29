@@ -76,7 +76,7 @@ export default function Navigation() {
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: Home },
     { href: "/wardrobe", label: "Wardrobe", icon: Shirt },
-    { href: "/outfits", label: "Outfits", icon: Palette },
+    { href: "/outfits", label: "My Looks", icon: Palette },
     { href: "/profile", label: "Profile", icon: User },
   ];
 

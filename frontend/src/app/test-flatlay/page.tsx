@@ -231,7 +231,7 @@ export default function TestFlatLayPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Your Outfits</CardTitle>
+                <CardTitle>Your Looks</CardTitle>
                 <Button
                   variant="outline"
                   size="sm"

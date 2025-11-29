@@ -625,7 +625,7 @@ export default function OutfitResultsDisplay({
                 className="flex-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
               >
                 <Shirt className="h-4 w-4 mr-2" />
-                View My Outfits
+                View My Looks
               </Button>
             ) : ratingSubmitted ? (
               <>
@@ -639,7 +639,7 @@ export default function OutfitResultsDisplay({
                   className="flex-1"
                 >
                   <Shirt className="h-4 w-4 mr-2" />
-                  View All Outfits
+                  View All Looks
                 </Button>
               </>
             ) : (

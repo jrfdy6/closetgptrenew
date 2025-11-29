@@ -785,7 +785,7 @@ export default function OutfitGrid({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">
-            {isSearching ? 'Search Results' : showFavoritesOnly ? 'Favorite Outfits' : 'All Outfits'}
+            {isSearching ? 'Search Results' : showFavoritesOnly ? 'Favorite Looks' : 'All Looks'}
           </h2>
           <p className="text-gray-600">
             {(() => {
@@ -924,7 +924,7 @@ export default function OutfitGrid({
               disabled={loadingMore}
             >
               <ChevronDown className="h-4 w-4" />
-              Load More Outfits
+              Load More Looks
             </Button>
           )}
         </div>

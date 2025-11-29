@@ -34,7 +34,7 @@ export default function MobileOptimizedNav({
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
     { href: '/wardrobe', label: 'Wardrobe', icon: Shirt },
-    { href: '/outfits', label: 'Outfits', icon: Sparkles },
+    { href: '/outfits', label: 'My Looks', icon: Sparkles },
     { href: '/profile', label: 'Profile', icon: User },
   ];
 

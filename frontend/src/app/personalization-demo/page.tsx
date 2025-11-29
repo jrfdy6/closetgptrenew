@@ -441,7 +441,7 @@ export default function PersonalizationDemoPage() {
             className="flex items-center gap-3 border-2 border-stone-300 hover:border-stone-400 text-stone-700 hover:text-stone-900 hover:bg-stone-50 px-6 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105"
           >
             <ArrowLeft className="h-5 w-5" />
-            Back to Outfits
+            Back to My Looks
           </Button>
           <div>
             <h1 className="text-4xl font-serif font-bold flex items-center gap-4 text-stone-900 dark:text-stone-100">
