@@ -45,7 +45,9 @@ export default function SignIn() {
             const hasPassword = methods.includes("password");
             const hasGoogle = methods.includes("google.com");
             
-            if (hasPassword && hasGoogle) {
+            // Hide form if both methods exist, OR if methods array is empty (Google account not linked)
+            // Empty array indicates Google account exists but password isn't linked
+            if ((hasPassword && hasGoogle) || (methods.length === 0)) {
               setHasBothMethods(true);
               setCheckedEmail(email);
               setError(""); // Clear any error when both methods detected
@@ -54,6 +56,8 @@ export default function SignIn() {
               setCheckedEmail(email);
             }
           } else {
+            // If methods check fails, assume it might be a Google account
+            // We'll let the error handler catch it if password sign-in fails
             setHasBothMethods(false);
             setCheckedEmail(email);
           }
@@ -128,6 +132,13 @@ export default function SignIn() {
           router.push("/dashboard");
         }
       } else {
+        // Check if error indicates Google account - if so, hide the form
+        if (result.error && (
+          result.error.includes('Google account') || 
+          result.error.includes('sign in with Google')
+        )) {
+          setHasBothMethods(true);
+        }
         setError(result.error || "Sign in failed");
         console.error("Signin error:", result.error);
       }
