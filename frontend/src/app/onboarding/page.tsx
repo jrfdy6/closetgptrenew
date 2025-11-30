@@ -1,8 +1,8 @@
 "use client";
 
 // Force dynamic rendering to prevent static generation
+// Note: revalidate is not valid for client components, only dynamic is needed
 export const dynamic = 'force-dynamic';
-export const revalidate = false;
 
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
