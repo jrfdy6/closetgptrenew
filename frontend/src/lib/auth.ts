@@ -61,7 +61,32 @@ export const signIn = async (email: string, password: string) => {
         const methodsResult = await getSignInMethods(email);
         if (methodsResult.success && methodsResult.methods && methodsResult.methods.length > 0) {
           if (methodsResult.methods.includes('google.com')) {
-            errorMessage = 'This email is associated with a Google account. Please use "Sign in with Google" instead. If you want to use a password, sign in with Google first, then you can link a password in your account settings.';
+            // Check if user is currently signed in with Google
+            const currentUser = auth.currentUser;
+            if (currentUser && currentUser.email === email) {
+              const linkedProviders = currentUser.providerData.map(p => p.providerId);
+              if (linkedProviders.includes('google.com')) {
+                // User is signed in with Google - try to link the password
+                try {
+                  const linkResult = await linkEmailPassword(email, password);
+                  if (linkResult.success) {
+                    return { 
+                      success: true, 
+                      user: currentUser,
+                      message: 'Password successfully linked to your account!'
+                    };
+                  } else {
+                    errorMessage = `Password linking failed: ${linkResult.error}. Please sign in with Google and link your password in account settings.`;
+                  }
+                } catch (linkError: any) {
+                  errorMessage = 'Unable to link password. Please sign in with Google and link your password in account settings.';
+                }
+              } else {
+                errorMessage = 'This email is associated with a Google account. Please use "Sign in with Google" instead. After signing in with Google, you can link your password in account settings.';
+              }
+            } else {
+              errorMessage = 'This email is associated with a Google account. Please use "Sign in with Google" instead. After signing in with Google, you can link your password in account settings.';
+            }
           } else {
             errorMessage = 'Invalid email or password. Please check your credentials and try again.';
           }
@@ -248,4 +273,18 @@ export const getSignInMethods = async (email: string) => {
       error: error.message || 'Failed to check sign-in methods' 
     };
   }
+};
+
+// Get linked providers for current user
+export const getLinkedProviders = (): string[] => {
+  const user = auth.currentUser;
+  if (!user) return [];
+  
+  return user.providerData.map(provider => provider.providerId);
+};
+
+// Check if password is linked to current account
+export const hasPasswordLinked = (): boolean => {
+  const providers = getLinkedProviders();
+  return providers.includes('password');
 };

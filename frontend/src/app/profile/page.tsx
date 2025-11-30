@@ -11,6 +11,8 @@ import { useFirebase } from '@/lib/firebase-context';
 import Navigation from '@/components/Navigation';
 import ClientOnlyNav from '@/components/ClientOnlyNav';
 import { useRouter } from 'next/navigation';
+import { getLinkedProviders, hasPasswordLinked, linkEmailPassword } from '@/lib/auth';
+import { Lock, CheckCircle, XCircle } from 'lucide-react';
 
 console.log('🔍 DEBUG: Profile page file loaded');
 
@@ -141,12 +143,21 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
+  const [signInMethods, setSignInMethods] = useState<string[]>([]);
+  const [isLinkingPassword, setIsLinkingPassword] = useState(false);
+  const [linkPasswordEmail, setLinkPasswordEmail] = useState('');
+  const [linkPasswordPassword, setLinkPasswordPassword] = useState('');
+  const [linkPasswordError, setLinkPasswordError] = useState<string | null>(null);
+  const [linkPasswordSuccess, setLinkPasswordSuccess] = useState(false);
 
   useEffect(() => {
     console.log('🔍 DEBUG: useEffect triggered, user:', !!user, 'authLoading:', authLoading);
     if (user && !authLoading) {
       console.log('🔍 DEBUG: Calling fetchProfile');
       fetchProfile();
+      // Check sign-in methods
+      const providers = getLinkedProviders();
+      setSignInMethods(providers);
     }
   }, [user, authLoading]);
 
@@ -683,6 +694,98 @@ export default function ProfilePage() {
                 })()}
               </span>
             </div>
+            <div className="flex items-center justify-between pt-2 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+              <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Sign-in methods</span>
+              <div className="flex items-center gap-2">
+                {signInMethods.includes('google.com') && (
+                  <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">Google</span>
+                )}
+                {signInMethods.includes('password') ? (
+                  <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3" />
+                    Password
+                  </span>
+                ) : (
+                  <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded flex items-center gap-1">
+                    <XCircle className="h-3 w-3" />
+                    No password
+                  </span>
+                )}
+              </div>
+            </div>
+            {signInMethods.includes('google.com') && !signInMethods.includes('password') && (
+              <div className="pt-4 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                    <Lock className="h-4 w-4" />
+                    <span>Link your password to sign in with email and password</span>
+                  </div>
+                  {linkPasswordSuccess ? (
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                      <p className="text-sm text-green-700 dark:text-green-300">
+                        Password successfully linked! You can now sign in with your email and password.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div>
+                        <Label htmlFor="link-email" className="text-xs text-[#57534E] dark:text-[#C4BCB4]">Email</Label>
+                        <Input
+                          id="link-email"
+                          type="email"
+                          value={linkPasswordEmail}
+                          onChange={(e) => setLinkPasswordEmail(e.target.value)}
+                          placeholder={user?.email || 'your@email.com'}
+                          className="mt-1"
+                          disabled={isLinkingPassword}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="link-password" className="text-xs text-[#57534E] dark:text-[#C4BCB4]">Password</Label>
+                        <Input
+                          id="link-password"
+                          type="password"
+                          value={linkPasswordPassword}
+                          onChange={(e) => setLinkPasswordPassword(e.target.value)}
+                          placeholder="Enter your password"
+                          className="mt-1"
+                          disabled={isLinkingPassword}
+                        />
+                      </div>
+                      {linkPasswordError && (
+                        <p className="text-xs text-red-600 dark:text-red-400">{linkPasswordError}</p>
+                      )}
+                      <Button
+                        onClick={async () => {
+                          if (!linkPasswordEmail || !linkPasswordPassword) {
+                            setLinkPasswordError('Please enter both email and password');
+                            return;
+                          }
+                          setIsLinkingPassword(true);
+                          setLinkPasswordError(null);
+                          setLinkPasswordSuccess(false);
+                          const result = await linkEmailPassword(linkPasswordEmail, linkPasswordPassword);
+                          if (result.success) {
+                            setLinkPasswordSuccess(true);
+                            setLinkPasswordPassword('');
+                            const providers = getLinkedProviders();
+                            setSignInMethods(providers);
+                          } else {
+                            setLinkPasswordError(result.error || 'Failed to link password');
+                          }
+                          setIsLinkingPassword(false);
+                        }}
+                        disabled={isLinkingPassword}
+                        className="w-full text-sm"
+                        size="sm"
+                      >
+                        {isLinkingPassword ? 'Linking...' : 'Link Password'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
