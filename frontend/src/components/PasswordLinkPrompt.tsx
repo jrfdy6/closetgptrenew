@@ -32,6 +32,7 @@ export default function PasswordLinkPrompt({
   const [isLinking, setIsLinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showSkipOption, setShowSkipOption] = useState(false);
 
   const handleLink = async () => {
     if (!password) {
@@ -64,6 +65,7 @@ export default function PasswordLinkPrompt({
     setPassword("");
     setError(null);
     setSuccess(false);
+    setShowSkipOption(false);
     onClose();
   };
 
@@ -110,7 +112,25 @@ export default function PasswordLinkPrompt({
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Enter your password to complete account linking. After this, you can use either Google or password to sign in.
               </p>
+              <button
+                type="button"
+                onClick={() => setShowSkipOption(true)}
+                className="text-xs text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 underline mt-1"
+              >
+                I don't remember my password
+              </button>
             </div>
+
+            {showSkipOption && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                  No problem! You can link your password later in your profile settings.
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  Go to your profile after signing in to link your password account. You can also use "Forgot password" to reset it.
+                </p>
+              </div>
+            )}
 
             {error && (
               <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -125,6 +145,14 @@ export default function PasswordLinkPrompt({
           {success ? (
             <Button onClick={handleClose} className="w-full bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white">
               Continue
+            </Button>
+          ) : showSkipOption ? (
+            <Button
+              type="button"
+              onClick={handleClose}
+              className="w-full bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white"
+            >
+              Continue Without Linking
             </Button>
           ) : (
             <Button
