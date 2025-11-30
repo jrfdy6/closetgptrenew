@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Sparkles, Palette, Camera, TrendingUp, Heart, ArrowRight, CheckCircle } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import BodyPositiveMessage from "@/components/BodyPositiveMessage";
+import GuidedUploadWizard from "@/components/GuidedUploadWizard";
 
 interface QuizAnswer {
   question_id: string;
@@ -465,6 +466,8 @@ export default function Onboarding() {
   const [isLoading, setIsLoading] = useState(false);
   const [userGender, setUserGender] = useState<string | null>(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
+  const [uploadPhase, setUploadPhase] = useState(false);
+  const [uploadComplete, setUploadComplete] = useState(false);
   
   // Debug: Track when quizCompleted changes
   useEffect(() => {
@@ -1221,10 +1224,9 @@ export default function Onboarding() {
           }, {} as Record<string, string>)
         });
         
-        // Navigate to persona page immediately after successful submission
-        console.log('🎯 [Quiz] Successfully submitted, redirecting to persona page');
-        // Use replace instead of push to prevent back navigation to quiz
-        router.replace('/style-persona?from=quiz');
+        // Start upload phase after successful submission
+        console.log('🎯 [Quiz] Successfully submitted, starting upload phase');
+        setUploadPhase(true);
       } else {
         throw new Error('Failed to submit quiz');
       }
@@ -1251,9 +1253,9 @@ export default function Onboarding() {
         userAnswers: userAnswers
       });
       
-      // Navigate to persona page immediately even on fallback
-      console.log('🎯 [Quiz] Using fallback data, redirecting to persona page');
-      router.replace('/style-persona?from=quiz');
+      // Start upload phase even on fallback
+      console.log('🎯 [Quiz] Using fallback data, starting upload phase');
+      setUploadPhase(true);
     } finally {
       setIsLoading(false);
     }
@@ -1470,8 +1472,28 @@ export default function Onboarding() {
   }
 
 
-  // Show loading state while redirecting after quiz completion
-  if (quizCompleted && quizResults) {
+  // Show upload phase after quiz completion
+  if (uploadPhase && !uploadComplete) {
+    return (
+      <GuidedUploadWizard
+        userId={user?.uid || ''}
+        targetCount={5}
+        stylePersona={quizResults?.stylePersona || 'default'}
+        gender={userGender || 'Male'}
+        onComplete={(itemCount) => {
+          console.log(`✅ Upload complete with ${itemCount} items`);
+          setUploadComplete(true);
+          // Redirect to persona page after upload
+          setTimeout(() => {
+            router.replace('/style-persona?from=quiz');
+          }, 2000);
+        }}
+      />
+    );
+  }
+
+  // Show loading state while redirecting after upload completion
+  if (uploadComplete) {
     return (
       <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] flex items-center justify-center p-4">
         <div className="text-center">

@@ -195,12 +195,25 @@ async def submit_outfit_feedback(
         analytics_ref.set(analytics_data)
         logger.info(f"Successfully saved to analytics_events collection with ID: {analytics_ref.id}")
         
+        # Process feedback for real-time learning
+        logger.info("Processing feedback for personalization...")
+        learning_result = await feedback_processing_service.process_feedback(
+            user_id=user_id,
+            outfit_id=feedback.outfit_id,
+            feedback_type=feedback.feedback_type.value,
+            rating=feedback.rating,
+            outfit_data=outfit_data,
+            reasons=[feedback.issue_category.value] if feedback.issue_category else []
+        )
+        logger.info(f"Feedback processing complete: {learning_result}")
+        
         logger.info(f"=== FEEDBACK SUBMISSION SUCCESS ===")
         logger.info(f"Feedback submitted successfully: {feedback_ref.id}")
         
+        # Return personalized confirmation message
         return OutfitFeedbackResponse(
             success=True,
-            message="Feedback submitted successfully",
+            message=learning_result.get("message", "Feedback submitted successfully"),
             feedback_id=feedback_ref.id
         )
         
@@ -497,4 +510,29 @@ async def get_user_feedback_summary(
         
     except Exception as e:
         logger.error(f"Error generating user feedback summary: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/personalization-status")
+async def get_personalization_status(
+    current_user: Dict = Depends(get_current_user)
+):
+    """
+    Get current personalization status for the user
+    Shows learning progress and AI training level
+    """
+    try:
+        user_id = current_user.get("uid")
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+        
+        status = await feedback_processing_service.get_personalization_status(user_id)
+        
+        return {
+            "success": True,
+            "status": status
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting personalization status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get personalization status")

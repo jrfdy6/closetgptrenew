@@ -31,6 +31,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import dynamic from 'next/dynamic';
 import { dashboardService, DashboardData, TopItem } from "@/lib/services/dashboardService";
 import WardrobeInsightsHub from '@/components/ui/wardrobe-insights-hub';
+import WardrobeInsightsCard from '@/components/WardrobeInsightsCard';
 import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerator";
 import { useAutoWeather } from '@/hooks/useWeather';
 
@@ -474,6 +475,27 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Wardrobe Insights Card */}
+        <div className="mb-6 sm:mb-8">
+          <WardrobeInsightsCard
+            userId={user.uid}
+            wardrobeData={{
+              totalItems: dashboardData?.totalItems || 0,
+              wornThisWeek: dashboardData?.outfitsThisWeek || 0,
+              outfitsCreated: dashboardData?.outfitsThisWeek || 0,
+              topStyles: dashboardData?.topItems?.slice(0, 3).map((item: any) => ({
+                name: item.style || item.type || 'Unknown',
+                count: Math.round((dashboardData?.topItems?.filter((i: any) => (i.style || i.type) === (item.style || item.type)).length || 0) / (dashboardData?.topItems?.length || 1) * 100)
+              })) || [],
+              topColors: dashboardData?.topItems?.slice(0, 5).map((item: any) => ({
+                name: item.color || 'Gray',
+                count: Math.round((dashboardData?.topItems?.filter((i: any) => i.color === item.color).length || 0) / (dashboardData?.topItems?.length || 1) * 100)
+              })) || [],
+              underutilizedItems: Math.max(0, (dashboardData?.totalItems || 0) - (dashboardData?.outfitsThisWeek || 0))
+            }}
+          />
         </div>
 
         {/* Smart Weather Outfit Generator */}
