@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import ToastContainer from "@/components/Toast";
@@ -78,6 +79,46 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${spaceGrotesk.variable} ${inter.className}`}>
+        <Script
+          id="suppress-firebase-errors"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                if (typeof window === 'undefined') return;
+                const originalError = console.error;
+                const originalWarn = console.warn;
+                
+                const shouldSuppress = function(args) {
+                  try {
+                    const message = Array.from(args).map(function(arg) {
+                      return typeof arg === 'string' ? arg : 
+                             typeof arg === 'object' && arg !== null ? String(arg) : 
+                             String(arg);
+                    }).join(' ');
+                    return message.includes('Cross-Origin-Opener-Policy') || 
+                           message.includes('window.closed call') ||
+                           message.includes('COOP');
+                  } catch(e) {
+                    return false;
+                  }
+                };
+                
+                console.error = function() {
+                  if (!shouldSuppress(arguments)) {
+                    originalError.apply(console, arguments);
+                  }
+                };
+                
+                console.warn = function() {
+                  if (!shouldSuppress(arguments)) {
+                    originalWarn.apply(console, arguments);
+                  }
+                };
+              })();
+            `,
+          }}
+        />
         {/* Skip to content link for keyboard users */}
         <a href="#main-content" className="skip-to-content">
           Skip to main content
