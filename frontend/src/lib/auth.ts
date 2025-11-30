@@ -175,13 +175,20 @@ export const signInWithGoogle = async () => {
     console.log('[signInWithGoogle] Linked providers after sign-in:', linkedProviders);
     console.log('[signInWithGoogle] User email:', userCredential.user.email);
     
-    // Check if password provider is missing even though accounts should be linked
+    // Check if password provider is missing and if password account exists
+    let needsPasswordLinking = false;
     if (!linkedProviders.includes('password')) {
-      console.log('[signInWithGoogle] WARNING: Password provider not found in linked providers');
+      console.log('[signInWithGoogle] Password provider not found in linked providers');
       console.log('[signInWithGoogle] Checking available sign-in methods for this email...');
       try {
         const methodsResult = await getSignInMethods(userCredential.user.email || '');
         console.log('[signInWithGoogle] Available sign-in methods:', methodsResult);
+        
+        // If password method exists but isn't linked, we need to link it
+        if (methodsResult.success && methodsResult.methods && methodsResult.methods.includes('password')) {
+          needsPasswordLinking = true;
+          console.log('[signInWithGoogle] Password account detected - needs linking');
+        }
       } catch (methodsError) {
         console.log('[signInWithGoogle] Error checking sign-in methods:', methodsError);
       }
@@ -189,7 +196,11 @@ export const signInWithGoogle = async () => {
     
     // Firebase automatically links accounts with the same email
     // If linking was needed, it happens automatically
-    return { success: true, user: userCredential.user };
+    return { 
+      success: true, 
+      user: userCredential.user,
+      needsPasswordLinking 
+    };
   } catch (error: any) {
     console.error('Google sign in error:', error);
     
@@ -197,13 +208,15 @@ export const signInWithGoogle = async () => {
     if (error.code === 'auth/account-exists-with-different-credential') {
       return {
         success: false,
-        error: 'An account already exists with this email. Please sign in with your password first, then you can link your Google account.'
+        error: 'An account already exists with this email. Please sign in with your password first, then you can link your Google account.',
+        needsPasswordLinking: false
       };
     }
     
     return { 
       success: false, 
-      error: error.message || 'Google sign in failed' 
+      error: error.message || 'Google sign in failed',
+      needsPasswordLinking: false
     };
   }
 };

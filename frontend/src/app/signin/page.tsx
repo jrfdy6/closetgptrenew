@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { signIn, signInWithGoogle } from "@/lib/auth";
+import PasswordLinkPrompt from "@/components/PasswordLinkPrompt";
 
 export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
@@ -18,6 +19,8 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const router = useRouter();
   const [fromQuiz, setFromQuiz] = useState(false);
+  const [showPasswordLinkPrompt, setShowPasswordLinkPrompt] = useState(false);
+  const [googleSignInEmail, setGoogleSignInEmail] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -92,6 +95,14 @@ export default function SignIn() {
       
       if (result.success && result.user) {
         console.log("Google signin successful:", result.user.email);
+
+        // Check if password linking is needed
+        if (result.needsPasswordLinking && result.user.email) {
+          setGoogleSignInEmail(result.user.email);
+          setShowPasswordLinkPrompt(true);
+          setIsLoading(false);
+          return; // Don't navigate yet - wait for password linking
+        }
 
         if (fromQuiz && typeof window !== "undefined") {
           try {
@@ -334,6 +345,29 @@ export default function SignIn() {
           </div>
         </CardContent>
       </Card>
+
+      <PasswordLinkPrompt
+        email={googleSignInEmail}
+        open={showPasswordLinkPrompt}
+        onClose={() => {
+          setShowPasswordLinkPrompt(false);
+          // Navigate after closing prompt
+          if (fromQuiz) {
+            router.push("/style-persona?from=quiz");
+          } else {
+            router.push("/dashboard");
+          }
+        }}
+        onSuccess={() => {
+          setShowPasswordLinkPrompt(false);
+          // Navigate after successful linking
+          if (fromQuiz) {
+            router.push("/style-persona?from=quiz");
+          } else {
+            router.push("/dashboard");
+          }
+        }}
+      />
     </div>
   );
 }
