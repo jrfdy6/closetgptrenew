@@ -97,6 +97,10 @@ const nextConfig = {
       },
     ];
   },
+  // Skip static generation for onboarding page
+  generateBuildId: async () => {
+    return 'build-' + Date.now();
+  },
 };
 
 module.exports = nextConfig; 
