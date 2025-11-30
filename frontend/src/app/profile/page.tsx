@@ -155,9 +155,19 @@ export default function ProfilePage() {
     if (user && !authLoading) {
       console.log('🔍 DEBUG: Calling fetchProfile');
       fetchProfile();
-      // Check sign-in methods
-      const providers = getLinkedProviders();
+    }
+  }, [user, authLoading]);
+
+  // Separate useEffect for sign-in methods to ensure it runs after user is set
+  useEffect(() => {
+    if (user && !authLoading) {
+      // Get providers directly from user object
+      const providers = user.providerData.map(provider => provider.providerId);
+      console.log('🔍 DEBUG: Sign-in methods from user:', providers);
+      console.log('🔍 DEBUG: User providerData:', user.providerData);
       setSignInMethods(providers);
+    } else {
+      setSignInMethods([]);
     }
   }, [user, authLoading]);
 
@@ -694,25 +704,33 @@ export default function ProfilePage() {
                 })()}
               </span>
             </div>
-            <div className="flex items-center justify-between pt-2 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
-              <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Sign-in methods</span>
-              <div className="flex items-center gap-2">
-                {signInMethods.includes('google.com') && (
-                  <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">Google</span>
-                )}
-                {signInMethods.includes('password') ? (
-                  <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded flex items-center gap-1">
-                    <CheckCircle className="h-3 w-3" />
-                    Password
-                  </span>
-                ) : (
-                  <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded flex items-center gap-1">
-                    <XCircle className="h-3 w-3" />
-                    No password
-                  </span>
-                )}
+            {user && (
+              <div className="flex items-center justify-between pt-2 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+                <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Sign-in methods</span>
+                <div className="flex items-center gap-2">
+                  {signInMethods.length === 0 ? (
+                    <span className="text-xs text-[#57534E] dark:text-[#C4BCB4]">Loading...</span>
+                  ) : (
+                    <>
+                      {signInMethods.includes('google.com') && (
+                        <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">Google</span>
+                      )}
+                      {signInMethods.includes('password') ? (
+                        <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3" />
+                          Password
+                        </span>
+                      ) : (
+                        <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded flex items-center gap-1">
+                          <XCircle className="h-3 w-3" />
+                          No password
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
             {signInMethods.includes('google.com') && !signInMethods.includes('password') && (
               <div className="pt-4 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
                 <div className="space-y-3">
