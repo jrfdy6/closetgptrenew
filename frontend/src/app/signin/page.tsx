@@ -51,6 +51,7 @@ export default function SignIn() {
             if (hasPassword && hasGoogle) {
               setHasBothMethods(true);
               setCheckedEmail(email);
+              setError(""); // Clear any error when both methods detected
             } else {
               setHasBothMethods(false);
               setCheckedEmail(email);
@@ -79,6 +80,13 @@ export default function SignIn() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent submission if both methods are detected
+    if (hasBothMethods) {
+      setError("Please use Google sign-in for this account. After signing in, you can link your password in your profile settings.");
+      return;
+    }
+    
     setIsLoading(true);
     setError("");
     
@@ -223,6 +231,13 @@ export default function SignIn() {
               : "Sign in to your Easy Outfit account"
             }
           </CardDescription>
+          {hasBothMethods && (
+            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <p className="text-xs text-amber-800 dark:text-amber-200 text-center">
+                After signing in with Google, you can link your password in your profile settings to use both sign-in methods.
+              </p>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {error && (
@@ -287,7 +302,7 @@ export default function SignIn() {
           {hasBothMethods && (
             <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
               <p className="text-sm text-amber-800 dark:text-amber-200">
-                Your account has both password and Google sign-in methods. Please use Google to sign in, then you can link your password in your profile settings.
+                Your account is connected with Google. Please use the Google sign-in button above to continue.
               </p>
             </div>
           )}
