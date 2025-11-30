@@ -52,13 +52,36 @@ export const signIn = async (email: string, password: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return { success: true, user: userCredential.user };
   } catch (error: any) {
+    // DEBUG: Log raw error details
+    console.log("[signIn] Raw error:", error);
+    const errorCode = error.code || "unknown";
+    const firebaseErrorMessage = error.message || "No message provided";
+    console.log(`[signIn] Firebase error code: ${errorCode}, message: ${firebaseErrorMessage}`);
+    
+    // DEBUG: Fetch and log sign-in methods
+    let methodsResult;
+    try {
+      methodsResult = await getSignInMethods(email);
+      console.log(`[signIn] getSignInMethods result for ${email}:`, methodsResult);
+      if (methodsResult.success && methodsResult.methods) {
+        console.log(`[signIn] Available sign-in methods:`, methodsResult.methods);
+      } else {
+        console.log(`[signIn] getSignInMethods failed or returned no methods:`, methodsResult.error);
+      }
+    } catch (fetchError) {
+      console.log("[signIn] Error fetching sign-in methods:", fetchError);
+    }
+    
     // Convert Firebase error codes to user-friendly messages
     let errorMessage = 'Sign in failed';
     
     if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
       // Check if there's a Google account with this email
       try {
-        const methodsResult = await getSignInMethods(email);
+        // methodsResult already fetched above for logging
+        if (!methodsResult) {
+          methodsResult = await getSignInMethods(email);
+        }
         if (methodsResult.success && methodsResult.methods && methodsResult.methods.length > 0) {
           if (methodsResult.methods.includes('google.com')) {
             // Check if user is currently signed in with Google
