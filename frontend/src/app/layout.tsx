@@ -86,24 +86,42 @@ export default function RootLayout({
             __html: `
               (function() {
                 if (typeof window === 'undefined') return;
-                const originalError = console.error;
-                const originalWarn = console.warn;
                 
+                // Store original methods
+                const originalError = console.error.bind(console);
+                const originalWarn = console.warn.bind(console);
+                const originalLog = console.log.bind(console);
+                
+                // More aggressive filter that checks all possible message formats
                 const shouldSuppress = function(args) {
                   try {
-                    const message = Array.from(args).map(function(arg) {
-                      return typeof arg === 'string' ? arg : 
-                             typeof arg === 'object' && arg !== null ? String(arg) : 
-                             String(arg);
+                    // Convert all arguments to string and check
+                    const fullMessage = Array.prototype.slice.call(args).map(function(arg) {
+                      if (typeof arg === 'string') return arg;
+                      if (arg && typeof arg === 'object') {
+                        try {
+                          return JSON.stringify(arg);
+                        } catch(e) {
+                          return String(arg);
+                        }
+                      }
+                      return String(arg);
                     }).join(' ');
-                    return message.includes('Cross-Origin-Opener-Policy') || 
-                           message.includes('window.closed call') ||
-                           message.includes('COOP');
+                    
+                    // Check for any variation of the COOP error
+                    const lowerMessage = fullMessage.toLowerCase();
+                    return lowerMessage.includes('cross-origin-opener-policy') || 
+                           lowerMessage.includes('window.closed') ||
+                           lowerMessage.includes('window.close') ||
+                           lowerMessage.includes('coop') ||
+                           fullMessage.includes('Cross-Origin-Opener-Policy') ||
+                           fullMessage.includes('would block');
                   } catch(e) {
                     return false;
                   }
                 };
                 
+                // Override console methods
                 console.error = function() {
                   if (!shouldSuppress(arguments)) {
                     originalError.apply(console, arguments);
@@ -115,6 +133,26 @@ export default function RootLayout({
                     originalWarn.apply(console, arguments);
                   }
                 };
+                
+                // Also filter console.log in case Firebase uses it
+                console.log = function() {
+                  if (!shouldSuppress(arguments)) {
+                    originalLog.apply(console, arguments);
+                  }
+                };
+                
+                // Prevent the error from propagating
+                window.addEventListener('error', function(e) {
+                  if (e.message && (
+                    e.message.includes('Cross-Origin-Opener-Policy') ||
+                    e.message.includes('window.closed') ||
+                    e.message.includes('window.close')
+                  )) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                  }
+                }, true);
               })();
             `,
           }}
