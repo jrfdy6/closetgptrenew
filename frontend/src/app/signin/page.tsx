@@ -11,7 +11,6 @@ import { ArrowLeft, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { signIn, signInWithGoogle, getSignInMethods } from "@/lib/auth";
 import PasswordLinkPrompt from "@/components/PasswordLinkPrompt";
 import PasswordLinkBanner from "@/components/PasswordLinkBanner";
-import PasswordLinkBanner from "@/components/PasswordLinkBanner";
 
 export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
@@ -23,8 +22,6 @@ export default function SignIn() {
   const [fromQuiz, setFromQuiz] = useState(false);
   const [showPasswordLinkPrompt, setShowPasswordLinkPrompt] = useState(false);
   const [googleSignInEmail, setGoogleSignInEmail] = useState("");
-  const [showPasswordLinkBanner, setShowPasswordLinkBanner] = useState(false);
-  const [googleSignInSuccess, setGoogleSignInSuccess] = useState(false);
   const [showPasswordLinkBanner, setShowPasswordLinkBanner] = useState(false);
   const [googleSignInSuccess, setGoogleSignInSuccess] = useState(false);
   const [hasBothMethods, setHasBothMethods] = useState(false);
