@@ -155,14 +155,14 @@ export default function ErrorRecovery({
   const Icon = strategy.icon;
   
   return (
-    <div className="min-h-[400px] flex items-center justify-center p-4">
-      <Card className="max-w-2xl w-full">
+    <div className="min-h-[400px] flex items-center justify-center p-4 bg-[#FAFAF9] dark:bg-[#1A1510]">
+      <Card className="max-w-2xl w-full border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60 bg-white/85 dark:bg-[#2C2119]/85">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-            <Icon className="h-8 w-8 text-red-600 dark:text-red-400" />
+          <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 flex items-center justify-center">
+            <Icon className="h-8 w-8 text-[#FF9400] dark:text-[#FFB84C]" />
           </div>
-          <CardTitle className="text-2xl">{strategy.title}</CardTitle>
-          <CardDescription className="text-base mt-2">
+          <CardTitle className="text-2xl text-[#1C1917] dark:text-[#F8F5F1]">{strategy.title}</CardTitle>
+          <CardDescription className="text-base mt-2 text-[#57534E] dark:text-[#C4BCB4]">
             {strategy.message}
           </CardDescription>
         </CardHeader>
@@ -171,7 +171,7 @@ export default function ErrorRecovery({
           {strategy.primaryAction && strategy.primaryAction.action && (
             <Button
               onClick={strategy.primaryAction.action}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+              className="w-full bg-gradient-to-r from-[#FFB84C] to-[#FF9400] hover:from-[#FFB84C] hover:to-[#FF7700] text-[#1A1510] dark:text-white shadow-lg shadow-amber-500/25"
               size="lg"
             >
               {strategy.primaryAction.icon && <strategy.primaryAction.icon className="h-5 w-5 mr-2" />}
@@ -188,7 +188,7 @@ export default function ErrorRecovery({
                     key={index}
                     onClick={action.action}
                     variant="outline"
-                    className="w-full"
+                    className="w-full border-[#F5F0E8]/70 dark:border-[#3D2F24]/80 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
                   >
                     {action.label}
                   </Button>
@@ -198,9 +198,9 @@ export default function ErrorRecovery({
           )}
           
           {/* Help Text */}
-          <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-            <HelpCircle className="h-4 w-4" />
-            <AlertDescription className="text-sm">
+          <Alert className="bg-[#FFE08F]/20 dark:bg-[#FFB84C]/10 border border-[#FFB84C]/30 dark:border-[#FF9400]/30">
+            <HelpCircle className="h-4 w-4 text-[#FF9400] dark:text-[#FFB84C]" />
+            <AlertDescription className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
               {strategy.type === 'insufficient_items' && (
                 <>
                   <strong>Tip:</strong> We recommend having at least 10-15 items (2-3 tops, 2-3 bottoms, outerwear, shoes) for the best outfit suggestions.
@@ -225,11 +225,11 @@ export default function ErrorRecovery({
           </Alert>
           
           {/* Technical Details (Collapsed) */}
-          <details className="text-sm text-gray-500 dark:text-gray-400">
-            <summary className="cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
+          <details className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+            <summary className="cursor-pointer hover:text-[#1C1917] dark:hover:text-[#F8F5F1]">
               Technical details
             </summary>
-            <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-900 rounded-lg font-mono text-xs break-all">
+            <div className="mt-2 p-3 bg-[#F5F0E8]/30 dark:bg-[#3D2F24]/30 rounded-lg font-mono text-xs break-all border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60">
               {errorMessage}
             </div>
           </details>
