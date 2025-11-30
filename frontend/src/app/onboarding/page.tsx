@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Sparkles, Palette, Camera, TrendingUp, Heart, ArrowRight, CheckCircle } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -457,7 +457,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
   }
 ];
 
-export default function Onboarding() {
+function OnboardingContent() {
   const router = useRouter();
   const [flowMode, setFlowMode] = useState<string | null>(null);
   const [modeResolved, setModeResolved] = useState(false);
@@ -495,21 +495,20 @@ export default function Onboarding() {
   // Save skin tone when it changes - moved to slider onChange
 
 
+  const searchParams = useSearchParams();
+  
   // Redirect if not authenticated
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const mode = params.get('mode') || params.get('flow');
-      setFlowMode(mode);
-    }
+    const mode = searchParams.get('mode') || searchParams.get('flow');
+    setFlowMode(mode);
     setModeResolved(true);
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
-    if (!authLoading && !user && modeResolved && !isGuestFlow) {
-      window.location.href = '/';
+    if (typeof window !== 'undefined' && !authLoading && !user && modeResolved && !isGuestFlow) {
+      router.push('/');
     }
-  }, [user, authLoading, isGuestFlow, modeResolved]);
+  }, [user, authLoading, isGuestFlow, modeResolved, router]);
 
   // Filter questions based on gender
   const getFilteredQuestions = (genderOverride?: string): QuizQuestion[] => {
@@ -1929,5 +1928,20 @@ export default function Onboarding() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Onboarding() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950 flex items-center justify-center">
+        <div className="animate-pulse text-center">
+          <Sparkles className="h-12 w-12 mx-auto mb-4 text-[#FFB84C]" />
+          <p className="text-[#57534E] dark:text-[#C4BCB4]">Loading onboarding...</p>
+        </div>
+      </div>
+    }>
+      <OnboardingContent />
+    </Suspense>
   );
 }
