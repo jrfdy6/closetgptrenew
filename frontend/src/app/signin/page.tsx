@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { signIn, signInWithGoogle } from "@/lib/auth";
 import PasswordLinkPrompt from "@/components/PasswordLinkPrompt";
+import PasswordLinkBanner from "@/components/PasswordLinkBanner";
+import PasswordLinkBanner from "@/components/PasswordLinkBanner";
 
 export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
@@ -21,6 +23,10 @@ export default function SignIn() {
   const [fromQuiz, setFromQuiz] = useState(false);
   const [showPasswordLinkPrompt, setShowPasswordLinkPrompt] = useState(false);
   const [googleSignInEmail, setGoogleSignInEmail] = useState("");
+  const [showPasswordLinkBanner, setShowPasswordLinkBanner] = useState(false);
+  const [googleSignInSuccess, setGoogleSignInSuccess] = useState(false);
+  const [showPasswordLinkBanner, setShowPasswordLinkBanner] = useState(false);
+  const [googleSignInSuccess, setGoogleSignInSuccess] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -102,6 +108,14 @@ export default function SignIn() {
           setShowPasswordLinkPrompt(true);
           setIsLoading(false);
           return; // Don't navigate yet - wait for password linking
+        }
+
+        // If password linking prompt didn't show, show banner instead
+        // (in case password account exists but wasn't detected, or user skipped)
+        if (result.user.email) {
+          setGoogleSignInEmail(result.user.email);
+          setGoogleSignInSuccess(true);
+          setShowPasswordLinkBanner(true);
         }
 
         if (fromQuiz && typeof window !== "undefined") {
@@ -360,6 +374,7 @@ export default function SignIn() {
         }}
         onSuccess={() => {
           setShowPasswordLinkPrompt(false);
+          setShowPasswordLinkBanner(false);
           // Navigate after successful linking
           if (fromQuiz) {
             router.push("/style-persona?from=quiz");
@@ -368,6 +383,16 @@ export default function SignIn() {
           }
         }}
       />
+
+      {showPasswordLinkBanner && googleSignInSuccess && (
+        <PasswordLinkBanner
+          email={googleSignInEmail}
+          onLinkClick={() => {
+            setShowPasswordLinkBanner(false);
+            setShowPasswordLinkPrompt(true);
+          }}
+        />
+      )}
     </div>
   );
 }
