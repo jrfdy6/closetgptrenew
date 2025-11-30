@@ -68,15 +68,15 @@ export default function PasswordLinkPrompt({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-            Link Your Password Account
+            Complete Your Sign-In
           </DialogTitle>
           <DialogDescription>
-            We detected you have a password account for this email. Link it now so you can use either sign-in method.
+            To enable both sign-in methods, please enter your password to link your account. This is a one-time step.
           </DialogDescription>
         </DialogHeader>
 
@@ -108,7 +108,7 @@ export default function PasswordLinkPrompt({
                 autoFocus
               />
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                This will link your password account so you can sign in with either method.
+                Enter your password to complete account linking. After this, you can use either Google or password to sign in.
               </p>
             </div>
 
@@ -123,28 +123,18 @@ export default function PasswordLinkPrompt({
 
         <DialogFooter>
           {success ? (
-            <Button onClick={handleClose} className="w-full">
+            <Button onClick={handleClose} className="w-full bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white">
               Continue
             </Button>
           ) : (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                disabled={isLinking}
-              >
-                Skip
-              </Button>
-              <Button
-                type="button"
-                onClick={handleLink}
-                disabled={isLinking || !password}
-                className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white"
-              >
-                {isLinking ? "Linking..." : "Link Password"}
-              </Button>
-            </>
+            <Button
+              type="button"
+              onClick={handleLink}
+              disabled={isLinking || !password}
+              className="w-full bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white"
+            >
+              {isLinking ? "Linking..." : "Complete Sign-In"}
+            </Button>
           )}
         </DialogFooter>
       </DialogContent>
