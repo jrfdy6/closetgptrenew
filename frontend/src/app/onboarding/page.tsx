@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Sparkles, Palette, Camera, TrendingUp, Heart, ArrowRight, CheckCircle } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -495,14 +495,24 @@ function OnboardingContent() {
   // Save skin tone when it changes - moved to slider onChange
 
 
-  const searchParams = useSearchParams();
+  // Use searchParams only on client side to avoid SSR issues
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Redirect if not authenticated
   useEffect(() => {
-    const mode = searchParams.get('mode') || searchParams.get('flow');
-    setFlowMode(mode);
-    setModeResolved(true);
-  }, [searchParams]);
+    if (!mounted) return;
+    
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const mode = params.get('mode') || params.get('flow');
+      setFlowMode(mode);
+      setModeResolved(true);
+    }
+  }, [mounted]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !authLoading && !user && modeResolved && !isGuestFlow) {
