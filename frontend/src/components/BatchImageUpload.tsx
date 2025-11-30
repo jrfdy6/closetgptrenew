@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useFirebase } from "@/lib/firebase-context";
-import heic2any from "heic2any";
 
 interface BatchImageUploadProps {
   onUploadComplete?: (items: any[]) => void;
@@ -60,6 +59,9 @@ const createPreviewUrl = async (file: File): Promise<string> => {
     
     if (isHeic) {
       console.log('🔄 Converting HEIC file to JPEG for preview:', file.name);
+      
+      // Dynamically import heic2any to avoid SSR issues
+      const heic2any = (await import('heic2any')).default;
       
       // Convert HEIC to JPEG blob
       const convertedBlob = await heic2any({
