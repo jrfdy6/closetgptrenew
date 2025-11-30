@@ -170,6 +170,23 @@ export const signInWithGoogle = async () => {
     
     const userCredential = await signInWithPopup(auth, provider);
     
+    // DEBUG: Check what providers are actually linked to this account
+    const linkedProviders = userCredential.user.providerData.map(p => p.providerId);
+    console.log('[signInWithGoogle] Linked providers after sign-in:', linkedProviders);
+    console.log('[signInWithGoogle] User email:', userCredential.user.email);
+    
+    // Check if password provider is missing even though accounts should be linked
+    if (!linkedProviders.includes('password')) {
+      console.log('[signInWithGoogle] WARNING: Password provider not found in linked providers');
+      console.log('[signInWithGoogle] Checking available sign-in methods for this email...');
+      try {
+        const methodsResult = await getSignInMethods(userCredential.user.email || '');
+        console.log('[signInWithGoogle] Available sign-in methods:', methodsResult);
+      } catch (methodsError) {
+        console.log('[signInWithGoogle] Error checking sign-in methods:', methodsError);
+      }
+    }
+    
     // Firebase automatically links accounts with the same email
     // If linking was needed, it happens automatically
     return { success: true, user: userCredential.user };
