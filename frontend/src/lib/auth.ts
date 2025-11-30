@@ -8,7 +8,9 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   linkWithCredential,
-  fetchSignInMethodsForEmail
+  fetchSignInMethodsForEmail,
+  EmailAuthProvider,
+  reauthenticateWithCredential
 } from 'firebase/auth';
 import { auth } from './firebase/config';
 
@@ -52,9 +54,24 @@ export const signIn = async (email: string, password: string) => {
   } catch (error: any) {
     // Convert Firebase error codes to user-friendly messages
     let errorMessage = 'Sign in failed';
+    
     if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-      // Generic message - could be wrong password OR account created with different method
-      errorMessage = 'Invalid email or password. Please check your credentials and try again. If you created your account with Google, use "Sign in with Google" instead.';
+      // Check if there's a Google account with this email
+      try {
+        const methodsResult = await getSignInMethods(email);
+        if (methodsResult.success && methodsResult.methods && methodsResult.methods.length > 0) {
+          if (methodsResult.methods.includes('google.com')) {
+            errorMessage = 'This email is associated with a Google account. Please use "Sign in with Google" instead. If you want to use a password, sign in with Google first, then you can link a password in your account settings.';
+          } else {
+            errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+          }
+        } else {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        }
+      } catch (checkError) {
+        // If we can't check methods, use generic message
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+      }
     } else if (error.code === 'auth/invalid-email') {
       errorMessage = 'Please enter a valid email address.';
     } else if (error.code === 'auth/user-disabled') {
@@ -62,7 +79,7 @@ export const signIn = async (email: string, password: string) => {
     } else if (error.code === 'auth/too-many-requests') {
       errorMessage = 'Too many failed attempts. Please try again later.';
     } else if (error.code === 'auth/account-exists-with-different-credential') {
-      errorMessage = 'An account with this email already exists. Please sign in with Google to link your accounts.';
+      errorMessage = 'An account with this email already exists with a different sign-in method. Please use "Sign in with Google" to link your accounts.';
     } else if (error.message) {
       errorMessage = error.message;
     }
@@ -173,4 +190,62 @@ export const requireAuth = () => {
 // Auth state listener
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
   return onAuthStateChanged(auth, callback);
+};
+
+// Link email/password to current Google-authenticated account
+export const linkEmailPassword = async (email: string, password: string) => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return { 
+        success: false, 
+        error: 'You must be signed in to link an email/password' 
+      };
+    }
+
+    // Create email credential
+    const credential = EmailAuthProvider.credential(email, password);
+    
+    // Link the credential to the current user
+    await linkWithCredential(currentUser, credential);
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Link email/password error:', error);
+    
+    if (error.code === 'auth/credential-already-in-use') {
+      return {
+        success: false,
+        error: 'This email/password is already linked to another account.'
+      };
+    } else if (error.code === 'auth/email-already-in-use') {
+      return {
+        success: false,
+        error: 'This email is already in use by another account.'
+      };
+    } else if (error.code === 'auth/invalid-credential') {
+      return {
+        success: false,
+        error: 'Invalid email or password. Please check your credentials.'
+      };
+    }
+    
+    return { 
+      success: false, 
+      error: error.message || 'Failed to link email/password' 
+    };
+  }
+};
+
+// Check what sign-in methods are available for an email
+export const getSignInMethods = async (email: string) => {
+  try {
+    const methods = await fetchSignInMethodsForEmail(auth, email);
+    return { success: true, methods };
+  } catch (error: any) {
+    return { 
+      success: false, 
+      error: error.message || 'Failed to check sign-in methods' 
+    };
+  }
 };
