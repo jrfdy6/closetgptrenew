@@ -4,26 +4,45 @@ import { getFirestore } from 'firebase/firestore';
 
 // Suppress harmless Cross-Origin-Opener-Policy warnings from Firebase OAuth popup
 if (typeof window !== 'undefined') {
-  const originalError = console.error;
-  const originalWarn = console.warn;
-  
-  console.error = (...args: any[]) => {
-    const message = args[0]?.toString() || '';
-    // Filter out Cross-Origin-Opener-Policy warnings from Firebase
-    if (message.includes('Cross-Origin-Opener-Policy')) {
-      return; // Suppress this error
-    }
-    originalError.apply(console, args);
-  };
-  
-  console.warn = (...args: any[]) => {
-    const message = args[0]?.toString() || '';
-    // Filter out Cross-Origin-Opener-Policy warnings from Firebase
-    if (message.includes('Cross-Origin-Opener-Policy')) {
-      return; // Suppress this warning
-    }
-    originalWarn.apply(console, args);
-  };
+  // Only set up filter once
+  if (!(window as any).__firebaseConsoleFilterSet) {
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    
+    console.error = (...args: any[]) => {
+      // Check all arguments for the message
+      const message = args.map(arg => 
+        typeof arg === 'string' ? arg : 
+        typeof arg === 'object' && arg !== null ? JSON.stringify(arg) : 
+        String(arg)
+      ).join(' ');
+      
+      // Filter out Cross-Origin-Opener-Policy warnings from Firebase
+      if (message.includes('Cross-Origin-Opener-Policy') || 
+          message.includes('window.closed call')) {
+        return; // Suppress this error
+      }
+      originalError.apply(console, args);
+    };
+    
+    console.warn = (...args: any[]) => {
+      // Check all arguments for the message
+      const message = args.map(arg => 
+        typeof arg === 'string' ? arg : 
+        typeof arg === 'object' && arg !== null ? JSON.stringify(arg) : 
+        String(arg)
+      ).join(' ');
+      
+      // Filter out Cross-Origin-Opener-Policy warnings from Firebase
+      if (message.includes('Cross-Origin-Opener-Policy') || 
+          message.includes('window.closed call')) {
+        return; // Suppress this warning
+      }
+      originalWarn.apply(console, args);
+    };
+    
+    (window as any).__firebaseConsoleFilterSet = true;
+  }
 }
 
 // Firebase configuration
