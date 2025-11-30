@@ -75,49 +75,51 @@ export const signIn = async (email: string, password: string) => {
     // Convert Firebase error codes to user-friendly messages
     let errorMessage = 'Sign in failed';
     
+    // Enhanced error handling based on available sign-in methods
     if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-      // Check if there's a Google account with this email
-      try {
-        // methodsResult already fetched above for logging
-        if (!methodsResult) {
+      // Ensure we have methods result
+      if (!methodsResult) {
+        try {
           methodsResult = await getSignInMethods(email);
+        } catch (checkError) {
+          console.log("[signIn] Error fetching sign-in methods in error handler:", checkError);
         }
-        if (methodsResult.success && methodsResult.methods && methodsResult.methods.length > 0) {
-          if (methodsResult.methods.includes('google.com')) {
-            // Check if user is currently signed in with Google
-            const currentUser = auth.currentUser;
-            if (currentUser && currentUser.email === email) {
-              const linkedProviders = currentUser.providerData.map(p => p.providerId);
-              if (linkedProviders.includes('google.com')) {
-                // User is signed in with Google - try to link the password
-                try {
-                  const linkResult = await linkEmailPassword(email, password);
-                  if (linkResult.success) {
-                    return { 
-                      success: true, 
-                      user: currentUser,
-                      message: 'Password successfully linked to your account!'
-                    };
-                  } else {
-                    errorMessage = `Password linking failed: ${linkResult.error}. Please sign in with Google and link your password in account settings.`;
-                  }
-                } catch (linkError: any) {
-                  errorMessage = 'Unable to link password. Please sign in with Google and link your password in account settings.';
-                }
-              } else {
-                errorMessage = 'This email is associated with a Google account. Please use "Sign in with Google" instead. After signing in with Google, you can link your password in account settings.';
-              }
-            } else {
-              errorMessage = 'This email is associated with a Google account. Please use "Sign in with Google" instead. After signing in with Google, you can link your password in account settings.';
-            }
+      }
+      
+      const methods: string[] = methodsResult?.success ? (methodsResult.methods || []) : [];
+      console.log("[signIn] Available sign-in methods for error handling:", methods);
+      
+      // Check if user is currently signed in with Google (for linking scenario)
+      const currentUser = auth.currentUser;
+      const isSignedInWithGoogle = currentUser && 
+                                   currentUser.email === email && 
+                                   currentUser.providerData.some(p => p.providerId === 'google.com');
+      
+      if (isSignedInWithGoogle) {
+        // User is signed in with Google - try to link the password
+        try {
+          const linkResult = await linkEmailPassword(email, password);
+          if (linkResult.success) {
+            return { 
+              success: true, 
+              user: currentUser,
+              message: 'Password successfully linked to your account!'
+            };
           } else {
-            errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+            errorMessage = `Password linking failed: ${linkResult.error}. Please link your password in your profile settings.`;
           }
-        } else {
-          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        } catch (linkError: any) {
+          errorMessage = 'Unable to link password. Please link your password in your profile settings.';
         }
-      } catch (checkError) {
-        // If we can't check methods, use generic message
+      } else if (methods.includes('password')) {
+        // User has a password account - normal wrong-password case
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+      } else if (methods.includes('google.com') || methods.length === 0) {
+        // Google-only account OR empty methods (accounts not linked in Firebase)
+        // Empty methods array suggests separate accounts - user can sign in with Google
+        errorMessage = 'This email is associated with a Google account. Please sign in with Google first. After signing in, you can link a password in your profile settings.';
+      } else {
+        // Fallback for any other cases
         errorMessage = 'Invalid email or password. Please check your credentials and try again.';
       }
     } else if (error.code === 'auth/invalid-email') {
