@@ -3,11 +3,6 @@
 // Force dynamic rendering to prevent static generation
 export const dynamic = 'force-dynamic';
 
-// Prevent static generation by returning empty params
-export function generateStaticParams() {
-  return [];
-}
-
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
