@@ -788,7 +788,7 @@ async def get_current_usage(
                 "remaining": None if limits.get("wardrobe_items") is None else max(0, limits.get("wardrobe_items") - usage.get("wardrobe_items", 0)),
             },
             "reset_date": usage.get("reset_date"),
-            "reset_date_str": datetime.fromtimestamp(usage.get("reset_date", 0), tz=timezone.utc).strftime("%B %d, %Y") if usage.get("reset_date") else None,
+            "reset_date_str": datetime.fromtimestamp(usage.get("reset_date", 0), tz=timezone.utc).strftime("%B %d, %Y") if usage.get("reset_date") and usage.get("reset_date") > 0 else None,
         }
     except Exception as e:
         logger.error(f"Error getting current usage: {e}", exc_info=True)

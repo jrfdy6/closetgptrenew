@@ -560,7 +560,14 @@ async def get_seasonal_comparison(
     Returns style breakdown by season (Winter, Spring, Summer, Fall).
     """
     try:
-        target_year = year or datetime.now(timezone.utc).year
+        # Use current year if not specified
+        now = datetime.now(timezone.utc)
+        target_year = year or now.year
+        
+        # Adjust seasons based on current month
+        # If we're in Dec 2025, Winter 2025 should include Dec 2025, Jan-Feb 2026
+        # But we want to show data for the year specified
+        current_month = now.month
         
         seasons = {
             'Winter': (datetime(target_year, 12, 1, tzinfo=timezone.utc), datetime(target_year + 1, 3, 1, tzinfo=timezone.utc)),
@@ -568,6 +575,12 @@ async def get_seasonal_comparison(
             'Summer': (datetime(target_year, 6, 1, tzinfo=timezone.utc), datetime(target_year, 9, 1, tzinfo=timezone.utc)),
             'Fall': (datetime(target_year, 9, 1, tzinfo=timezone.utc), datetime(target_year, 12, 1, tzinfo=timezone.utc))
         }
+        
+        # If current month is December and we're looking at current year, 
+        # Winter should include current December
+        if current_month == 12 and target_year == now.year:
+            # Winter spans Dec (current year) to Feb (next year)
+            seasons['Winter'] = (datetime(target_year, 12, 1, tzinfo=timezone.utc), datetime(target_year + 1, 3, 1, tzinfo=timezone.utc))
         
         seasonal_data = []
         outfits_ref = db.collection('outfit_history').where('user_id', '==', user_id)

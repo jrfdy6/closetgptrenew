@@ -152,28 +152,28 @@ export default function StyleTrendsVisualization({
   const mockSeasonalData: SeasonalComparison[] = seasonalData.length > 0 ? seasonalData : (loading ? [] : [
     {
       season: 'Winter',
-      year: 2024,
+      year: new Date().getFullYear(),
       styleBreakdown: { casual: 15, business: 10, formal: 5, athletic: 3 },
       topColors: ['Navy', 'Gray', 'Black'],
       avgOutfitsPerWeek: 4.2
     },
     {
       season: 'Spring',
-      year: 2024,
+      year: new Date().getFullYear(),
       styleBreakdown: { casual: 20, business: 8, formal: 2, athletic: 5 },
       topColors: ['Navy', 'White', 'Beige'],
       avgOutfitsPerWeek: 5.1
     },
     {
       season: 'Summer',
-      year: 2024,
+      year: new Date().getFullYear(),
       styleBreakdown: { casual: 25, business: 5, formal: 1, athletic: 8 },
       topColors: ['White', 'Navy', 'Light Blue'],
       avgOutfitsPerWeek: 6.2
     },
     {
       season: 'Fall',
-      year: 2024,
+      year: new Date().getFullYear(),
       styleBreakdown: { casual: 18, business: 9, formal: 3, athletic: 4 },
       topColors: ['Navy', 'Brown', 'Gray'],
       avgOutfitsPerWeek: 4.8

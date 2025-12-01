@@ -228,12 +228,16 @@ class UsageTrackingService:
             
             # Format reset date
             reset_timestamp = usage.get("reset_date", self._get_next_month_start_timestamp())
-            reset_date = datetime.fromtimestamp(reset_timestamp, tz=timezone.utc)
-            reset_date_str = reset_date.strftime("%B %d, %Y")
+            if reset_timestamp and reset_timestamp > 0:
+                reset_date = datetime.fromtimestamp(reset_timestamp, tz=timezone.utc)
+                reset_date_str = reset_date.strftime("%B %d, %Y")
+            else:
+                reset_date_str = None
             
             message = None
             if not can_generate:
-                message = f"You've reached your monthly limit of {limit} outfit generations. Upgrade for unlimited or wait until {reset_date_str}."
+                reset_msg = reset_date_str if reset_date_str else "the 1st of next month"
+                message = f"You've reached your monthly limit of {limit} outfit generations. Upgrade for unlimited or wait until {reset_msg}."
             
             return {
                 "can_generate": can_generate,
@@ -279,12 +283,16 @@ class UsageTrackingService:
             
             # Format reset date
             reset_timestamp = usage.get("reset_date", self._get_next_month_start_timestamp())
-            reset_date = datetime.fromtimestamp(reset_timestamp, tz=timezone.utc)
-            reset_date_str = reset_date.strftime("%B %d, %Y")
+            if reset_timestamp and reset_timestamp > 0:
+                reset_date = datetime.fromtimestamp(reset_timestamp, tz=timezone.utc)
+                reset_date_str = reset_date.strftime("%B %d, %Y")
+            else:
+                reset_date_str = None
             
             message = None
             if not can_upload:
-                message = f"You've reached your monthly limit of {limit} wardrobe items. Upgrade for unlimited or wait until {reset_date_str}."
+                reset_msg = reset_date_str if reset_date_str else "the 1st of next month"
+                message = f"You've reached your monthly limit of {limit} wardrobe items. Upgrade for unlimited or wait until {reset_msg}."
             
             return {
                 "can_upload": can_upload,
