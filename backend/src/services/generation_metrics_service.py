@@ -14,6 +14,14 @@ logger = logging.getLogger(__name__)
 class GenerationMetricsService:
     """Service for tracking and analyzing outfit generation metrics."""
     
+    # Performance targets
+    PERFORMANCE_TARGETS = {
+        "outfit_generation": {"target": 5.0, "p95": 10.0},  # seconds
+        "wardrobe_page_load": {"target": 2.0, "p95": 4.0},  # seconds
+        "upload_processing": {"target": 10.0, "p95": 20.0},  # seconds per item
+        "dashboard_load": {"target": 1.0, "p95": 2.0},  # seconds
+    }
+    
     def __init__(self):
         # Strategy counters
         self.strategy_counts = Counter()
@@ -33,6 +41,9 @@ class GenerationMetricsService:
         # Performance metrics
         self.generation_times = defaultdict(list)
         self.validation_times = defaultdict(list)
+        
+        # Performance target violations
+        self.target_violations = defaultdict(list)  # {target_name: [violation_times]}
         
         # Success/failure rates
         self.total_generations = 0
@@ -70,6 +81,33 @@ class GenerationMetricsService:
         # Performance tracking
         if generation_time > 0:
             self.generation_times[strategy].append(generation_time)
+            
+            # Check performance target violations
+            target = self.PERFORMANCE_TARGETS.get("outfit_generation", {})
+            if generation_time > target.get("target", 5.0):
+                violation = {
+                    "timestamp": timestamp.isoformat(),
+                    "duration": generation_time,
+                    "target": target.get("target", 5.0),
+                    "user_id": user_id,
+                    "occasion": occasion,
+                    "strategy": strategy
+                }
+                self.target_violations["outfit_generation"].append(violation)
+                
+                if generation_time > target.get("p95", 10.0):
+                    logger.warning(
+                        f"⚠️ PERFORMANCE TARGET VIOLATION (P95): "
+                        f"Generation took {generation_time:.2f}s (P95 target: {target.get('p95', 10.0)}s) "
+                        f"for user {user_id}, occasion {occasion}"
+                    )
+                else:
+                    logger.info(
+                        f"⚠️ PERFORMANCE TARGET VIOLATION: "
+                        f"Generation took {generation_time:.2f}s (target: {target.get('target', 5.0)}s) "
+                        f"for user {user_id}, occasion {occasion}"
+                    )
+        
         if validation_time > 0:
             self.validation_times[strategy].append(validation_time)
         
@@ -209,6 +247,56 @@ class GenerationMetricsService:
                 for strategy in fallback_strategies
             },
             "most_common_failed_rules": dict(self.validation_failures.most_common(10)),
+            "fallback_reasons": dict(self.fallback_reasons),
+            "failed_rules_by_strategy": {
+                strategy: dict(rules) 
+                for strategy, rules in self.failed_rules_by_strategy.items()
+            }
+        }
+    
+    def get_performance_targets_status(self) -> Dict[str, Any]:
+        """Get current performance targets status and violations."""
+        status = {}
+        
+        # Calculate statistics for outfit generation
+        all_generation_times = []
+        for times in self.generation_times.values():
+            all_generation_times.extend(times)
+        
+        if all_generation_times:
+            sorted_times = sorted(all_generation_times)
+            avg_time = sum(all_generation_times) / len(all_generation_times)
+            p95_index = int(len(sorted_times) * 0.95)
+            p95_time = sorted_times[p95_index] if p95_index < len(sorted_times) else sorted_times[-1]
+            
+            target = self.PERFORMANCE_TARGETS["outfit_generation"]
+            status["outfit_generation"] = {
+                "target": target["target"],
+                "p95_target": target["p95"],
+                "current_avg": round(avg_time, 2),
+                "current_p95": round(p95_time, 2),
+                "meets_target": avg_time <= target["target"],
+                "meets_p95": p95_time <= target["p95"],
+                "violations_count": len(self.target_violations.get("outfit_generation", [])),
+                "recent_violations": self.target_violations.get("outfit_generation", [])[-10:]  # Last 10 violations
+            }
+        else:
+            target = self.PERFORMANCE_TARGETS["outfit_generation"]
+            status["outfit_generation"] = {
+                "target": target["target"],
+                "p95_target": target["p95"],
+                "current_avg": 0.0,
+                "current_p95": 0.0,
+                "meets_target": True,
+                "meets_p95": True,
+                "violations_count": 0,
+                "recent_violations": []
+            }
+        
+        # Add all target definitions
+        status["targets"] = self.PERFORMANCE_TARGETS
+        
+        return status
             "fallback_reasons": dict(self.fallback_reasons),
             "failed_rules_by_strategy": {
                 strategy: dict(rules) 

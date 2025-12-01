@@ -647,6 +647,13 @@ export default function OutfitGenerationPage() {
 
       setGeneratedOutfit(enrichedData);
       
+      // Check for slow request and show user-friendly message
+      if (enrichedData.metadata?.is_slow) {
+        const duration = enrichedData.metadata?.generation_duration || 0;
+        console.log(`⚠️ Slow generation detected: ${duration}s`);
+        // Note: User-facing message can be displayed in UI component
+      }
+      
       // Auto-save the generated outfit directly to Firestore
       if (user) {
         try {
@@ -1254,6 +1261,24 @@ export default function OutfitGenerationPage() {
           <div className="space-y-6">
             {generatedOutfit ? (
               <>
+                {/* Slow request notification */}
+                {generatedOutfit.metadata?.is_slow && (
+                  <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/50">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                            This is taking longer than usual...
+                          </p>
+                          <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                            We're still working on it. Your outfit will be ready shortly.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
                 <BodyPositiveMessage variant="outfit" />
                 <OutfitResultsDisplay
                 outfit={generatedOutfit}

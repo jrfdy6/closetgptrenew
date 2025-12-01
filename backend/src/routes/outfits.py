@@ -7,12 +7,16 @@ import logging
 import time
 import urllib.parse
 import asyncio
+import hashlib
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
 from uuid import uuid4
 
 # Set up logger for generation tracking
 logger = logging.getLogger(__name__)
+
+# Import cache manager
+from ..core.cache import cache_manager
 
 # Debug logging for router loading
 logger.error("🚨 FORCE REDEPLOY v13.0: OUTFITS ROUTER LOADING - This should appear in Railway logs")
@@ -343,6 +347,7 @@ class OutfitRequest(BaseModel):
     wardrobeCount: Optional[int] = 0  # Add wardrobeCount field
     wardrobeType: Optional[str] = "object"  # Add wardrobeType field
     weather: Optional[Dict[str, Any]] = None  # Add weather field
+    bypass_cache: Optional[bool] = False  # Cache bypass for testing/fresh generation
     
     # Additional fields from SmartWeatherOutfitGenerator
     user_profile: Optional[Dict[str, Any]] = None
@@ -2590,6 +2595,78 @@ def get_item_category(item_type: str) -> str:
         return "top"
 
 # Helper functions for outfit generation
+def _generate_wardrobe_hash(wardrobe_items: List[Dict[str, Any]]) -> str:
+    """Generate a hash of wardrobe item IDs for cache invalidation."""
+    if not wardrobe_items:
+        return "empty"
+    
+    # Extract item IDs and sort for consistent hashing
+    item_ids = sorted([str(item.get('id', '')) for item in wardrobe_items if item.get('id')])
+    if not item_ids:
+        return "no_ids"
+    
+    # Create hash from sorted IDs
+    hash_string = ','.join(item_ids)
+    return hashlib.md5(hash_string.encode()).hexdigest()[:12]
+
+def _generate_outfit_cache_key(
+    user_id: str,
+    occasion: str,
+    style: str,
+    mood: str,
+    weather: Optional[Dict[str, Any]],
+    baseItemId: Optional[str],
+    wardrobe_items: List[Dict[str, Any]]
+) -> str:
+    """Generate cache key for outfit generation request."""
+    # Round temperature to 5°F increments for better cache hits
+    temp = 70  # Default
+    if weather and isinstance(weather, dict):
+        temp = weather.get('temperature', 70)
+    elif weather:
+        temp = getattr(weather, 'temperature', 70)
+    
+    temp_rounded = int(round(temp / 5) * 5)
+    
+    # Generate wardrobe hash for auto-invalidation
+    wardrobe_hash = _generate_wardrobe_hash(wardrobe_items)
+    
+    # Build cache key
+    base_item_part = baseItemId or 'none'
+    key_parts = [
+        user_id,
+        occasion.lower(),
+        style.lower(),
+        mood.lower(),
+        str(temp_rounded),
+        base_item_part,
+        wardrobe_hash
+    ]
+    
+    cache_key = ':'.join(key_parts)
+    return f"outfit:{cache_key}"
+
+async def _validate_cached_outfit(
+    cached_outfit: Dict[str, Any],
+    user_id: str,
+    current_wardrobe_items: List[Dict[str, Any]]
+) -> bool:
+    """Validate that all items in cached outfit still exist in user's wardrobe."""
+    if not cached_outfit or not cached_outfit.get('items'):
+        return False
+    
+    # Create set of current wardrobe item IDs for fast lookup
+    current_item_ids = {item.get('id') for item in current_wardrobe_items if item.get('id')}
+    
+    # Check if all cached outfit items still exist
+    for item in cached_outfit['items']:
+        item_id = item.get('id') if isinstance(item, dict) else getattr(item, 'id', None)
+        if not item_id or item_id not in current_item_ids:
+            logger.info(f"⚠️ Cache validation failed: Item {item_id} no longer in wardrobe")
+            return False
+    
+    return True
+
 async def get_user_wardrobe(user_id: str) -> List[Dict[str, Any]]:
     """Get user's wardrobe items from Firestore."""
     try:
@@ -5566,15 +5643,60 @@ async def generate_outfit(
             logger.warning(f"⚠️ Validation pipeline import failed: {e}")
             validation_available = False
         
-        # Retry logic for robust generation
+        # CACHE CHECK: Try to get cached outfit if not bypassing cache
         outfit = None
+        cache_hit = False
+        if not (req.bypass_cache if req else False):
+            try:
+                # Get current wardrobe items for cache key generation
+                current_wardrobe = req.wardrobe if req and req.wardrobe else []
+                if not current_wardrobe:
+                    # Fallback to fetching from database if not in request
+                    current_wardrobe = await get_user_wardrobe(current_user_id)
+                
+                # Generate cache key
+                cache_key = _generate_outfit_cache_key(
+                    user_id=current_user_id,
+                    occasion=req.occasion if req else "unknown",
+                    style=req.style if req else "unknown",
+                    mood=req.mood if req else "unknown",
+                    weather=req.weather if req else None,
+                    baseItemId=req.baseItemId if req else None,
+                    wardrobe_items=current_wardrobe
+                )
+                
+                # Check cache
+                cached_outfit = cache_manager.get("outfit", cache_key)
+                if cached_outfit:
+                    # Validate cached outfit - ensure all items still exist
+                    is_valid = await _validate_cached_outfit(cached_outfit, current_user_id, current_wardrobe)
+                    if is_valid:
+                        logger.info(f"✅ Cache hit for outfit generation: {cache_key[:50]}...")
+                        outfit = cached_outfit
+                        cache_hit = True
+                        # Add cache metadata
+                        if 'metadata' not in outfit:
+                            outfit['metadata'] = {}
+                        outfit['metadata']['cache_hit'] = True
+                        outfit['metadata']['cache_key'] = cache_key
+                    else:
+                        logger.info(f"⚠️ Cache hit but validation failed - regenerating")
+                        cache_manager.delete("outfit", cache_key)
+                else:
+                    logger.info(f"❌ Cache miss for outfit generation")
+            except Exception as cache_error:
+                logger.warning(f"⚠️ Cache check failed: {cache_error}, proceeding with generation")
+        
+        # Retry logic for robust generation (only if cache miss)
         last_error = None
         error_details = None
         
-        for attempt in range(max_attempts):
-            generation_attempts += 1
-            try:
-                logger.info(f"🔄 Generation attempt {generation_attempts}/{max_attempts}")
+        # Only run generation if cache miss
+        if not outfit:
+            for attempt in range(max_attempts):
+                generation_attempts += 1
+                try:
+                    logger.info(f"🔄 Generation attempt {generation_attempts}/{max_attempts}")
         print(f"🔍 DEBUG RETRY LOOP: Starting attempt {generation_attempts}")
         print(f"🔍 DEBUG RETRY LOOP: req = {req}")
         print(f"🔍 DEBUG RETRY LOOP: current_user_id = {current_user_id}")
@@ -5711,6 +5833,38 @@ async def generate_outfit(
                 # Validate the generated outfit (basic validation)
                 if outfit and outfit.get('items') and len(outfit.get('items', [])) >= 3:
                     logger.info(f"✅ Generation successful on attempt {generation_attempts}")
+                    
+                    # CACHE STORAGE: Store successful generation in cache
+                    if not cache_hit and not (req.bypass_cache if req else False):
+                        try:
+                            # Get current wardrobe items for cache key generation
+                            current_wardrobe = req.wardrobe if req and req.wardrobe else []
+                            if not current_wardrobe:
+                                current_wardrobe = await get_user_wardrobe(current_user_id)
+                            
+                            # Generate cache key (same as check)
+                            cache_key = _generate_outfit_cache_key(
+                                user_id=current_user_id,
+                                occasion=req.occasion if req else "unknown",
+                                style=req.style if req else "unknown",
+                                mood=req.mood if req else "unknown",
+                                weather=req.weather if req else None,
+                                baseItemId=req.baseItemId if req else None,
+                                wardrobe_items=current_wardrobe
+                            )
+                            
+                            # Store in cache with 24-hour TTL (86400 seconds)
+                            cache_manager.set("outfit", cache_key, outfit, ttl=86400)
+                            logger.info(f"💾 Cached outfit generation: {cache_key[:50]}...")
+                            
+                            # Add cache metadata
+                            if 'metadata' not in outfit:
+                                outfit['metadata'] = {}
+                            outfit['metadata']['cache_hit'] = False
+                            outfit['metadata']['cached'] = True
+                        except Exception as cache_error:
+                            logger.warning(f"⚠️ Cache storage failed: {cache_error}, continuing without cache")
+                    
                     break
                 else:
                     logger.warning(f"⚠️ Generation attempt {generation_attempts} produced invalid outfit")
@@ -5882,6 +6036,18 @@ async def generate_outfit(
         logger.info(f"⏱️ Generation completed in {generation_time:.2f} seconds")
         logger.info(f"📊 Generation attempts: {generation_attempts}")
         
+        # Slow request detection (>10 seconds)
+        is_slow = generation_time > 10.0
+        if is_slow:
+            logger.warning(f"⚠️ SLOW REQUEST: Generation took {generation_time:.2f}s (threshold: 10s)")
+        
+        # Add performance metadata to outfit
+        if 'metadata' not in outfit_record:
+            outfit_record['metadata'] = {}
+        outfit_record['metadata']['generation_duration'] = round(generation_time, 2)
+        outfit_record['metadata']['is_slow'] = is_slow
+        outfit_record['metadata']['generation_attempts'] = generation_attempts
+        
         # Final outfit validation
         final_validation = await _validate_final_outfit(outfit_record, req)
         if not final_validation['is_valid']:
@@ -5937,6 +6103,24 @@ async def generate_outfit(
         # Enhanced success logging
         logger.info(f"✅ Successfully generated robust outfit {outfit_id}")
         logger.info(f"📋 Outfit details: {len(((outfit_record.get('items', []) if outfit_record else []) if outfit_record else []))} items, confidence: {outfit_record.get('confidence', 'unknown')}")
+        
+        # Add cache hit metadata to response if available
+        if cache_hit and 'metadata' in outfit_record:
+            outfit_record['metadata']['cache_hit'] = True
+        
+        # Record generation metrics for performance tracking
+        try:
+            strategy = safe_get_metadata(outfit_record, 'generation_strategy', 'robust')
+            log_generation_strategy(
+                outfit_response=outfit_record,
+                user_id=current_user_id,
+                generation_time=generation_time,
+                validation_time=0.0,  # Validation time not separately tracked
+                failed_rules=None,
+                fallback_reason=None
+            )
+        except Exception as metrics_error:
+            logger.warning(f"Failed to log generation metrics: {metrics_error}")
         
         # Return standardized outfit response
         return OutfitResponse(**outfit_record)
@@ -7152,4 +7336,97 @@ def _apply_final_outfit_validation(outfit: Dict[str, Any]) -> Dict[str, Any]:
         # Remove excess items (keep first 6)
         outfit['items'] = final_items[:6]
     
-    return outfit 
+    return outfit
+
+# Admin cache management endpoints
+async def check_admin_user(
+    current_user: UserProfile = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+) -> UserProfile:
+    """Check if user has admin privileges."""
+    try:
+        from firebase_admin import auth as firebase_auth
+        # Check Firebase custom claims for admin status
+        token = credentials.credentials
+        try:
+            decoded_token = firebase_auth.verify_id_token(token)
+            is_admin = decoded_token.get("admin", False) or decoded_token.get("role") == "admin"
+            if is_admin:
+                return current_user
+        except Exception as token_error:
+            logger.warning(f"Could not verify admin token: {token_error}")
+        
+        # Fallback: Check admin email list (can be configured via environment variable)
+        import os
+        admin_emails_str = os.getenv("ADMIN_EMAILS", "")
+        admin_emails = [email.strip() for email in admin_emails_str.split(",") if email.strip()]
+        
+        if current_user.email and current_user.email in admin_emails:
+            return current_user
+        
+        raise HTTPException(status_code=403, detail="Admin access required")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error checking admin status: {e}")
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+@router.get("/admin/cache-stats")
+async def get_cache_stats(
+    current_user: UserProfile = Depends(check_admin_user)
+) -> Dict[str, Any]:
+    """Get cache statistics (admin only)."""
+    try:
+        outfit_cache = cache_manager.get_cache("outfit")
+        if not outfit_cache:
+            return {
+                "success": False,
+                "error": "Outfit cache not found"
+            }
+        
+        stats = outfit_cache.get_stats()
+        all_stats = cache_manager.get_all_stats()
+        
+        return {
+            "success": True,
+            "outfit_cache": stats,
+            "all_caches": all_stats,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting cache stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting cache stats: {str(e)}")
+
+@router.post("/admin/cache-clear")
+async def clear_outfit_cache(
+    current_user: UserProfile = Depends(check_admin_user)
+) -> Dict[str, Any]:
+    """Clear outfit cache (admin only)."""
+    try:
+        cache_manager.clear_cache("outfit")
+        logger.info(f"Admin {current_user.id} cleared outfit cache")
+        return {
+            "success": True,
+            "message": "Outfit cache cleared",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error clearing outfit cache: {e}")
+        raise HTTPException(status_code=500, detail=f"Error clearing outfit cache: {str(e)}")
+
+@router.post("/admin/cache-clear-all")
+async def clear_all_caches(
+    current_user: UserProfile = Depends(check_admin_user)
+) -> Dict[str, Any]:
+    """Clear all caches (admin only)."""
+    try:
+        cache_manager.clear_all()
+        logger.info(f"Admin {current_user.id} cleared all caches")
+        return {
+            "success": True,
+            "message": "All caches cleared",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error clearing all caches: {e}")
+        raise HTTPException(status_code=500, detail=f"Error clearing all caches: {str(e)}") 

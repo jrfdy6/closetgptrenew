@@ -543,6 +543,31 @@ async def get_system_health(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error checking system health: {str(e)}")
 
+@router.get("/performance-targets")
+async def get_performance_targets(
+    current_user: UserProfile = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Get current performance targets status and violations.
+    
+    Returns performance metrics compared to targets:
+    - Outfit generation: <5s (target), <10s (P95)
+    - Wardrobe page load: <2s
+    - Upload processing: <10s per item
+    - Dashboard load: <1s
+    """
+    try:
+        from ..services.generation_metrics_service import generation_metrics
+        status = generation_metrics.get_performance_targets_status()
+        return {
+            "success": True,
+            "performance_targets": status,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting performance targets: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting performance targets: {str(e)}")
+
 @router.get("/diagnostics/health/public")
 async def get_public_system_health():
     """

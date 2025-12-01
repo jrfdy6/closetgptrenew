@@ -163,8 +163,8 @@ class CacheManager:
         # Wardrobe cache - longer TTL for relatively static data
         self.caches["wardrobe"] = InMemoryCache(max_size=1000, default_ttl=300)
         
-        # Outfit cache - medium TTL for generated outfits
-        self.caches["outfit"] = InMemoryCache(max_size=2000, default_ttl=600)
+        # Outfit cache - 24 hour TTL for generated outfits
+        self.caches["outfit"] = InMemoryCache(max_size=2000, default_ttl=86400)
         
         # Analysis cache - long TTL for expensive computations
         self.caches["analysis"] = InMemoryCache(max_size=500, default_ttl=1800)
@@ -175,9 +175,9 @@ class CacheManager:
         # Metrics cache - very short TTL for real-time metrics
         self.caches["metrics"] = InMemoryCache(max_size=100, default_ttl=30)
     
-    def get_cache(self, name: str) -> InMemoryCache:
+    def get_cache(self, name: str) -> Optional[InMemoryCache]:
         """Get a cache instance by name."""
-        return caches.get(name) if caches else None)
+        return self.caches.get(name)
     
     def get(self, cache_name: str, key: str) -> Optional[Any]:
         """Get a value from a specific cache."""
