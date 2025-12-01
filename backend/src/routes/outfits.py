@@ -5320,9 +5320,10 @@ async def generate_outfit(
      print(f"🔍 DEBUG ENDPOINT START: req.resolved_wardrobe = {req.resolved_wardrobe}")
      print(f"🔍 DEBUG ENDPOINT START: current_user_id = {current_user_id}")
     try:
-    start_time = time.time()
+    start_time = time.time()  # Track start time for performance monitoring
     generation_attempts = 0
     max_attempts = 3
+    cache_hit = False  # Initialize cache_hit flag
         # Enhanced authentication validation
         if not current_user_id:
             logger.error("❌ Authentication failed: No current user ID")
@@ -5674,11 +5675,15 @@ async def generate_outfit(
                         logger.info(f"✅ Cache hit for outfit generation: {cache_key[:50]}...")
                         outfit = cached_outfit
                         cache_hit = True
-                        # Add cache metadata
+                        # Add cache metadata and performance metadata
                         if 'metadata' not in outfit:
                             outfit['metadata'] = {}
                         outfit['metadata']['cache_hit'] = True
                         outfit['metadata']['cache_key'] = cache_key
+                        # For cache hits, set performance metadata
+                        outfit['metadata']['generation_duration'] = 0.0
+                        outfit['metadata']['is_slow'] = False
+                        outfit['metadata']['generation_attempts'] = 1
                     else:
                         logger.info(f"⚠️ Cache hit but validation failed - regenerating")
                         cache_manager.delete("outfit", cache_key)
@@ -5944,7 +5949,17 @@ async def generate_outfit(
             "generated_at": datetime.utcnow().isoformat(),
             **outfit
         }
-
+        
+        # Ensure metadata exists and is a dict (not None) - preserve from outfit if it exists
+        if 'metadata' not in outfit_record or outfit_record.get('metadata') is None:
+            outfit_record['metadata'] = {}
+        elif isinstance(outfit_record.get('metadata'), dict):
+            # Metadata already exists, ensure it's preserved
+            pass
+        else:
+            # Metadata exists but is not a dict, convert it
+            outfit_record['metadata'] = {}
+        
         # 3. Clean and save to Firestore
         logger.info(f"🔄 About to save generated outfit {outfit_id}")
         
@@ -6034,19 +6049,28 @@ async def generate_outfit(
         # 4. Performance monitoring and final validation
         generation_time = time.time() - start_time
         logger.info(f"⏱️ Generation completed in {generation_time:.2f} seconds")
-        logger.info(f"📊 Generation attempts: {generation_attempts}")
+        logger.info(f"📊 Generation attempts: {generation_attempts}, Cache hit: {cache_hit}")
         
         # Slow request detection (>10 seconds)
         is_slow = generation_time > 10.0
         if is_slow:
             logger.warning(f"⚠️ SLOW REQUEST: Generation took {generation_time:.2f}s (threshold: 10s)")
         
-        # Add performance metadata to outfit
-        if 'metadata' not in outfit_record:
+        # Add performance metadata to outfit (ensure metadata dict exists)
+        if 'metadata' not in outfit_record or outfit_record.get('metadata') is None:
             outfit_record['metadata'] = {}
-        outfit_record['metadata']['generation_duration'] = round(generation_time, 2)
-        outfit_record['metadata']['is_slow'] = is_slow
-        outfit_record['metadata']['generation_attempts'] = generation_attempts
+        
+        # For cache hits, we already set duration=0.0, but update it here to ensure it's set
+        # For cache misses, this will set the actual generation time
+        if not cache_hit:
+            outfit_record['metadata']['generation_duration'] = round(generation_time, 2)
+            outfit_record['metadata']['is_slow'] = is_slow
+            outfit_record['metadata']['generation_attempts'] = generation_attempts
+        # For cache hits, metadata was already set in cache hit section, but ensure it's there
+        elif 'generation_duration' not in outfit_record.get('metadata', {}):
+            outfit_record['metadata']['generation_duration'] = round(generation_time, 2)
+            outfit_record['metadata']['is_slow'] = False
+            outfit_record['metadata']['generation_attempts'] = 1
         
         # Final outfit validation
         final_validation = await _validate_final_outfit(outfit_record, req)
@@ -6105,8 +6129,13 @@ async def generate_outfit(
         logger.info(f"📋 Outfit details: {len(((outfit_record.get('items', []) if outfit_record else []) if outfit_record else []))} items, confidence: {outfit_record.get('confidence', 'unknown')}")
         
         # Add cache hit metadata to response if available
-        if cache_hit and 'metadata' in outfit_record:
+        if cache_hit:
+            if 'metadata' not in outfit_record:
+                outfit_record['metadata'] = {}
             outfit_record['metadata']['cache_hit'] = True
+            # For cache hits, set generation_duration to 0 (instant)
+            outfit_record['metadata']['generation_duration'] = 0.0
+            outfit_record['metadata']['is_slow'] = False
         
         # Record generation metrics for performance tracking
         try:
