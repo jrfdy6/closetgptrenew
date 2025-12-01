@@ -6,14 +6,84 @@ Runs alpha matting on uploaded wardrobe items in the background
 
 # Early startup logging
 import sys
+import os
 print("🔍 Worker script starting...", file=sys.stderr, flush=True)
 print("🔍 Python version:", sys.version, file=sys.stderr, flush=True)
-print("🔍 Root directory fix applied - backend/worker can now access backend/src/", file=sys.stderr, flush=True)
 
+# ============================================================================
+# CRITICAL: Add backend/src to sys.path BEFORE any imports from src/
+# This allows the worker (running from backend/worker/) to import from backend/src/
+# ============================================================================
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))  # backend/worker
+BACKEND_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))  # backend/
+SRC_DIR = os.path.join(BACKEND_DIR, "src")  # backend/src/
+
+# Add backend/src to sys.path if it exists and isn't already there
+if os.path.exists(SRC_DIR) and SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
+    print(f"✅ Added {SRC_DIR} to sys.path", file=sys.stderr, flush=True)
+elif SRC_DIR not in sys.path:
+    # Try alternative paths in case of different directory structure
+    alternative_paths = [
+        os.path.join(CURRENT_DIR, "..", "src"),  # Relative from worker/
+        os.path.join(CURRENT_DIR, "src"),  # Direct src/ in worker/ (fallback)
+        "/app/src",  # Railway/Docker absolute path
+        os.path.join(os.getcwd(), "src"),  # Current working directory
+    ]
+    for alt_path in alternative_paths:
+        abs_alt = os.path.abspath(alt_path)
+        if os.path.exists(abs_alt) and abs_alt not in sys.path:
+            sys.path.insert(0, abs_alt)
+            print(f"✅ Added alternative path {abs_alt} to sys.path", file=sys.stderr, flush=True)
+            break
+    else:
+        print(f"⚠️  Warning: Could not find src/ directory. Tried: {SRC_DIR}", file=sys.stderr, flush=True)
+        print(f"   Current directory: {CURRENT_DIR}", file=sys.stderr, flush=True)
+        print(f"   Working directory: {os.getcwd()}", file=sys.stderr, flush=True)
+        print(f"   sys.path: {sys.path[:3]}...", file=sys.stderr, flush=True)
+
+# Now we can import from src.services
+try:
+    from services.subscription_utils import (
+        DEFAULT_SUBSCRIPTION_TIER,
+        TIER_LIMITS,
+        WEEKLY_ALLOWANCE_SECONDS,
+        parse_iso8601,
+        format_iso8601,
+        subscription_defaults,
+    )
+    print("✅ Successfully imported from services.subscription_utils", file=sys.stderr, flush=True)
+except ImportError as e:
+    # Fallback: try old import path
+    try:
+        from src.services.subscription_utils import (
+            DEFAULT_SUBSCRIPTION_TIER,
+            TIER_LIMITS,
+            WEEKLY_ALLOWANCE_SECONDS,
+            parse_iso8601,
+            format_iso8601,
+            subscription_defaults,
+        )
+        print("✅ Successfully imported from src.services.subscription_utils (fallback)", file=sys.stderr, flush=True)
+    except ImportError:
+        # Last resort: try local subscription_utils
+        try:
+            from subscription_utils import (
+                DEFAULT_SUBSCRIPTION_TIER,
+                TIER_LIMITS,
+                WEEKLY_ALLOWANCE_SECONDS,
+                parse_iso8601,
+                format_iso8601,
+                subscription_defaults,
+            )
+            print("✅ Successfully imported from local subscription_utils (last resort)", file=sys.stderr, flush=True)
+        except ImportError:
+            print(f"❌ CRITICAL: Could not import subscription_utils. Error: {e}", file=sys.stderr, flush=True)
+            raise
+
+# Continue with other imports
 import base64
-import os
 import time
-import sys
 import requests
 import numpy as np
 import multiprocessing
@@ -30,40 +100,6 @@ import firebase_admin
 from firebase_admin import credentials, firestore, storage
 from google.cloud.firestore_v1 import FieldFilter
 from debug_utils import debug_val, debug_section, debug_exception
-
-# Ensure backend/src is importable when worker runs standalone
-CURRENT_DIR = Path(__file__).resolve().parent
-
-def _ensure_path(path: Path):
-    if path and path.exists():
-        path_str = str(path)
-        if path_str not in sys.path:
-            sys.path.append(path_str)
-
-_ensure_path(CURRENT_DIR)
-for ancestor in [CURRENT_DIR.parent, CURRENT_DIR.parent.parent, CURRENT_DIR.parent.parent.parent]:
-    if ancestor and ancestor != ancestor.parent:
-        _ensure_path(ancestor)
-        _ensure_path(ancestor / "src")
-_ensure_path(CURRENT_DIR / "src")
-try:
-    from src.services.subscription_utils import (
-        DEFAULT_SUBSCRIPTION_TIER,
-        TIER_LIMITS,
-        WEEKLY_ALLOWANCE_SECONDS,
-        parse_iso8601,
-        format_iso8601,
-        subscription_defaults,
-    )
-except ModuleNotFoundError:
-    from subscription_utils import (
-        DEFAULT_SUBSCRIPTION_TIER,
-        TIER_LIMITS,
-        WEEKLY_ALLOWANCE_SECONDS,
-        parse_iso8601,
-        format_iso8601,
-        subscription_defaults,
-    )
 
 # ----------------------------
 # Configuration
@@ -383,7 +419,7 @@ def reserve_openai_flatlay_slot(user_id: str | None) -> dict:
             try:
                 from subscription_utils import quotas_defaults
             except ImportError:
-                from src.services.subscription_utils import quotas_defaults
+                from services.subscription_utils import quotas_defaults
             
             subscription_payload = subscription_defaults(tier=role, now=now)
             subscription_payload["last_updated"] = firestore.SERVER_TIMESTAMP
