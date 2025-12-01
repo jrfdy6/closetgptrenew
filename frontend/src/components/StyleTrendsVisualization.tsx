@@ -92,7 +92,7 @@ export default function StyleTrendsVisualization({
           setTrendData(cachedTrends.trendData);
           setApiSucceeded(true); // Mark as succeeded since we have cached data from previous successful API call
         } else {
-          console.log('🌐 [StyleTrends] Fetching trend data from API...');
+          console.log('🌐 [StyleTrends] Fetching trend data from API...', `${apiUrl}/api/style-trends?months=${months}`);
           const trendResponse = await fetch(
             `${apiUrl}/api/style-trends?months=${months}`,
             {
@@ -103,13 +103,23 @@ export default function StyleTrendsVisualization({
             }
           );
 
+          console.log('📡 [StyleTrends] Trend API response status:', trendResponse.status, trendResponse.statusText);
+
           if (trendResponse.ok) {
             const trendResult = await trendResponse.json();
+            console.log('📦 [StyleTrends] Raw API response:', trendResult);
             const data = trendResult.trendData || trendResult.data || [];
             console.log('✅ [StyleTrends] API returned trend data:', data.length, 'items', data);
-            setTrendData(data);
-            setApiSucceeded(true); // Mark API as succeeded
-            performanceService.set(trendCacheKey, { trendData: data }, 60 * 60 * 1000); // Cache 1 hour
+            
+            if (data.length > 0) {
+              setTrendData(data);
+              setApiSucceeded(true); // Mark API as succeeded
+              performanceService.set(trendCacheKey, { trendData: data }, 60 * 60 * 1000); // Cache 1 hour
+            } else {
+              console.warn('⚠️ [StyleTrends] API returned empty trend data array');
+              setTrendData([]);
+              setApiSucceeded(true); // Still mark as succeeded, just no data
+            }
           } else {
             const errorText = await trendResponse.text();
             console.error('❌ [StyleTrends] Failed to fetch trend data:', trendResponse.status, trendResponse.statusText, errorText);
@@ -133,6 +143,7 @@ export default function StyleTrendsVisualization({
             ? `${apiUrl}/api/seasonal-comparison?year=${year}`
             : `${apiUrl}/api/seasonal-comparison`;
           
+          console.log('🌐 [StyleTrends] Seasonal API URL:', seasonalUrl);
           const seasonalResponse = await fetch(seasonalUrl, {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -140,13 +151,23 @@ export default function StyleTrendsVisualization({
             }
           });
 
+          console.log('📡 [StyleTrends] Seasonal API response status:', seasonalResponse.status, seasonalResponse.statusText);
+
           if (seasonalResponse.ok) {
             const seasonalResult = await seasonalResponse.json();
+            console.log('📦 [StyleTrends] Raw seasonal API response:', seasonalResult);
             const data = seasonalResult.seasonalData || seasonalResult.data || [];
             console.log('✅ [StyleTrends] API returned seasonal data:', data.length, 'seasons', data);
-            setSeasonalData(data);
-            setApiSucceeded(true); // Mark API as succeeded
-            performanceService.set(seasonalCacheKey, { seasonalData: data }, 60 * 60 * 1000); // Cache 1 hour
+            
+            if (data.length > 0) {
+              setSeasonalData(data);
+              setApiSucceeded(true); // Mark API as succeeded
+              performanceService.set(seasonalCacheKey, { seasonalData: data }, 60 * 60 * 1000); // Cache 1 hour
+            } else {
+              console.warn('⚠️ [StyleTrends] API returned empty seasonal data array');
+              setSeasonalData([]);
+              setApiSucceeded(true); // Still mark as succeeded, just no data
+            }
           } else {
             const errorText = await seasonalResponse.text();
             console.error('❌ [StyleTrends] Failed to fetch seasonal data:', seasonalResponse.status, seasonalResponse.statusText, errorText);
