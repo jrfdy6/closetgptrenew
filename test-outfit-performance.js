@@ -241,6 +241,13 @@ async function testPerformanceMonitoring(wardrobeItems = []) {
       const hasDuration = typeof metadata.generation_duration === 'number';
       const hasIsSlow = typeof metadata.is_slow === 'boolean';
 
+      // Debug: Log the actual response structure
+      console.log('🔍 DEBUG Performance Monitoring:');
+      console.log('  - response.data keys:', Object.keys(response.data || {}));
+      console.log('  - metadata:', JSON.stringify(metadata, null, 2));
+      console.log('  - metadata.generation_duration:', metadata.generation_duration, 'type:', typeof metadata.generation_duration);
+      console.log('  - metadata.is_slow:', metadata.is_slow, 'type:', typeof metadata.is_slow);
+
       if (hasDuration && hasIsSlow) {
         recordTest(
           'Performance Monitoring',

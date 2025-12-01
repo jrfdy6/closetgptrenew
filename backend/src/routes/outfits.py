@@ -6064,17 +6064,17 @@ async def generate_outfit(
         if 'metadata' not in outfit_record or outfit_record.get('metadata') is None:
             outfit_record['metadata'] = {}
         
-        # For cache hits, we already set duration=0.0, but update it here to ensure it's set
-        # For cache misses, this will set the actual generation time
-        if not cache_hit:
-            outfit_record['metadata']['generation_duration'] = round(generation_time, 2)
-            outfit_record['metadata']['is_slow'] = is_slow
-            outfit_record['metadata']['generation_attempts'] = generation_attempts
-        # For cache hits, metadata was already set in cache hit section, but ensure it's there
-        elif 'generation_duration' not in outfit_record.get('metadata', {}):
-            outfit_record['metadata']['generation_duration'] = round(generation_time, 2)
-            outfit_record['metadata']['is_slow'] = False
-            outfit_record['metadata']['generation_attempts'] = 1
+        # CRITICAL: Always set performance metadata, merging with existing metadata
+        # This ensures generation_duration and is_slow are always present in the response
+        outfit_record['metadata']['generation_duration'] = round(generation_time, 2)
+        outfit_record['metadata']['is_slow'] = is_slow
+        outfit_record['metadata']['generation_attempts'] = generation_attempts
+        outfit_record['metadata']['cache_hit'] = cache_hit
+        
+        # Also preserve generation_time if it exists (from generation service)
+        # But ensure generation_duration takes precedence for consistency
+        if 'generation_time' in outfit_record.get('metadata', {}) and 'generation_duration' not in outfit_record.get('metadata', {}):
+            outfit_record['metadata']['generation_duration'] = outfit_record['metadata'].get('generation_time', round(generation_time, 2))
         
         # Final outfit validation
         final_validation = await _validate_final_outfit(outfit_record, req)
@@ -6147,14 +6147,15 @@ async def generate_outfit(
         
         # CRITICAL: Ensure performance metadata is ALWAYS set before returning
         # This ensures it's in the response even if it wasn't set earlier
-        if 'generation_duration' not in outfit_record.get('metadata', {}):
-            outfit_record['metadata']['generation_duration'] = round(generation_time, 2)
-        if 'is_slow' not in outfit_record.get('metadata', {}):
-            outfit_record['metadata']['is_slow'] = is_slow
-        if 'generation_attempts' not in outfit_record.get('metadata', {}):
-            outfit_record['metadata']['generation_attempts'] = generation_attempts
-        if 'cache_hit' not in outfit_record.get('metadata', {}):
-            outfit_record['metadata']['cache_hit'] = cache_hit
+        # Force update metadata dict to ensure it exists
+        if 'metadata' not in outfit_record or outfit_record.get('metadata') is None:
+            outfit_record['metadata'] = {}
+        
+        # ALWAYS set these fields - they're required for performance monitoring
+        outfit_record['metadata']['generation_duration'] = round(generation_time, 2)
+        outfit_record['metadata']['is_slow'] = is_slow
+        outfit_record['metadata']['generation_attempts'] = generation_attempts
+        outfit_record['metadata']['cache_hit'] = cache_hit
         
         # Log metadata for debugging
         metadata_keys = list(outfit_record.get('metadata', {}).keys())
