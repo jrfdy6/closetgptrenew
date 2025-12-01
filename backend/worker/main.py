@@ -15,33 +15,53 @@ print("🔍 Using railway.worker.toml config with NIXPACKS builder (root railway
 # CRITICAL: Add backend/src to sys.path BEFORE any imports from src/
 # This allows the worker (running from backend/worker/) to import from backend/src/
 # ============================================================================
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))  # backend/worker
-BACKEND_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))  # backend/
-SRC_DIR = os.path.join(BACKEND_DIR, "src")  # backend/src/
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))  # /app (backend/worker in container)
+WORKING_DIR = os.getcwd()  # /app (usually same as CURRENT_DIR in Railway)
 
-# Add backend/src to sys.path if it exists and isn't already there
-if os.path.exists(SRC_DIR) and SRC_DIR not in sys.path:
-    sys.path.insert(0, SRC_DIR)
-    print(f"✅ Added {SRC_DIR} to sys.path", file=sys.stderr, flush=True)
-elif SRC_DIR not in sys.path:
-    # Try alternative paths in case of different directory structure
-    alternative_paths = [
-        os.path.join(CURRENT_DIR, "..", "src"),  # Relative from worker/
-        os.path.join(CURRENT_DIR, "src"),  # Direct src/ in worker/ (fallback)
-        "/app/src",  # Railway/Docker absolute path
-        os.path.join(os.getcwd(), "src"),  # Current working directory
-    ]
-    for alt_path in alternative_paths:
-        abs_alt = os.path.abspath(alt_path)
-        if os.path.exists(abs_alt) and abs_alt not in sys.path:
-            sys.path.insert(0, abs_alt)
-            print(f"✅ Added alternative path {abs_alt} to sys.path", file=sys.stderr, flush=True)
+# Calculate potential src/ locations
+# In Railway with root=backend/worker, the container has:
+# - /app = backend/worker (current directory)
+# - We need to find backend/src/ which might be at /app/../src or elsewhere
+
+potential_src_paths = [
+    os.path.join(CURRENT_DIR, "..", "src"),  # /app/../src (most likely)
+    os.path.join(WORKING_DIR, "..", "src"),   # Same but from cwd
+    "/app/../src",                            # Explicit relative path
+    "/src",                                   # Absolute (unlikely but try)
+    os.path.join(CURRENT_DIR, "src"),        # /app/src (fallback)
+    os.path.join(WORKING_DIR, "src"),         # Same from cwd
+]
+
+# Try each path and add the first one that exists
+src_dir_added = False
+for src_path in potential_src_paths:
+    abs_path = os.path.abspath(src_path)
+    if os.path.exists(abs_path) and os.path.isdir(abs_path):
+        if abs_path not in sys.path:
+            sys.path.insert(0, abs_path)
+            print(f"✅ Added {abs_path} to sys.path", file=sys.stderr, flush=True)
+            src_dir_added = True
             break
-    else:
-        print(f"⚠️  Warning: Could not find src/ directory. Tried: {SRC_DIR}", file=sys.stderr, flush=True)
-        print(f"   Current directory: {CURRENT_DIR}", file=sys.stderr, flush=True)
-        print(f"   Working directory: {os.getcwd()}", file=sys.stderr, flush=True)
-        print(f"   sys.path: {sys.path[:3]}...", file=sys.stderr, flush=True)
+    # Also try the path as-is (might be absolute already)
+    if os.path.exists(src_path) and os.path.isdir(src_path) and src_path not in sys.path:
+        sys.path.insert(0, src_path)
+        print(f"✅ Added {src_path} to sys.path (as-is)", file=sys.stderr, flush=True)
+        src_dir_added = True
+        break
+
+if not src_dir_added:
+    print(f"⚠️  Warning: Could not find src/ directory.", file=sys.stderr, flush=True)
+    print(f"   Current directory: {CURRENT_DIR}", file=sys.stderr, flush=True)
+    print(f"   Working directory: {WORKING_DIR}", file=sys.stderr, flush=True)
+    print(f"   Tried paths: {potential_src_paths[:3]}...", file=sys.stderr, flush=True)
+    print(f"   sys.path: {sys.path[:3]}...", file=sys.stderr, flush=True)
+    # List what's actually in the current directory
+    try:
+        parent_dir = os.path.dirname(CURRENT_DIR)
+        if os.path.exists(parent_dir):
+            print(f"   Parent directory ({parent_dir}) contents: {os.listdir(parent_dir)[:5]}...", file=sys.stderr, flush=True)
+    except Exception as e:
+        print(f"   Could not list parent directory: {e}", file=sys.stderr, flush=True)
 
 # Now we can import from src.services
 try:
