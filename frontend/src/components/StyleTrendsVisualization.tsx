@@ -163,16 +163,24 @@ export default function StyleTrendsVisualization({
   };
 
   // Generate mock data only if no real data and not loading
-  const mockTrendData: TrendData[] = trendData.length > 0 ? trendData : (loading ? [] : [
-    { period: 'Jan', casual: 12, business: 8, formal: 2, athletic: 3, total: 25 },
-    { period: 'Feb', casual: 15, business: 6, formal: 1, athletic: 4, total: 26 },
-    { period: 'Mar', casual: 18, business: 5, formal: 2, athletic: 2, total: 27 },
-    { period: 'Apr', casual: 20, business: 4, formal: 1, athletic: 3, total: 28 },
-    { period: 'May', casual: 22, business: 3, formal: 0, athletic: 5, total: 30 },
-    { period: 'Jun', casual: 25, business: 2, formal: 0, athletic: 6, total: 33 },
-  ];
+  const mockTrendData: TrendData[] = trendData.length > 0 
+    ? trendData 
+    : loading 
+      ? [] 
+      : [
+          { period: 'Jan', casual: 12, business: 8, formal: 2, athletic: 3, total: 25 },
+          { period: 'Feb', casual: 15, business: 6, formal: 1, athletic: 4, total: 26 },
+          { period: 'Mar', casual: 18, business: 5, formal: 2, athletic: 2, total: 27 },
+          { period: 'Apr', casual: 20, business: 4, formal: 1, athletic: 3, total: 28 },
+          { period: 'May', casual: 22, business: 3, formal: 0, athletic: 5, total: 30 },
+          { period: 'Jun', casual: 25, business: 2, formal: 0, athletic: 6, total: 33 },
+        ];
 
-  const mockSeasonalData: SeasonalComparison[] = seasonalData.length > 0 ? seasonalData : (loading ? [] : [
+  const mockSeasonalData: SeasonalComparison[] = seasonalData.length > 0 
+    ? seasonalData 
+    : loading 
+      ? [] 
+      : [
     {
       season: 'Winter',
       year: new Date().getFullYear(),
@@ -201,7 +209,7 @@ export default function StyleTrendsVisualization({
       topColors: ['Navy', 'Brown', 'Gray'],
       avgOutfitsPerWeek: 4.8
     }
-  ];
+        ];
 
   const calculateTrend = (current: number, previous: number): 'up' | 'down' | 'stable' => {
     const diff = current - previous;
