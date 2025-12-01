@@ -241,12 +241,12 @@ async def get_style_report(
             
             # Get wardrobe items
             wardrobe_ref = db.collection('wardrobe').where('userId', '==', user_id)
-            wardrobe_items = []
-            for doc in wardrobe_ref.stream():
-                wardrobe_items.append(doc.to_dict())
             
-            # Analyze wardrobe colors
-            for item in wardrobe_items:
+            # Analyze wardrobe colors and styles
+            for doc in wardrobe_ref.stream():
+                item = doc.to_dict()
+                item_id = item.get('id') or doc.id
+                
                 color = item.get('color', '').strip()
                 if color:
                     color_counter[color] += 1
@@ -267,7 +267,6 @@ async def get_style_report(
                     style_counter['casual'] += 1
                 
                 # Track item usage
-                item_id = item.get('id') or doc.id
                 wear_count = item.get('wearCount', 0) or item.get('wear_count', 0)
                 if item_id and wear_count > 0:
                     item_wear_count[item_id] = wear_count
