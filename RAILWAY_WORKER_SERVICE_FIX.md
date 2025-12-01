@@ -1,54 +1,57 @@
 # Railway Background-Processor Service Fix
 
 ## Problem
-The `background-processor` service was failing because Railway was building with `backend/worker` as the root directory, preventing Python from accessing `backend/src/` for imports like `src.services.subscription_utils`.
+The `background-processor` service was failing because Railway builds with `backend/worker` as the root directory, preventing Python from accessing `backend/src/` for imports like `src.services.subscription_utils`.
 
-## Solution
-Change the Railway service configuration to use `backend/` as the root directory instead of `backend/worker/`.
+## Solution ✅ IMPLEMENTED
+**Option 1: Dynamic sys.path manipulation** - Modified `worker/main.py` to add `backend/src/` to Python's import path at runtime, allowing imports without changing Railway dashboard settings.
 
----
-
-## Exact Railway Dashboard Settings
-
-### Service: `background-processor`
-
-**Navigate to:** Settings → Build & Deploy
-
-#### Root Directory
-```
-backend
-```
-*(Change from: `backend/worker`)*
-
-#### Start Command
-```
-python worker/main.py
-```
-*(Change from: `python main.py`)*
-
-#### Builder
-```
-NIXPACKS
-```
-*(Should already be set, or use "Auto-detect")*
-
-#### Restart Policy
-- **Type:** `ON_FAILURE`
-- **Max Retries:** `10`
+**Constraint:** Railway root directory and start command cannot be changed.
 
 ---
 
-## Why This Works
+## Implementation Details
 
-1. **Root Directory = `backend/`**
-   - Exposes both `worker/` and `src/` directories
-   - Python can now import from `src.services.subscription_utils` and other modules
-   - NIXPACKS can find `requirements.txt` in the worker directory
+### Code Changes in `backend/worker/main.py`
 
-2. **Start Command = `python worker/main.py`**
-   - Runs the worker script from the correct path
-   - Worker's `sys.path` modifications can now find parent directories
-   - All imports resolve correctly
+The worker now uses robust `sys.path` manipulation to access `backend/src/`:
+
+```python
+# Calculate paths relative to worker directory
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))  # backend/worker
+BACKEND_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))  # backend/
+SRC_DIR = os.path.join(BACKEND_DIR, "src")  # backend/src/
+
+# Add backend/src to sys.path if it exists
+if os.path.exists(SRC_DIR) and SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
+    # Now we can import: from services.subscription_utils import ...
+```
+
+### Key Changes:
+1. **Uses `os.path` instead of `Path`** for more reliable path resolution
+2. **Explicitly calculates `backend/src`** relative to worker directory
+3. **Adds to `sys.path` before any imports** from `src/`
+4. **Multiple fallback paths** for different deployment scenarios
+5. **Comprehensive logging** to debug import resolution
+6. **Imports use `services.subscription_utils`** (without `src.` prefix) once path is set
+
+### Why This Works
+
+1. **No Railway Dashboard Changes Required**
+   - Root directory stays as `backend/worker`
+   - Start command stays as `python main.py`
+   - Works within Railway's constraints
+
+2. **Runtime Path Resolution**
+   - Worker calculates `backend/src/` path at runtime
+   - Adds it to `sys.path` before importing
+   - Python can now find modules in `backend/src/`
+
+3. **Robust Fallbacks**
+   - Tries multiple path locations
+   - Handles different deployment scenarios
+   - Provides clear error messages if paths aren't found
 
 ---
 
@@ -63,8 +66,9 @@ NIXPACKS
 
 2. **Runtime Logs:**
    - Look for: `✅ Worker script starting...`
+   - Look for: `✅ Added [path]/src to sys.path` (confirms path resolution)
+   - Look for: `✅ Successfully imported from services.subscription_utils` (confirms import works)
    - Look for: `✅ OpenAI client initialized for flat lay generation` (if API key is set)
-   - Should see: `Successfully imported subscription_utils` or similar
 
 3. **Flat Lay Generation:**
    - When generating outfits, look for `[flatlay:DEBUG]` messages in logs
@@ -73,8 +77,9 @@ NIXPACKS
 
 ### ❌ Failure Indicators
 
-- `ModuleNotFoundError: No module named 'src'`
-- `ModuleNotFoundError: No module named 'src.services.subscription_utils'`
+- `ModuleNotFoundError: No module named 'services'`
+- `ModuleNotFoundError: No module named 'services.subscription_utils'`
+- `⚠️ Warning: Could not find src/ directory` in logs
 - Build fails with "Cannot find requirements.txt" (wrong root directory)
 
 ---
@@ -87,12 +92,17 @@ NIXPACKS
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "python worker/main.py"
+startCommand = "python main.py"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 ```
 
-**Note:** The `railway.toml` file documents the correct settings, but Railway dashboard settings take precedence. Make sure to update the dashboard settings as specified above.
+**Note:** The Railway dashboard should have:
+- **Root Directory:** `backend/worker` (unchanged)
+- **Start Command:** `python main.py` (unchanged)
+- **Builder:** `NIXPACKS` or "Auto-detect"
+
+The fix is implemented in code, not configuration.
 
 ---
 
@@ -121,24 +131,31 @@ Builder: NIXPACKS
 
 ### If imports still fail after fix:
 
-1. **Check Root Directory:**
-   - Verify it's exactly `backend` (not `backend/` with trailing slash)
-   - Railway should show both `worker/` and `src/` in file explorer
+1. **Check Logs for Path Resolution:**
+   - Look for `✅ Added [path]/src to sys.path` message
+   - If you see `⚠️ Warning: Could not find src/ directory`, check the paths being tried
+   - Verify the calculated `SRC_DIR` path is correct
 
-2. **Check Start Command:**
-   - Must be `python worker/main.py` (not `python main.py`)
-   - The `worker/` prefix is required because root is now `backend/`
+2. **Verify Directory Structure:**
+   - Railway should have `backend/worker/` as root
+   - The worker code should be able to navigate to `../src/` from `backend/worker/`
+   - Check that `backend/src/services/subscription_utils.py` exists in the build
 
-3. **Check Python Path:**
-   - Worker's `sys.path` modifications should find `backend/src/`
-   - Look for path resolution logs in worker startup
+3. **Check Import Statements:**
+   - After `sys.path` is set, imports should use `from services.subscription_utils import ...`
+   - Not `from src.services.subscription_utils import ...` (that's the fallback)
 
 4. **Verify Requirements:**
    - `backend/worker/requirements.txt` should be detected by NIXPACKS
    - All dependencies should install successfully
 
+5. **Test Locally:**
+   - Run from `backend/worker/` directory: `python main.py`
+   - Should see path resolution messages in logs
+   - Should successfully import `services.subscription_utils`
+
 ---
 
 **Last Updated:** November 30, 2025
-**Status:** ✅ Fix documented, awaiting Railway dashboard update
+**Status:** ✅ Fix implemented in code - no Railway dashboard changes needed
 
