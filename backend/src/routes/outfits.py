@@ -6183,9 +6183,23 @@ async def generate_outfit(
         try:
             # Create a copy to ensure metadata is preserved
             response_dict = dict(outfit_record)
-            # Explicitly ensure metadata is a dict
+            # Explicitly ensure metadata is a dict and merge with existing metadata
             if 'metadata' not in response_dict or response_dict.get('metadata') is None:
                 response_dict['metadata'] = {}
+            else:
+                # Ensure metadata is a dict (not None or other type)
+                if not isinstance(response_dict.get('metadata'), dict):
+                    response_dict['metadata'] = {}
+            
+            # CRITICAL: Force set performance metadata on response_dict to ensure it's in the response
+            # This must be done AFTER creating response_dict but BEFORE creating OutfitResponse
+            response_dict['metadata']['generation_duration'] = round(generation_time, 2)
+            response_dict['metadata']['is_slow'] = is_slow
+            response_dict['metadata']['generation_attempts'] = generation_attempts
+            response_dict['metadata']['cache_hit'] = cache_hit
+            
+            logger.info(f"🔍 DEBUG: response_dict metadata before OutfitResponse: {list(response_dict.get('metadata', {}').keys())}")
+            logger.info(f"🔍 DEBUG: generation_duration={response_dict.get('metadata', {}).get('generation_duration')}, is_slow={response_dict.get('metadata', {}).get('is_slow')}")
             
             response_data = OutfitResponse(**response_dict)
             # Double-check metadata is in response
