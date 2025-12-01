@@ -72,3 +72,4 @@ The script will show:
 - Each item takes approximately 10-30 seconds depending on image size
 - Large batches may take several hours to complete
 
+

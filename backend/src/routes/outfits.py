@@ -216,6 +216,7 @@ from pydantic import BaseModel, field_validator
 
 # Import authentication
 from ..auth.auth_service import get_current_user, get_current_user_id
+from ..services.outfit_explanation_service import OutfitExplanationService
 from ..custom_types.profile import UserProfile
 
 logger = logging.getLogger(__name__)
@@ -5879,6 +5880,51 @@ async def generate_outfit(
             # Add validation warnings to metadata
             outfit_record['metadata']['validation_warnings'] = final_validation['issues']
         
+        # Generate structured explanation for the outfit
+        try:
+            from ..services.outfit_explanation_service import OutfitExplanationService
+            explanation_service = OutfitExplanationService()
+            
+            # Get user profile for explanation
+            user_profile_data = {}
+            try:
+                from ..services.user_profile_service import get_user_profile
+                user_profile = await get_user_profile(current_user_id)
+                if user_profile:
+                    user_profile_data = user_profile.dict() if hasattr(user_profile, 'dict') else (user_profile.model_dump() if hasattr(user_profile, 'model_dump') else user_profile)
+            except Exception as profile_error:
+                logger.warning(f"Could not fetch user profile for explanation: {profile_error}")
+            
+            # Prepare context for explanation
+            context = {
+                'weather': {
+                    'temperature': req.weather.temperature if hasattr(req, 'weather') and req.weather else 70,
+                    'condition': req.weather.condition if hasattr(req, 'weather') and req.weather else 'Clear'
+                },
+                'occasion': req.occasion,
+                'style': req.style,
+                'mood': req.mood
+            }
+            
+            # Generate explanation
+            explanation = await explanation_service.generate_explanation(
+                outfit=outfit_record,
+                context=context,
+                user_profile=user_profile_data,
+                user_id=current_user_id
+            )
+            
+            # Add explanation to metadata
+            if 'metadata' not in outfit_record:
+                outfit_record['metadata'] = {}
+            outfit_record['metadata']['structuredExplanation'] = explanation
+            outfit_record['metadata']['weather'] = context['weather']
+            
+            logger.info(f"✅ Generated structured explanation with {len(explanation.get('explanations', []))} categories")
+        except Exception as explanation_error:
+            logger.warning(f"Could not generate outfit explanation: {explanation_error}")
+            # Continue without explanation - it's an enhancement, not critical
+        
         # Enhanced success logging
         logger.info(f"✅ Successfully generated robust outfit {outfit_id}")
         logger.info(f"📋 Outfit details: {len(((outfit_record.get('items', []) if outfit_record else []) if outfit_record else []))} items, confidence: {outfit_record.get('confidence', 'unknown')}")
@@ -6331,6 +6377,43 @@ async def _update_item_analytics_from_outfit_rating(
     except Exception as e:
         logger.error(f"❌ Failed to update item analytics from outfit rating: {e}")
         # Don't raise error - this is a secondary operation
+
+# Explain Outfit Endpoint
+@router.post("/explain", response_model=dict)
+async def explain_outfit(
+    outfit_data: dict,
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Generate comprehensive explanation for an outfit suggestion.
+    
+    Accepts outfit data and context, returns structured explanations with all 5 categories:
+    Style Reasoning, Color Harmony, Occasion Fit, Weather Appropriateness, Personalization
+    """
+    try:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        explanation_service = OutfitExplanationService()
+        
+        # Extract context from request
+        context = outfit_data.get('context', {})
+        user_profile = outfit_data.get('user_profile', {})
+        outfit = outfit_data.get('outfit', outfit_data)  # Support both nested and flat structure
+        
+        # Generate explanation
+        explanation = await explanation_service.generate_explanation(
+            outfit=outfit,
+            context=context,
+            user_profile=user_profile,
+            user_id=current_user.id
+        )
+        
+        return explanation
+        
+    except Exception as e:
+        logger.error(f"Error generating outfit explanation: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate explanation: {str(e)}")
 
 # ⚠️ PARAMETERIZED ROUTE - MUST BE FIRST TO AVOID ROUTE CONFLICTS!
 # This route MUST come BEFORE the root route to avoid catching it

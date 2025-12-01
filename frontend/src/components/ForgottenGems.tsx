@@ -14,10 +14,12 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle,
-  XCircle
+  XCircle,
+  Shirt
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useFirebase } from "@/lib/firebase-context";
+import { useRouter } from "next/navigation";
 import Carousel from "@/components/ui/carousel/Carousel";
 import CarouselSlide from "@/components/ui/carousel/CarouselSlide";
 
@@ -49,9 +51,9 @@ export default function ForgottenGems() {
   const [data, setData] = useState<ForgottenGemsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [processingItem, setProcessingItem] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useFirebase();
+  const router = useRouter();
 
   useEffect(() => {
     if (user) {
@@ -95,62 +97,10 @@ export default function ForgottenGems() {
     }
   };
 
-  const handleItemAction = async (itemId: string, action: 'rediscover' | 'declutter') => {
-    try {
-      if (!user) {
-        toast({
-          title: "Authentication Error",
-          description: "Please sign in again",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setProcessingItem(itemId);
-      
-      const token = await user.getIdToken();
-      if (!token) {
-        toast({
-          title: "Authentication Error",
-          description: "Please sign in again",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const response = await fetch('/api/wardrobe/forgotten-gems', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ item_id: itemId, action }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      toast({
-        title: action === 'rediscover' ? "Item Rediscovered!" : "Item Decluttered",
-        description: result.message || `Successfully ${action}ed item`,
-        variant: "default",
-      });
-
-      // Refresh the data
-      fetchForgottenGems();
-    } catch (err) {
-      console.error(`Error ${action}ing item:`, err);
-      toast({
-        title: "Error",
-        description: `Failed to ${action} item: ${err instanceof Error ? err.message : 'Unknown error'}`,
-        variant: "destructive",
-      });
-    } finally {
-      setProcessingItem(null);
-    }
+  const handleUseInOutfit = (item: ForgottenItem) => {
+    // Navigate to outfit generation page with this item as the base item
+    // Same pattern as wardrobe page: /outfits/generate?baseItemId=${item.id}
+    router.push(`/outfits/generate?baseItemId=${item.id}`);
   };
 
   const formatDaysAgo = (days: number) => {
@@ -366,35 +316,14 @@ export default function ForgottenGems() {
                           </div>
                         </div>
                       )}
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => handleItemAction(item.id, 'rediscover')}
-                          disabled={processingItem === item.id}
-                          className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
-                          size="sm"
-                        >
-                          {processingItem === item.id ? (
-                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                          )}
-                          Rediscover
-                        </Button>
-                        <Button
-                          onClick={() => handleItemAction(item.id, 'declutter')}
-                          disabled={processingItem === item.id}
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 border-amber-200 hover:bg-amber-50 dark:border-amber-800/60"
-                        >
-                          {processingItem === item.id ? (
-                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <XCircle className="w-4 h-4 mr-2" />
-                          )}
-                          Declutter
-                        </Button>
-                      </div>
+                      <Button
+                        onClick={() => handleUseInOutfit(item)}
+                        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                        size="sm"
+                      >
+                        <Shirt className="w-4 h-4 mr-2" />
+                        Use in outfit
+                      </Button>
                     </CardContent>
                   </Card>
                 </CarouselSlide>

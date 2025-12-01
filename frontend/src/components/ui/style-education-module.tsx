@@ -11,7 +11,11 @@ import {
   ChevronDown, 
   ChevronUp,
   CheckCircle,
-  Info
+  Info,
+  Calendar,
+  Cloud,
+  Heart,
+  Zap
 } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase-context';
 import UpgradePrompt from '@/components/UpgradePrompt';
@@ -45,6 +49,32 @@ interface OutfitAnalysis {
   } | null;
 }
 
+interface ExplanationData {
+  category: string;
+  icon: string;
+  title: string;
+  text: string;
+  confidence: number;
+  tips: string[];
+}
+
+interface ConfidenceBreakdown {
+  overall: number;
+  factors: {
+    style_match?: number;
+    color_combo?: number;
+    occasion_fit?: number;
+    weather?: number;
+    personalization?: number;
+  };
+  summary: string;
+}
+
+interface StructuredExplanation {
+  explanations?: ExplanationData[];
+  confidence_breakdown?: ConfidenceBreakdown;
+}
+
 interface StyleEducationModuleProps {
   outfitStyle?: string;
   outfitMood?: string;
@@ -58,6 +88,11 @@ interface StyleEducationModuleProps {
   outfitReasoning?: string;
   styleStrategy?: string; // e.g. "cohesive_composition", "body_type_optimized", etc.
   outfitAnalysis?: OutfitAnalysis; // Detailed texture, pattern, color, style analysis
+  structuredExplanation?: StructuredExplanation; // NEW: Structured explanation from backend
+  weather?: {
+    temperature?: number;
+    condition?: string;
+  };
   className?: string;
 }
 
@@ -69,18 +104,20 @@ export default function StyleEducationModule({
   outfitReasoning,
   styleStrategy,
   outfitAnalysis,
+  structuredExplanation,
+  weather,
   className = "" 
 }: StyleEducationModuleProps) {
   const { user } = useFirebase();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<any>(null);
-  const [hasAccess, setHasAccess] = useState(true); // Default to true for now, will check
-  const [loading, setLoading] = useState(true);
+  const [hasAccess, setHasAccess] = useState(true); // Default to true - basic explanations are free
+  const [loading, setLoading] = useState(false); // Don't block on subscription check for basic explanations
 
   useEffect(() => {
     const checkSubscription = async () => {
       if (!user) {
-        setHasAccess(false);
+        setHasAccess(true); // Basic explanations are free
         setLoading(false);
         return;
       }
@@ -89,12 +126,13 @@ export default function StyleEducationModule({
         const { subscriptionService } = await import('@/lib/services/subscriptionService');
         const sub = await subscriptionService.getCurrentSubscription(user);
         setSubscription(sub);
-        // Require Pro or Premium for "Learn from This Outfit"
-        setHasAccess(sub.role === 'tier2' || sub.role === 'tier3');
+        // Basic explanations (5 categories) are free for all users
+        // Only advanced analysis (texture, pattern details) requires premium
+        setHasAccess(true);
       } catch (err) {
         console.error('Error checking subscription:', err);
-        // Default to no access if check fails
-        setHasAccess(false);
+        // Default to access - basic explanations are free
+        setHasAccess(true);
       } finally {
         setLoading(false);
       }
@@ -148,8 +186,37 @@ export default function StyleEducationModule({
 
   const strategyInfo = getStrategyDescription(styleStrategy);
 
-  // Generate outfit-specific insights (basic + backend analysis)
+  // Get icon component from string name
+  const getIconComponent = (iconName: string) => {
+    const iconMap: Record<string, any> = {
+      'palette': Palette,
+      'droplet': Palette, // Color uses palette icon
+      'calendar': Calendar,
+      'cloud': Cloud,
+      'heart': Heart,
+      'target': Target,
+      'sparkles': Sparkles,
+      'checkcircle': CheckCircle,
+      'info': Info
+    };
+    return iconMap[iconName.toLowerCase()] || Info;
+  };
+
+  // Generate outfit-specific insights (basic + backend analysis + structured explanations)
   const getOutfitInsights = () => {
+    // If we have structured explanations from backend, use those first
+    if (structuredExplanation?.explanations && structuredExplanation.explanations.length > 0) {
+      return structuredExplanation.explanations.map(explanation => ({
+        id: explanation.category,
+        icon: getIconComponent(explanation.icon),
+        title: explanation.title,
+        insight: explanation.text,
+        confidence: explanation.confidence,
+        tips: explanation.tips || []
+      }));
+    }
+    
+    // Fallback to existing logic for backward compatibility
     const colors = outfitItems.map(item => item.color).filter(Boolean);
     const types = outfitItems.map(item => item.type).filter(Boolean);
     const hasLayers = types.some(type => ['jacket', 'blazer', 'cardigan', 'sweater'].includes(type.toLowerCase()));
@@ -266,7 +333,7 @@ export default function StyleEducationModule({
       // Fallback occasion insight
       insights.push({
         id: 'occasion',
-        icon: CheckCircle,
+        icon: Calendar,
         title: `${outfitOccasion} Ready`,
         insight: `This outfit hits the right tone for ${outfitOccasion.toLowerCase()}`,
         tips: [
@@ -276,6 +343,57 @@ export default function StyleEducationModule({
         ]
       });
     }
+    
+    // Add Weather Appropriateness if weather data is available
+    if (weather && (weather.temperature !== undefined || weather.condition)) {
+      const temp = weather.temperature || 70;
+      let weatherText = '';
+      if (temp >= 80) {
+        weatherText = `Lightweight, breathable fabrics perfect for ${temp}°F weather.`;
+      } else if (temp >= 65) {
+        weatherText = `Lightweight layers ideal for ${temp}°F weather - comfortable and versatile.`;
+      } else if (temp >= 50) {
+        weatherText = `Layered pieces perfect for ${temp}°F weather - warm but not heavy.`;
+      } else if (temp >= 32) {
+        weatherText = `Warm layers appropriate for ${temp}°F weather - cozy and protective.`;
+      } else {
+        weatherText = `Heavy layers and insulation for ${temp}°F weather - maximum warmth.`;
+      }
+      
+      if (weather.condition) {
+        const condition = weather.condition.toLowerCase();
+        if (condition.includes('rain') || condition.includes('storm')) {
+          weatherText += ' Water-resistant pieces help you stay dry.';
+        } else if (condition.includes('snow')) {
+          weatherText += ' Insulated layers keep you warm in snowy conditions.';
+        }
+      }
+      
+      insights.push({
+        id: 'weather',
+        icon: Cloud,
+        title: 'Weather Appropriateness',
+        insight: weatherText,
+        tips: [
+          `Temperature-appropriate for ${temp}°F conditions`,
+          'Layering allows you to adjust throughout the day',
+          'Materials chosen for weather comfort'
+        ]
+      });
+    }
+    
+    // Add Personalization placeholder (will be populated from backend explanation)
+    insights.push({
+      id: 'personalization',
+      icon: Heart,
+      title: 'Personalized for You',
+      insight: 'This outfit is tailored to your style preferences.',
+      tips: [
+        'Based on your personal style profile',
+        'Combines items you love wearing',
+        'A combination that matches your preferences'
+      ]
+    });
     
     return insights;
   };
@@ -321,7 +439,7 @@ export default function StyleEducationModule({
             </div>
             <div>
               <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
-                Learn from This Outfit
+                Why This Outfit?
               </CardTitle>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Understand what makes this combination work
@@ -331,6 +449,64 @@ export default function StyleEducationModule({
         </CardHeader>
 
         <CardContent className="space-y-5">
+          {/* Confidence Breakdown - NEW */}
+          {structuredExplanation?.confidence_breakdown && (
+            <div className="p-4 bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg border border-amber-200 dark:border-amber-800">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                  Confidence Score
+                </h4>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                    Overall Confidence
+                  </span>
+                  <span className="text-lg font-bold text-amber-900 dark:text-amber-100">
+                    {Math.round(structuredExplanation.confidence_breakdown.overall * 100)}%
+                  </span>
+                </div>
+                {structuredExplanation.confidence_breakdown.factors && Object.keys(structuredExplanation.confidence_breakdown.factors).length > 0 && (
+                  <div className="space-y-1.5 pt-2 border-t border-amber-200 dark:border-amber-700">
+                    {Object.entries(structuredExplanation.confidence_breakdown.factors).map(([factor, score]) => {
+                      const factorNames: Record<string, string> = {
+                        'style_match': 'Style Match',
+                        'color_combo': 'Color Combo',
+                        'occasion_fit': 'Occasion Fit',
+                        'weather': 'Weather',
+                        'personalization': 'Personalization'
+                      };
+                      return (
+                        <div key={factor} className="flex items-center justify-between text-xs">
+                          <span className="text-amber-700 dark:text-amber-300">
+                            {factorNames[factor] || factor.replace('_', ' ')}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-20 h-2 bg-amber-200 dark:bg-amber-800 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-amber-500 to-orange-500"
+                                style={{ width: `${(score as number) * 100}%` }}
+                              />
+                            </div>
+                            <span className="text-amber-800 dark:text-amber-200 font-medium w-8 text-right">
+                              {Math.round((score as number) * 100)}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {structuredExplanation.confidence_breakdown.summary && (
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-2 pt-2 border-t border-amber-200 dark:border-amber-700">
+                    {structuredExplanation.confidence_breakdown.summary}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Outfit Context - Compact badges only */}
           {(outfitStyle || outfitMood || outfitOccasion) && (
             <div className="flex flex-wrap gap-2">

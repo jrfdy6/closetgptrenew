@@ -446,3 +446,4 @@ If outfits are not following rules, check:
 3. Whether safety net was activated
 4. Whether last resort searches were used
 
+

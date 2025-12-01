@@ -1958,12 +1958,13 @@ async def calculate_wardrobe_metrics(user_id: str) -> dict:
    - **Effort:** 45 hours
    - **Impact:** +35% daily active users
 
-2. **Outfit Quality Validation (4.2)** - CRITICAL
+2. **Outfit Quality Validation (4.2)** - CRITICAL - DEFERRED
    - Multi-layer validation system
    - Style, occasion, weather, color, preference checks
    - Fallback strategy
    - **Effort:** 50 hours
    - **Impact:** -50% "bad suggestion" complaints
+   - **Status:** Deferred - will circle back after other Phase 2 features. Current validation pipeline exists but enhancements can be added later.
 
 3. **Explainable AI (4.3)** - HIGH
    - "Why this outfit?" explanations
