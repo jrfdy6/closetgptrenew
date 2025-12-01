@@ -1,0 +1,11 @@
+# Railway configuration for background-processor worker service
+# This service uses NIXPACKS builder (not Dockerfile)
+
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "python main.py"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
