@@ -60,6 +60,7 @@ export default function StyleTrendsVisualization({
   const [seasonalData, setSeasonalData] = useState<SeasonalComparison[]>(propSeasonalData || []);
   const [loading, setLoading] = useState(!propTrendData && !propSeasonalData);
   const [error, setError] = useState<string | null>(null);
+  const [apiSucceeded, setApiSucceeded] = useState(false); // Track if API calls succeeded
 
   useEffect(() => {
     if ((!propTrendData || !propSeasonalData) && user) {
@@ -97,9 +98,13 @@ export default function StyleTrendsVisualization({
 
           if (trendResponse.ok) {
             const trendResult = await trendResponse.json();
-            const data = trendResult.trendData || [];
+            const data = trendResult.trendData || trendResult.data || [];
             setTrendData(data);
+            setApiSucceeded(true); // Mark API as succeeded
             performanceService.set(trendCacheKey, { trendData: data }, 60 * 60 * 1000); // Cache 1 hour
+          } else {
+            console.error('Failed to fetch trend data:', trendResponse.status, trendResponse.statusText);
+            setApiSucceeded(false);
           }
         }
       }
@@ -125,9 +130,13 @@ export default function StyleTrendsVisualization({
 
           if (seasonalResponse.ok) {
             const seasonalResult = await seasonalResponse.json();
-            const data = seasonalResult.seasonalData || [];
+            const data = seasonalResult.seasonalData || seasonalResult.data || [];
             setSeasonalData(data);
+            setApiSucceeded(true); // Mark API as succeeded
             performanceService.set(seasonalCacheKey, { seasonalData: data }, 60 * 60 * 1000); // Cache 1 hour
+          } else {
+            console.error('Failed to fetch seasonal data:', seasonalResponse.status, seasonalResponse.statusText);
+            setApiSucceeded(false);
           }
         }
       }
@@ -197,10 +206,10 @@ export default function StyleTrendsVisualization({
     }
   };
 
-  // Use real data if available, otherwise use mock data
-  const displayTrendData = trendData.length > 0 ? trendData : mockTrendData;
-  const displaySeasonalData = seasonalData.length > 0 ? seasonalData : mockSeasonalData;
-  const isUsingMockData = trendData.length === 0 && seasonalData.length === 0 && !loading;
+  // Use real data if available, only use mock data if API failed
+  const displayTrendData = trendData.length > 0 ? trendData : (apiSucceeded ? [] : mockTrendData);
+  const displaySeasonalData = seasonalData.length > 0 ? seasonalData : (apiSucceeded ? [] : mockSeasonalData);
+  const isUsingMockData = !apiSucceeded && trendData.length === 0 && seasonalData.length === 0 && !loading;
   
   const maxValue = displayTrendData.length > 0 ? Math.max(...displayTrendData.map(d => d.total)) : 0;
 
