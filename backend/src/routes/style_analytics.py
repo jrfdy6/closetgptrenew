@@ -636,11 +636,98 @@ async def get_seasonal_comparison(
         now = datetime.now(timezone.utc)
         target_year = year or now.year
         
-        # Adjust seasons based on current month
-        # If we're in Dec 2025, Winter 2025 should include Dec 2025, Jan-Feb 2026
-        # But we want to show data for the year specified
-        current_month = now.month
+        # Calculate time range we need (from earliest season to latest)
+        earliest_season_start = datetime(target_year, 3, 1, tzinfo=timezone.utc)  # Spring
+        earliest_timestamp = int(earliest_season_start.timestamp())
         
+        logger.info(f"Fetching outfits for seasonal comparison, year {target_year}")
+        
+        # OPTIMIZATION: Fetch all outfits once, then filter by season in memory
+        all_outfits = []
+        seen_ids = set()
+        
+        def parse_timestamp_seasonal(data, field_names):
+            for field in field_names:
+                value = data.get(field)
+                if value is None:
+                    continue
+                if isinstance(value, int):
+                    return value
+                elif isinstance(value, str):
+                    try:
+                        dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                        return int(dt.timestamp())
+                    except:
+                        continue
+            return None
+        
+        # 1. outfit_history - with time range check
+        outfits_ref = db.collection('outfit_history').where('user_id', '==', user_id)
+        count = 0
+        for doc in outfits_ref.stream():
+            outfit_data = doc.to_dict()
+            timestamp = parse_timestamp_seasonal(
+                outfit_data,
+                ['createdAt', 'created_at', 'date_worn', 'dateWorn']
+            )
+            if timestamp and timestamp >= earliest_timestamp:
+                outfit_id = outfit_data.get('id') or doc.id
+                if outfit_id not in seen_ids:
+                    all_outfits.append(outfit_data)
+                    seen_ids.add(outfit_id)
+                    count += 1
+            if count > 5000:
+                break
+        
+        # 2. outfits collection (user_id) - limit query
+        outfits_ref = db.collection('outfits').where('user_id', '==', user_id).limit(2000)
+        for doc in outfits_ref.stream():
+            outfit_data = doc.to_dict()
+            timestamp = parse_timestamp_seasonal(
+                outfit_data,
+                ['createdAt', 'created_at', 'lastWorn', 'last_worn']
+            )
+            if timestamp and timestamp >= earliest_timestamp:
+                outfit_id = outfit_data.get('id') or doc.id
+                if outfit_id not in seen_ids:
+                    all_outfits.append(outfit_data)
+                    seen_ids.add(outfit_id)
+        
+        # 3. outfits collection (userId) - limit query
+        outfits_ref = db.collection('outfits').where('userId', '==', user_id).limit(2000)
+        for doc in outfits_ref.stream():
+            outfit_data = doc.to_dict()
+            timestamp = parse_timestamp_seasonal(
+                outfit_data,
+                ['createdAt', 'created_at', 'lastWorn', 'last_worn']
+            )
+            if timestamp and timestamp >= earliest_timestamp:
+                outfit_id = outfit_data.get('id') or doc.id
+                if outfit_id not in seen_ids:
+                    all_outfits.append(outfit_data)
+                    seen_ids.add(outfit_id)
+        
+        # 4. user subcollection - limit query
+        try:
+            user_outfits_ref = db.collection('users').document(user_id).collection('outfits').limit(2000)
+            for doc in user_outfits_ref.stream():
+                outfit_data = doc.to_dict()
+                timestamp = parse_timestamp_seasonal(
+                    outfit_data,
+                    ['createdAt', 'created_at', 'lastWorn', 'last_worn']
+                )
+                if timestamp and timestamp >= earliest_timestamp:
+                    outfit_id = outfit_data.get('id') or doc.id
+                    if outfit_id not in seen_ids:
+                        all_outfits.append(outfit_data)
+                        seen_ids.add(outfit_id)
+        except Exception as e:
+            logger.warning(f"Could not fetch user subcollection: {e}")
+        
+        logger.info(f"Fetched {len(all_outfits)} outfits for seasonal comparison")
+        
+        # Define seasons
+        current_month = now.month
         seasons = {
             'Winter': (datetime(target_year, 12, 1, tzinfo=timezone.utc), datetime(target_year + 1, 3, 1, tzinfo=timezone.utc)),
             'Spring': (datetime(target_year, 3, 1, tzinfo=timezone.utc), datetime(target_year, 6, 1, tzinfo=timezone.utc)),
@@ -648,15 +735,12 @@ async def get_seasonal_comparison(
             'Fall': (datetime(target_year, 9, 1, tzinfo=timezone.utc), datetime(target_year, 12, 1, tzinfo=timezone.utc))
         }
         
-        # If current month is December and we're looking at current year, 
-        # Winter should include current December
         if current_month == 12 and target_year == now.year:
-            # Winter spans Dec (current year) to Feb (next year)
             seasons['Winter'] = (datetime(target_year, 12, 1, tzinfo=timezone.utc), datetime(target_year + 1, 3, 1, tzinfo=timezone.utc))
         
         seasonal_data = []
-        outfits_ref = db.collection('outfit_history').where('user_id', '==', user_id)
         
+        # Now process each season using pre-fetched data
         for season_name, (start_date, end_date) in seasons.items():
             start_ts = int(start_date.timestamp())
             end_ts = int(end_date.timestamp())
@@ -664,29 +748,11 @@ async def get_seasonal_comparison(
             outfits = []
             color_counter = Counter()
             
-            def parse_timestamp_seasonal(data, field_names):
-                for field in field_names:
-                    value = data.get(field)
-                    if value is None:
-                        continue
-                    if isinstance(value, int):
-                        return value
-                    elif isinstance(value, str):
-                        try:
-                            dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
-                            return int(dt.timestamp())
-                        except:
-                            continue
-                return None
-            
-            # Check all outfit sources for this season
-            # 1. outfit_history
-            outfits_ref = db.collection('outfit_history').where('user_id', '==', user_id)
-            for doc in outfits_ref.stream():
-                outfit_data = doc.to_dict()
+            # Filter outfits for this season from pre-fetched data
+            for outfit_data in all_outfits:
                 timestamp = parse_timestamp_seasonal(
                     outfit_data,
-                    ['createdAt', 'created_at', 'date_worn', 'dateWorn']
+                    ['createdAt', 'created_at', 'date_worn', 'dateWorn', 'lastWorn', 'last_worn']
                 )
                 if timestamp and start_ts <= timestamp < end_ts:
                     outfits.append(outfit_data)
@@ -696,63 +762,6 @@ async def get_seasonal_comparison(
                             color = item.get('color', '').strip()
                             if color:
                                 color_counter[color] += 1
-            
-            # 2. outfits collection (user_id)
-            outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
-            for doc in outfits_ref.stream():
-                outfit_data = doc.to_dict()
-                timestamp = parse_timestamp_seasonal(
-                    outfit_data,
-                    ['createdAt', 'created_at', 'lastWorn', 'last_worn']
-                )
-                if timestamp and start_ts <= timestamp < end_ts:
-                    if not any(o.get('id') == outfit_data.get('id') for o in outfits):
-                        outfits.append(outfit_data)
-                        # Count colors
-                        for item in outfit_data.get('items', []):
-                            if isinstance(item, dict):
-                                color = item.get('color', '').strip()
-                                if color:
-                                    color_counter[color] += 1
-            
-            # 3. outfits collection (userId)
-            outfits_ref = db.collection('outfits').where('userId', '==', user_id)
-            for doc in outfits_ref.stream():
-                outfit_data = doc.to_dict()
-                timestamp = parse_timestamp_seasonal(
-                    outfit_data,
-                    ['createdAt', 'created_at', 'lastWorn', 'last_worn']
-                )
-                if timestamp and start_ts <= timestamp < end_ts:
-                    if not any(o.get('id') == outfit_data.get('id') for o in outfits):
-                        outfits.append(outfit_data)
-                        # Count colors
-                        for item in outfit_data.get('items', []):
-                            if isinstance(item, dict):
-                                color = item.get('color', '').strip()
-                                if color:
-                                    color_counter[color] += 1
-            
-            # 4. user subcollection
-            try:
-                user_outfits_ref = db.collection('users').document(user_id).collection('outfits')
-                for doc in user_outfits_ref.stream():
-                    outfit_data = doc.to_dict()
-                    timestamp = parse_timestamp_seasonal(
-                        outfit_data,
-                        ['createdAt', 'created_at', 'lastWorn', 'last_worn']
-                    )
-                    if timestamp and start_ts <= timestamp < end_ts:
-                        if not any(o.get('id') == outfit_data.get('id') for o in outfits):
-                            outfits.append(outfit_data)
-                            # Count colors
-                            for item in outfit_data.get('items', []):
-                                if isinstance(item, dict):
-                                    color = item.get('color', '').strip()
-                                    if color:
-                                        color_counter[color] += 1
-            except Exception:
-                pass
             
             # Count styles
             style_counter = Counter()
