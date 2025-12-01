@@ -55,7 +55,7 @@ export default function StyleTrendsVisualization({
   months = 6,
   year
 }: StyleTrendsVisualizationProps) {
-  const { user } = useFirebase();
+  const { user, loading: authLoading } = useFirebase();
   const [trendData, setTrendData] = useState<TrendData[]>(propTrendData || []);
   const [seasonalData, setSeasonalData] = useState<SeasonalComparison[]>(propSeasonalData || []);
   const [loading, setLoading] = useState(!propTrendData && !propSeasonalData);
@@ -63,10 +63,14 @@ export default function StyleTrendsVisualization({
   const [apiSucceeded, setApiSucceeded] = useState(false); // Track if API calls succeeded
 
   useEffect(() => {
-    if ((!propTrendData || !propSeasonalData) && user) {
+    // Wait for auth to finish loading, then check if we need to fetch data
+    if (!authLoading && (!propTrendData || !propSeasonalData) && user) {
+      console.log('🔄 [StyleTrends] Fetching trend data for user:', user.uid);
       fetchTrendData();
+    } else if (!authLoading && !user) {
+      console.warn('⚠️ [StyleTrends] No user available, cannot fetch data');
     }
-  }, [user, months, year]);
+  }, [user, authLoading, months, year, propTrendData, propSeasonalData]);
 
   const fetchTrendData = async () => {
     if (!user) return;
@@ -83,9 +87,12 @@ export default function StyleTrendsVisualization({
         const trendCacheKey = `style-trends:${user.uid}:${months}`;
         const cachedTrends = performanceService.get<{ trendData: TrendData[] }>(trendCacheKey);
         
-        if (cachedTrends) {
+        if (cachedTrends && cachedTrends.trendData) {
+          console.log('✅ [StyleTrends] Using cached trend data:', cachedTrends.trendData.length, 'items');
           setTrendData(cachedTrends.trendData);
+          setApiSucceeded(true); // Mark as succeeded since we have cached data from previous successful API call
         } else {
+          console.log('🌐 [StyleTrends] Fetching trend data from API...');
           const trendResponse = await fetch(
             `${apiUrl}/api/style-trends?months=${months}`,
             {
@@ -99,11 +106,13 @@ export default function StyleTrendsVisualization({
           if (trendResponse.ok) {
             const trendResult = await trendResponse.json();
             const data = trendResult.trendData || trendResult.data || [];
+            console.log('✅ [StyleTrends] API returned trend data:', data.length, 'items', data);
             setTrendData(data);
             setApiSucceeded(true); // Mark API as succeeded
             performanceService.set(trendCacheKey, { trendData: data }, 60 * 60 * 1000); // Cache 1 hour
           } else {
-            console.error('Failed to fetch trend data:', trendResponse.status, trendResponse.statusText);
+            const errorText = await trendResponse.text();
+            console.error('❌ [StyleTrends] Failed to fetch trend data:', trendResponse.status, trendResponse.statusText, errorText);
             setApiSucceeded(false);
           }
         }
@@ -114,9 +123,12 @@ export default function StyleTrendsVisualization({
         const seasonalCacheKey = `seasonal-comparison:${user.uid}:${year || 'current'}`;
         const cachedSeasonal = performanceService.get<{ seasonalData: SeasonalComparison[] }>(seasonalCacheKey);
         
-        if (cachedSeasonal) {
+        if (cachedSeasonal && cachedSeasonal.seasonalData) {
+          console.log('✅ [StyleTrends] Using cached seasonal data:', cachedSeasonal.seasonalData.length, 'seasons');
           setSeasonalData(cachedSeasonal.seasonalData);
+          setApiSucceeded(true); // Mark as succeeded since we have cached data from previous successful API call
         } else {
+          console.log('🌐 [StyleTrends] Fetching seasonal data from API...');
           const seasonalUrl = year 
             ? `${apiUrl}/api/seasonal-comparison?year=${year}`
             : `${apiUrl}/api/seasonal-comparison`;
@@ -131,11 +143,13 @@ export default function StyleTrendsVisualization({
           if (seasonalResponse.ok) {
             const seasonalResult = await seasonalResponse.json();
             const data = seasonalResult.seasonalData || seasonalResult.data || [];
+            console.log('✅ [StyleTrends] API returned seasonal data:', data.length, 'seasons', data);
             setSeasonalData(data);
             setApiSucceeded(true); // Mark API as succeeded
             performanceService.set(seasonalCacheKey, { seasonalData: data }, 60 * 60 * 1000); // Cache 1 hour
           } else {
-            console.error('Failed to fetch seasonal data:', seasonalResponse.status, seasonalResponse.statusText);
+            const errorText = await seasonalResponse.text();
+            console.error('❌ [StyleTrends] Failed to fetch seasonal data:', seasonalResponse.status, seasonalResponse.statusText, errorText);
             setApiSucceeded(false);
           }
         }
