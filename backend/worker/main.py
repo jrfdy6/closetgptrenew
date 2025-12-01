@@ -9,7 +9,7 @@ import sys
 import os
 print("🔍 Worker script starting...", file=sys.stderr, flush=True)
 print("🔍 Python version:", sys.version, file=sys.stderr, flush=True)
-print("🔍 Using railway.background-processor.toml config with NIXPACKS builder", file=sys.stderr, flush=True)
+print("🔍 Using railway.worker.toml config with NIXPACKS builder (fixed)", file=sys.stderr, flush=True)
 
 # ============================================================================
 # CRITICAL: Add backend/src to sys.path BEFORE any imports from src/
