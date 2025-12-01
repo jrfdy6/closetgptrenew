@@ -132,9 +132,9 @@ class ExistingDataPersonalizationEngine:
     async def _get_wardrobe_preferences(self, user_id: str) -> Dict[str, Any]:
         """Get preferences from wardrobe items (favorites, wear counts)"""
         try:
-            # Get wardrobe items
+            # Get wardrobe items - limit to 1000 to prevent slow queries
             wardrobe_ref = self.db.collection('wardrobe')
-            docs = wardrobe_ref.where('userId', '==', user_id).stream()
+            docs = wardrobe_ref.where('userId', '==', user_id).limit(1000).stream()
             
             preferred_colors = []
             preferred_styles = []
@@ -215,9 +215,25 @@ class ExistingDataPersonalizationEngine:
     async def _get_outfit_preferences(self, user_id: str) -> Dict[str, Any]:
         """Get preferences from outfit favorites and wear counts"""
         try:
-            # Get outfits
+            # Get outfits - limit to 1000 to prevent slow queries
             outfits_ref = self.db.collection('outfits')
-            docs = outfits_ref.where('userId', '==', user_id).stream()
+            # Try both user_id and userId fields, with limits
+            all_docs = []
+            try:
+                docs1 = outfits_ref.where('user_id', '==', user_id).limit(500).stream()
+                for doc in docs1:
+                    all_docs.append(doc)
+            except:
+                pass
+            try:
+                docs2 = outfits_ref.where('userId', '==', user_id).limit(500).stream()
+                for doc in docs2:
+                    # Avoid duplicates
+                    if not any(d.id == doc.id for d in all_docs):
+                        all_docs.append(doc)
+            except:
+                pass
+            docs = iter(all_docs)
             
             preferred_colors = []
             preferred_styles = []
