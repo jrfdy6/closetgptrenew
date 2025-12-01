@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirebase } from '@/lib/firebase-context';
 import { performanceService } from '@/lib/services/performanceService';
 import { usageService } from '@/lib/services/usageService';
+import { privacyService } from '@/lib/services/privacyService';
 import PersonalizationStatusCard from '@/components/PersonalizationStatusCard';
 import UsageIndicator from '@/components/UsageIndicator';
 import MonthlyStyleReport from '@/components/MonthlyStyleReport';
@@ -53,15 +54,11 @@ export default function TestPage() {
       
       // Load privacy settings
       if (user) {
-        const token = await user.getIdToken();
-        const privacyRes = await fetch('/api/privacy-summary', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (privacyRes.ok) {
-          setPrivacySettings(await privacyRes.json());
+        try {
+          const summary = await privacyService.getPrivacySummary(user);
+          setPrivacySettings(summary);
+        } catch (error) {
+          console.error('Error loading privacy summary:', error);
         }
       }
     } catch (error) {
@@ -189,17 +186,7 @@ export default function TestPage() {
     // Test 5: Privacy Settings API
       try {
         if (user) {
-          const token = await user.getIdToken();
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-production.up.railway.app';
-          const response = await fetch(`${apiUrl}/api/privacy-summary`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-        
-        if (response.ok) {
-          const data = await response.json();
+          const data = await privacyService.getPrivacySummary(user);
           results.push({
             name: 'Privacy Settings API',
             status: 'pass',
@@ -211,23 +198,16 @@ export default function TestPage() {
           results.push({
             name: 'Privacy Settings API',
             status: 'fail',
-            message: `API Error: ${response.statusText}`
+            message: 'User not authenticated'
           });
         }
-      } else {
+      } catch (error) {
         results.push({
           name: 'Privacy Settings API',
           status: 'fail',
-          message: 'User not authenticated'
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
         });
       }
-    } catch (error) {
-      results.push({
-        name: 'Privacy Settings API',
-        status: 'fail',
-        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
-    }
     
     // Test 6: Cache Functionality
     try {
