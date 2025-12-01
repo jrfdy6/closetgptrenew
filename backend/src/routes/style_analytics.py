@@ -83,7 +83,32 @@ async def get_style_report(
             if month_start_ts <= timestamp < month_end_ts:
                 outfits.append(outfit_data)
         
-        logger.info(f"Found {len(outfits)} outfits for the month")
+        logger.info(f"Found {len(outfits)} outfits in outfit_history for the month")
+        
+        # Also check generated outfits (outfits collection) if outfit_history is empty
+        if len(outfits) == 0:
+            outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
+            for doc in outfits_ref.stream():
+                outfit_data = doc.to_dict()
+                created_at = outfit_data.get('createdAt') or outfit_data.get('created_at')
+                
+                if isinstance(created_at, int):
+                    timestamp = created_at
+                elif isinstance(created_at, str):
+                    try:
+                        dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                        timestamp = int(dt.timestamp())
+                    except:
+                        continue
+                else:
+                    continue
+                
+                if month_start_ts <= timestamp < month_end_ts:
+                    outfits.append(outfit_data)
+            logger.info(f"Found {len(outfits)} generated outfits for the month")
+        
+        # If still no outfits, analyze wardrobe and profile data
+        use_wardrobe_fallback = len(outfits) == 0
         
         # Analyze style breakdown
         style_counter = Counter()
@@ -198,7 +223,7 @@ async def get_style_report(
             else:
                 prev_style_counter['casual'] += 1
         
-        # Compare trends
+            # Compare trends
         for style in ['casual', 'business', 'formal', 'athletic']:
             current = style_counter[style]
             previous = prev_style_counter[style]
@@ -209,6 +234,79 @@ async def get_style_report(
                 trends['decreasing'].append(style.capitalize())
             else:
                 trends['stable'].append(style.capitalize())
+        
+        # If no outfit data, analyze wardrobe and profile for insights
+        if use_wardrobe_fallback:
+            logger.info("No outfit data found, analyzing wardrobe and profile data")
+            
+            # Get wardrobe items
+            wardrobe_ref = db.collection('wardrobe').where('userId', '==', user_id)
+            wardrobe_items = []
+            for doc in wardrobe_ref.stream():
+                wardrobe_items.append(doc.to_dict())
+            
+            # Analyze wardrobe colors
+            for item in wardrobe_items:
+                color = item.get('color', '').strip()
+                if color:
+                    color_counter[color] += 1
+                
+                # Count by item type/category to infer style
+                item_type = item.get('type', '').lower() or item.get('category', '').lower()
+                style_tags = item.get('style', []) or item.get('styleTags', []) or []
+                occasion_tags = item.get('occasion', []) or item.get('occasionTags', []) or []
+                
+                # Infer style from item characteristics
+                if any(tag in ['formal', 'business', 'professional'] for tag in style_tags + occasion_tags):
+                    style_counter['business'] += 1
+                elif any(tag in ['athletic', 'sport', 'gym'] for tag in style_tags + occasion_tags):
+                    style_counter['athletic'] += 1
+                elif any(tag in ['formal', 'black tie', 'wedding'] for tag in style_tags + occasion_tags):
+                    style_counter['formal'] += 1
+                else:
+                    style_counter['casual'] += 1
+                
+                # Track item usage
+                item_id = item.get('id') or doc.id
+                wear_count = item.get('wearCount', 0) or item.get('wear_count', 0)
+                if item_id and wear_count > 0:
+                    item_wear_count[item_id] = wear_count
+                    if item_id not in item_details:
+                        item_details[item_id] = {
+                            'id': item_id,
+                            'name': item.get('name', 'Unknown'),
+                            'imageUrl': item.get('imageUrl') or item.get('image_url')
+                        }
+            
+            # Get user profile for style preferences
+            try:
+                user_ref = db.collection('users').document(user_id)
+                user_doc = user_ref.get()
+                if user_doc.exists:
+                    user_data = user_doc.to_dict() or {}
+                    profile = user_data.get('profile', {}) or user_data.get('styleProfile', {})
+                    
+                    # Use profile style preferences
+                    style_prefs = profile.get('style', []) or profile.get('stylePreferences', []) or []
+                    for pref in style_prefs:
+                        pref_lower = pref.lower()
+                        if 'business' in pref_lower or 'professional' in pref_lower:
+                            style_counter['business'] += 2  # Weight profile preferences higher
+                        elif 'formal' in pref_lower:
+                            style_counter['formal'] += 2
+                        elif 'athletic' in pref_lower or 'sport' in pref_lower:
+                            style_counter['athletic'] += 2
+                        else:
+                            style_counter['casual'] += 2
+                    
+                    # Use profile color preferences
+                    color_palette = profile.get('colorPalette', {}) or {}
+                    for color_list in [color_palette.get('primary', []), color_palette.get('secondary', [])]:
+                        for color in color_list:
+                            if color:
+                                color_counter[color] += 2  # Weight profile colors higher
+            except Exception as e:
+                logger.warning(f"Could not fetch user profile: {e}")
         
         # Build response
         month_name = month_start.strftime('%B')
@@ -296,13 +394,39 @@ async def get_style_trends(
                 else:
                     style_counter['casual'] += 1
             
+            # If no outfits, use wardrobe data for this month
+            if len(outfits) == 0:
+                wardrobe_ref = db.collection('wardrobe').where('userId', '==', user_id)
+                wardrobe_count = 0
+                for doc in wardrobe_ref.stream():
+                    item = doc.to_dict()
+                    wardrobe_count += 1
+                    
+                    # Infer style from wardrobe
+                    style_tags = item.get('style', []) or item.get('styleTags', []) or []
+                    occasion_tags = item.get('occasion', []) or item.get('occasionTags', []) or []
+                    
+                    if any(tag in ['formal', 'business', 'professional'] for tag in style_tags + occasion_tags):
+                        style_counter['business'] += 1
+                    elif any(tag in ['athletic', 'sport'] for tag in style_tags + occasion_tags):
+                        style_counter['athletic'] += 1
+                    elif any(tag in ['formal', 'black tie'] for tag in style_tags + occasion_tags):
+                        style_counter['formal'] += 1
+                    else:
+                        style_counter['casual'] += 1
+                
+                # Estimate outfits based on wardrobe size (assume 1 outfit per 3 items)
+                estimated_outfits = max(1, wardrobe_count // 3)
+            else:
+                estimated_outfits = len(outfits)
+            
             trend_data.append({
                 'period': month_start.strftime('%b'),
                 'casual': style_counter['casual'],
                 'business': style_counter['business'],
                 'formal': style_counter['formal'],
                 'athletic': style_counter['athletic'],
-                'total': len(outfits)
+                'total': estimated_outfits
             })
         
         return {
