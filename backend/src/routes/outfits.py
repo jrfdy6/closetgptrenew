@@ -6204,12 +6204,25 @@ async def generate_outfit(
             logger.info(f"🔍 DEBUG: generation_duration={response_dict.get('metadata', {}).get('generation_duration')}, is_slow={response_dict.get('metadata', {}).get('is_slow')}")
             
             response_data = OutfitResponse(**response_dict)
+            
+            # CRITICAL: Force set metadata on the response object itself to ensure it's in the serialized output
+            # Pydantic models store data in __dict__ or __pydantic_fields__, but we need to set it on the model
+            if response_data.metadata is None:
+                response_data.metadata = {}
+            
+            # Ensure performance metadata is in the response object's metadata dict
+            response_data.metadata['generation_duration'] = round(generation_time, 2)
+            response_data.metadata['is_slow'] = is_slow
+            response_data.metadata['generation_attempts'] = generation_attempts
+            response_data.metadata['cache_hit'] = cache_hit
+            
             # Double-check metadata is in response
             if hasattr(response_data, 'metadata') and response_data.metadata:
                 logger.info(f"✅ Response metadata includes: {list(response_data.metadata.keys())}")
                 logger.info(f"✅ Response metadata values: generation_duration={response_data.metadata.get('generation_duration')}, is_slow={response_data.metadata.get('is_slow')}")
             else:
                 logger.warning(f"⚠️ Response metadata is missing or empty!")
+            
             return response_data
         except Exception as response_error:
             logger.error(f"❌ Error creating OutfitResponse: {response_error}")
