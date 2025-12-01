@@ -6198,7 +6198,7 @@ async def generate_outfit(
             response_dict['metadata']['generation_attempts'] = generation_attempts
             response_dict['metadata']['cache_hit'] = cache_hit
             
-            logger.info(f"🔍 DEBUG: response_dict metadata before OutfitResponse: {list(response_dict.get('metadata', {}').keys())}")
+            logger.info(f"🔍 DEBUG: response_dict metadata before OutfitResponse: {list(response_dict.get('metadata', {}).keys())}")
             logger.info(f"🔍 DEBUG: generation_duration={response_dict.get('metadata', {}).get('generation_duration')}, is_slow={response_dict.get('metadata', {}).get('is_slow')}")
             
             response_data = OutfitResponse(**response_dict)
