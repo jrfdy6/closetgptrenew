@@ -18,6 +18,7 @@ from ..services.subscription_utils import (
     TIER_LIMITS as ROLE_LIMITS,
     WEEKLY_ALLOWANCE_SECONDS,
 )
+from ..services.subscription_feature_access import get_user_subscription_info
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["payments"])
@@ -51,6 +52,10 @@ class SubscriptionResponse(BaseModel):
     role: str
     status: str
     flatlays_remaining: int
+    trial_end: Optional[int] = None
+    is_trialing: bool = False
+    days_remaining_in_trial: Optional[int] = None
+    trial_used: bool = False
 
 
 @router.get("/subscription/current")
@@ -130,10 +135,29 @@ async def get_current_subscription(
             used = subscription.get('openai_flatlays_used', 0) or 0
             flatlays_remaining = max(0, limit - used)
         
+        # Get trial information
+        trial_end = subscription.get('trialEnd')
+        trial_used = subscription.get('trial_used', False)
+        is_trialing = status == 'trialing'
+        days_remaining_in_trial = None
+        
+        if trial_end and is_trialing:
+            now_timestamp = int(datetime.now(timezone.utc).timestamp())
+            seconds_remaining = trial_end - now_timestamp
+            if seconds_remaining > 0:
+                days_remaining_in_trial = max(1, int(seconds_remaining / (24 * 60 * 60)))
+            else:
+                # Trial has ended
+                is_trialing = False
+        
         return SubscriptionResponse(
             role=role,
             status=status,
-            flatlays_remaining=flatlays_remaining
+            flatlays_remaining=flatlays_remaining,
+            trial_end=trial_end,
+            is_trialing=is_trialing,
+            days_remaining_in_trial=days_remaining_in_trial,
+            trial_used=trial_used
         )
     except HTTPException:
         raise
@@ -191,22 +215,55 @@ async def create_checkout_session(
         
         price_id = STRIPE_PRICE_IDS[role]
         
-        checkout_session = stripe.checkout.Session.create(
-            customer=customer.id,
-            payment_method_types=['card'],
-            line_items=[{
+        # Check if user has already used a free trial
+        # Check both current subscription and subscription history
+        subscription = user_data.get('subscription', {})
+        has_used_trial = subscription.get('trial_used', False)
+        
+        # Also check if user has ever had a trial by looking at subscription history
+        # (This is a safety check - if trial_used is not set but they have a Stripe subscription, they likely used a trial)
+        if not has_used_trial and existing_customer_id:
+            try:
+                # Check Stripe customer subscriptions to see if they've ever had a trial
+                stripe_subscriptions = stripe.Subscription.list(customer=existing_customer_id, limit=10)
+                for sub in stripe_subscriptions.data:
+                    if sub.get('status') in ['trialing', 'active', 'past_due'] and sub.get('trial_end'):
+                        # User has or had a trial subscription
+                        has_used_trial = True
+                        # Update Firestore to mark trial as used
+                        db.collection('users').document(user_id).update({
+                            'subscription.trial_used': True
+                        })
+                        break
+            except Exception as e:
+                logger.warning(f"Could not check Stripe subscription history for trial: {e}")
+        
+        # Create checkout session with 30-day free trial (if not already used)
+        checkout_params = {
+            'customer': customer.id,
+            'payment_method_types': ['card'],
+            'line_items': [{
                 'price': price_id,
                 'quantity': 1,
             }],
-            mode='subscription',
-            success_url=f"{FRONTEND_URL}/subscription-success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{FRONTEND_URL}/subscription",
-            metadata={
+            'mode': 'subscription',
+            'success_url': f"{FRONTEND_URL}/subscription-success?session_id={{CHECKOUT_SESSION_ID}}",
+            'cancel_url': f"{FRONTEND_URL}/subscription",
+            'metadata': {
                 'user_id': user_id,
                 'role': role,
             },
-            allow_promotion_codes=True,
-        )
+            'allow_promotion_codes': True,
+        }
+        
+        # Add 30-day free trial if user hasn't used one
+        if not has_used_trial:
+            checkout_params['subscription_data'] = {
+                'trial_period_days': 30,
+            }
+            logger.info(f"Adding 30-day free trial to checkout for user {user_id}")
+        
+        checkout_session = stripe.checkout.Session.create(**checkout_params)
         
         logger.info(f"Created checkout session {checkout_session.id} for user {user_id}")
         
@@ -379,17 +436,37 @@ async def handle_checkout_completed(session: Dict[str, Any]):
     
     # Get flat lay limit for role
     flatlay_limit = ROLE_LIMITS.get(role, 1)
-    period_end = now_timestamp + (30 * 24 * 60 * 60)  # 30 days
+    
+    # Fetch subscription from Stripe to get trial end date
+    trial_end = None
+    subscription_status = 'active'
+    if subscription_id:
+        try:
+            stripe_sub = stripe.Subscription.retrieve(subscription_id)
+            subscription_status = stripe_sub.get('status', 'active')
+            trial_end = stripe_sub.get('trial_end')
+            period_end = stripe_sub.get('current_period_end', now_timestamp + (30 * 24 * 60 * 60))
+        except Exception as e:
+            logger.warning(f"Failed to fetch subscription from Stripe: {e}")
+            period_end = now_timestamp + (30 * 24 * 60 * 60)  # Default 30 days
+    else:
+        period_end = now_timestamp + (30 * 24 * 60 * 60)  # Default 30 days
     
     updates = {
         'billing.stripeCustomerId': customer_id,
-        'subscription.status': 'active',
+        'subscription.status': subscription_status,
         'subscription.role': role,
         'subscription.currentPeriodEnd': period_end,
         'subscription.priceId': STRIPE_PRICE_IDS.get(role, 'free'),
         'quotas.flatlaysRemaining': flatlay_limit,
         'quotas.lastRefillAt': now_timestamp,
     }
+    
+    # Add trial information if in trial period
+    if trial_end:
+        updates['subscription.trialEnd'] = trial_end
+        updates['subscription.trial_used'] = True
+        logger.info(f"User {user_id} started 30-day free trial, ends at {trial_end}")
     
     if subscription_id:
         updates['subscription.stripeSubscriptionId'] = subscription_id
@@ -402,7 +479,7 @@ async def handle_checkout_completed(session: Dict[str, Any]):
     })
     
     user_ref.update(updates)
-    logger.info(f"Updated user {user_id} subscription to {role}")
+    logger.info(f"Updated user {user_id} subscription to {role} (status: {subscription_status})")
 
 
 async def handle_subscription_updated(subscription: Dict[str, Any]):
@@ -446,6 +523,7 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
     
     status = subscription.get('status', 'active')
     cancel_at_period_end = subscription.get('cancel_at_period_end', False)
+    trial_end = subscription.get('trial_end')
     
     now_timestamp = int(datetime.now(timezone.utc).timestamp())
     
@@ -457,7 +535,7 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
         price_id = items[0].get('price', {}).get('id', '')
     
     # Log for debugging
-    logger.info(f"Processing subscription update: subscription_id={subscription_id}, price_id={price_id}, role={role}, period_end={period_end}, status={status}")
+    logger.info(f"Processing subscription update: subscription_id={subscription_id}, price_id={price_id}, role={role}, period_end={period_end}, status={status}, trial_end={trial_end}")
     
     # If subscription is scheduled to cancel, mark it but keep premium access until period ends
     updates = {
@@ -467,6 +545,21 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
         'subscription.cancelAtPeriodEnd': cancel_at_period_end,
         'subscription.last_updated': firestore.SERVER_TIMESTAMP,
     }
+    
+    # Update trial information
+    if trial_end:
+        updates['subscription.trialEnd'] = trial_end
+        updates['subscription.trial_used'] = True
+    elif status == 'trialing':
+        # If status is trialing but no trial_end, fetch from Stripe
+        try:
+            stripe_sub = stripe.Subscription.retrieve(subscription_id)
+            trial_end = stripe_sub.get('trial_end')
+            if trial_end:
+                updates['subscription.trialEnd'] = trial_end
+                updates['subscription.trial_used'] = True
+        except Exception as e:
+            logger.warning(f"Failed to fetch trial_end from Stripe: {e}")
     
     # Update priceId if we have it
     if price_id:
@@ -537,6 +630,7 @@ async def handle_subscription_created(subscription: Dict[str, Any]):
             logger.warning(f"Failed to fetch subscription from Stripe: {e}")
     
     status = subscription.get('status', 'active')
+    trial_end = subscription.get('trial_end')
     flatlay_limit = ROLE_LIMITS.get(role, 1)
     now_timestamp = int(datetime.now(timezone.utc).timestamp())
     
@@ -550,6 +644,12 @@ async def handle_subscription_created(subscription: Dict[str, Any]):
         'quotas.lastRefillAt': now_timestamp,
     }
     
+    # Add trial information if in trial period
+    if trial_end:
+        updates['subscription.trialEnd'] = trial_end
+        updates['subscription.trial_used'] = True
+        logger.info(f"User {doc.id} started 30-day free trial, ends at {trial_end}")
+    
     # Set priceId if we have it
     if price_id:
         updates['subscription.priceId'] = price_id
@@ -562,10 +662,10 @@ async def handle_subscription_created(subscription: Dict[str, Any]):
     })
     
     # Log for debugging
-    logger.info(f"Processing subscription created: subscription_id={subscription_id}, price_id={price_id}, role={role}, period_end={period_end}")
+    logger.info(f"Processing subscription created: subscription_id={subscription_id}, price_id={price_id}, role={role}, period_end={period_end}, trial_end={trial_end}")
     
     doc.reference.update(updates)
-    logger.info(f"Created subscription {subscription_id} for user {doc.id}, role: {role}, priceId: {price_id}")
+    logger.info(f"Created subscription {subscription_id} for user {doc.id}, role: {role}, priceId: {price_id}, status: {status}")
 
 
 async def handle_subscription_deleted(subscription: Dict[str, Any]):
@@ -657,6 +757,42 @@ async def handle_invoice_payment_failed(invoice: Dict[str, Any]):
         'subscription.status': 'past_due',
     })
     logger.warning(f"Payment failed for user {doc.id}, subscription marked as past_due")
+
+
+@router.get("/usage/current")
+async def get_current_usage(
+    user_id: str = Depends(get_current_user_id)
+):
+    """Get current monthly usage for outfit generations and wardrobe items"""
+    try:
+        from ..services.usage_tracking_service import UsageTrackingService
+        
+        usage_service = UsageTrackingService()
+        usage = await usage_service.get_monthly_usage(user_id)
+        
+        # Get limits for user's tier
+        subscription_info = get_user_subscription_info(user_id)
+        role = subscription_info.get("role", DEFAULT_ROLE)
+        from ..services.usage_tracking_service import TIER_MONTHLY_LIMITS
+        limits = TIER_MONTHLY_LIMITS.get(role, TIER_MONTHLY_LIMITS[DEFAULT_ROLE])
+        
+        return {
+            "outfit_generations": {
+                "current": usage.get("outfit_generations", 0),
+                "limit": limits.get("outfit_generations"),
+                "remaining": None if limits.get("outfit_generations") is None else max(0, limits.get("outfit_generations") - usage.get("outfit_generations", 0)),
+            },
+            "wardrobe_items": {
+                "current": usage.get("wardrobe_items", 0),
+                "limit": limits.get("wardrobe_items"),
+                "remaining": None if limits.get("wardrobe_items") is None else max(0, limits.get("wardrobe_items") - usage.get("wardrobe_items", 0)),
+            },
+            "reset_date": usage.get("reset_date"),
+            "reset_date_str": datetime.fromtimestamp(usage.get("reset_date", 0), tz=timezone.utc).strftime("%B %d, %Y") if usage.get("reset_date") else None,
+        }
+    except Exception as e:
+        logger.error(f"Error getting current usage: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/flatlay/consume")

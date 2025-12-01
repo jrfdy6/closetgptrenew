@@ -27,6 +27,7 @@ import {
   Crown,
   Star
 } from 'lucide-react';
+import UsageIndicator from '@/components/UsageIndicator';
 
 export default function SubscriptionPage() {
   const { user, loading: authLoading } = useFirebase();
@@ -120,6 +121,9 @@ export default function SubscriptionPage() {
           </p>
         </div>
 
+        {/* Usage Indicator */}
+        <UsageIndicator className="mb-8" />
+
         {/* Current Subscription Status */}
         {subscription && (
           <Card className="mb-8 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
@@ -131,7 +135,12 @@ export default function SubscriptionPage() {
                     Your Current Plan: {currentTierInfo?.name || 'Free'}
                   </CardTitle>
                   <CardDescription className="mt-2">
-                    {subscription.status === 'active' ? (
+                    {subscription.is_trialing ? (
+                      <span className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                        <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                        Free Trial Active • {subscription.days_remaining_in_trial || 0} days remaining
+                      </span>
+                    ) : subscription.status === 'active' ? (
                       <span className="flex items-center gap-2 text-green-600 dark:text-green-400">
                         <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
                         Active subscription
@@ -148,6 +157,24 @@ export default function SubscriptionPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                {/* Trial Countdown */}
+                {subscription.is_trialing && subscription.days_remaining_in_trial !== undefined && (
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Free Trial
+                      </span>
+                      <Badge variant="outline" className="border-blue-300 text-blue-700 dark:text-blue-300">
+                        {subscription.days_remaining_in_trial} {subscription.days_remaining_in_trial === 1 ? 'day' : 'days'} left
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                      Your 30-day free trial ends soon. You'll be charged automatically unless you cancel.
+                    </p>
+                  </div>
+                )}
+
                 {/* Flat Lay Usage */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -266,27 +293,37 @@ export default function SubscriptionPage() {
                         Current Plan
                       </Button>
                     ) : (
-                      <Button
-                        onClick={() => handleUpgrade(tier.id)}
-                        disabled={isUpgrading || !canUpgrade}
-                        className="w-full"
-                        variant={tier.popular ? 'default' : 'outline'}
-                        size="lg"
-                      >
-                        {isUpgrading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
-                          </>
-                        ) : canUpgrade ? (
-                          <>
-                            <Zap className="mr-2 h-4 w-4" />
-                            Upgrade Now
-                          </>
-                        ) : (
-                          'Downgrade'
+                      <div className="space-y-2">
+                        {canUpgrade && tier.id !== 'tier1' && !subscription?.trial_used && (
+                          <div className="text-center">
+                            <Badge variant="secondary" className="text-xs mb-2">
+                              <Calendar className="h-3 w-3 mr-1" />
+                              30-Day Free Trial
+                            </Badge>
+                          </div>
                         )}
-                      </Button>
+                        <Button
+                          onClick={() => handleUpgrade(tier.id)}
+                          disabled={isUpgrading || !canUpgrade}
+                          className="w-full"
+                          variant={tier.popular ? 'default' : 'outline'}
+                          size="lg"
+                        >
+                          {isUpgrading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : canUpgrade ? (
+                            <>
+                              <Zap className="mr-2 h-4 w-4" />
+                              {subscription?.trial_used ? 'Upgrade Now' : 'Start Free Trial'}
+                            </>
+                          ) : (
+                            'Downgrade'
+                          )}
+                        </Button>
+                      </div>
                     )}
                   </CardContent>
                 </Card>

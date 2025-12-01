@@ -510,7 +510,7 @@ async def get_user_feedback_summary(
         
     except Exception as e:
         logger.error(f"Error generating user feedback summary: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) 
 
 @router.get("/personalization-status")
 async def get_personalization_status(

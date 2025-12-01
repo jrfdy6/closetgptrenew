@@ -34,6 +34,7 @@ import WardrobeInsightsHub from '@/components/ui/wardrobe-insights-hub';
 import WardrobeInsightsCard from '@/components/WardrobeInsightsCard';
 import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerator";
 import { useAutoWeather } from '@/hooks/useWeather';
+import UsageIndicator from '@/components/UsageIndicator';
 
 type WardrobeCategory = "top" | "bottom" | "shoe" | "accessory" | "jacket";
 
@@ -431,6 +432,9 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Usage Indicator - Compact */}
+          <UsageIndicator compact={true} className="col-span-full" />
+
           {/* Favorites Card */}
           <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
             <div className="flex flex-col space-y-3">
@@ -479,6 +483,9 @@ export default function Dashboard() {
 
         {/* Wardrobe Insights Card */}
         <div className="mb-6 sm:mb-8">
+          {/* Usage Indicator - Full */}
+          <UsageIndicator className="mb-8" />
+
           <WardrobeInsightsCard
             userId={user.uid}
             wardrobeData={{

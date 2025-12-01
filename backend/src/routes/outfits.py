@@ -5861,6 +5861,15 @@ async def generate_outfit(
         save_result = await save_outfit(current_user_id, outfit_id, clean_outfit_record)
         logger.info(f"💾 Save operation result: {save_result}")
         
+        # Track usage (async, don't fail if it errors)
+        try:
+            from ..services.usage_tracking_service import UsageTrackingService
+            usage_service = UsageTrackingService()
+            await usage_service.track_outfit_generation(current_user_id)
+            logger.info(f"📊 Tracked outfit generation usage for user {current_user_id}")
+        except Exception as usage_error:
+            logger.warning(f"Usage tracking failed: {usage_error}")
+        
         # Update user stats (async, don't fail if it errors)
         try:
             from ..services.user_stats_service import user_stats_service

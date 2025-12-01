@@ -316,14 +316,14 @@ export default function ForgottenGems() {
                           </div>
                         </div>
                       )}
-                      <Button
+                        <Button
                         onClick={() => handleUseInOutfit(item)}
                         className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
-                        size="sm"
-                      >
+                          size="sm"
+                        >
                         <Shirt className="w-4 h-4 mr-2" />
                         Use in outfit
-                      </Button>
+                        </Button>
                     </CardContent>
                   </Card>
                 </CarouselSlide>

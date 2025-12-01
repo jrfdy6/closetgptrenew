@@ -20,8 +20,13 @@ import {
   RefreshCw,
   CheckCircle,
   AlertCircle,
-  Info
+  Info,
+  Zap,
+  BarChart3,
+  Eye,
+  Lock
 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { useExistingDataPersonalization } from '@/lib/hooks/useExistingDataPersonalization';
 
 interface PersonalizationStatusCardProps {
@@ -149,6 +154,47 @@ export default function PersonalizationStatusCard({
           </div>
         </div>
 
+        {/* Learning Progress Indicator */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-amber-500" />
+              <span className="font-medium text-sm">Learning Progress</span>
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {totalInteractions} / {personalizationStatus.min_interactions_required}
+            </span>
+          </div>
+          <Progress 
+            value={Math.min(100, (totalInteractions / personalizationStatus.min_interactions_required) * 100)} 
+            className="h-2"
+          />
+          <p className="text-xs text-muted-foreground">
+            {isReadyForPersonalization 
+              ? "✓ AI has learned enough to personalize your recommendations"
+              : `Need ${Math.max(0, personalizationStatus.min_interactions_required - totalInteractions)} more interactions to enable personalization`
+            }
+          </p>
+        </div>
+
+        {/* Personalization Confidence Score */}
+        {isReadyForPersonalization && (
+          <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <span className="font-medium text-sm">Personalization Confidence</span>
+              </div>
+              <Badge variant="default" className="bg-blue-600">
+                {Math.min(100, Math.round((totalInteractions / Math.max(personalizationStatus.min_interactions_required * 2, 1)) * 100))}%
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Based on {totalInteractions} interactions, we're confident in your style preferences
+            </p>
+          </div>
+        )}
+
         {/* Readiness Status */}
         <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
           <span className="font-medium">Personalization Ready</span>
@@ -237,11 +283,36 @@ export default function PersonalizationStatusCard({
           </>
         )}
 
-        {/* System Info */}
-        <div className="text-xs text-muted-foreground pt-2 border-t">
-          <div>Data Source: {dataSource}</div>
-          <div>Uses Existing Data: {usesExistingData ? "Yes" : "No"}</div>
-          <div>Min Interactions Required: {personalizationStatus.min_interactions_required}</div>
+        {/* AI Transparency Section */}
+        <div className="pt-4 border-t space-y-3">
+          <div className="flex items-center gap-2 mb-3">
+            <Eye className="h-4 w-4 text-blue-500" />
+            <span className="font-medium text-sm">AI Transparency</span>
+          </div>
+          
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+              <span className="text-muted-foreground">Data Source</span>
+              <span className="font-medium">{dataSource}</span>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+              <span className="text-muted-foreground">Uses Existing Data</span>
+              <Badge variant="outline" className="text-xs">
+                {usesExistingData ? "Yes" : "No"}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+              <span className="text-muted-foreground">Learning Method</span>
+              <span className="font-medium">Adaptive Rules</span>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+              <span className="text-muted-foreground">Privacy</span>
+              <div className="flex items-center gap-1">
+                <Lock className="h-3 w-3 text-green-500" />
+                <span className="font-medium">Your data stays private</span>
+              </div>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -533,6 +533,15 @@ async def add_wardrobe_item(
         doc_ref = db.collection('wardrobe').document(item_id)
         doc_ref.set(normalized_item)
         
+        # Track usage (async, don't fail if it errors)
+        try:
+            from ..services.usage_tracking_service import UsageTrackingService
+            usage_service = UsageTrackingService()
+            await usage_service.track_item_upload(current_user.id)
+            logger.info(f"📊 Tracked item upload usage for user {current_user.id}")
+        except Exception as usage_error:
+            logger.warning(f"Usage tracking failed: {usage_error}")
+        
         # Log analytics event
         if ANALYTICS_AVAILABLE:
             analytics_event = AnalyticsEvent(

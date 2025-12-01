@@ -5,12 +5,16 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Sparkles, Crown, BookOpen } from 'lucide-react';
+import { Lock, Sparkles, Crown, BookOpen, Shirt } from 'lucide-react';
 
 interface UpgradePromptProps {
-  feature: 'semantic_filtering' | 'style_persona' | 'advanced_features' | 'learn_from_outfit' | 'forgotten_gems';
+  feature: 'semantic_filtering' | 'style_persona' | 'advanced_features' | 'learn_from_outfit' | 'forgotten_gems' | 'outfit_limit_reached' | 'item_limit_reached';
   currentTier?: 'tier1' | 'tier2' | 'tier3';
   className?: string;
+  limitType?: 'outfit' | 'item';
+  currentCount?: number;
+  limit?: number;
+  resetDate?: string;
 }
 
 const FEATURE_INFO = {
@@ -74,13 +78,41 @@ const FEATURE_INFO = {
       'Wardrobe analytics and insights',
       'Save money by using existing items'
     ]
+  },
+  outfit_limit_reached: {
+    title: 'Monthly Limit Reached',
+    description: 'You\'ve reached your monthly outfit generation limit',
+    icon: <Sparkles className="h-6 w-6" />,
+    requiredTier: 'tier2',
+    features: [
+      'Unlimited outfit generations',
+      'No monthly limits',
+      'Generate as many outfits as you want',
+      'All premium features included'
+    ]
+  },
+  item_limit_reached: {
+    title: 'Monthly Limit Reached',
+    description: 'You\'ve reached your monthly wardrobe item limit',
+    icon: <Shirt className="h-6 w-6" />,
+    requiredTier: 'tier2',
+    features: [
+      'Unlimited wardrobe items',
+      'No monthly limits',
+      'Add as many items as you want',
+      'All premium features included'
+    ]
   }
 };
 
 export default function UpgradePrompt({ 
   feature, 
   currentTier = 'tier1',
-  className = '' 
+  className = '',
+  limitType,
+  currentCount,
+  limit,
+  resetDate
 }: UpgradePromptProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -91,6 +123,20 @@ export default function UpgradePrompt({
   // If user already has access, don't show prompt
   if (canAccess) {
     return null;
+  }
+  
+  // For limit-based prompts, customize the description
+  let description = featureInfo.description;
+  if (feature === 'outfit_limit_reached' && currentCount !== undefined && limit !== undefined) {
+    description = `You've used ${currentCount} of ${limit} outfit generations this month.`;
+    if (resetDate) {
+      description += ` Resets on ${resetDate}.`;
+    }
+  } else if (feature === 'item_limit_reached' && currentCount !== undefined && limit !== undefined) {
+    description = `You've added ${currentCount} of ${limit} wardrobe items this month.`;
+    if (resetDate) {
+      description += ` Resets on ${resetDate}.`;
+    }
   }
   
   const handleUpgrade = () => {
@@ -116,7 +162,7 @@ export default function UpgradePrompt({
         </div>
         <CardTitle className="text-2xl">{featureInfo.title}</CardTitle>
         <CardDescription className="text-base">
-          {featureInfo.description}
+          {description}
         </CardDescription>
         <div className="flex justify-center mt-4">
           <Badge variant="secondary" className="gap-2">

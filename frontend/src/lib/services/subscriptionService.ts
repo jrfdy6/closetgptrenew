@@ -11,6 +11,10 @@ export interface Subscription {
   role: string;
   status: string;
   flatlays_remaining: number;
+  trial_end?: number;
+  is_trialing?: boolean;
+  days_remaining_in_trial?: number;
+  trial_used?: boolean;
 }
 
 export interface SubscriptionTier {
