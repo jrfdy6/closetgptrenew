@@ -1,8 +1,10 @@
 # Railway configuration for background-processor worker service
 # This service uses NIXPACKS builder (not Dockerfile)
+# Root directory: backend/worker
 
 [build]
 builder = "NIXPACKS"
+watchPatterns = ["backend/worker/**"]
 
 [deploy]
 startCommand = "python main.py"
