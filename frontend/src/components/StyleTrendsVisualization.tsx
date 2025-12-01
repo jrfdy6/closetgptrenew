@@ -63,12 +63,26 @@ export default function StyleTrendsVisualization({
   const [apiSucceeded, setApiSucceeded] = useState(false); // Track if API calls succeeded
 
   useEffect(() => {
+    console.log('🔍 [StyleTrends] useEffect triggered:', {
+      authLoading,
+      hasUser: !!user,
+      userId: user?.uid,
+      hasPropTrendData: !!propTrendData,
+      hasPropSeasonalData: !!propSeasonalData,
+      propTrendDataLength: propTrendData?.length,
+      propSeasonalDataLength: propSeasonalData?.length
+    });
+
     // Wait for auth to finish loading, then check if we need to fetch data
     if (!authLoading && (!propTrendData || !propSeasonalData) && user) {
       console.log('🔄 [StyleTrends] Fetching trend data for user:', user.uid);
       fetchTrendData();
     } else if (!authLoading && !user) {
       console.warn('⚠️ [StyleTrends] No user available, cannot fetch data');
+    } else if (authLoading) {
+      console.log('⏳ [StyleTrends] Waiting for auth to finish loading...');
+    } else if (propTrendData && propSeasonalData) {
+      console.log('ℹ️ [StyleTrends] Using provided props, skipping fetch');
     }
   }, [user, authLoading, months, year, propTrendData, propSeasonalData]);
 
