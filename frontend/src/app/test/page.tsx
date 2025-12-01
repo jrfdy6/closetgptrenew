@@ -210,32 +210,32 @@ export default function TestPage() {
       }
     
     // Test 6: Cache Functionality
-    try {
-      const testKey = 'test-cache-key';
-      const testData = { test: 'data', timestamp: Date.now() };
-      performanceService.set(testKey, testData, 60000);
-      const retrieved = performanceService.get(testKey);
-      
-      if (retrieved && retrieved.test === testData.test) {
-        results.push({
-          name: 'Cache Functionality',
-          status: 'pass',
-          message: 'Cache read/write working correctly'
-        });
-      } else {
+      try {
+        const testKey = 'test-cache-key';
+        const testData = { test: 'data', timestamp: Date.now() };
+        performanceService.set(testKey, testData, 60000);
+        const retrieved = performanceService.get<{ test: string; timestamp: number }>(testKey);
+        
+        if (retrieved && retrieved.test === testData.test) {
+          results.push({
+            name: 'Cache Functionality',
+            status: 'pass',
+            message: 'Cache read/write working correctly'
+          });
+        } else {
+          results.push({
+            name: 'Cache Functionality',
+            status: 'fail',
+            message: 'Cache retrieval failed'
+          });
+        }
+      } catch (error) {
         results.push({
           name: 'Cache Functionality',
           status: 'fail',
-          message: 'Cache retrieval failed'
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
         });
       }
-    } catch (error) {
-      results.push({
-        name: 'Cache Functionality',
-        status: 'fail',
-        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
-    }
     
     setTestResults(results);
     setIsRunning(false);
