@@ -455,6 +455,76 @@ async def get_style_trends(
         now = datetime.now(timezone.utc)
         trend_data = []
         
+        # Helper function to parse timestamp
+        def parse_timestamp_trends(data, field_names):
+            for field in field_names:
+                value = data.get(field)
+                if value is None:
+                    continue
+                if isinstance(value, int):
+                    return value
+                elif isinstance(value, str):
+                    try:
+                        dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                        return int(dt.timestamp())
+                    except:
+                        continue
+            return None
+        
+        # OPTIMIZATION: Fetch all outfits once, then filter by month in memory
+        # This is much faster than querying for each month separately
+        logger.info(f"Fetching all outfits for user {user_id} to generate trends")
+        all_outfits = []
+        seen_ids = set()
+        
+        # 1. outfit_history
+        outfits_ref = db.collection('outfit_history').where('user_id', '==', user_id)
+        for doc in outfits_ref.stream():
+            outfit_data = doc.to_dict()
+            outfit_id = outfit_data.get('id') or doc.id
+            if outfit_id not in seen_ids:
+                all_outfits.append(outfit_data)
+                seen_ids.add(outfit_id)
+        
+        # 2. outfits collection (user_id)
+        outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
+        for doc in outfits_ref.stream():
+            outfit_data = doc.to_dict()
+            outfit_id = outfit_data.get('id') or doc.id
+            if outfit_id not in seen_ids:
+                all_outfits.append(outfit_data)
+                seen_ids.add(outfit_id)
+        
+        # 3. outfits collection (userId)
+        outfits_ref = db.collection('outfits').where('userId', '==', user_id)
+        for doc in outfits_ref.stream():
+            outfit_data = doc.to_dict()
+            outfit_id = outfit_data.get('id') or doc.id
+            if outfit_id not in seen_ids:
+                all_outfits.append(outfit_data)
+                seen_ids.add(outfit_id)
+        
+        # 4. user subcollection
+        try:
+            user_outfits_ref = db.collection('users').document(user_id).collection('outfits')
+            for doc in user_outfits_ref.stream():
+                outfit_data = doc.to_dict()
+                outfit_id = outfit_data.get('id') or doc.id
+                if outfit_id not in seen_ids:
+                    all_outfits.append(outfit_data)
+                    seen_ids.add(outfit_id)
+        except Exception as e:
+            logger.warning(f"Could not fetch user subcollection: {e}")
+        
+        logger.info(f"Fetched {len(all_outfits)} total outfits, now filtering by month")
+        
+        # Get wardrobe data once (for fallback)
+        wardrobe_ref = db.collection('wardrobe').where('userId', '==', user_id)
+        wardrobe_items = []
+        for doc in wardrobe_ref.stream():
+            wardrobe_items.append(doc.to_dict())
+        
+        # Now process each month using the pre-fetched data
         for i in range(months - 1, -1, -1):
             target_date = now - timedelta(days=30 * i)
             month_key = f"{target_date.year}-{target_date.month:02d}"
@@ -469,73 +539,15 @@ async def get_style_trends(
             month_start_ts = int(month_start.timestamp())
             month_end_ts = int(month_end.timestamp())
             
-            # Fetch outfits for this month from all sources (same as style-report)
+            # Filter outfits for this month from pre-fetched data
             outfits = []
-            
-            def parse_timestamp_trends(data, field_names):
-                for field in field_names:
-                    value = data.get(field)
-                    if value is None:
-                        continue
-                    if isinstance(value, int):
-                        return value
-                    elif isinstance(value, str):
-                        try:
-                            dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
-                            return int(dt.timestamp())
-                        except:
-                            continue
-                return None
-            
-            # 1. outfit_history
-            outfits_ref = db.collection('outfit_history').where('user_id', '==', user_id)
-            for doc in outfits_ref.stream():
-                outfit_data = doc.to_dict()
+            for outfit_data in all_outfits:
                 timestamp = parse_timestamp_trends(
                     outfit_data,
-                    ['createdAt', 'created_at', 'date_worn', 'dateWorn']
+                    ['createdAt', 'created_at', 'date_worn', 'dateWorn', 'lastWorn', 'last_worn']
                 )
                 if timestamp and month_start_ts <= timestamp < month_end_ts:
                     outfits.append(outfit_data)
-            
-            # 2. outfits collection (user_id)
-            outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
-            for doc in outfits_ref.stream():
-                outfit_data = doc.to_dict()
-                timestamp = parse_timestamp_trends(
-                    outfit_data,
-                    ['createdAt', 'created_at', 'lastWorn', 'last_worn']
-                )
-                if timestamp and month_start_ts <= timestamp < month_end_ts:
-                    if not any(o.get('id') == outfit_data.get('id') for o in outfits):
-                        outfits.append(outfit_data)
-            
-            # 3. outfits collection (userId)
-            outfits_ref = db.collection('outfits').where('userId', '==', user_id)
-            for doc in outfits_ref.stream():
-                outfit_data = doc.to_dict()
-                timestamp = parse_timestamp_trends(
-                    outfit_data,
-                    ['createdAt', 'created_at', 'lastWorn', 'last_worn']
-                )
-                if timestamp and month_start_ts <= timestamp < month_end_ts:
-                    if not any(o.get('id') == outfit_data.get('id') for o in outfits):
-                        outfits.append(outfit_data)
-            
-            # 4. user subcollection
-            try:
-                user_outfits_ref = db.collection('users').document(user_id).collection('outfits')
-                for doc in user_outfits_ref.stream():
-                    outfit_data = doc.to_dict()
-                    timestamp = parse_timestamp_trends(
-                        outfit_data,
-                        ['createdAt', 'created_at', 'lastWorn', 'last_worn']
-                    )
-                    if timestamp and month_start_ts <= timestamp < month_end_ts:
-                        if not any(o.get('id') == outfit_data.get('id') for o in outfits):
-                            outfits.append(outfit_data)
-            except Exception:
-                pass
             
             # Count styles
             style_counter = Counter()
@@ -550,14 +562,10 @@ async def get_style_trends(
                 else:
                     style_counter['casual'] += 1
             
-            # If no outfits, use wardrobe data for this month
+            # If no outfits, use wardrobe data for this month (from pre-fetched data)
             if len(outfits) == 0:
-                wardrobe_ref = db.collection('wardrobe').where('userId', '==', user_id)
-                wardrobe_count = 0
-                for doc in wardrobe_ref.stream():
-                    item = doc.to_dict()
-                    wardrobe_count += 1
-                    
+                wardrobe_count = len(wardrobe_items)
+                for item in wardrobe_items:
                     # Infer style from wardrobe
                     style_tags = item.get('style', []) or item.get('styleTags', []) or []
                     occasion_tags = item.get('occasion', []) or item.get('occasionTags', []) or []
