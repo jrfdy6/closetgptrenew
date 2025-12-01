@@ -12,7 +12,6 @@ import {
   Zap, 
   Users, 
   Star,
-  Clock,
   TrendingUp,
   CheckCircle2,
   X
@@ -23,7 +22,6 @@ import { subscriptionService, type Subscription } from '@/lib/services/subscript
 interface PremiumTeaserProps {
   variant?: 'default' | 'compact' | 'banner';
   showSocialProof?: boolean;
-  showLimitedOffer?: boolean;
   className?: string;
   onClose?: () => void;
   dismissible?: boolean;
@@ -86,7 +84,6 @@ const SOCIAL_PROOF = {
 export default function PremiumTeaser({
   variant = 'default',
   showSocialProof = true,
-  showLimitedOffer = true,
   className = '',
   onClose,
   dismissible = true
@@ -96,7 +93,6 @@ export default function PremiumTeaser({
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState<string>('');
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
 
   // Check if user already has premium
@@ -112,35 +108,6 @@ export default function PremiumTeaser({
       setLoading(false);
     }
   }, [user]);
-
-  // Countdown timer for limited offer (24 hours from now)
-  useEffect(() => {
-    if (!showLimitedOffer) return;
-
-    const endTime = new Date();
-    endTime.setHours(endTime.getHours() + 24);
-
-    const updateTimer = () => {
-      const now = new Date();
-      const diff = endTime.getTime() - now.getTime();
-
-      if (diff <= 0) {
-        setTimeRemaining('');
-        return;
-      }
-
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-      setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-
-    return () => clearInterval(interval);
-  }, [showLimitedOffer]);
 
   // Rotate testimonials
   useEffect(() => {
@@ -216,9 +183,6 @@ export default function PremiumTeaser({
                 <Crown className="h-5 w-5" />
                 <div>
                   <p className="font-semibold">Try Premium Free for 30 Days</p>
-                  {showLimitedOffer && timeRemaining && (
-                    <p className="text-sm opacity-90">Limited time: {timeRemaining} left</p>
-                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -259,12 +223,6 @@ export default function PremiumTeaser({
               </div>
               <div>
                 <p className="font-semibold text-sm">Unlock Premium Features</p>
-                {showLimitedOffer && timeRemaining && (
-                  <p className="text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3 inline mr-1" />
-                    {timeRemaining} left
-                  </p>
-                )}
               </div>
             </div>
             <Button onClick={handleUpgrade} size="sm">
@@ -310,12 +268,6 @@ export default function PremiumTeaser({
               <CardDescription className="text-base">
                 30-day free trial • Cancel anytime
               </CardDescription>
-              {showLimitedOffer && timeRemaining && (
-                <Badge variant="destructive" className="mt-2">
-                  <Clock className="h-3 w-3 mr-1" />
-                  Limited time: {timeRemaining} left
-                </Badge>
-              )}
             </CardHeader>
 
             <CardContent className="space-y-6">
