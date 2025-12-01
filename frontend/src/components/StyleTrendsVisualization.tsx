@@ -216,13 +216,22 @@ export default function StyleTrendsVisualization({
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <LineChart className="h-5 w-5" />
-          Style Trends & Evolution
-        </CardTitle>
-        <CardDescription>
-          Track your style preferences over time
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <LineChart className="h-5 w-5" />
+              Style Trends & Evolution
+            </CardTitle>
+            <CardDescription>
+              Track your style preferences over time
+            </CardDescription>
+          </div>
+          {isUsingMockData && (
+            <Badge variant="outline" className="text-xs">
+              Sample Data
+            </Badge>
+          )}
+        </div>
       </CardHeader>
 
       <CardContent>
