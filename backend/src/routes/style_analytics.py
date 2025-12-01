@@ -471,55 +471,73 @@ async def get_style_trends(
                         continue
             return None
         
-        # OPTIMIZATION: Fetch all outfits once, then filter by month in memory
-        # This is much faster than querying for each month separately
-        logger.info(f"Fetching all outfits for user {user_id} to generate trends")
+        # OPTIMIZATION: Only fetch outfits from the last N months (where N = months parameter + 1 for safety)
+        # Calculate the earliest date we need
+        earliest_date = now - timedelta(days=30 * (months + 1))
+        earliest_timestamp = int(earliest_date.timestamp())
+        
+        logger.info(f"Fetching outfits for user {user_id} from last {months} months (since {earliest_date.date()})")
         all_outfits = []
         seen_ids = set()
         
-        # 1. outfit_history
+        # Helper to check if outfit is in our time range
+        def is_in_time_range(outfit_data, field_names):
+            timestamp = parse_timestamp_trends(outfit_data, field_names)
+            return timestamp and timestamp >= earliest_timestamp
+        
+        # 1. outfit_history - only fetch recent ones
         outfits_ref = db.collection('outfit_history').where('user_id', '==', user_id)
+        count = 0
         for doc in outfits_ref.stream():
             outfit_data = doc.to_dict()
-            outfit_id = outfit_data.get('id') or doc.id
-            if outfit_id not in seen_ids:
-                all_outfits.append(outfit_data)
-                seen_ids.add(outfit_id)
-        
-        # 2. outfits collection (user_id)
-        outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
-        for doc in outfits_ref.stream():
-            outfit_data = doc.to_dict()
-            outfit_id = outfit_data.get('id') or doc.id
-            if outfit_id not in seen_ids:
-                all_outfits.append(outfit_data)
-                seen_ids.add(outfit_id)
-        
-        # 3. outfits collection (userId)
-        outfits_ref = db.collection('outfits').where('userId', '==', user_id)
-        for doc in outfits_ref.stream():
-            outfit_data = doc.to_dict()
-            outfit_id = outfit_data.get('id') or doc.id
-            if outfit_id not in seen_ids:
-                all_outfits.append(outfit_data)
-                seen_ids.add(outfit_id)
-        
-        # 4. user subcollection
-        try:
-            user_outfits_ref = db.collection('users').document(user_id).collection('outfits')
-            for doc in user_outfits_ref.stream():
-                outfit_data = doc.to_dict()
+            # Quick check: if createdAt/date_worn exists and is too old, skip
+            if is_in_time_range(outfit_data, ['createdAt', 'created_at', 'date_worn', 'dateWorn']):
                 outfit_id = outfit_data.get('id') or doc.id
                 if outfit_id not in seen_ids:
                     all_outfits.append(outfit_data)
                     seen_ids.add(outfit_id)
+                    count += 1
+            # Limit to prevent infinite loops - if we've checked 5000 and found enough, stop
+            if count > 5000:
+                break
+        
+        # 2. outfits collection (user_id) - limit query
+        outfits_ref = db.collection('outfits').where('user_id', '==', user_id).limit(2000)
+        for doc in outfits_ref.stream():
+            outfit_data = doc.to_dict()
+            if is_in_time_range(outfit_data, ['createdAt', 'created_at', 'lastWorn', 'last_worn']):
+                outfit_id = outfit_data.get('id') or doc.id
+                if outfit_id not in seen_ids:
+                    all_outfits.append(outfit_data)
+                    seen_ids.add(outfit_id)
+        
+        # 3. outfits collection (userId) - limit query
+        outfits_ref = db.collection('outfits').where('userId', '==', user_id).limit(2000)
+        for doc in outfits_ref.stream():
+            outfit_data = doc.to_dict()
+            if is_in_time_range(outfit_data, ['createdAt', 'created_at', 'lastWorn', 'last_worn']):
+                outfit_id = outfit_data.get('id') or doc.id
+                if outfit_id not in seen_ids:
+                    all_outfits.append(outfit_data)
+                    seen_ids.add(outfit_id)
+        
+        # 4. user subcollection - limit query
+        try:
+            user_outfits_ref = db.collection('users').document(user_id).collection('outfits').limit(2000)
+            for doc in user_outfits_ref.stream():
+                outfit_data = doc.to_dict()
+                if is_in_time_range(outfit_data, ['createdAt', 'created_at', 'lastWorn', 'last_worn']):
+                    outfit_id = outfit_data.get('id') or doc.id
+                    if outfit_id not in seen_ids:
+                        all_outfits.append(outfit_data)
+                        seen_ids.add(outfit_id)
         except Exception as e:
             logger.warning(f"Could not fetch user subcollection: {e}")
         
-        logger.info(f"Fetched {len(all_outfits)} total outfits, now filtering by month")
+        logger.info(f"Fetched {len(all_outfits)} outfits in time range, now filtering by month")
         
-        # Get wardrobe data once (for fallback)
-        wardrobe_ref = db.collection('wardrobe').where('userId', '==', user_id)
+        # Get wardrobe data once (for fallback) - limit to reasonable amount
+        wardrobe_ref = db.collection('wardrobe').where('userId', '==', user_id).limit(1000)
         wardrobe_items = []
         for doc in wardrobe_ref.stream():
             wardrobe_items.append(doc.to_dict())
