@@ -52,7 +52,7 @@ export default function StyleTrendsVisualization({
   className = '',
   trendData: propTrendData,
   seasonalData: propSeasonalData,
-  months = 6,
+  months = 12,
   year
 }: StyleTrendsVisualizationProps) {
   const { user, loading: authLoading } = useFirebase();
