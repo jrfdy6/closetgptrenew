@@ -107,17 +107,24 @@ export default function StyleTrendsVisualization({
           setApiSucceeded(true); // Mark as succeeded since we have cached data from previous successful API call
         } else {
           console.log('🌐 [StyleTrends] Fetching trend data from API...', `${apiUrl}/api/style-trends?months=${months}`);
-          const trendResponse = await fetch(
-            `${apiUrl}/api/style-trends?months=${months}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
+          
+          try {
+            const trendResponse = await Promise.race([
+              fetch(
+                `${apiUrl}/api/style-trends?months=${months}`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  }
+                }
+              ),
+              new Promise<Response>((_, reject) => 
+                setTimeout(() => reject(new Error('Request timeout after 30 seconds')), 30000)
+              )
+            ]);
 
-          console.log('📡 [StyleTrends] Trend API response status:', trendResponse.status, trendResponse.statusText);
+            console.log('📡 [StyleTrends] Trend API response status:', trendResponse.status, trendResponse.statusText);
 
           if (trendResponse.ok) {
             const trendResult = await trendResponse.json();
@@ -139,6 +146,10 @@ export default function StyleTrendsVisualization({
             console.error('❌ [StyleTrends] Failed to fetch trend data:', trendResponse.status, trendResponse.statusText, errorText);
             setApiSucceeded(false);
           }
+          } catch (fetchError) {
+            console.error('❌ [StyleTrends] Fetch error (network/timeout):', fetchError);
+            setApiSucceeded(false);
+          }
         }
       }
 
@@ -158,14 +169,21 @@ export default function StyleTrendsVisualization({
             : `${apiUrl}/api/seasonal-comparison`;
           
           console.log('🌐 [StyleTrends] Seasonal API URL:', seasonalUrl);
-          const seasonalResponse = await fetch(seasonalUrl, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
+          
+          try {
+            const seasonalResponse = await Promise.race([
+              fetch(seasonalUrl, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                }
+              }),
+              new Promise<Response>((_, reject) => 
+                setTimeout(() => reject(new Error('Request timeout after 30 seconds')), 30000)
+              )
+            ]);
 
-          console.log('📡 [StyleTrends] Seasonal API response status:', seasonalResponse.status, seasonalResponse.statusText);
+            console.log('📡 [StyleTrends] Seasonal API response status:', seasonalResponse.status, seasonalResponse.statusText);
 
           if (seasonalResponse.ok) {
             const seasonalResult = await seasonalResponse.json();
@@ -187,13 +205,18 @@ export default function StyleTrendsVisualization({
             console.error('❌ [StyleTrends] Failed to fetch seasonal data:', seasonalResponse.status, seasonalResponse.statusText, errorText);
             setApiSucceeded(false);
           }
+          } catch (fetchError) {
+            console.error('❌ [StyleTrends] Seasonal fetch error (network/timeout):', fetchError);
+            setApiSucceeded(false);
+          }
         }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load trend data');
-      console.error('Error fetching trend data:', err);
+      console.error('❌ [StyleTrends] Error in fetchTrendData:', err);
     } finally {
       setLoading(false);
+      console.log('🏁 [StyleTrends] fetchTrendData completed, loading set to false');
     }
   };
 
