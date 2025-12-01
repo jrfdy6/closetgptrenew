@@ -93,8 +93,9 @@ app.add_middleware(
     allow_origins=allowed_origins,
     allow_origin_regex=r"^https://(www\.)?easyoutfitapp\.com$|^https://easyoutfit(app|frontend)-[a-z0-9-]*\.vercel\.app$|^https://easyoutfit-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"]
+    allow_methods=["*"],  # Allow all methods including OPTIONS
+    allow_headers=["*"],  # Allow all headers
+    expose_headers=["*"]  # Expose all headers in response
 )
 
 # Add explicit OPTIONS handler for all routes to ensure CORS headers are sent
@@ -106,21 +107,26 @@ async def options_handler(full_path: str, request: Request):
     # Get the origin from the request
     origin = request.headers.get("origin")
     
-    # Check if origin is in allowed origins
-    if origin in allowed_origins or any(re.match(pattern, origin) for pattern in [
-        r"^https://easyoutfit(app|frontend)-[a-z0-9-]*\.vercel\.app$",
-        r"^https://easyoutfit-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$",
-        r"^https://(www\.)?easyoutfitapp\.com$"
-    ]):
+    # Check if origin is in allowed origins or matches regex patterns
+    is_allowed = (
+        origin in allowed_origins or
+        (origin and re.match(r"^https://(www\.)?easyoutfitapp\.com$", origin)) or
+        (origin and re.match(r"^https://easyoutfit(app|frontend)-[a-z0-9-]*\.vercel\.app$", origin)) or
+        (origin and re.match(r"^https://easyoutfit-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$", origin))
+    )
+    
+    if is_allowed and origin:
         response = Response(status_code=200)
         response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
         response.headers["Access-Control-Max-Age"] = "86400"  # 24 hours
         response.headers["Access-Control-Allow-Credentials"] = "true"
+        logger.info(f"✅ CORS OPTIONS request allowed for origin: {origin}")
         return response
     else:
         # Return a simple response for non-allowed origins
+        logger.warning(f"⚠️ CORS OPTIONS request blocked for origin: {origin}")
         return Response(status_code=200)
 
 # ---------------- CORE MODULES IMPORT ----------------
