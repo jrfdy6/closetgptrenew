@@ -1,11 +1,13 @@
 # Railway configuration for background-processor worker service
-# This service uses Dockerfile builder
-# Root Directory is set to: backend/worker
-# Dockerfile path should be: Dockerfile (relative to root directory)
+# This service uses NIXPACKS builder (not Dockerfile)
+# Root Directory: backend/worker (cannot be changed)
+# Start Command: python main.py
+# 
+# NIXPACKS allows sys.path to resolve ../src at runtime, unlike Dockerfile
+# which restricts build context to backend/worker only.
 
 [build]
-builder = "dockerfile"
-dockerfilePath = "Dockerfile"
+builder = "NIXPACKS"
 
 [deploy]
 startCommand = "python main.py"
