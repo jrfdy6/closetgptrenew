@@ -491,7 +491,6 @@ export default function Dashboard() {
           <PremiumTeaser 
             variant="default" 
             showSocialProof={true}
-            showLimitedOffer={true}
             className="mb-8"
           />
 

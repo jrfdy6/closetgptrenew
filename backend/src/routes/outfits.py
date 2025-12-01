@@ -6145,12 +6145,24 @@ async def generate_outfit(
         if 'metadata' not in outfit_record or outfit_record.get('metadata') is None:
             outfit_record['metadata'] = {}
         
+        # CRITICAL: Ensure performance metadata is ALWAYS set before returning
+        # This ensures it's in the response even if it wasn't set earlier
+        if 'generation_duration' not in outfit_record.get('metadata', {}):
+            outfit_record['metadata']['generation_duration'] = round(generation_time, 2)
+        if 'is_slow' not in outfit_record.get('metadata', {}):
+            outfit_record['metadata']['is_slow'] = is_slow
+        if 'generation_attempts' not in outfit_record.get('metadata', {}):
+            outfit_record['metadata']['generation_attempts'] = generation_attempts
+        if 'cache_hit' not in outfit_record.get('metadata', {}):
+            outfit_record['metadata']['cache_hit'] = cache_hit
+        
         # Log metadata for debugging
         metadata_keys = list(outfit_record.get('metadata', {}).keys())
         logger.info(f"🔍 DEBUG: Final outfit_record metadata keys: {metadata_keys}")
         logger.info(f"🔍 DEBUG: generation_duration in metadata: {'generation_duration' in outfit_record.get('metadata', {})}")
         logger.info(f"🔍 DEBUG: is_slow in metadata: {'is_slow' in outfit_record.get('metadata', {})}")
         logger.info(f"🔍 DEBUG: cache_hit in metadata: {'cache_hit' in outfit_record.get('metadata', {})}")
+        logger.info(f"🔍 DEBUG: Full metadata dict: {outfit_record.get('metadata', {})}")
         
         # Record generation metrics for performance tracking
         try:
@@ -6168,10 +6180,17 @@ async def generate_outfit(
         
         # Return standardized outfit response - ensure metadata is included
         try:
-            response_data = OutfitResponse(**outfit_record)
+            # Create a copy to ensure metadata is preserved
+            response_dict = dict(outfit_record)
+            # Explicitly ensure metadata is a dict
+            if 'metadata' not in response_dict or response_dict.get('metadata') is None:
+                response_dict['metadata'] = {}
+            
+            response_data = OutfitResponse(**response_dict)
             # Double-check metadata is in response
             if hasattr(response_data, 'metadata') and response_data.metadata:
                 logger.info(f"✅ Response metadata includes: {list(response_data.metadata.keys())}")
+                logger.info(f"✅ Response metadata values: generation_duration={response_data.metadata.get('generation_duration')}, is_slow={response_data.metadata.get('is_slow')}")
             else:
                 logger.warning(f"⚠️ Response metadata is missing or empty!")
             return response_data

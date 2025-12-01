@@ -302,27 +302,27 @@ export default function SubscriptionPage() {
                             </Badge>
                           </div>
                         )}
-                        <Button
-                          onClick={() => handleUpgrade(tier.id)}
-                          disabled={isUpgrading || !canUpgrade}
-                          className="w-full"
-                          variant={tier.popular ? 'default' : 'outline'}
-                          size="lg"
-                        >
-                          {isUpgrading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Processing...
-                            </>
-                          ) : canUpgrade ? (
-                            <>
-                              <Zap className="mr-2 h-4 w-4" />
+                      <Button
+                        onClick={() => handleUpgrade(tier.id)}
+                        disabled={isUpgrading || !canUpgrade}
+                        className="w-full"
+                        variant={tier.popular ? 'default' : 'outline'}
+                        size="lg"
+                      >
+                        {isUpgrading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : canUpgrade ? (
+                          <>
+                            <Zap className="mr-2 h-4 w-4" />
                               {subscription?.trial_used ? 'Upgrade Now' : 'Start Free Trial'}
-                            </>
-                          ) : (
-                            'Downgrade'
-                          )}
-                        </Button>
+                          </>
+                        ) : (
+                          'Downgrade'
+                        )}
+                      </Button>
                       </div>
                     )}
                   </CardContent>
