@@ -5667,7 +5667,9 @@ async def generate_outfit(
                 )
                 
                 # Check cache
+                logger.info(f"🔍 DEBUG: Checking cache with key: {cache_key[:80]}...")
                 cached_outfit = cache_manager.get("outfit", cache_key)
+                logger.info(f"🔍 DEBUG: Cache result: {'HIT' if cached_outfit else 'MISS'}")
                 if cached_outfit:
                     # Validate cached outfit - ensure all items still exist
                     is_valid = await _validate_cached_outfit(cached_outfit, current_user_id, current_wardrobe)
@@ -5859,8 +5861,10 @@ async def generate_outfit(
                             )
                             
                             # Store in cache with 24-hour TTL (86400 seconds)
+                            logger.info(f"🔍 DEBUG: Storing in cache with key: {cache_key[:80]}...")
                             cache_manager.set("outfit", cache_key, outfit, ttl=86400)
                             logger.info(f"💾 Cached outfit generation: {cache_key[:50]}...")
+                            logger.info(f"🔍 DEBUG: Outfit metadata before caching: {list(outfit.get('metadata', {}).keys()) if outfit.get('metadata') else 'None'}")
                             
                             # Add cache metadata
                             if 'metadata' not in outfit:
@@ -6137,6 +6141,17 @@ async def generate_outfit(
             outfit_record['metadata']['generation_duration'] = 0.0
             outfit_record['metadata']['is_slow'] = False
         
+        # Ensure metadata is properly set before returning
+        if 'metadata' not in outfit_record or outfit_record.get('metadata') is None:
+            outfit_record['metadata'] = {}
+        
+        # Log metadata for debugging
+        metadata_keys = list(outfit_record.get('metadata', {}).keys())
+        logger.info(f"🔍 DEBUG: Final outfit_record metadata keys: {metadata_keys}")
+        logger.info(f"🔍 DEBUG: generation_duration in metadata: {'generation_duration' in outfit_record.get('metadata', {})}")
+        logger.info(f"🔍 DEBUG: is_slow in metadata: {'is_slow' in outfit_record.get('metadata', {})}")
+        logger.info(f"🔍 DEBUG: cache_hit in metadata: {'cache_hit' in outfit_record.get('metadata', {})}")
+        
         # Record generation metrics for performance tracking
         try:
             strategy = safe_get_metadata(outfit_record, 'generation_strategy', 'robust')
@@ -6151,8 +6166,20 @@ async def generate_outfit(
         except Exception as metrics_error:
             logger.warning(f"Failed to log generation metrics: {metrics_error}")
         
-        # Return standardized outfit response
-        return OutfitResponse(**outfit_record)
+        # Return standardized outfit response - ensure metadata is included
+        try:
+            response_data = OutfitResponse(**outfit_record)
+            # Double-check metadata is in response
+            if hasattr(response_data, 'metadata') and response_data.metadata:
+                logger.info(f"✅ Response metadata includes: {list(response_data.metadata.keys())}")
+            else:
+                logger.warning(f"⚠️ Response metadata is missing or empty!")
+            return response_data
+        except Exception as response_error:
+            logger.error(f"❌ Error creating OutfitResponse: {response_error}")
+            logger.error(f"❌ outfit_record keys: {list(outfit_record.keys())}")
+            logger.error(f"❌ outfit_record metadata: {outfit_record.get('metadata')}")
+            raise
 
     except HTTPException:
         # Re-raise HTTP exceptions as-is
