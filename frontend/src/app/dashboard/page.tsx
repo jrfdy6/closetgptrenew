@@ -35,6 +35,7 @@ import WardrobeInsightsCard from '@/components/WardrobeInsightsCard';
 import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerator";
 import { useAutoWeather } from '@/hooks/useWeather';
 import UsageIndicator from '@/components/UsageIndicator';
+import PremiumTeaser from '@/components/PremiumTeaser';
 
 type WardrobeCategory = "top" | "bottom" | "shoe" | "accessory" | "jacket";
 
@@ -485,6 +486,14 @@ export default function Dashboard() {
         <div className="mb-6 sm:mb-8">
           {/* Usage Indicator - Full */}
           <UsageIndicator className="mb-8" />
+
+          {/* Premium Teaser */}
+          <PremiumTeaser 
+            variant="default" 
+            showSocialProof={true}
+            showLimitedOffer={true}
+            className="mb-8"
+          />
 
           <WardrobeInsightsCard
             userId={user.uid}
