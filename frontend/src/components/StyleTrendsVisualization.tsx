@@ -1,8 +1,11 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useFirebase } from '@/lib/firebase-context';
+import { performanceService } from '@/lib/services/performanceService';
 import { 
   TrendingUp, 
   Calendar, 
@@ -11,7 +14,8 @@ import {
   PieChart,
   ArrowUp,
   ArrowDown,
-  Minus
+  Minus,
+  RefreshCw
 } from 'lucide-react';
 
 interface TrendData {
@@ -40,15 +44,103 @@ interface StyleTrendsVisualizationProps {
   className?: string;
   trendData?: TrendData[];
   seasonalData?: SeasonalComparison[];
+  months?: number;
+  year?: number;
 }
 
 export default function StyleTrendsVisualization({
   className = '',
-  trendData = [],
-  seasonalData = []
+  trendData: propTrendData,
+  seasonalData: propSeasonalData,
+  months = 6,
+  year
 }: StyleTrendsVisualizationProps) {
-  // Generate mock data if none provided
-  const mockTrendData: TrendData[] = trendData.length > 0 ? trendData : [
+  const { user } = useFirebase();
+  const [trendData, setTrendData] = useState<TrendData[]>(propTrendData || []);
+  const [seasonalData, setSeasonalData] = useState<SeasonalComparison[]>(propSeasonalData || []);
+  const [loading, setLoading] = useState(!propTrendData && !propSeasonalData);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if ((!propTrendData || !propSeasonalData) && user) {
+      fetchTrendData();
+    }
+  }, [user, months, year]);
+
+  const fetchTrendData = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const token = await user.getIdToken();
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-production.up.railway.app';
+
+      // Fetch trend data
+      if (!propTrendData) {
+        const trendCacheKey = `style-trends:${user.uid}:${months}`;
+        const cachedTrends = performanceService.get<{ trendData: TrendData[] }>(trendCacheKey);
+        
+        if (cachedTrends) {
+          setTrendData(cachedTrends.trendData);
+        } else {
+          const trendResponse = await fetch(
+            `${apiUrl}/api/style-trends?months=${months}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+
+          if (trendResponse.ok) {
+            const trendResult = await trendResponse.json();
+            const data = trendResult.trendData || [];
+            setTrendData(data);
+            performanceService.set(trendCacheKey, { trendData: data }, 60 * 60 * 1000); // Cache 1 hour
+          }
+        }
+      }
+
+      // Fetch seasonal data
+      if (!propSeasonalData) {
+        const seasonalCacheKey = `seasonal-comparison:${user.uid}:${year || 'current'}`;
+        const cachedSeasonal = performanceService.get<{ seasonalData: SeasonalComparison[] }>(seasonalCacheKey);
+        
+        if (cachedSeasonal) {
+          setSeasonalData(cachedSeasonal.seasonalData);
+        } else {
+          const seasonalUrl = year 
+            ? `${apiUrl}/api/seasonal-comparison?year=${year}`
+            : `${apiUrl}/api/seasonal-comparison`;
+          
+          const seasonalResponse = await fetch(seasonalUrl, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (seasonalResponse.ok) {
+            const seasonalResult = await seasonalResponse.json();
+            const data = seasonalResult.seasonalData || [];
+            setSeasonalData(data);
+            performanceService.set(seasonalCacheKey, { seasonalData: data }, 60 * 60 * 1000); // Cache 1 hour
+          }
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load trend data');
+      console.error('Error fetching trend data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Generate mock data only if no real data and not loading
+  const mockTrendData: TrendData[] = trendData.length > 0 ? trendData : (loading ? [] : [
     { period: 'Jan', casual: 12, business: 8, formal: 2, athletic: 3, total: 25 },
     { period: 'Feb', casual: 15, business: 6, formal: 1, athletic: 4, total: 26 },
     { period: 'Mar', casual: 18, business: 5, formal: 2, athletic: 2, total: 27 },
@@ -57,7 +149,7 @@ export default function StyleTrendsVisualization({
     { period: 'Jun', casual: 25, business: 2, formal: 0, athletic: 6, total: 33 },
   ];
 
-  const mockSeasonalData: SeasonalComparison[] = seasonalData.length > 0 ? seasonalData : [
+  const mockSeasonalData: SeasonalComparison[] = seasonalData.length > 0 ? seasonalData : (loading ? [] : [
     {
       season: 'Winter',
       year: 2024,
@@ -105,7 +197,12 @@ export default function StyleTrendsVisualization({
     }
   };
 
-  const maxValue = Math.max(...mockTrendData.map(d => d.total));
+  // Use real data if available, otherwise use mock data
+  const displayTrendData = trendData.length > 0 ? trendData : mockTrendData;
+  const displaySeasonalData = seasonalData.length > 0 ? seasonalData : mockSeasonalData;
+  const isUsingMockData = trendData.length === 0 && seasonalData.length === 0 && !loading;
+  
+  const maxValue = displayTrendData.length > 0 ? Math.max(...displayTrendData.map(d => d.total)) : 0;
 
   return (
     <Card className={className}>
@@ -136,8 +233,8 @@ export default function StyleTrendsVisualization({
             {/* Trend Summary */}
             <div className="grid grid-cols-4 gap-2">
               {['casual', 'business', 'formal', 'athletic'].map((style) => {
-                const first = mockTrendData[0]?.[style as keyof TrendData] as number || 0;
-                const last = mockTrendData[mockTrendData.length - 1]?.[style as keyof TrendData] as number || 0;
+                const first = displayTrendData[0]?.[style as keyof TrendData] as number || 0;
+                const last = displayTrendData[displayTrendData.length - 1]?.[style as keyof TrendData] as number || 0;
                 const trend = calculateTrend(last, first);
                 
                 return (
@@ -163,8 +260,8 @@ export default function StyleTrendsVisualization({
                 Monthly Breakdown
               </h3>
               <div className="space-y-3">
-                {mockTrendData.map((data, index) => {
-                  const previous = mockTrendData[index - 1];
+                {displayTrendData.map((data, index) => {
+                  const previous = displayTrendData[index - 1];
                   const trend = previous ? calculateTrend(data.total, previous.total) : 'stable';
                   
                   return (
@@ -231,12 +328,12 @@ export default function StyleTrendsVisualization({
               <div className="space-y-2">
                 <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded">
                   <div className="text-xs font-medium text-green-700 dark:text-green-300">
-                    ↑ Casual style increased by {mockTrendData[mockTrendData.length - 1].casual - mockTrendData[0].casual} outfits
+                    ↑ Casual style increased by {displayTrendData.length > 0 ? displayTrendData[displayTrendData.length - 1].casual - displayTrendData[0].casual : 0} outfits
                   </div>
                 </div>
                 <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
                   <div className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                    Your most consistent style is Casual (worn {Math.round((mockTrendData.reduce((sum, d) => sum + d.casual, 0) / mockTrendData.length))} times/month on average)
+                    Your most consistent style is Casual (worn {displayTrendData.length > 0 ? Math.round((displayTrendData.reduce((sum, d) => sum + d.casual, 0) / displayTrendData.length)) : 0} times/month on average)
                   </div>
                 </div>
               </div>
@@ -245,7 +342,7 @@ export default function StyleTrendsVisualization({
 
           <TabsContent value="seasonal" className="space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-4">
-              {mockSeasonalData.map((season) => {
+              {displaySeasonalData.map((season) => {
                 const total = Object.values(season.styleBreakdown).reduce((a, b) => a + b, 0);
                 
                 return (
@@ -291,8 +388,8 @@ export default function StyleTrendsVisualization({
             <div className="pt-4 border-t">
               <h3 className="text-sm font-semibold mb-3">Seasonal Comparison</h3>
               <div className="space-y-2">
-                {mockSeasonalData.map((season, index) => {
-                  const previous = mockSeasonalData[index - 1];
+                {displaySeasonalData.map((season, index) => {
+                  const previous = displaySeasonalData[index - 1];
                   if (!previous) return null;
                   
                   const currentTotal = Object.values(season.styleBreakdown).reduce((a, b) => a + b, 0);
