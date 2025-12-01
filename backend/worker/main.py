@@ -76,15 +76,15 @@ try:
     print("✅ Successfully imported from services.subscription_utils", file=sys.stderr, flush=True)
 except ImportError as e:
     # Fallback: try old import path
-try:
-    from src.services.subscription_utils import (
-        DEFAULT_SUBSCRIPTION_TIER,
-        TIER_LIMITS,
-        WEEKLY_ALLOWANCE_SECONDS,
-        parse_iso8601,
-        format_iso8601,
-        subscription_defaults,
-    )
+    try:
+        from src.services.subscription_utils import (
+            DEFAULT_SUBSCRIPTION_TIER,
+            TIER_LIMITS,
+            WEEKLY_ALLOWANCE_SECONDS,
+            parse_iso8601,
+            format_iso8601,
+            subscription_defaults,
+        )
         print("✅ Successfully imported from src.services.subscription_utils (fallback)", file=sys.stderr, flush=True)
     except ImportError:
         # Last resort: try local subscription_utils
