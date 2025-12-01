@@ -8,6 +8,7 @@ Runs alpha matting on uploaded wardrobe items in the background
 import sys
 print("🔍 Worker script starting...", file=sys.stderr, flush=True)
 print("🔍 Python version:", sys.version, file=sys.stderr, flush=True)
+print("🔍 Root directory fix applied - backend/worker can now access backend/src/", file=sys.stderr, flush=True)
 
 import base64
 import os
