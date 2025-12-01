@@ -4,7 +4,12 @@
 The `background-processor` service was failing because Railway builds with `backend/worker` as the root directory, preventing Python from accessing `backend/src/` for imports like `src.services.subscription_utils`.
 
 ## Solution ✅ IMPLEMENTED
-**Option 1: Dynamic sys.path manipulation** - Modified `worker/main.py` to add `backend/src/` to Python's import path at runtime, allowing imports without changing Railway dashboard settings.
+**Option 1: Dynamic sys.path manipulation + NIXPACKS builder** - Modified `worker/main.py` to add `backend/src/` to Python's import path at runtime, and switched to NIXPACKS builder (instead of Dockerfile) to avoid build context restrictions.
+
+**Why NIXPACKS:**
+- Dockerfile builder restricts build context to `backend/worker/` only
+- Cannot access `../src/` from parent directories
+- NIXPACKS doesn't have this restriction and allows `sys.path` to resolve `../src/` at runtime
 
 **Constraint:** Railway root directory and start command cannot be changed.
 
@@ -100,9 +105,14 @@ restartPolicyMaxRetries = 10
 **Note:** The Railway dashboard should have:
 - **Root Directory:** `backend/worker` (unchanged)
 - **Start Command:** `python main.py` (unchanged)
-- **Builder:** `NIXPACKS` or "Auto-detect"
+- **Builder:** `NIXPACKS` (set in railway.toml, or manually set in dashboard)
 
-The fix is implemented in code, not configuration.
+**Why not Dockerfile:**
+- Dockerfile build context is restricted to `backend/worker/` only
+- Cannot access `../src/` from parent directories
+- NIXPACKS allows `sys.path` to resolve `../src/` at runtime
+
+The fix is implemented in code (sys.path manipulation) + builder choice (NIXPACKS).
 
 ---
 
