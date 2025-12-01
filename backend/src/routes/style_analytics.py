@@ -59,53 +59,113 @@ async def get_style_report(
         
         logger.info(f"Generating style report for user {user_id}, month {target_year}-{target_month:02d}")
         
-        # Fetch outfit history for the month
-        outfits_ref = db.collection('outfit_history').where('user_id', '==', user_id)
         outfits = []
         
-        for doc in outfits_ref.stream():
-            outfit_data = doc.to_dict()
-            created_at = outfit_data.get('createdAt') or outfit_data.get('created_at')
-            
-            # Handle both timestamp formats
-            if isinstance(created_at, int):
-                timestamp = created_at
-            elif isinstance(created_at, str):
-                try:
-                    dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                    timestamp = int(dt.timestamp())
-                except:
+        # Helper function to parse timestamp
+        def parse_timestamp(data, field_names):
+            for field in field_names:
+                value = data.get(field)
+                if value is None:
                     continue
-            else:
-                continue
-            
-            # Filter by month
-            if month_start_ts <= timestamp < month_end_ts:
-                outfits.append(outfit_data)
-        
-        logger.info(f"Found {len(outfits)} outfits in outfit_history for the month")
-        
-        # Also check generated outfits (outfits collection) if outfit_history is empty
-        if len(outfits) == 0:
-            outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
-            for doc in outfits_ref.stream():
-                outfit_data = doc.to_dict()
-                created_at = outfit_data.get('createdAt') or outfit_data.get('created_at')
-                
-                if isinstance(created_at, int):
-                    timestamp = created_at
-                elif isinstance(created_at, str):
+                if isinstance(value, int):
+                    return value
+                elif isinstance(value, str):
                     try:
-                        dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                        timestamp = int(dt.timestamp())
+                        dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                        return int(dt.timestamp())
                     except:
                         continue
-                else:
-                    continue
-                
-                if month_start_ts <= timestamp < month_end_ts:
+            return None
+        
+        # Helper function to check if outfit matches user and month
+        def matches_month(outfit_data, user_field_names):
+            # Check user ID (try multiple field names)
+            outfit_user_id = None
+            for field in user_field_names:
+                outfit_user_id = outfit_data.get(field)
+                if outfit_user_id:
+                    break
+            
+            if outfit_user_id != user_id:
+                return False
+            
+            # Check timestamp
+            timestamp = parse_timestamp(
+                outfit_data, 
+                ['createdAt', 'created_at', 'date_worn', 'dateWorn', 'lastWorn', 'last_worn']
+            )
+            if timestamp is None:
+                return False
+            
+            return month_start_ts <= timestamp < month_end_ts
+        
+        # 1. Check outfit_history collection (marked as worn)
+        outfits_ref = db.collection('outfit_history').where('user_id', '==', user_id)
+        for doc in outfits_ref.stream():
+            outfit_data = doc.to_dict()
+            if matches_month(outfit_data, ['user_id']):
+                outfits.append(outfit_data)
+        logger.info(f"Found {len(outfits)} outfits in outfit_history")
+        
+        # 2. Check outfits collection with user_id field
+        outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
+        for doc in outfits_ref.stream():
+            outfit_data = doc.to_dict()
+            if matches_month(outfit_data, ['user_id']):
+                # Avoid duplicates
+                if not any(o.get('id') == outfit_data.get('id') for o in outfits):
                     outfits.append(outfit_data)
-            logger.info(f"Found {len(outfits)} generated outfits for the month")
+        logger.info(f"Found {len(outfits)} total outfits (including outfits collection)")
+        
+        # 3. Check outfits collection with userId field (alternative field name)
+        outfits_ref = db.collection('outfits').where('userId', '==', user_id)
+        for doc in outfits_ref.stream():
+            outfit_data = doc.to_dict()
+            if matches_month(outfit_data, ['userId', 'user_id']):
+                # Avoid duplicates
+                if not any(o.get('id') == outfit_data.get('id') for o in outfits):
+                    outfits.append(outfit_data)
+        logger.info(f"Found {len(outfits)} total outfits (including userId field)")
+        
+        # 4. Check user subcollection: users/{user_id}/outfits
+        try:
+            user_outfits_ref = db.collection('users').document(user_id).collection('outfits')
+            for doc in user_outfits_ref.stream():
+                outfit_data = doc.to_dict()
+                timestamp = parse_timestamp(
+                    outfit_data,
+                    ['createdAt', 'created_at', 'date_worn', 'dateWorn', 'lastWorn', 'last_worn']
+                )
+                if timestamp and month_start_ts <= timestamp < month_end_ts:
+                    # Avoid duplicates
+                    if not any(o.get('id') == outfit_data.get('id') for o in outfits):
+                        outfits.append(outfit_data)
+            logger.info(f"Found {len(outfits)} total outfits (including user subcollection)")
+        except Exception as e:
+            logger.warning(f"Could not check user subcollection: {e}")
+        
+        # 5. Check daily_outfit_suggestions
+        try:
+            suggestions_ref = db.collection('daily_outfit_suggestions').where('user_id', '==', user_id)
+            for doc in suggestions_ref.stream():
+                suggestion_data = doc.to_dict()
+                timestamp = parse_timestamp(
+                    suggestion_data,
+                    ['createdAt', 'created_at', 'date', 'suggestion_date']
+                )
+                if timestamp and month_start_ts <= timestamp < month_end_ts:
+                    # Convert suggestion to outfit format if it has outfit data
+                    if 'outfit' in suggestion_data:
+                        outfit_data = suggestion_data.get('outfit', {})
+                        outfit_data['id'] = outfit_data.get('id') or doc.id
+                        outfit_data['user_id'] = user_id
+                        if not any(o.get('id') == outfit_data.get('id') for o in outfits):
+                            outfits.append(outfit_data)
+            logger.info(f"Found {len(outfits)} total outfits (including daily suggestions)")
+        except Exception as e:
+            logger.warning(f"Could not check daily suggestions: {e}")
+        
+        logger.info(f"Total unique outfits found for the month: {len(outfits)}")
         
         # If still no outfits, analyze wardrobe and profile data
         use_wardrobe_fallback = len(outfits) == 0
@@ -192,24 +252,75 @@ async def get_style_report(
         prev_month_start_ts = int(prev_month_start.timestamp())
         prev_month_end_ts = int(prev_month_end.timestamp())
         
+        # Get previous month outfits from all sources
         prev_outfits = []
-        for doc in outfits_ref.stream():
-            outfit_data = doc.to_dict()
-            created_at = outfit_data.get('createdAt') or outfit_data.get('created_at')
-            
-            if isinstance(created_at, int):
-                timestamp = created_at
-            elif isinstance(created_at, str):
-                try:
-                    dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                    timestamp = int(dt.timestamp())
-                except:
+        
+        # Helper function to parse timestamp (reuse from above)
+        def parse_timestamp_prev(data, field_names):
+            for field in field_names:
+                value = data.get(field)
+                if value is None:
                     continue
-            else:
-                continue
-            
-            if prev_month_start_ts <= timestamp < prev_month_end_ts:
+                if isinstance(value, int):
+                    return value
+                elif isinstance(value, str):
+                    try:
+                        dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                        return int(dt.timestamp())
+                    except:
+                        continue
+            return None
+        
+        # Check all sources for previous month
+        # 1. outfit_history
+        prev_outfits_ref = db.collection('outfit_history').where('user_id', '==', user_id)
+        for doc in prev_outfits_ref.stream():
+            outfit_data = doc.to_dict()
+            timestamp = parse_timestamp_prev(
+                outfit_data,
+                ['createdAt', 'created_at', 'date_worn', 'dateWorn']
+            )
+            if timestamp and prev_month_start_ts <= timestamp < prev_month_end_ts:
                 prev_outfits.append(outfit_data)
+        
+        # 2. outfits collection (user_id)
+        prev_outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
+        for doc in prev_outfits_ref.stream():
+            outfit_data = doc.to_dict()
+            timestamp = parse_timestamp_prev(
+                outfit_data,
+                ['createdAt', 'created_at', 'lastWorn', 'last_worn']
+            )
+            if timestamp and prev_month_start_ts <= timestamp < prev_month_end_ts:
+                if not any(o.get('id') == outfit_data.get('id') for o in prev_outfits):
+                    prev_outfits.append(outfit_data)
+        
+        # 3. outfits collection (userId)
+        prev_outfits_ref = db.collection('outfits').where('userId', '==', user_id)
+        for doc in prev_outfits_ref.stream():
+            outfit_data = doc.to_dict()
+            timestamp = parse_timestamp_prev(
+                outfit_data,
+                ['createdAt', 'created_at', 'lastWorn', 'last_worn']
+            )
+            if timestamp and prev_month_start_ts <= timestamp < prev_month_end_ts:
+                if not any(o.get('id') == outfit_data.get('id') for o in prev_outfits):
+                    prev_outfits.append(outfit_data)
+        
+        # 4. user subcollection
+        try:
+            prev_user_outfits_ref = db.collection('users').document(user_id).collection('outfits')
+            for doc in prev_user_outfits_ref.stream():
+                outfit_data = doc.to_dict()
+                timestamp = parse_timestamp_prev(
+                    outfit_data,
+                    ['createdAt', 'created_at', 'lastWorn', 'last_worn']
+                )
+                if timestamp and prev_month_start_ts <= timestamp < prev_month_end_ts:
+                    if not any(o.get('id') == outfit_data.get('id') for o in prev_outfits):
+                        prev_outfits.append(outfit_data)
+        except Exception:
+            pass
         
         prev_style_counter = Counter()
         for outfit in prev_outfits:
@@ -468,30 +579,95 @@ async def get_seasonal_comparison(
             outfits = []
             color_counter = Counter()
             
+            def parse_timestamp_seasonal(data, field_names):
+                for field in field_names:
+                    value = data.get(field)
+                    if value is None:
+                        continue
+                    if isinstance(value, int):
+                        return value
+                    elif isinstance(value, str):
+                        try:
+                            dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                            return int(dt.timestamp())
+                        except:
+                            continue
+                return None
+            
+            # Check all outfit sources for this season
+            # 1. outfit_history
+            outfits_ref = db.collection('outfit_history').where('user_id', '==', user_id)
             for doc in outfits_ref.stream():
                 outfit_data = doc.to_dict()
-                created_at = outfit_data.get('createdAt') or outfit_data.get('created_at')
-                
-                if isinstance(created_at, int):
-                    timestamp = created_at
-                elif isinstance(created_at, str):
-                    try:
-                        dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                        timestamp = int(dt.timestamp())
-                    except:
-                        continue
-                else:
-                    continue
-                
-                if start_ts <= timestamp < end_ts:
+                timestamp = parse_timestamp_seasonal(
+                    outfit_data,
+                    ['createdAt', 'created_at', 'date_worn', 'dateWorn']
+                )
+                if timestamp and start_ts <= timestamp < end_ts:
                     outfits.append(outfit_data)
-                    
                     # Count colors
                     for item in outfit_data.get('items', []):
                         if isinstance(item, dict):
                             color = item.get('color', '').strip()
                             if color:
                                 color_counter[color] += 1
+            
+            # 2. outfits collection (user_id)
+            outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
+            for doc in outfits_ref.stream():
+                outfit_data = doc.to_dict()
+                timestamp = parse_timestamp_seasonal(
+                    outfit_data,
+                    ['createdAt', 'created_at', 'lastWorn', 'last_worn']
+                )
+                if timestamp and start_ts <= timestamp < end_ts:
+                    if not any(o.get('id') == outfit_data.get('id') for o in outfits):
+                        outfits.append(outfit_data)
+                        # Count colors
+                        for item in outfit_data.get('items', []):
+                            if isinstance(item, dict):
+                                color = item.get('color', '').strip()
+                                if color:
+                                    color_counter[color] += 1
+            
+            # 3. outfits collection (userId)
+            outfits_ref = db.collection('outfits').where('userId', '==', user_id)
+            for doc in outfits_ref.stream():
+                outfit_data = doc.to_dict()
+                timestamp = parse_timestamp_seasonal(
+                    outfit_data,
+                    ['createdAt', 'created_at', 'lastWorn', 'last_worn']
+                )
+                if timestamp and start_ts <= timestamp < end_ts:
+                    if not any(o.get('id') == outfit_data.get('id') for o in outfits):
+                        outfits.append(outfit_data)
+                        # Count colors
+                        for item in outfit_data.get('items', []):
+                            if isinstance(item, dict):
+                                color = item.get('color', '').strip()
+                                if color:
+                                    color_counter[color] += 1
+            
+            # 4. user subcollection
+            try:
+                user_outfits_ref = db.collection('users').document(user_id).collection('outfits')
+                for doc in user_outfits_ref.stream():
+                    outfit_data = doc.to_dict()
+                    timestamp = parse_timestamp_seasonal(
+                        outfit_data,
+                        ['createdAt', 'created_at', 'lastWorn', 'last_worn']
+                    )
+                    if timestamp and start_ts <= timestamp < end_ts:
+                        if not any(o.get('id') == outfit_data.get('id') for o in outfits):
+                            outfits.append(outfit_data)
+                            # Count colors
+                            for item in outfit_data.get('items', []):
+                                if isinstance(item, dict):
+                                    color = item.get('color', '').strip()
+                                    if color:
+                                        color_counter[color] += 1
+            except Exception:
+                pass
             
             # Count styles
             style_counter = Counter()
