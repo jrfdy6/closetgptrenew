@@ -219,28 +219,31 @@ class ExistingDataPersonalizationEngine:
             outfits_ref = self.db.collection('outfits')
             # Try both user_id and userId fields, with limits
             all_docs = []
+            seen_ids = set()
             try:
                 docs1 = outfits_ref.where('user_id', '==', user_id).limit(500).stream()
                 for doc in docs1:
-                    all_docs.append(doc)
+                    if doc.id not in seen_ids:
+                        all_docs.append(doc)
+                        seen_ids.add(doc.id)
             except:
                 pass
             try:
                 docs2 = outfits_ref.where('userId', '==', user_id).limit(500).stream()
                 for doc in docs2:
                     # Avoid duplicates
-                    if not any(d.id == doc.id for d in all_docs):
+                    if doc.id not in seen_ids:
                         all_docs.append(doc)
+                        seen_ids.add(doc.id)
             except:
                 pass
-            docs = iter(all_docs)
             
             preferred_colors = []
             preferred_styles = []
             preferred_occasions = []
             interactions = 0
             
-            for doc in docs:
+            for doc in all_docs:
                 outfit_data = doc.to_dict()
                 interactions += 1
                 
@@ -340,9 +343,9 @@ class ExistingDataPersonalizationEngine:
     async def _get_item_analytics(self, user_id: str) -> Dict[str, Any]:
         """Get item analytics data"""
         try:
-            # Get item analytics
+            # Get item analytics - limit to 500 to prevent slow queries
             analytics_ref = self.db.collection('item_analytics')
-            docs = analytics_ref.where('user_id', '==', user_id).stream()
+            docs = analytics_ref.where('user_id', '==', user_id).limit(500).stream()
             
             interactions = 0
             for doc in docs:
