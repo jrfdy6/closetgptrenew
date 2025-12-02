@@ -3152,7 +3152,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         # Find base item object if baseItemId is provided
         base_item_obj = None
         if (req.baseItemId if req else None):
-        base_item_obj = next((item for item in wardrobe_items if item.get("id") == (req.baseItemId if req else None)), None)
+            base_item_obj = next((item for item in wardrobe_items if item.get("id") == (req.baseItemId if req else None)), None)
             if base_item_obj:
                 logger.info(f"🎯 DEBUG: Found base item object for validation: {base_item_obj.get('name', 'Unknown')}")
             else:
