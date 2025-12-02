@@ -1100,11 +1100,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             
             # Update wardrobe_items with hydrated items
             wardrobe_items = hydrated_wardrobe_items
-                
-                # Initialize clothing_items list
-                clothing_items = []
-                
-                if ClothingItem is None:
+            
+            # Initialize clothing_items list
+            clothing_items = []
+            
+            if ClothingItem is None:
                     logger.warning(f"⚠️ ClothingItem not available, skipping validation")
                     clothing_items = hydrated_wardrobe_items  # Use raw items if ClothingItem not available
                 else:
