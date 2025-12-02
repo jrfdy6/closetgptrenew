@@ -1,0 +1,92 @@
+{
+  "test_suite": "Outfit Generation Pipeline",
+  "timestamp": "2025-12-02T15:20:09.383679",
+  "backend_url": "https://closetgptrenew-production.up.railway.app",
+  "results": [
+    {
+      "test_name": "1. Health Check",
+      "status": "PASS",
+      "timestamp": "2025-12-02T15:20:09.107068",
+      "details": {
+        "response": "Outfits router is working!",
+        "version": "v5.0-FORCE-REDEPLOY",
+        "firebase_available": false
+      }
+    },
+    {
+      "test_name": "2. Route Registration",
+      "status": "PASS",
+      "timestamp": "2025-12-02T15:20:09.218037",
+      "details": {
+        "total_routes": 18,
+        "has_generate_route": true,
+        "has_create_route": true,
+        "has_stats_route": true
+      }
+    },
+    {
+      "test_name": "3. Generation Endpoint",
+      "status": "FAIL",
+      "timestamp": "2025-12-02T15:20:09.268929",
+      "details": {
+        "error": "Unexpected HTTP 403: Forbidden"
+      }
+    },
+    {
+      "test_name": "4. Service Import",
+      "status": "WARN",
+      "timestamp": "2025-12-02T15:20:09.314933",
+      "details": {
+        "error": "No module named 'fastapi'",
+        "note": "Cannot verify locally (may work in production)"
+      }
+    },
+    {
+      "test_name": "5. Routes File Structure",
+      "status": "PASS",
+      "timestamp": "2025-12-02T15:20:09.319222",
+      "details": {
+        "has_generate_route": true,
+        "uses_robust_service": true,
+        "no_fallbacks_detected": true,
+        "file_size": "70095 characters"
+      }
+    },
+    {
+      "test_name": "6. Generation Service Structure",
+      "status": "WARN",
+      "timestamp": "2025-12-02T15:20:09.321244",
+      "details": {
+        "phases_found": [
+          "style_filtering",
+          "validation",
+          "scoring",
+          "retry_logic"
+        ],
+        "potentially_missing": [
+          "weather_filtering",
+          "composition_building"
+        ],
+        "note": "Some phase indicators not detected (may use different naming)"
+      }
+    },
+    {
+      "test_name": "7. No Fallback Imports",
+      "status": "PASS",
+      "timestamp": "2025-12-02T15:20:09.322383",
+      "details": {
+        "clean_imports": true,
+        "note": "No fallback generator imports detected"
+      }
+    },
+    {
+      "test_name": "8. Deployment Status",
+      "status": "PASS",
+      "timestamp": "2025-12-02T15:20:09.383176",
+      "details": {
+        "version": "v5.0-FORCE-REDEPLOY",
+        "note": "Recent deployment detected"
+      }
+    }
+  ]
+}
