@@ -1085,8 +1085,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items = {wardrobe_items}")
             # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items type = {type(wardrobe_items)}")
             # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items length = {len(wardrobe_items) if wardrobe_items else 'None'}")
-                try:
-                    from ..utils.item_hydration import hydrate_outfit_items
+            try:
+                from ..utils.item_hydration import hydrate_outfit_items
                     hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
                     logger.info(f"✅ HYDRATED {len(hydrated_wardrobe_items)} items successfully")
                 # print(f"🔍 DEBUG HYDRATOR CALL: Successfully hydrated {len(hydrated_wardrobe_items)} items")
