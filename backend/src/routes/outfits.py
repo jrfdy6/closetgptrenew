@@ -3119,11 +3119,11 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             emergency_items = []
             for item in wardrobe_items:
                 hard_exclusions = get_hard_style_exclusions(req.style.lower(), item)
-        if not hard_exclusions or (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
+                if not hard_exclusions or (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
                     emergency_items.append(item)
-#                     print(f"🆘 EMERGENCY: {(item.get('name', 'unnamed') if item else 'unnamed')} passes exclusion for emergency use")
+                    # print(f"🆘 EMERGENCY: {(item.get('name', 'unnamed') if item else 'unnamed')} passes exclusion for emergency use")
                 else:
-print(f"🚫 EMERGENCY EXCLUDED: {(item.get('name', 'unnamed') if item else 'unnamed')} - {hard_exclusions}")
+                    print(f"🚫 EMERGENCY EXCLUDED: {(item.get('name', 'unnamed') if item else 'unnamed')} - {hard_exclusions}")
             
             suitable_items = emergency_items[:4]  # Take first 4 exclusion-filtered items
             logger.warning(f"⚠️ DEBUG: Using {len(suitable_items)} emergency items (exclusion-filtered)")
