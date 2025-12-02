@@ -1357,11 +1357,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     # Handle both dict and object weather data
                     if isinstance(req.weather, dict):
                         outfit['weather_data'] = {
-        'temperature': req.weather.get('temperature', 70) if req.weather else 70,
-        'condition': req.weather.get('condition', 'clear') if req.weather else 'clear',
-        'humidity': req.weather.get('humidity', 65) if req.weather else 65,
-        'wind_speed': req.weather.get('wind_speed', 5) if req.weather else 5,
-        'precipitation': req.weather.get('precipitation', 0) if req.weather else 0
+                            'temperature': req.weather.get('temperature', 70) if req.weather else 70,
+                            'condition': req.weather.get('condition', 'clear') if req.weather else 'clear',
+                            'humidity': req.weather.get('humidity', 65) if req.weather else 65,
+                            'wind_speed': req.weather.get('wind_speed', 5) if req.weather else 5,
+                            'precipitation': req.weather.get('precipitation', 0) if req.weather else 0
                         }
                     else:
                         outfit['weather_data'] = {
@@ -1386,11 +1386,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             print(f"🔎 MAIN LOGIC: Rule-based generation FAILED with exception: {rule_exception}")
             logger.error(f"🔎 MAIN LOGIC: Rule-based generation FAILED: {rule_exception}")
             raise rule_exception
-        if outfit:
-        logger.info(f"✨ Generated outfit: {outfit.get('name', 'Unknown')}")
-        else:
-        logger.error("❌ Generated outfit is None - this should not happen")
-        raise Exception("🔥 OUTFIT NONE ERROR: Outfit generation failed - outfit is None")
+            if outfit:
+                logger.info(f"✨ Generated outfit: {outfit.get('name', 'Unknown')}")
+            else:
+                logger.error("❌ Generated outfit is None - this should not happen")
+                raise Exception("🔥 OUTFIT NONE ERROR: Outfit generation failed - outfit is None")
         # Outfit generated successfully
         
         # Check if outfit generation was successful
