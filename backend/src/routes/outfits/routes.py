@@ -1598,6 +1598,15 @@ async def generate_outfit(
                             logger.warning(f"⚠️ Cache storage failed: {cache_error}, continuing without cache")
                     
                     break
+                except Exception as e:
+                    last_error = e
+                    error_details = str(e)
+                    logger.error(f"❌ Generation attempt {generation_attempts} failed: {e}")
+                    if generation_attempts >= max_attempts:
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Failed to generate outfit after {max_attempts} attempts: {str(e)}"
+                        )
                 else:
                     logger.warning(f"⚠️ Generation attempt {generation_attempts} produced invalid outfit")
                     print(f"🚨 RETRY ALERT: Attempt {generation_attempts} failed - invalid outfit")
