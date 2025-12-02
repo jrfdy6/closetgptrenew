@@ -1519,10 +1519,10 @@ async def generate_outfit(
                             
                             if category_limits_applied:
                                 logger.info("🎯 Category limits already applied - skipping enhanced validation to prevent rejection")
-                            # Skip enhanced validation since we've already enforced category limits
-                            outfit['metadata']['enhanced_validation_bypassed'] = True
-                            outfit['metadata']['validation_reason'] = "Category limits already enforced"
-                        else:
+                                # Skip enhanced validation since we've already enforced category limits
+                                outfit['metadata']['enhanced_validation_bypassed'] = True
+                                outfit['metadata']['validation_reason'] = "Category limits already enforced"
+                            else:
                             logger.info("🔍 Running enhanced validation pipeline")
                             # Create validation context
                             validation_context = ValidationContext(
