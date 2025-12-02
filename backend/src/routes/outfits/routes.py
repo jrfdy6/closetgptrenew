@@ -1941,10 +1941,10 @@ async def generate_outfit(
         # print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
         
         # Return the detailed error information
-            raise HTTPException(
-                status_code=500, 
-        detail=f"🔥 ENDPOINT CRASH: {error_details['error_type']}: {error_details['error_message']}\n\nFull Traceback:\n{error_details['full_traceback']}"
-            )
+        raise HTTPException(
+            status_code=500, 
+            detail=f"🔥 ENDPOINT CRASH: {error_details['error_type']}: {error_details['error_message']}\n\nFull Traceback:\n{error_details['full_traceback']}"
+        )
 
 async def _validate_final_outfit(outfit_record: Dict[str, Any], req: OutfitRequest) -> Dict[str, Any]:
     """Validate the final outfit before returning to user"""
