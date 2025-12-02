@@ -101,7 +101,8 @@ export async function POST(request: NextRequest) {
     const isManualCreation = body.items && Array.isArray(body.items) && body.items.length > 0;
     
     // Call the appropriate backend endpoint
-    const endpoint = isManualCreation ? '/api/outfits' : '/api/outfits/generate';
+    // NOTE: /api/outfits/ needs trailing slash for POST (FastAPI routing)
+    const endpoint = isManualCreation ? '/api/outfits/' : '/api/outfits/generate';
     const fullBackendUrl = `${backendUrl}${endpoint}`;
     
     console.log('🔍 DEBUG: Request type:', isManualCreation ? 'MANUAL CREATION' : 'GENERATION');
