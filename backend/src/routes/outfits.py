@@ -3099,11 +3099,11 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 if item not in suitable_items:
                     # Apply same exclusion filter to additional items
                     hard_exclusions = get_hard_style_exclusions(req.style.lower(), item)
-        if not hard_exclusions or (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
+                    if not hard_exclusions or (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
                         additional_items.append(item)
-#                         print(f"➕ ADDITIONAL: {(item.get('name', 'unnamed') if item else 'unnamed')} passes exclusion filter")
+                        # print(f"➕ ADDITIONAL: {(item.get('name', 'unnamed') if item else 'unnamed')} passes exclusion filter")
                     else:
-print(f"🚫 ADDITIONAL EXCLUDED: {(item.get('name', 'unnamed') if item else 'unnamed')} - {hard_exclusions}")
+                        print(f"🚫 ADDITIONAL EXCLUDED: {(item.get('name', 'unnamed') if item else 'unnamed')} - {hard_exclusions}")
             
             random.shuffle(additional_items)
             suitable_items.extend(additional_items[:10])
