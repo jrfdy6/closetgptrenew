@@ -3599,7 +3599,7 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         temperature = 70.0
         if (req.weather if req else None):
             if isinstance(req.weather, dict):
-        temperature = req.weather.get('temperature', 70.0) if req.weather else 70.0
+                temperature = req.weather.get('temperature', 70.0) if req.weather else 70.0
             else:
                 temperature = getattr(req.weather, 'temperature', 70.0)
         
