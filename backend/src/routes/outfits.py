@@ -6263,13 +6263,22 @@ async def generate_outfit(
             logger.info(f"✅ Final dict generation_duration value: {response_dict_final.get('generation_duration')}")
             logger.info(f"✅ Final dict is_slow value: {response_dict_final.get('is_slow')}")
             
+            # CRITICAL: Log the final dict to verify fields are present
+            logger.info(f"🚀 RETURNING JSONResponse with keys: {list(response_dict_final.keys())}")
+            logger.info(f"🚀 generation_duration in final dict: {response_dict_final.get('generation_duration')}")
+            logger.info(f"🚀 is_slow in final dict: {response_dict_final.get('is_slow')}")
+            logger.info(f"🚀 cache_hit in final dict: {response_dict_final.get('cache_hit')}")
+            logger.info(f"🚀 generation_attempts in final dict: {response_dict_final.get('generation_attempts')}")
+            
             # Return the dict directly using JSONResponse to bypass Pydantic serialization filtering
             # This ensures all fields are included, especially the performance metrics
-            return JSONResponse(
+            response = JSONResponse(
                 content=response_dict_final,
                 status_code=200,
                 headers={"Content-Type": "application/json"}
             )
+            logger.info(f"🚀 JSONResponse created, returning now")
+            return response
         except Exception as response_error:
             logger.error(f"❌ Error creating OutfitResponse: {response_error}")
             logger.error(f"❌ outfit_record keys: {list(outfit_record.keys())}")
