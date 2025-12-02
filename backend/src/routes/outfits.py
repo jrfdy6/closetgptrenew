@@ -1123,8 +1123,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                         continue
                 
                 logger.info(f"✅ Pre-outfit-construction guard completed - {len(clothing_items)} items converted successfully")
-        
-        # DEBUG: Check clothing_items for None values
+                wardrobe_items = clothing_items
+            
+            # DEBUG: Check clothing_items for None values
         # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items length = {len(clothing_items)}")
         # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items type = {type(clothing_items)}")
         for i, item in enumerate(clothing_items):
