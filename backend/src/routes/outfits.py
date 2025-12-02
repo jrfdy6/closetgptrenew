@@ -3993,8 +3993,8 @@ def validate_weather_outfit_combinations(outfit: Dict[str, Any], weather, mode: 
             # Remove items in reverse order to maintain indices
             for i in sorted(items_to_remove, reverse=True):
                 removed_item = items.pop(i)
-        logger.info(f"🗑️ Removed inappropriate item: {(removed_item.get('name', 'Unknown') if removed_item else 'Unknown')}")
-            outfit['items'] = items
+                logger.info(f"🗑️ Removed inappropriate item: {(removed_item.get('name', 'Unknown') if removed_item else 'Unknown')}")
+                outfit['items'] = items
         
         # Add warnings to reasoning if any found
         if outfit_warnings:
