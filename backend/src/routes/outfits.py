@@ -3078,7 +3078,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         print(f"🎯 Final item_scores: {item_scores}")
         # ENHANCED: Sort items by preference score for better selection
         if suitable_items and item_scores:
-        suitable_items.sort(key=lambda item: (item_scores.get(((item.get('id', item.get('name', 'unknown') if item else 'unknown') if item else 'unknown') if item_scores else 'unknown')), 0), reverse=True)
+            suitable_items.sort(key=lambda item: (item_scores.get(((item.get('id', item.get('name', 'unknown') if item else 'unknown') if item else 'unknown') if item_scores else 'unknown')), 0), reverse=True)
             logger.info(f"🔍 DEBUG: Sorted {len(suitable_items)} suitable items by preference score")
             for item in suitable_items[:5]:  # Log top 5 scores
         score = (item_scores.get(((item.get('id', item.get('name', 'unknown') if item else 'unknown') if item else 'unknown') if item_scores else 'unknown')), 0)
