@@ -1623,12 +1623,12 @@ async def generate_outfit(
             print(f"🚨 FINAL CONTEXT: User={current_user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
             print(f"🚨 FINAL IMPACT: User will receive HTTP 500 error - no outfit generated")
             if last_error:
-        # print(f"🚨 FINAL ERROR: {type(last_error).__name__}: {str(last_error)}")
-        # Preserve debug information from our debug logging
-        error_detail = str(last_error)
-        if "DEBUG:" in error_detail or "🔥" in error_detail or "NoneType" in error_detail:
-        # Our debug information is in the error message - return it directly
-        if error_details:
+                # print(f"🚨 FINAL ERROR: {type(last_error).__name__}: {str(last_error)}")
+                # Preserve debug information from our debug logging
+                error_detail = str(last_error)
+                if "DEBUG:" in error_detail or "🔥" in error_detail or "NoneType" in error_detail:
+                    # Our debug information is in the error message - return it directly
+                    if error_details:
                 raise HTTPException(
                     status_code=500, 
         detail=f"🔥 RETRY LOOP CRASH: {error_details['error_type']}: {error_details['error_message']}\n\nFull Traceback:\n{error_details['full_traceback']}"
