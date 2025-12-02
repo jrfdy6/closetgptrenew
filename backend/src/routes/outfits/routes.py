@@ -556,3 +556,616 @@ async def mark_outfit_as_worn(
     except Exception as e:
         logger.error(f"Error marking outfit as worn: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/generate")
+async def generate_outfit(
+    req: OutfitRequest,
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """
+    Generate an outfit using robust decision logic with comprehensive validation,
+    fallback strategies, body type optimization, and style profile integration.
+    """
+    # 🔥 COMPREHENSIVE ERROR TRACING FOR NoneType .get() DEBUGGING
+    # DEBUG: Log request details at endpoint start
+    print(f"🔍 DEBUG ENDPOINT START: req = {req}")
+    print(f"🔍 DEBUG ENDPOINT START: req.resolved_wardrobe = {req.resolved_wardrobe}")
+    print(f"🔍 DEBUG ENDPOINT START: current_user_id = {current_user_id}")
+    try:
+        start_time = time.time()
+        generation_attempts = 0
+        max_attempts = 3
+        cache_hit = False
+        
+        # Enhanced authentication validation
+        if not current_user_id:
+            logger.error("❌ Authentication failed: No current user ID")
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        logger.info(f"🎯 Starting robust outfit generation for user: {current_user_id}")
+        logger.info(f"📋 Request details: {req.occasion}, {req.style}, {req.mood}")
+        
+        # Define hard requirements per occasion
+        occasion_requirements = {
+            'business': {
+                'required': ['shirt', 'pants', 'shoes'],
+                'optional': ['blazer', 'tie', 'jacket'],
+                'forbidden': ['shorts', 'flip-flops', 'tank-top']
+            },
+            'formal': {
+                'required': ['shirt', 'pants', 'shoes'],
+                'optional': ['blazer', 'tie', 'jacket'],
+                'forbidden': ['shorts', 'flip-flops', 'tank-top', 'jeans']
+            },
+            'athletic': {
+                'required': ['top', 'shorts OR athletic-pants', 'sneakers'],
+                'optional': ['jacket', 'hat'],
+                'forbidden': ['dress-shirt', 'tie', 'dress-shoes']
+            },
+            'casual': {
+                'required': ['top', 'bottom'],
+                'optional': ['shoes', 'jacket', 'accessories'],
+                'forbidden': []
+            },
+            'weekend': {
+                'required': ['top', 'bottom'],
+                'optional': ['sneakers', 'hoodie', 'jacket'],
+                'forbidden': ['tie', 'dress-shoes']
+            }
+        }
+        
+        # Category cardinality limits
+        def get_category_limits(occasion):
+            """Define category limits based on occasion"""
+            base_limits = {
+                "shirt": (1, 2),
+                "top": (1, 2),
+                "pants": (1, 1),
+                "shorts": (1, 1),
+                "shoes": (1, 1),
+                "jacket": (0, 1),
+                "blazer": (0, 1),
+                "accessories": (0, 2),
+            }
+            
+            occasion_lower = occasion.lower()
+            if occasion_lower in ['business', 'formal']:
+                return {
+                    "shirt": (1, 1),
+                    "top": (1, 1),
+                    "pants": (1, 1),
+                    "shoes": (1, 1),
+                    "jacket": (0, 1),
+                    "blazer": (0, 1),
+                    "accessories": (0, 1),
+                }
+            elif occasion_lower == 'athletic':
+                return {
+                    "top": (1, 2),
+                    "shorts": (1, 1),
+                    "pants": (1, 1),
+                    "shoes": (1, 1),
+                    "jacket": (0, 1),
+                    "accessories": (0, 1),
+                }
+            else:
+                return base_limits
+        
+        # Enhanced deduplication with category limits
+        def deduplicate_items_with_limits(items, occasion):
+            from collections import defaultdict
+            
+            category_limits = get_category_limits(occasion)
+            category_counts = defaultdict(int)
+            used_subtypes = set()
+            final_items = []
+            
+            # First pass: remove exact duplicates
+            seen_ids = set()
+            seen_combinations = set()
+            unique_items = []
+            
+            for item in items:
+                item_id = (item.get('id', '') if item else '')
+                item_name = (item.get('name', '') if item else '')
+                item_type = (item.get('type', '') if item else '').lower()
+                item_color = (item.get('color', '') if item else '')
+                
+                combination_key = f"{item_name}|{item_type}|{item_color}"
+                
+                if item_id not in seen_ids and combination_key not in seen_combinations:
+                    seen_ids.add(item_id)
+                    seen_combinations.add(combination_key)
+                    unique_items.append(item)
+                else:
+                    logger.info(f"🔍 DEBUG: Removed exact duplicate: {item_name} ({item_color})")
+            
+            # Second pass: enforce category limits
+            for item in unique_items:
+                item_type = (item.get('type', '') if item else '').lower()
+                item_name = (item.get('name', '') if item else '').lower()
+                
+                # Map item type to category
+                category = None
+                subtype = None
+                
+                if item_type in ['shirt', 'blouse', 't-shirt', 'tank', 'sweater', 'hoodie']:
+                    category = 'top'
+                    if 'dress' in item_name or 'button' in item_name:
+                        subtype = 'dress_shirt'
+                    elif 'polo' in item_name:
+                        subtype = 'polo_shirt'
+                    elif 't-shirt' in item_name or 'tee' in item_name:
+                        subtype = 't_shirt'
+                    else:
+                        subtype = 'other_top'
+                elif item_type in ['pants', 'jeans', 'trousers', 'slacks']:
+                    category = 'pants'
+                    if 'jeans' in item_name:
+                        subtype = 'jeans'
+                    elif 'dress' in item_name:
+                        subtype = 'dress_pants'
+                    else:
+                        subtype = 'other_pants'
+                elif item_type in ['shorts', 'athletic-pants', 'joggers']:
+                    category = 'shorts'
+                    subtype = 'shorts'
+                elif item_type in ['shoes', 'sneakers', 'boots', 'sandals', 'oxford']:
+                    category = 'shoes'
+                    if 'sneaker' in item_name or 'athletic' in item_name:
+                        subtype = 'sneakers'
+                    elif 'oxford' in item_name or 'dress' in item_name:
+                        subtype = 'dress_shoes'
+                    elif 'boot' in item_name:
+                        subtype = 'boots'
+                    elif 'sandals' in item_name:
+                        subtype = 'sandals'
+                    else:
+                        subtype = 'other_shoes'
+                elif item_type in ['jacket', 'blazer', 'cardigan']:
+                    category = 'jacket'
+                    if 'blazer' in item_name:
+                        subtype = 'blazer'
+                    else:
+                        subtype = 'jacket'
+                elif item_type in ['tie', 'belt', 'watch', 'hat']:
+                    category = 'accessories'
+                    subtype = item_type
+                else:
+                    category = 'other'
+                    subtype = 'other'
+                
+                # Check category limits
+                if category in category_limits:
+                    min_limit, max_limit = category_limits[category]
+                    current_count = category_counts[category]
+                    
+                    # Special handling for shoes
+                    if category == 'shoes':
+                        if current_count >= max_limit:
+                            logger.info(f"❌ Skipped {(item.get('name', 'Unknown') if item else 'Unknown')} - shoe limit reached (1)")
+                            continue
+                        if subtype in used_subtypes:
+                            logger.info(f"❌ Skipped {(item.get('name', 'Unknown') if item else 'Unknown')} - shoe subtype '{subtype}' already used")
+                            continue
+                        used_subtypes.add(subtype)
+                        logger.info(f"✅ Added {(item.get('name', 'Unknown') if item else 'Unknown')} (shoes: {subtype})")
+                    
+                    if current_count < max_limit:
+                        final_items.append(item)
+                        category_counts[category] += 1
+                        if category != 'shoes':
+                            logger.info(f"✅ Added {(item.get('name', 'Unknown') if item else 'Unknown')} ({category}, count: {category_counts[category]})")
+                    else:
+                        logger.info(f"❌ Skipped {(item.get('name', 'Unknown') if item else 'Unknown')} ({category}) - category limit reached ({max_limit})")
+                else:
+                    final_items.append(item)
+                    logger.info(f"➕ Added {(item.get('name', 'Unknown') if item else 'Unknown')} (unknown category)")
+            
+            logger.info(f"🎯 Final outfit category distribution: {dict(category_counts)}")
+            logger.info(f"🎯 Used shoe subtypes: {list(used_subtypes)}")
+            return final_items
+        
+        # Retry with relaxed rules
+        def retry_with_relaxed_rules(original_items, occasion, requirements):
+            """Retry outfit generation with relaxed rules when validation fails"""
+            logger.info(f"🔄 Retrying with relaxed rules for {occasion}")
+            relaxed_items = original_items.copy()
+            missing_required = validate_outfit_completeness(relaxed_items, requirements, (req.occasion if req else "unknown"))
+            
+            if len(missing_required) > 0:
+                logger.info(f"🔧 Attempting to fill missing items: {missing_required}")
+                
+                for missing_item in missing_required:
+                    if missing_item == 'shirt':
+                        for item in relaxed_items:
+                            if item.get('type', '').lower() in ['shirt', 'blouse', 'sweater', 'polo']:
+                                logger.info(f"✅ Found flexible shirt alternative: {item.get('name', 'Unknown')}")
+                                break
+                    elif missing_item == 'pants':
+                        for item in relaxed_items:
+                            if item.get('type', '').lower() in ['pants', 'jeans', 'trousers', 'slacks']:
+                                logger.info(f"✅ Found flexible pants alternative: {item.get('name', 'Unknown')}")
+                                break
+                    elif missing_item == 'shoes':
+                        for item in relaxed_items:
+                            if item.get('type', '').lower() in ['shoes', 'sneakers', 'boots', 'oxford']:
+                                logger.info(f"✅ Found flexible shoes alternative: {item.get('name', 'Unknown')}")
+                                break
+            
+            logger.info(f"🔄 Relaxed rules result: {len(relaxed_items)} items")
+            return relaxed_items
+        
+        # Calculate confidence score
+        def calculate_robust_confidence(items, validation_passed, occasion):
+            """Calculate confidence score for robust generator"""
+            base_confidence = 0.7
+            
+            if validation_passed:
+                confidence_score = base_confidence + 0.22
+                logger.info("🎯 High confidence: Validation passed")
+            else:
+                confidence_score = base_confidence + 0.08
+                logger.info("🎯 Medium confidence: Used relaxed rules")
+            
+            item_count = len(items)
+            if 3 <= item_count <= 6:
+                confidence_score += 0.05
+            
+            occasion_lower = occasion.lower()
+            if occasion_lower in ['business', 'formal']:
+                has_formal_shirt = any('dress' in item.get('name', '').lower() or 'button' in item.get('name', '').lower() 
+                                     for item in items if item.get('type', '').lower() in ['shirt', 'blouse'])
+                has_formal_pants = any('dress' in item.get('name', '').lower() or 'slacks' in item.get('name', '').lower()
+                                     for item in items if item.get('type', '').lower() in ['pants', 'trousers'])
+                if has_formal_shirt and has_formal_pants:
+                    confidence_score += 0.03
+            
+            return min(confidence_score, 1.0)
+        
+        # Request validation
+        validation_errors = []
+        if not (req.occasion if req else "unknown"):
+            validation_errors.append("Occasion is required")
+        if not (req.style if req else "unknown"):
+            validation_errors.append("Style is required")
+        if not (req.mood if req else "unknown"):
+            validation_errors.append("Mood is required")
+        if not (req.wardrobe if req else []) or len(req.wardrobe) == 0:
+            validation_errors.append("Wardrobe items are required")
+        
+        if validation_errors:
+            logger.error(f"❌ Request validation failed: {validation_errors}")
+            raise HTTPException(status_code=422, detail=f"Invalid request: {', '.join(validation_errors)}")
+        
+        logger.info(f"✅ Request validation passed")
+        
+        # Log base item information
+        logger.info(f"🔍 DEBUG: Received baseItemId: {req.baseItemId}")
+        if (req.baseItemId if req else None):
+            base_item = next((item for item in (req.wardrobe if req else []) if item.get("id") == (req.baseItemId if req else None)), None)
+            if base_item:
+                logger.info(f"🔍 DEBUG: Found base item in wardrobe: {base_item.get('name', 'Unknown')} ({base_item.get('type', 'Unknown')})")
+            else:
+                logger.warning(f"⚠️ DEBUG: Base item {req.baseItemId} not found in wardrobe array")
+        else:
+            logger.info("🔍 DEBUG: No baseItemId provided")
+        
+        logger.info(f"🎨 Starting outfit generation with retry logic")
+        
+        # Import validation pipeline
+        try:
+            from ..services.outfit_validation_pipeline import validation_pipeline, ValidationContext
+            validation_available = True
+            logger.info("✅ Validation pipeline imported successfully")
+        except ImportError as e:
+            logger.warning(f"⚠️ Validation pipeline import failed: {e}")
+            validation_available = False
+        
+        # CACHE CHECK
+        outfit = None
+        cache_hit = False
+        if not (req.bypass_cache if req else False):
+            try:
+                current_wardrobe = req.wardrobe if req and req.wardrobe else []
+                if not current_wardrobe:
+                    current_wardrobe = await get_user_wardrobe(current_user_id)
+                
+                cache_key = _generate_outfit_cache_key(
+                    user_id=current_user_id,
+                    occasion=req.occasion if req else "unknown",
+                    style=req.style if req else "unknown",
+                    mood=req.mood if req else "unknown",
+                    weather=req.weather if req else None,
+                    baseItemId=req.baseItemId if req else None,
+                    wardrobe_items=current_wardrobe
+                )
+                
+                logger.info(f"🔍 DEBUG: Checking cache with key: {cache_key[:80]}...")
+                cached_outfit = cache_manager.get("outfit", cache_key)
+                logger.info(f"🔍 DEBUG: Cache result: {'HIT' if cached_outfit else 'MISS'}")
+                if cached_outfit:
+                    is_valid = await _validate_cached_outfit(cached_outfit, current_user_id, current_wardrobe)
+                    if is_valid:
+                        logger.info(f"✅ Cache hit for outfit generation: {cache_key[:50]}...")
+                        outfit = cached_outfit
+                        cache_hit = True
+                        if 'metadata' not in outfit:
+                            outfit['metadata'] = {}
+                        outfit['metadata']['cache_hit'] = True
+                        outfit['metadata']['cache_key'] = cache_key
+                        outfit['metadata']['generation_duration'] = 0.0
+                        outfit['metadata']['is_slow'] = False
+                        outfit['metadata']['generation_attempts'] = 1
+                    else:
+                        logger.info(f"⚠️ Cache hit but validation failed - regenerating")
+                        cache_manager.delete("outfit", cache_key)
+                else:
+                    logger.info(f"❌ Cache miss for outfit generation")
+            except Exception as cache_error:
+                logger.warning(f"⚠️ Cache check failed: {cache_error}, proceeding with generation")
+        
+        # Generation retry logic
+        last_error = None
+        error_details = None
+        
+        if not outfit:
+            for attempt in range(max_attempts):
+                generation_attempts += 1
+                try:
+                    logger.info(f"🔄 Generation attempt {generation_attempts}/{max_attempts}")
+                    print(f"🔍 DEBUG RETRY LOOP: Starting attempt {generation_attempts}")
+                    
+                    # Run generation logic
+                    generate_outfit_logic = get_generate_outfit_logic()
+                    outfit = await generate_outfit_logic(req, current_user_id)
+                    
+                    if outfit and outfit.get('items'):
+                        occasion_lower = (req.occasion if req else "unknown").lower()
+                        
+                        logger.info(f"🔍 DEBUG BEFORE CATEGORY LIMITS: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                        
+                        # Apply category limits
+                        original_items = outfit['items'].copy()
+                        outfit['items'] = deduplicate_items_with_limits(outfit['items'], (req.occasion if req else "unknown"))
+                        
+                        logger.info(f"🔍 DEBUG AFTER CATEGORY LIMITS: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                        
+                        # Validation
+                        validation_passed = True
+                        if occasion_lower in occasion_requirements:
+                            requirements = occasion_requirements[occasion_lower]
+                            missing_required = validate_outfit_completeness(outfit['items'], requirements, (req.occasion if req else "unknown"))
+                            
+                            if len(missing_required) > 0:
+                                logger.warning(f"⚠️ VALIDATION FAILED: Missing {missing_required} - retrying with relaxed rules")
+                                validation_passed = False
+                                
+                                logger.info(f"🔍 DEBUG BEFORE RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                                
+                                outfit['items'] = retry_with_relaxed_rules(original_items, (req.occasion if req else "unknown"), requirements)
+                                outfit['items'] = deduplicate_items_with_limits(outfit['items'], (req.occasion if req else "unknown"))
+                                
+                                logger.info(f"🔍 DEBUG AFTER RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                                logger.info(f"🔄 Retried with relaxed rules - final items: {len(outfit['items'])}")
+                        
+                        # Calculate confidence score
+                        if 'confidence_score' not in outfit or outfit['confidence_score'] is None or outfit['confidence_score'] == 0.0:
+                            confidence_score = calculate_robust_confidence(outfit['items'], validation_passed, (req.occasion if req else "unknown"))
+                            outfit['confidence_score'] = confidence_score
+                            logger.info(f"🎯 Calculated new confidence score: {confidence_score}")
+                        else:
+                            logger.info(f"🎯 Preserving robust generator confidence: {outfit['confidence_score']}")
+                        
+                        logger.info(f"🔍 DEBUG BEFORE METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                        
+                        # Ensure metadata exists
+                        if 'metadata' not in outfit:
+                            outfit['metadata'] = {}
+                        outfit['metadata']['subtype_tracking_enabled'] = True
+                        outfit['metadata']['confidence_calculated'] = True
+                        outfit['metadata']['validation_passed'] = validation_passed
+                        outfit['metadata']['retry_with_relaxed_rules'] = not validation_passed
+                        
+                        logger.info(f"🔍 DEBUG AFTER METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                        
+                        # Update metadata with processing status
+                        if 'metadata' not in outfit:
+                            outfit['metadata'] = {}
+                        outfit['metadata']['validation_applied'] = True
+                        outfit['metadata']['hard_requirements_enforced'] = True
+                        outfit['metadata']['deduplication_applied'] = True
+                        outfit['metadata']['category_limits_enforced'] = True
+                        outfit['metadata']['unique_items_count'] = len(outfit['items'])
+                        outfit['metadata']['occasion_requirements_met'] = validation_passed
+                        
+                        # Validation pipeline
+                        if outfit and outfit.get('items') and validation_available:
+                            try:
+                                category_limits_applied = safe_get_metadata(outfit, 'category_limits_enforced', False)
+                                
+                                if category_limits_applied:
+                                    logger.info("🎯 Category limits already applied - skipping enhanced validation")
+                                    outfit['metadata']['enhanced_validation_bypassed'] = True
+                                    outfit['metadata']['validation_reason'] = "Category limits already enforced"
+                                else:
+                                    logger.info("🔍 Running enhanced validation pipeline")
+                                    validation_context = ValidationContext(
+                                        occasion=req.occasion,
+                                        style=req.style or "casual",
+                                        mood=req.mood or "neutral",
+                                        weather=req.weather.__dict__ if hasattr(req.weather, '__dict__') else (req.weather if req else None),
+                                        user_profile={"id": current_user_id},
+                                        temperature=getattr(req.weather, 'temperature', 70.0) if hasattr(req.weather, 'temperature') else 70.0
+                                    )
+                                    
+                                    validation_result = await validation_pipeline.validate_outfit(outfit, validation_context)
+                                    
+                                    if not validation_result.valid:
+                                        failed_rules = validation_result.errors or []
+                                        logger.warning(f"⚠️ VALIDATION FAILED on attempt {generation_attempts}: {validation_result.errors}")
+                                        print(f"🚨 VALIDATION ALERT: Attempt {generation_attempts} failed validation")
+                                        if attempt < max_attempts - 1:
+                                            await asyncio.sleep(1)
+                                            continue
+                                        else:
+                                            logger.error(f"❌ VALIDATION FAILURE: All {max_attempts} attempts failed validation")
+                                            print(f"🚨 VALIDATION FAILURE: All {max_attempts} attempts failed validation")
+                                            raise Exception(f"Validation failed after {max_attempts} attempts")
+                            except Exception as validation_error:
+                                logger.warning(f"⚠️ Validation pipeline failed: {validation_error}, continuing with outfit")
+                        elif outfit and outfit.get('items') and not validation_available:
+                            logger.info("⚠️ Validation pipeline not available, skipping validation")
+                        else:
+                            logger.warning("⚠️ No outfit generated or validation not available")
+                        
+                        # Basic validation
+                        if outfit and outfit.get('items') and len(outfit.get('items', [])) >= 3:
+                            logger.info(f"✅ Generation successful on attempt {generation_attempts}")
+                        
+                        # Store in cache
+                        if not cache_hit and not (req.bypass_cache if req else False):
+                            try:
+                                current_wardrobe = req.wardrobe if req and req.wardrobe else []
+                                if not current_wardrobe:
+                                    current_wardrobe = await get_user_wardrobe(current_user_id)
+                                
+                                cache_key = _generate_outfit_cache_key(
+                                    user_id=current_user_id,
+                                    occasion=req.occasion if req else "unknown",
+                                    style=req.style if req else "unknown",
+                                    mood=req.mood if req else "unknown",
+                                    weather=req.weather if req else None,
+                                    baseItemId=req.baseItemId if req else None,
+                                    wardrobe_items=current_wardrobe
+                                )
+                                
+                                logger.info(f"🔍 DEBUG: Storing in cache with key: {cache_key[:80]}...")
+                                cache_manager.set("outfit", cache_key, outfit, ttl=86400)
+                                logger.info(f"💾 Cached outfit generation: {cache_key[:50]}...")
+                                
+                                if 'metadata' not in outfit:
+                                    outfit['metadata'] = {}
+                                outfit['metadata']['cache_hit'] = False
+                                outfit['metadata']['cached'] = True
+                            except Exception as cache_error:
+                                logger.warning(f"⚠️ Cache storage failed: {cache_error}, continuing without cache")
+                        
+                        break
+                except Exception as e:
+                    last_error = e
+                    error_details = str(e)
+                    logger.error(f"❌ Generation attempt {generation_attempts} failed: {e}")
+                    if generation_attempts >= max_attempts:
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Failed to generate outfit after {max_attempts} attempts: {str(e)}"
+                        )
+                else:
+                    logger.warning(f"⚠️ Generation attempt {generation_attempts} produced invalid outfit")
+                    if attempt < max_attempts - 1:
+                        await asyncio.sleep(1)
+                        continue
+        
+        # Check if all attempts failed
+        if not outfit or not outfit.get('items') or len(outfit.get('items', [])) < 3:
+            logger.error(f"❌ All {max_attempts} generation attempts failed")
+            if last_error:
+                raise HTTPException(status_code=500, detail=f"Outfit generation failed: {str(last_error)}")
+            else:
+                raise HTTPException(status_code=500, detail="Outfit generation failed: Unable to generate valid outfit")
+        
+        # Wrap with metadata
+        outfit_id = str(uuid4())
+        outfit_record = {
+            "id": outfit_id,
+            "user_id": current_user_id,
+            "generated_at": datetime.utcnow().isoformat(),
+            **outfit
+        }
+        
+        # Ensure metadata exists
+        if 'metadata' not in outfit_record or outfit_record.get('metadata') is None:
+            outfit_record['metadata'] = {}
+        
+        # Save to Firestore
+        logger.info(f"🔄 About to save generated outfit {outfit_id}")
+        
+        # Clean for Firestore
+        from ..config.firebase import clean_for_firestore
+        clean_outfit_record = clean_for_firestore(outfit_record)
+        logger.info(f"🧹 Cleaned outfit record")
+        
+        final_strategy = safe_get_metadata(clean_outfit_record, 'generation_strategy', 'unknown')
+        logger.info(f"🔍 DEBUG FINAL SAVE: strategy = {final_strategy}")
+        
+        save_result = await save_outfit(current_user_id, outfit_id, clean_outfit_record)
+        logger.info(f"💾 Save operation result: {save_result}")
+        
+        # Track usage
+        try:
+            from ..services.usage_tracking_service import UsageTrackingService
+            usage_service = UsageTrackingService()
+            await usage_service.track_outfit_generation(current_user_id)
+            logger.info(f"📊 Tracked outfit generation usage for user {current_user_id}")
+        except Exception as usage_error:
+            logger.warning(f"Usage tracking failed: {usage_error}")
+        
+        # Update user stats
+        try:
+            from ..services.user_stats_service import user_stats_service
+            await user_stats_service.update_outfit_stats(current_user_id, "created", clean_outfit_record)
+        except Exception as stats_error:
+            logger.warning(f"Stats update failed: {stats_error}")
+        
+        # Performance monitoring
+        generation_time = time.time() - start_time
+        logger.info(f"⏱️ Generation completed in {generation_time:.2f} seconds")
+        logger.info(f"📊 Generation attempts: {generation_attempts}, Cache hit: {cache_hit}")
+        
+        is_slow = generation_time > 10.0
+        if is_slow:
+            logger.warning(f"⚠️ SLOW REQUEST: Generation took {generation_time:.2f}s (threshold: 10s)")
+        
+        # Add performance metadata
+        if 'metadata' not in outfit_record:
+            outfit_record['metadata'] = {}
+        
+        outfit_record['metadata']['generation_duration'] = round(generation_time, 2)
+        outfit_record['metadata']['is_slow'] = is_slow
+        outfit_record['metadata']['generation_attempts'] = generation_attempts
+        outfit_record['metadata']['cache_hit'] = cache_hit
+        
+        # Record generation metrics
+        try:
+            strategy = safe_get_metadata(outfit_record, 'generation_strategy', 'robust')
+            log_generation_strategy(
+                outfit_response=outfit_record,
+                user_id=current_user_id,
+                generation_time=generation_time,
+                validation_time=0.0,
+                failed_rules=None,
+                fallback_reason=None
+            )
+        except Exception as metrics_error:
+            logger.warning(f"Failed to log generation metrics: {metrics_error}")
+        
+        # Return response
+        logger.info(f"✅ Successfully generated outfit {outfit_id}")
+        return OutfitResponse(**outfit_record)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        error_details = {
+            "error_type": str(type(e).__name__),
+            "error_message": str(e),
+            "full_traceback": traceback.format_exc()
+        }
+        logger.error("🔥 ENDPOINT CRASH", extra=error_details, exc_info=True)
+        print(f"🔥 ENDPOINT CRASH: {error_details}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"🔥 ENDPOINT CRASH: {error_details['error_type']}: {error_details['error_message']}"
+        )
