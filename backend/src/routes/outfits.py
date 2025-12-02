@@ -1338,21 +1338,21 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 log_generation_strategy(outfit, user_id, failed_rules=failed_rules)
                 
                 # Verify strategy is set correctly
-        final_strategy = safe_get_metadata(outfit, 'generation_strategy', 'unknown')
+                final_strategy = safe_get_metadata(outfit, 'generation_strategy', 'unknown')
                 logger.info(f"🎯 FINAL STRATEGY: {final_strategy}")
                 print(f"🎯 FINAL STRATEGY: {final_strategy}")
                 # CRITICAL DEBUG: Log outfit metadata before any post-processing
-        logger.info(f"🔍 DEBUG BEFORE POST-PROCESSING: outfit metadata = {(outfit.get('metadata') if outfit else None)}")
-        # print(f"🔍 DEBUG BEFORE POST-PROCESSING: outfit metadata = {(outfit.get('metadata') if outfit else None)}")
+                logger.info(f"🔍 DEBUG BEFORE POST-PROCESSING: outfit metadata = {(outfit.get('metadata') if outfit else None)}")
+                # print(f"🔍 DEBUG BEFORE POST-PROCESSING: outfit metadata = {(outfit.get('metadata') if outfit else None)}")
                 
                 if final_strategy == 'fallback_simple':
                     logger.warning(f"⚠️ WARNING: Robust path returned fallback_simple strategy")
                     print(f"🚨 WARNING: Robust path returned fallback_simple strategy - this should be a robust strategy!")
-        logger.info(f"✅ Robust generation successful with {len((outfit.get('items', []) if outfit else []))} items")
+                logger.info(f"✅ Robust generation successful with {len((outfit.get('items', []) if outfit else []))} items")
             
             # Add weather data to outfit for base item validation
-        logger.error(f"🚨 DEBUG: About to add weather data - (req.weather if req else None) = {req.weather}")
-        if (req.weather if req else None):
+            logger.error(f"🚨 DEBUG: About to add weather data - (req.weather if req else None) = {req.weather}")
+            if (req.weather if req else None):
                 try:
                     # Handle both dict and object weather data
                     if isinstance(req.weather, dict):
