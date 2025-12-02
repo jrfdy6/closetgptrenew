@@ -1070,7 +1070,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             # print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe type = {type(req.resolved_wardrobe)}")
                 
                 # Create generation context - ensure weather is properly formatted
-            weather_data = (req.weather if req else None)
+                weather_data = (req.weather if req else None)
                 if isinstance(weather_data, dict):
                     # Convert dict to object-like structure for robust service
                     from types import SimpleNamespace
