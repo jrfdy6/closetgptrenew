@@ -3175,7 +3175,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         # Count categorized items for debug
         categorized_counts = {}
         for item in suitable_items:
-        item_type = (item.get('type', '') if item else '').lower()
+            item_type = (item.get('type', '') if item else '').lower()
             category = get_item_category(item_type)
         categorized_counts[category] = (categorized_counts.get(category, 0) if categorized_counts else 0) + 1
         
