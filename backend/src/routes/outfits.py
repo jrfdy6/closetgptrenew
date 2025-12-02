@@ -1194,13 +1194,13 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                             print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type='{item_type}' name='{item_name}'")
                             if hasattr(item_type, 'value'):
                                 print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.value='{item_type.value}'")
-        if hasattr(item_type, 'name'):
-        print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.name='{item_type.name}'")
-        else:
-        print(f"🔍 DEBUG WARDROBE ITEMS: No wardrobe items or wardrobe is None")
-        
-        print(f"🔍 DEBUG BEFORE ROBUST CALL: robust_service = {robust_service}")
-        print(f"🔍 DEBUG BEFORE ROBUST CALL: context = {context}")
+                            if hasattr(item_type, 'name'):
+                                print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.name='{item_type.name}'")
+                    else:
+                        print(f"🔍 DEBUG WARDROBE ITEMS: No wardrobe items or wardrobe is None")
+                    
+                    print(f"🔍 DEBUG BEFORE ROBUST CALL: robust_service = {robust_service}")
+                    print(f"🔍 DEBUG BEFORE ROBUST CALL: context = {context}")
         # print(f"🔍 DEBUG BEFORE ROBUST CALL: context.wardrobe = {len(context.wardrobe) if hasattr(context, 'wardrobe') else 'NO WARDROBE'}")
         
         # 🔥 COMPREHENSIVE ERROR TRACING FOR NoneType .get() DEBUGGING
