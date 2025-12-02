@@ -2909,32 +2909,32 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 item_occasion = str(item_occasion).lower()
             
         logger.info(f"🔍 DEBUG: Item {(item.get('name', 'unnamed') if item else 'unnamed')} - style: '{item_style}', occasion: '{item_occasion}', color: '{item_color}'")
-            
-            # ENHANCED: Multi-dimensional style preference scoring
-            item_score = 0
-            is_suitable = False
-            
-            # HARD EXCLUSION FILTER: Prevent truly inappropriate items from entering scoring pool
+        
+        # ENHANCED: Multi-dimensional style preference scoring
+        item_score = 0
+        is_suitable = False
+        
+        # HARD EXCLUSION FILTER: Prevent truly inappropriate items from entering scoring pool
         hard_exclusions = get_hard_style_exclusions(req.style.lower(), item, (req.mood if req else "unknown"))
         # print(f"🔍 EXCLUSION CHECK: {(item.get('name', 'unnamed') if item else 'unnamed')} for {req.style} - result: {hard_exclusions}")
         # print(f"🔍 EXCLUSION LOGIC: hard_exclusions={hard_exclusions}, type={type(hard_exclusions)}, bool={bool(hard_exclusions)}")
         # print(f"🔍 EXCLUSION LOGIC: baseItemId={req.baseItemId}, itemId={((item.get('id') if item else None) if item else None)}, isBaseItem={req.baseItemId and ((item.get('id') if item else None) if item else None) == (req.baseItemId if req else None)}")
-            
-            # Check exclusion condition explicitly
+        
+        # Check exclusion condition explicitly
         is_base_item = (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None)
-            should_exclude = hard_exclusions is not None and not is_base_item
-            
-            print(f"🔍 EXCLUSION DECISION: should_exclude={should_exclude}, is_base_item={is_base_item}")
-            if should_exclude:
-#                 print(f"🚫 HARD EXCLUSION: {(item.get('name', 'unnamed') if item else 'unnamed')} excluded from {req.style} - {hard_exclusions}")
-#                 print(f"🚫 EXECUTING CONTINUE: About to skip {(item.get('name', 'unnamed') if item else 'unnamed')} - this item should NOT appear in final outfit")
-logger.info(f"🚫 HARD EXCLUSION: {(item.get('name', 'unnamed') if item else 'unnamed')} excluded from {req.style} - {hard_exclusions}")
-                continue
-                print(f"❌ CONTINUE FAILED: This line should NEVER execute if continue worked")
-            elif hard_exclusions:
-print(f"🛡️ EXCLUSION BYPASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} is base item, allowing despite exclusion")
-            else:
-print(f"✅ EXCLUSION PASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} has no exclusions for {req.style}")
+        should_exclude = hard_exclusions is not None and not is_base_item
+        
+        print(f"🔍 EXCLUSION DECISION: should_exclude={should_exclude}, is_base_item={is_base_item}")
+        if should_exclude:
+            # print(f"🚫 HARD EXCLUSION: {(item.get('name', 'unnamed') if item else 'unnamed')} excluded from {req.style} - {hard_exclusions}")
+            # print(f"🚫 EXECUTING CONTINUE: About to skip {(item.get('name', 'unnamed') if item else 'unnamed')} - this item should NOT appear in final outfit")
+            logger.info(f"🚫 HARD EXCLUSION: {(item.get('name', 'unnamed') if item else 'unnamed')} excluded from {req.style} - {hard_exclusions}")
+            continue
+            print(f"❌ CONTINUE FAILED: This line should NEVER execute if continue worked")
+        elif hard_exclusions:
+            print(f"🛡️ EXCLUSION BYPASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} is base item, allowing despite exclusion")
+        else:
+            print(f"✅ EXCLUSION PASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} has no exclusions for {req.style}")
             
             # 1. Core Style Matching (Primary filter - must pass)
             # SOFTEN VALIDATION: Allow base item to pass even if it fails core criteria
@@ -2950,11 +2950,11 @@ print(f"✅ EXCLUSION PASSED: {(item.get('name', 'unnamed') if item else 'unname
                 style_appropriateness_score = calculate_style_appropriateness_score(req.style.lower(), item)
                 item_score += style_appropriateness_score
                 if style_appropriateness_score < 0:
-logger.info(f"🎯 STYLE PENALTY: {(item.get('name', 'unnamed') if item else 'unnamed')} gets {style_appropriateness_score} points for {req.style} mismatch")
+                    logger.info(f"🎯 STYLE PENALTY: {(item.get('name', 'unnamed') if item else 'unnamed')} gets {style_appropriateness_score} points for {req.style} mismatch")
                 
                 # Special handling for base item that failed core criteria
-if (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None) and not (req.style.lower() in item_style or (req.occasion if req else "unknown").lower() in item_occasion or 'versatile' in item_style):
-logger.info(f"🛡️ Allowing base item despite failing criteria: {(item.get('name', 'Unknown') if item else 'Unknown')}")
+                if (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None) and not (req.style.lower() in item_style or (req.occasion if req else "unknown").lower() in item_occasion or 'versatile' in item_style):
+                    logger.info(f"🛡️ Allowing base item despite failing criteria: {(item.get('name', 'Unknown') if item else 'Unknown')}")
                     item_score += 1000  # Give base item highest priority
                 
                 # 2. Style Preference Enhancement (User's stored preferences)
@@ -2969,8 +2969,8 @@ logger.info(f"🛡️ Allowing base item despite failing criteria: {(item.get('n
                 # 3. Color Preference Enhancement
                 if user_profile and user_profile.get('colorPalette'):
                     color_palette = user_profile.get('colorPalette', {})
-preferred_colors = ((color_palette.get('primary', []) if color_palette else []) if color_palette else []) + color_palette.get('secondary', [])
-avoid_colors = (color_palette.get('avoid', []) if color_palette else [])
+                    preferred_colors = ((color_palette.get('primary', []) if color_palette else []) if color_palette else []) + color_palette.get('secondary', [])
+                    avoid_colors = (color_palette.get('avoid', []) if color_palette else [])
                     
                     if item_color:
                         item_color_lower = item_color.lower()
@@ -2984,8 +2984,8 @@ avoid_colors = (color_palette.get('avoid', []) if color_palette else [])
                 # 4. Material Preference Enhancement
                 if user_profile and user_profile.get('materialPreferences'):
                     material_prefs = user_profile.get('materialPreferences', {})
-preferred_materials = (material_prefs.get('preferred', []) if material_prefs else [])
-avoid_materials = (material_prefs.get('avoid', []) if material_prefs else [])
+                    preferred_materials = (material_prefs.get('preferred', []) if material_prefs else [])
+                    avoid_materials = (material_prefs.get('avoid', []) if material_prefs else [])
                     
                     if item_material:
                         item_material_lower = item_material.lower()
