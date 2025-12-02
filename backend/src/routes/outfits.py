@@ -1230,10 +1230,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 if robust_outfit is None:
                     print(f"🚨 CRITICAL: robust_outfit is None!")
                     raise Exception("Robust service returned None - this should not happen")
-        
-        # DEBUG: Collect robust generation result
-        debug_info["robust_output"] = {
-        "outfit_type": str(type(robust_outfit)),
+                
+                # DEBUG: Collect robust generation result
+                debug_info["robust_output"] = {
+                    "outfit_type": str(type(robust_outfit)),
         "has_items_attr": hasattr(robust_outfit, 'items'),
         "items_count": len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 0,
         "items_list": [
