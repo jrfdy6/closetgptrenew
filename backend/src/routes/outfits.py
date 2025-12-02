@@ -3361,11 +3361,11 @@ def _pick_any_item_safe(wardrobe: List[Dict[str, Any]], category: str, occasion:
         if category == 'shoes':
             candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['dress shoe', 'oxford', 'loafer', 'derby', 'wingtip', 'brogue'])]
         elif category == 'tops':
-        candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['dress shirt', 'button down', 'button-up', 'blazer', 'suit jacket'])]
+            candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['dress shirt', 'button down', 'button-up', 'blazer', 'suit jacket'])]
         elif category == 'bottoms':
-        candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['dress pant', 'suit pant', 'trouser', 'slack', 'formal pant'])]
+            candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['dress pant', 'suit pant', 'trouser', 'slack', 'formal pant'])]
         elif category == 'outerwear':
-        candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['blazer', 'suit jacket', 'sport coat'])]
+            candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['blazer', 'suit jacket', 'sport coat'])]
     
     # If no candidates after filtering, fall back to any item in wardrobe
     if not candidates:
