@@ -3247,7 +3247,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         outfit_items = []
         for item in validated_items:
             # Convert Firebase Storage gs:// URLs to https:// URLs
-        raw_image_url = (((item.get('imageUrl', '') if item else '') if item else '') if item else '') or item.get('image_url', '') or item.get('image', '')
+            raw_image_url = (((item.get('imageUrl', '') if item else '') if item else '') if item else '') or item.get('image_url', '') or item.get('image', '')
             if raw_image_url and raw_image_url.startswith('gs://'):
                 # Convert gs://bucket-name/path to https://firebasestorage.googleapis.com/v0/b/bucket-name/o/path
                 parts = raw_image_url.replace('gs://', '').split('/', 1)
