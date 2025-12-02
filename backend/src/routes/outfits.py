@@ -3163,7 +3163,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             base_item_in_suitable = any((item.get('id') if item else None) == (req.baseItemId if req else None) for item in suitable_items)
             logger.info(f"🎯 DEBUG: Base item in suitable_items: {base_item_in_suitable}")
             if base_item_in_suitable:
-        base_item_position = next(i for i, item in enumerate(suitable_items) if item.get('id') == (req.baseItemId if req else None))
+                base_item_position = next(i for i, item in enumerate(suitable_items) if item.get('id') == (req.baseItemId if req else None))
                 logger.info(f"🎯 DEBUG: Base item found in suitable_items at position: {base_item_position}")
                 logger.info(f"🎯 DEBUG: Base item details: {suitable_items[base_item_position].get('name', 'Unknown')}")
             else:
