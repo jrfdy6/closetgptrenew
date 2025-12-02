@@ -1251,11 +1251,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 logger.info(f"🚀 ROBUST SERVICE RETURNED: {type(robust_outfit)}")
                 logger.info(f"🚀 ROBUST OUTFIT ITEMS: {len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 'NO ITEMS ATTR'}")
                 logger.info(f"🚀 ROBUST METADATA: {robust_outfit.metadata if hasattr(robust_outfit, 'metadata') else 'NO METADATA ATTR'}")
-                    
-                    # Log the generation strategy used
-                    metadata = getattr(robust_outfit, 'metadata', None)
-                    strategy = metadata.get('generation_strategy', 'unknown') if metadata else 'unknown'
-                    logger.info(f"[GENERATION][ROBUST] SUCCESS - Generated outfit using strategy: {strategy}")
+                
+                # Log the generation strategy used
+                metadata = getattr(robust_outfit, 'metadata', None)
+                strategy = metadata.get('generation_strategy', 'unknown') if metadata else 'unknown'
+                logger.info(f"[GENERATION][ROBUST] SUCCESS - Generated outfit using strategy: {strategy}")
                     logger.info(f"[GENERATION][ROBUST] Outfit items: {len(robust_outfit.items)} items")
                     print(f"🎯 GENERATION STRATEGY: {strategy}")
                     # Check if robust service is internally falling back
