@@ -2292,7 +2292,7 @@ async def _update_item_analytics_from_outfit_rating(
         updated_count = 0
         
         for item in outfit_items:
-        for item in outfit_items:
+            item_id = (item.get('id') if item else None)
             if not item_id:
                 continue
             
@@ -2303,10 +2303,10 @@ async def _update_item_analytics_from_outfit_rating(
                 
                 if analytics_doc.exists:
                     # Update existing analytics
-                current_data = analytics_doc.to_dict()
+                    current_data = analytics_doc.to_dict()
                     
                     # Update feedback ratings
-        feedback_ratings = (current_data.get('feedback_ratings', []) if current_data else [])
+                    feedback_ratings = (current_data.get('feedback_ratings', []) if current_data else [])
                     feedback_ratings.append({
                         'rating': rating,
                         'outfit_rating': rating,
@@ -2317,7 +2317,7 @@ async def _update_item_analytics_from_outfit_rating(
                     })
                     
                     # Calculate new average rating
-        total_rating = sum((fr.get('rating', 0) if fr else 0) for fr in feedback_ratings)
+                    total_rating = sum((fr.get('rating', 0) if fr else 0) for fr in feedback_ratings)
                     avg_rating = total_rating / len(feedback_ratings)
                     
                     analytics_ref.update({
@@ -2405,7 +2405,10 @@ async def explain_outfit(
 # ⚠️ PARAMETERIZED ROUTE - MUST BE FIRST TO AVOID ROUTE CONFLICTS!
 # This route MUST come BEFORE the root route to avoid catching it
 @router.get("/{outfit_id}", response_model=OutfitResponse)
-async def get_outfit(outfit_id: str):
+async def get_outfit(
+    outfit_id: str,
+    current_user: UserProfile = Depends(get_current_user)
+):
     """Get a specific outfit by ID. MUST BE FIRST ROUTE TO AVOID CONFLICTS."""
     logger.info(f"🔍 DEBUG: Get outfit {outfit_id} endpoint called")
     
