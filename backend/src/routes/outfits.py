@@ -1165,11 +1165,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: About to call generate_outfit with context")
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: Context has {len(context.wardrobe)} wardrobe items")
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: Context occasion: {context.occasion}, style: {context.style}")
-        
-        # DEBUG: Collect robust service debug information
-        debug_info = {
-        "robust_input": {
-        "wardrobe_count": len(context.wardrobe),
+                    
+                    # DEBUG: Collect robust service debug information
+                    debug_info = {
+                        "robust_input": {
+                            "wardrobe_count": len(context.wardrobe),
         "occasion": context.occasion,
         "style": context.style,
         "mood": context.mood,
