@@ -1629,14 +1629,15 @@ async def generate_outfit(
                 if "DEBUG:" in error_detail or "🔥" in error_detail or "NoneType" in error_detail:
                     # Our debug information is in the error message - return it directly
                     if error_details:
-                raise HTTPException(
-                    status_code=500, 
-        detail=f"🔥 RETRY LOOP CRASH: {error_details['error_type']}: {error_details['error_message']}\n\nFull Traceback:\n{error_details['full_traceback']}"
-        )
-        else:
-        raise HTTPException(
-        status_code=500,
-        detail=error_detail  # Return original error if no enhanced details
+                        raise HTTPException(
+                            status_code=500, 
+                            detail=f"🔥 RETRY LOOP CRASH: {error_details['error_type']}: {error_details['error_message']}\n\nFull Traceback:\n{error_details['full_traceback']}"
+                        )
+                    else:
+                        raise HTTPException(
+                            status_code=500,
+                            detail=error_detail  # Return original error if no enhanced details
+                        )
         )
         else:
         raise HTTPException(
