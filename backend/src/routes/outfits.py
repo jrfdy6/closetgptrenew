@@ -716,15 +716,15 @@ def ensure_base_item_included(outfit: Dict[str, Any], base_item_id: Optional[str
             temp = (weather_data.get('temperature', 70) if weather_data else 70)
             condition = (weather_data.get('condition', '') if weather_data else '').lower()
         item_name = (base_item.get('name', 'item') if base_item else 'item')
-            
-            # Get item details for specific warnings
+        
+        # Get item details for specific warnings
         item_type = (base_item.get('type', '') if base_item else '').lower()
         metadata = (base_item.get('metadata', {}) if base_item else {})
-            material = ""
-            color = ""
-            if isinstance(metadata, dict):
+        material = ""
+        color = ""
+        if isinstance(metadata, dict):
             visual_attrs = (metadata.get('visualAttributes', {}) if metadata else {})
-                if isinstance(visual_attrs, dict):
+            if isinstance(visual_attrs, dict):
                 material = (visual_attrs.get('material', '') if visual_attrs else '').lower()
                 color = (visual_attrs.get('color', '') if visual_attrs else '').lower()
             
@@ -842,69 +842,69 @@ def attach_weather_context_to_items(items: List, weather_data: Dict[str, Any]) -
                     if isinstance(visual_attrs, dict):
                         material = (visual_attrs.get('material', '') if visual_attrs else '').lower()
         color = (item.get('color', '') if item else '').title()
-            
-            # Temperature appropriateness analysis
-            temp_appropriateness = "excellent"
-            temp_note = ""
-            
-            if temp >= 85:  # Very hot weather
-                if any(heavy in item_name for heavy in ['heavy', 'winter', 'thick', 'wool', 'fleece', 'thermal']):
-                    temp_appropriateness = "too warm"
-                    temp_note = f"may be too warm for {temp}°F weather"
-                elif 'shorts' in item_type or 'tank' in item_type:
-                    temp_appropriateness = "excellent"
-                    temp_note = f"perfect for {temp}°F hot weather"
-                elif 'cotton' in material or 'linen' in material:
-                    temp_appropriateness = "excellent"
-                    temp_note = f"breathable fabric ideal for {temp}°F weather"
-                else:
-                    temp_appropriateness = "good"
-                    temp_note = f"suitable for {temp}°F warm weather"
-                    
-            elif temp >= 75:  # Warm weather
-                if 'shorts' in item_type or 'tank' in item_type:
-                    temp_appropriateness = "excellent"
-                    temp_note = f"comfortable for {temp}°F warm weather"
-                elif any(heavy in item_name for heavy in ['heavy', 'winter', 'thick']):
-                    temp_appropriateness = "borderline"
-                    temp_note = f"may be warm for {temp}°F weather"
-                else:
-                    temp_appropriateness = "good"
-                    temp_note = f"appropriate for {temp}°F warm weather"
-                    
-            elif temp >= 65:  # Mild weather
+        
+        # Temperature appropriateness analysis
+        temp_appropriateness = "excellent"
+        temp_note = ""
+        
+        if temp >= 85:  # Very hot weather
+            if any(heavy in item_name for heavy in ['heavy', 'winter', 'thick', 'wool', 'fleece', 'thermal']):
+                temp_appropriateness = "too warm"
+                temp_note = f"may be too warm for {temp}°F weather"
+            elif 'shorts' in item_type or 'tank' in item_type:
                 temp_appropriateness = "excellent"
-                temp_note = f"ideal for {temp}°F mild weather"
+                temp_note = f"perfect for {temp}°F hot weather"
+            elif 'cotton' in material or 'linen' in material:
+                temp_appropriateness = "excellent"
+                temp_note = f"breathable fabric ideal for {temp}°F weather"
+            else:
+                temp_appropriateness = "good"
+                temp_note = f"suitable for {temp}°F warm weather"
                 
-            elif temp >= 55:  # Cool weather
-                if 'shorts' in item_type:
-                    temp_appropriateness = "borderline"
-                    temp_note = f"may be cool for {temp}°F weather"
-                elif 'sweater' in item_type or 'jacket' in item_type:
-                    temp_appropriateness = "excellent"
-                    temp_note = f"perfect for {temp}°F cool weather"
-                else:
-                    temp_appropriateness = "good"
-                    temp_note = f"suitable for {temp}°F cool weather"
-                    
-            else:  # Cold weather
-                if any(cool in item_type for cool in ['shorts', 'tank', 'sleeveless']):
-                    temp_appropriateness = "inappropriate"
-                    temp_note = f"inadequate for {temp}°F cold weather"
-                elif any(warm in item_name for warm in ['heavy', 'winter', 'wool', 'fleece']):
-                    temp_appropriateness = "excellent"
-                    temp_note = f"ideal for {temp}°F cold weather"
-                else:
-                    temp_appropriateness = "good"
-                    temp_note = f"appropriate for {temp}°F cold weather"
+        elif temp >= 75:  # Warm weather
+            if 'shorts' in item_type or 'tank' in item_type:
+                temp_appropriateness = "excellent"
+                temp_note = f"comfortable for {temp}°F warm weather"
+            elif any(heavy in item_name for heavy in ['heavy', 'winter', 'thick']):
+                temp_appropriateness = "borderline"
+                temp_note = f"may be warm for {temp}°F weather"
+            else:
+                temp_appropriateness = "good"
+                temp_note = f"appropriate for {temp}°F warm weather"
+                
+        elif temp >= 65:  # Mild weather
+            temp_appropriateness = "excellent"
+            temp_note = f"ideal for {temp}°F mild weather"
             
-            # Fabric and condition analysis
-            fabric_note = ""
-            if 'rain' in condition or precipitation > 50:
-                if any(delicate in material for delicate in ['silk', 'suede', 'velvet', 'linen']):
-                    fabric_note = f"Note: {material} fabric may not be ideal for wet conditions"
-                elif any(water_resistant in material for water_resistant in ['nylon', 'polyester', 'gore-tex']):
-                    fabric_note = f"Excellent: {material} provides good water resistance"
+        elif temp >= 55:  # Cool weather
+            if 'shorts' in item_type:
+                temp_appropriateness = "borderline"
+                temp_note = f"may be cool for {temp}°F weather"
+            elif 'sweater' in item_type or 'jacket' in item_type:
+                temp_appropriateness = "excellent"
+                temp_note = f"perfect for {temp}°F cool weather"
+            else:
+                temp_appropriateness = "good"
+                temp_note = f"suitable for {temp}°F cool weather"
+                
+        else:  # Cold weather
+            if any(cool in item_type for cool in ['shorts', 'tank', 'sleeveless']):
+                temp_appropriateness = "inappropriate"
+                temp_note = f"inadequate for {temp}°F cold weather"
+            elif any(warm in item_name for warm in ['heavy', 'winter', 'wool', 'fleece']):
+                temp_appropriateness = "excellent"
+                temp_note = f"ideal for {temp}°F cold weather"
+            else:
+                temp_appropriateness = "good"
+                temp_note = f"appropriate for {temp}°F cold weather"
+        
+        # Fabric and condition analysis
+        fabric_note = ""
+        if 'rain' in condition or precipitation > 50:
+            if any(delicate in material for delicate in ['silk', 'suede', 'velvet', 'linen']):
+                fabric_note = f"Note: {material} fabric may not be ideal for wet conditions"
+            elif any(water_resistant in material for water_resistant in ['nylon', 'polyester', 'gore-tex']):
+                fabric_note = f"Excellent: {material} provides good water resistance"
                     
             # Style and occasion analysis
             style_note = ""
@@ -1060,9 +1060,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 raise Exception("RobustOutfitGenerationService or GenerationContext is None - import failed!")
             
             # Use robust service
-                logger.info("🚀 Using robust outfit generation service")
-                print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
-                print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
+            logger.info("🚀 Using robust outfit generation service")
+            print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
+            print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
             
             # Initialize outfit variable to prevent "not defined" errors
             outfit = None
@@ -1072,75 +1072,75 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             # print(f"🔍 DEBUG ROBUST START: (req.wardrobe if req else []) type = {type(req.wardrobe)}")
             print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe = {req.resolved_wardrobe}")
             # print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe type = {type(req.resolved_wardrobe)}")
-                
-                # Create generation context - ensure weather is properly formatted
+            
+            # Create generation context - ensure weather is properly formatted
             weather_data = (req.weather if req else None)
-                if isinstance(weather_data, dict):
-                    # Convert dict to object-like structure for robust service
-                    from types import SimpleNamespace
-                    weather_data = SimpleNamespace(**weather_data)
-                    logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
-                
-                # WardrobePreprocessor integration
-                logger.info(f"🔧 Starting WardrobePreprocessor integration")
-                
-                # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
-                logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
+            if isinstance(weather_data, dict):
+                # Convert dict to object-like structure for robust service
+                from types import SimpleNamespace
+                weather_data = SimpleNamespace(**weather_data)
+                logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
+            
+            # WardrobePreprocessor integration
+            logger.info(f"🔧 Starting WardrobePreprocessor integration")
+            
+            # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
+            logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
             print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items = {wardrobe_items}")
             # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items type = {type(wardrobe_items)}")
             # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items length = {len(wardrobe_items) if wardrobe_items else 'None'}")
-                try:
-                    from ..utils.item_hydration import hydrate_outfit_items
-                    hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
-                    logger.info(f"✅ HYDRATED {len(hydrated_wardrobe_items)} items successfully")
+            try:
+                from ..utils.item_hydration import hydrate_outfit_items
+                hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
+                logger.info(f"✅ HYDRATED {len(hydrated_wardrobe_items)} items successfully")
                 # print(f"🔍 DEBUG HYDRATOR CALL: Successfully hydrated {len(hydrated_wardrobe_items)} items")
-                except Exception as hydrator_error:
-                    logger.warning(f"⚠️ HYDATOR ERROR: {hydrator_error}")
+            except Exception as hydrator_error:
+                logger.warning(f"⚠️ HYDATOR ERROR: {hydrator_error}")
                 print(f"🚨 HYDRATOR ERROR: {hydrator_error}")
                 import traceback
                 # print(f"🚨 HYDRATOR TRACEBACK: {traceback.format_exc()}")
-                    logger.info(f"🔄 Using original wardrobe_items as fallback")
-                    hydrated_wardrobe_items = wardrobe_items
-                
-                # Update wardrobe_items with hydrated items
-                wardrobe_items = hydrated_wardrobe_items
-                
-                # Initialize clothing_items list
-                clothing_items = []
-                
-                if ClothingItem is None:
-                    logger.warning(f"⚠️ ClothingItem not available, skipping validation")
-                    clothing_items = hydrated_wardrobe_items  # Use raw items if ClothingItem not available
-                else:
-                    for i, item_dict in enumerate(hydrated_wardrobe_items):
-                        print(f"🔍 DEBUG ITEM CONVERSION: Processing item {i}: {item_dict}")
-                        # print(f"🔍 DEBUG ITEM CONVERSION: item_dict type = {type(item_dict)}")
-                        try:
-                            clothing_item = ClothingItem(**item_dict)
-                            clothing_items.append(clothing_item)
-                            print(f"🔍 DEBUG ITEM CONVERSION: Successfully converted item {i}")
-                        except Exception as item_error:
-                            logger.warning(f"⚠️ Failed to convert item {i}: {item_error}")
-                            print(f"🚨 ITEM CONVERSION ERROR: {item_error}")
-                            import traceback
-                            # print(f"🚨 ITEM CONVERSION TRACEBACK: {traceback.format_exc()}")
-                            continue
-                
-                logger.info(f"✅ Pre-outfit-construction guard completed - {len(clothing_items)} items converted successfully")
-        
-        # DEBUG: Check clothing_items for None values
-        # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items length = {len(clothing_items)}")
-        # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items type = {type(clothing_items)}")
-        for i, item in enumerate(clothing_items):
-            pass
-            pass
-            pass
-            print(f"🔍 DEBUG CONTEXT CREATION: item {i} = {item}")
-            # print(f"🔍 DEBUG CONTEXT CREATION: item {i} type = {type(item)}")
-            if item is None:
-                print(f"🚨 CRITICAL: clothing_items[{i}] is None!")
-                
-                context = GenerationContext(
+                logger.info(f"🔄 Using original wardrobe_items as fallback")
+                hydrated_wardrobe_items = wardrobe_items
+            
+            # Update wardrobe_items with hydrated items
+            wardrobe_items = hydrated_wardrobe_items
+            
+            # Initialize clothing_items list
+            clothing_items = []
+            
+            if ClothingItem is None:
+                logger.warning(f"⚠️ ClothingItem not available, skipping validation")
+                clothing_items = hydrated_wardrobe_items  # Use raw items if ClothingItem not available
+            else:
+                for i, item_dict in enumerate(hydrated_wardrobe_items):
+                    print(f"🔍 DEBUG ITEM CONVERSION: Processing item {i}: {item_dict}")
+                    # print(f"🔍 DEBUG ITEM CONVERSION: item_dict type = {type(item_dict)}")
+                    try:
+                        clothing_item = ClothingItem(**item_dict)
+                        clothing_items.append(clothing_item)
+                        print(f"🔍 DEBUG ITEM CONVERSION: Successfully converted item {i}")
+                    except Exception as item_error:
+                        logger.warning(f"⚠️ Failed to convert item {i}: {item_error}")
+                        print(f"🚨 ITEM CONVERSION ERROR: {item_error}")
+                        import traceback
+                        # print(f"🚨 ITEM CONVERSION TRACEBACK: {traceback.format_exc()}")
+                        continue
+            
+            logger.info(f"✅ Pre-outfit-construction guard completed - {len(clothing_items)} items converted successfully")
+            
+            # DEBUG: Check clothing_items for None values
+            # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items length = {len(clothing_items)}")
+            # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items type = {type(clothing_items)}")
+            for i, item in enumerate(clothing_items):
+                pass
+                pass
+                pass
+                print(f"🔍 DEBUG CONTEXT CREATION: item {i} = {item}")
+                # print(f"🔍 DEBUG CONTEXT CREATION: item {i} type = {type(item)}")
+                if item is None:
+                    print(f"🚨 CRITICAL: clothing_items[{i}] is None!")
+                    
+                    context = GenerationContext(
                     user_id=user_id,
                     occasion=req.occasion,
                     style=req.style,
@@ -1154,7 +1154,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 # Generate outfit using robust service
                 logger.info(f"[GENERATION][ROBUST] START for user {user_id}, wardrobe size={len(wardrobe_items)}")
                 logger.info(f"[GENERATION][ROBUST] Context: occasion={req.occasion}, style={req.style}, mood={req.mood}")
-        logger.info(f"[GENERATION][ROBUST] Wardrobe categories: {[(item.get('type', 'unknown') if item else 'unknown') for item in wardrobe_items[:10]]}...")
+                logger.info(f"[GENERATION][ROBUST] Wardrobe categories: {[(item.get('type', 'unknown') if item else 'unknown') for item in wardrobe_items[:10]]}...")
                 
                 try:
                     logger.info(f"🚀 CALLING ROBUST SERVICE: generate_outfit()")
@@ -1168,144 +1168,134 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: About to call generate_outfit with context")
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: Context has {len(context.wardrobe)} wardrobe items")
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: Context occasion: {context.occasion}, style: {context.style}")
-        
-        # DEBUG: Collect robust service debug information
-        debug_info = {
-        "robust_input": {
-        "wardrobe_count": len(context.wardrobe),
-        "occasion": context.occasion,
-        "style": context.style,
-        "mood": context.mood,
-        "user_id": context.user_id,
-        "wardrobe_items": [
-        {
-        "id": getattr(item, 'id', 'NO_ID'),
-        "name": getattr(item, 'name', 'NO_NAME'),
-        "type": str(getattr(item, 'type', 'NO_TYPE'))
-        } for item in context.wardrobe[:3]
-        ]
-        }
-        }
-        
-        # DEBUG: Log wardrobe item types before robust service call
-        print(f"🔍 DEBUG WARDROBE ITEMS: About to call robust service")
-        if hasattr(context, 'wardrobe') and context.wardrobe:
-        # print(f"🔍 DEBUG WARDROBE ITEMS: Wardrobe has {len(context.wardrobe)} items")
-        for i, item in enumerate(context.wardrobe):
-        item_type = getattr(item, 'type', 'NO_TYPE')
-        item_name = getattr(item, 'name', 'NO_NAME')
-        print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type='{item_type}' name='{item_name}'")
-        if hasattr(item_type, 'value'):
-        print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.value='{item_type.value}'")
-        if hasattr(item_type, 'name'):
-        print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.name='{item_type.name}'")
-        else:
-        print(f"🔍 DEBUG WARDROBE ITEMS: No wardrobe items or wardrobe is None")
-        
-        print(f"🔍 DEBUG BEFORE ROBUST CALL: robust_service = {robust_service}")
-        print(f"🔍 DEBUG BEFORE ROBUST CALL: context = {context}")
-        # print(f"🔍 DEBUG BEFORE ROBUST CALL: context.wardrobe = {len(context.wardrobe) if hasattr(context, 'wardrobe') else 'NO WARDROBE'}")
-        
-        # 🔥 COMPREHENSIVE ERROR TRACING FOR NoneType .get() DEBUGGING
-        try:
+                    
+                    # DEBUG: Collect robust service debug information
+                    debug_info = {
+                        "robust_input": {
+                            "wardrobe_count": len(context.wardrobe),
+                            "occasion": context.occasion,
+                            "style": context.style,
+                            "mood": context.mood,
+                            "user_id": context.user_id,
+                            "wardrobe_items": [
+                                {
+                                    "id": getattr(item, 'id', 'NO_ID'),
+                                    "name": getattr(item, 'name', 'NO_NAME'),
+                                    "type": str(getattr(item, 'type', 'NO_TYPE'))
+                                } for item in context.wardrobe[:3]
+                            ]
+                        }
+                    }
+                    
+                    # DEBUG: Log wardrobe item types before robust service call
+                    print(f"🔍 DEBUG WARDROBE ITEMS: About to call robust service")
+                    if hasattr(context, 'wardrobe') and context.wardrobe:
+                        # print(f"🔍 DEBUG WARDROBE ITEMS: Wardrobe has {len(context.wardrobe)} items")
+                        for i, item in enumerate(context.wardrobe):
+                            item_type = getattr(item, 'type', 'NO_TYPE')
+                            item_name = getattr(item, 'name', 'NO_NAME')
+                            print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type='{item_type}' name='{item_name}'")
+                            if hasattr(item_type, 'value'):
+                                print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.value='{item_type.value}'")
+                            if hasattr(item_type, 'name'):
+                                print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.name='{item_type.name}'")
+                    else:
+                        print(f"🔍 DEBUG WARDROBE ITEMS: No wardrobe items or wardrobe is None")
+                    
+                    print(f"🔍 DEBUG BEFORE ROBUST CALL: robust_service = {robust_service}")
+                    print(f"🔍 DEBUG BEFORE ROBUST CALL: context = {context}")
+                    # print(f"🔍 DEBUG BEFORE ROBUST CALL: context.wardrobe = {len(context.wardrobe) if hasattr(context, 'wardrobe') else 'NO WARDROBE'}")
+                    
+                    # 🔥 COMPREHENSIVE ERROR TRACING FOR NoneType .get() DEBUGGING
                     robust_outfit = await robust_service.generate_outfit(context)
-        logger.error(f"🚨 FORCE REDEPLOY v12.0: generate_outfit completed successfully")
-        except Exception as e:
-        import traceback
-        error_details = {
-        "error_type": str(type(e).__name__),
-        "error_message": str(e),
-        "full_traceback": traceback.format_exc(),
-        "context_info": {
-        "context_type": str(type(context)),
-        "context_wardrobe_length": len(context.wardrobe) if hasattr(context, 'wardrobe') and context.wardrobe else 0,
-        "context_occasion": getattr(context, 'occasion', 'NO_OCCASION'),
-        "context_style": getattr(context, 'style', 'NO_STYLE'),
-        "context_user_id": getattr(context, 'user_id', 'NO_USER_ID')
-        }
-        }
-        logger.error("🔥 Robust outfit generation crash", extra=error_details, exc_info=True)
-        print(f"🔥 ROBUST GENERATION CRASH: {error_details}")
-        # print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
-        raise
-        print(f"🔍 DEBUG ROBUST RETURN: robust_outfit = {robust_outfit}")
-        # print(f"🔍 DEBUG ROBUST RETURN: type = {type(robust_outfit)}")
-        if robust_outfit is None:
-        print(f"🚨 CRITICAL: robust_outfit is None!")
-        raise Exception("Robust service returned None - this should not happen")
-        
-        # DEBUG: Collect robust generation result
-        debug_info["robust_output"] = {
-        "outfit_type": str(type(robust_outfit)),
-        "has_items_attr": hasattr(robust_outfit, 'items'),
-        "items_count": len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 0,
-        "items_list": [
-        {
-        "id": getattr(item, 'id', 'NO_ID'),
-        "name": getattr(item, 'name', 'NO_NAME')
-        } for item in robust_outfit.items[:3]
-        ] if hasattr(robust_outfit, 'items') and robust_outfit.items else []
-        }
-        
-        # Store debug info for later use
-        context.debug_info = debug_info
-        robust_debug_info = debug_info  # Store in local scope for error handling
+                    logger.error(f"🚨 FORCE REDEPLOY v12.0: generate_outfit completed successfully")
+                except Exception as e:
+                    import traceback
+                    error_details = {
+                        "error_type": str(type(e).__name__),
+                        "error_message": str(e),
+                        "full_traceback": traceback.format_exc(),
+                        "context_info": {
+                            "context_type": str(type(context)),
+                            "context_wardrobe_length": len(context.wardrobe) if hasattr(context, 'wardrobe') and context.wardrobe else 0,
+                            "context_occasion": getattr(context, 'occasion', 'NO_OCCASION'),
+                            "context_style": getattr(context, 'style', 'NO_STYLE'),
+                            "context_user_id": getattr(context, 'user_id', 'NO_USER_ID')
+                        }
+                    }
+                    logger.error("🔥 Robust outfit generation crash", extra=error_details, exc_info=True)
+                    print(f"🔥 ROBUST GENERATION CRASH: {error_details}")
+                    # print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
+                    raise
                     
-                    logger.info(f"🚀 ROBUST SERVICE RETURNED: {type(robust_outfit)}")
-                    logger.info(f"🚀 ROBUST OUTFIT ITEMS: {len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 'NO ITEMS ATTR'}")
-                    logger.info(f"🚀 ROBUST METADATA: {robust_outfit.metadata if hasattr(robust_outfit, 'metadata') else 'NO METADATA ATTR'}")
-                    
-                    # Log the generation strategy used
-        metadata = getattr(robust_outfit, 'metadata', None)
-        strategy = metadata.get('generation_strategy', 'unknown') if metadata else 'unknown'
-                    logger.info(f"[GENERATION][ROBUST] SUCCESS - Generated outfit using strategy: {strategy}")
-                    logger.info(f"[GENERATION][ROBUST] Outfit items: {len(robust_outfit.items)} items")
-                    print(f"🎯 GENERATION STRATEGY: {strategy}")
-                    # Check if robust service is internally falling back
-                    if strategy == 'fallback_simple':
-                        logger.warning(f"⚠️ ROBUST SERVICE INTERNAL FALLBACK: Strategy is fallback_simple")
-                        print(f"🚨 ROBUST SERVICE INTERNAL FALLBACK: The robust service itself is falling back!")
-                        print(f"🚨 This means the robust service is working but failing internally")
-                        # Add detailed fallback reason logging
-                        fallback_reason = "Unknown - robust service returned fallback_simple strategy"
-                        if hasattr(robust_outfit, 'metadata'):
-        metadata = getattr(robust_outfit, 'metadata', None)
-        failed_rules = metadata.get('failed_rules', []) if metadata else []
-                            if failed_rules:
-                                fallback_reason = f"Failed validation rules: {failed_rules}"
-                            elif len(robust_outfit.items) == 0:
-                                fallback_reason = "Empty candidate pool - no items generated"
-                            elif len(robust_outfit.items) < 3:
-                                fallback_reason = f"Too few items generated: {len(robust_outfit.items)}"
+                print(f"🔍 DEBUG ROBUST RETURN: robust_outfit = {robust_outfit}")
+                # print(f"🔍 DEBUG ROBUST RETURN: type = {type(robust_outfit)}")
+                if robust_outfit is None:
+                    print(f"🚨 CRITICAL: robust_outfit is None!")
+                    raise Exception("Robust service returned None - this should not happen")
+                
+                # DEBUG: Collect robust generation result
+                debug_info["robust_output"] = {
+                    "outfit_type": str(type(robust_outfit)),
+                    "has_items_attr": hasattr(robust_outfit, 'items'),
+                    "items_count": len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 0,
+                    "items_list": [
+                        {
+                            "id": getattr(item, 'id', 'NO_ID'),
+                            "name": getattr(item, 'name', 'NO_NAME')
+                        } for item in robust_outfit.items[:3]
+                    ] if hasattr(robust_outfit, 'items') and robust_outfit.items else []
+                }
+                
+                # Store debug info for later use
+                context.debug_info = debug_info
+                robust_debug_info = debug_info  # Store in local scope for error handling
+                
+                logger.info(f"🚀 ROBUST SERVICE RETURNED: {type(robust_outfit)}")
+                logger.info(f"🚀 ROBUST OUTFIT ITEMS: {len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 'NO ITEMS ATTR'}")
+                logger.info(f"🚀 ROBUST METADATA: {robust_outfit.metadata if hasattr(robust_outfit, 'metadata') else 'NO METADATA ATTR'}")
+                
+                # Log the generation strategy used
+                metadata = getattr(robust_outfit, 'metadata', None)
+                strategy = metadata.get('generation_strategy', 'unknown') if metadata else 'unknown'
+                logger.info(f"[GENERATION][ROBUST] SUCCESS - Generated outfit using strategy: {strategy}")
+                logger.info(f"[GENERATION][ROBUST] Outfit items: {len(robust_outfit.items)} items")
+                print(f"🎯 GENERATION STRATEGY: {strategy}")
+                # Check if robust service is internally falling back
+                if strategy == 'fallback_simple':
+                    logger.warning(f"⚠️ ROBUST SERVICE INTERNAL FALLBACK: Strategy is fallback_simple")
+                    print(f"🚨 ROBUST SERVICE INTERNAL FALLBACK: The robust service itself is falling back!")
+                    print(f"🚨 This means the robust service is working but failing internally")
+                    # Add detailed fallback reason logging
+                    fallback_reason = "Unknown - robust service returned fallback_simple strategy"
+                    if hasattr(robust_outfit, 'metadata'):
+                        metadata = getattr(robust_outfit, 'metadata', None)
+                        failed_rules = metadata.get('failed_rules', []) if metadata else []
+                        if failed_rules:
+                            fallback_reason = f"Failed validation rules: {failed_rules}"
+                        elif len(robust_outfit.items) == 0:
+                            fallback_reason = "Empty candidate pool - no items generated"
+                        elif len(robust_outfit.items) < 3:
+                            fallback_reason = f"Too few items generated: {len(robust_outfit.items)}"
                         
                         logger.warning(f"🔍 ROBUST FALLBACK REASON: {fallback_reason}")
                         print(f"🚨 ROBUST FALLBACK REASON: {fallback_reason}")
-                except Exception as e:
-                    logger.error(f"[GENERATION][ROBUST][ERROR] {e}", exc_info=True)
-                    logger.error(f"[GENERATION][ROBUST][ERROR] Context: user={user_id}, occasion={req.occasion}, style={req.style}")
-                    logger.error(f"[GENERATION][ROBUST][ERROR] Wardrobe size: {len(wardrobe_items)}")
-                    logger.error(f"[GENERATION][ROBUST][ERROR] Exception type: {type(e).__name__}")
-        # print(f"🚨 ROBUST GENERATOR ERROR: {type(e).__name__}: {e}")
-                    print(f"🚨 ROBUST GENERATOR FULL TRACEBACK:")
-                    import traceback
-                    traceback.print_exc()
-                    raise
                 
                 # Convert to expected format with error handling
                 try:
                     logger.info(f"🔄 Converting robust outfit to expected format...")
                     logger.info(f"🔄 Robust outfit type: {type(robust_outfit)}")
                     logger.info(f"🔄 Robust outfit attributes: {dir(robust_outfit)}")
-        
-        # DEBUG: Log robust outfit attributes before conversion
-        # print(f"🔍 DEBUG CONVERSION: Robust outfit type: {type(robust_outfit)}")
-        # print(f"🔍 DEBUG CONVERSION: Robust outfit dir: {dir(robust_outfit)}")
-        # print(f"🔍 DEBUG CONVERSION: Has items: {hasattr(robust_outfit, 'items')}")
-        if hasattr(robust_outfit, 'items'):
-        # print(f"🔍 DEBUG CONVERSION: Items type: {type(robust_outfit.items)}")
-        # print(f"🔍 DEBUG CONVERSION: Items length: {len(robust_outfit.items) if robust_outfit.items else 0}")
-        if robust_outfit.items:
-        print(f"🔍 DEBUG CONVERSION: First item: {robust_outfit.items[0]}")
+                    
+                    # DEBUG: Log robust outfit attributes before conversion
+                    # print(f"🔍 DEBUG CONVERSION: Robust outfit type: {type(robust_outfit)}")
+                    # print(f"🔍 DEBUG CONVERSION: Robust outfit dir: {dir(robust_outfit)}")
+                    # print(f"🔍 DEBUG CONVERSION: Has items: {hasattr(robust_outfit, 'items')}")
+                    if hasattr(robust_outfit, 'items'):
+                        # print(f"🔍 DEBUG CONVERSION: Items type: {type(robust_outfit.items)}")
+                        # print(f"🔍 DEBUG CONVERSION: Items length: {len(robust_outfit.items) if robust_outfit.items else 0}")
+                        if robust_outfit.items:
+                            print(f"🔍 DEBUG CONVERSION: First item: {robust_outfit.items[0]}")
                     
                     outfit = {
                         'id': getattr(robust_outfit, 'id', 'unknown'),
@@ -1334,7 +1324,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     }
                     
                     logger.info(f"✅ Successfully converted robust outfit to expected format")
-        logger.info(f"✅ Outfit has {len((outfit.get('items', []) if outfit else []))} items")
+                    logger.info(f"✅ Outfit has {len((outfit.get('items', []) if outfit else []))} items")
                     
                 except Exception as conversion_error:
                     logger.error(f"❌ Failed to convert robust outfit to expected format: {conversion_error}")
@@ -1342,16 +1332,16 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.error(f"❌ Conversion error details: {str(conversion_error)}")
                     raise conversion_error
                 
-        # Ensure outfit was successfully created
-        if outfit is None:
-        raise Exception("Outfit generation failed - outfit is None")
+                # Ensure outfit was successfully created
+                if outfit is None:
+                    raise Exception("Outfit generation failed - outfit is None")
                 
                 # Log generation strategy for monitoring
-        failed_rules = safe_get_metadata(outfit, 'failed_rules', [])
+                failed_rules = safe_get_metadata(outfit, 'failed_rules', [])
                 log_generation_strategy(outfit, user_id, failed_rules=failed_rules)
                 
                 # Verify strategy is set correctly
-        final_strategy = safe_get_metadata(outfit, 'generation_strategy', 'unknown')
+                final_strategy = safe_get_metadata(outfit, 'generation_strategy', 'unknown')
                 logger.info(f"🎯 FINAL STRATEGY: {final_strategy}")
                 print(f"🎯 FINAL STRATEGY: {final_strategy}")
                 # CRITICAL DEBUG: Log outfit metadata before any post-processing
