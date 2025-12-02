@@ -1615,7 +1615,6 @@ async def generate_outfit(
                     if attempt < max_attempts - 1:
                         await asyncio.sleep(1)  # Brief delay before retry
                         continue
-            except Exception as e:
                 last_error = e
                 import traceback
                 import traceback
