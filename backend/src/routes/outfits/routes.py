@@ -1524,18 +1524,18 @@ async def generate_outfit(
                                 outfit['metadata']['validation_reason'] = "Category limits already enforced"
                             else:
                                 logger.info("🔍 Running enhanced validation pipeline")
-                            # Create validation context
-                            validation_context = ValidationContext(
-                                occasion=req.occasion,
-                                style=req.style or "casual",
-                                mood=req.mood or "neutral",
-                                weather=req.weather.__dict__ if hasattr(req.weather, '__dict__') else (req.weather if req else None),
-                                user_profile={"id": current_user_id},  # Basic profile for validation
-                                temperature=getattr(req.weather, 'temperature', 70.0) if hasattr(req.weather, 'temperature') else 70.0
-                            )
-                            
-                            # Run validation pipeline
-                            validation_result = await validation_pipeline.validate_outfit(outfit, validation_context)
+                                # Create validation context
+                                validation_context = ValidationContext(
+                                    occasion=req.occasion,
+                                    style=req.style or "casual",
+                                    mood=req.mood or "neutral",
+                                    weather=req.weather.__dict__ if hasattr(req.weather, '__dict__') else (req.weather if req else None),
+                                    user_profile={"id": current_user_id},  # Basic profile for validation
+                                    temperature=getattr(req.weather, 'temperature', 70.0) if hasattr(req.weather, 'temperature') else 70.0
+                                )
+                                
+                                # Run validation pipeline
+                                validation_result = await validation_pipeline.validate_outfit(outfit, validation_context)
                             
                             if not validation_result.valid:
                                 failed_rules = validation_result.errors or []
