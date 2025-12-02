@@ -1562,7 +1562,7 @@ async def generate_outfit(
                     
                     # Validate the generated outfit (basic validation)
                     if outfit and outfit.get('items') and len(outfit.get('items', [])) >= 3:
-                    logger.info(f"✅ Generation successful on attempt {generation_attempts}")
+                        logger.info(f"✅ Generation successful on attempt {generation_attempts}")
                     
                     # CACHE STORAGE: Store successful generation in cache
                     if not cache_hit and not (req.bypass_cache if req else False):
