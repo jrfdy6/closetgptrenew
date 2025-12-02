@@ -2473,9 +2473,9 @@ async def list_outfits_with_slash(
         if outfits:
             # Log the most recent outfit for debugging
             latest = outfits[0]
-        logger.info(f"🔍 DEBUG: Latest outfit: '{((latest.get('name', 'Unknown') if latest else 'Unknown') if latest else 'Unknown')}' created at {latest.get('createdAt', 'Unknown')}")
-        logger.info(f"🔍 DEBUG: Latest outfit wearCount: {(latest.get('wearCount', 'NOT_FOUND') if latest else 'NOT_FOUND')}")
-        logger.info(f"🔍 DEBUG: Latest outfit lastWorn: {(latest.get('lastWorn', 'NOT_FOUND') if latest else 'NOT_FOUND')}")
+            logger.info(f"🔍 DEBUG: Latest outfit: '{((latest.get('name', 'Unknown') if latest else 'Unknown') if latest else 'Unknown')}' created at {latest.get('createdAt', 'Unknown')}")
+            logger.info(f"🔍 DEBUG: Latest outfit wearCount: {(latest.get('wearCount', 'NOT_FOUND') if latest else 'NOT_FOUND')}")
+            logger.info(f"🔍 DEBUG: Latest outfit lastWorn: {(latest.get('lastWorn', 'NOT_FOUND') if latest else 'NOT_FOUND')}")
         else:
             logger.info(f"⚠️ DEBUG: No outfits found for user {current_user_id}")
             
@@ -2510,9 +2510,9 @@ async def list_outfits_no_slash(
         if outfits:
             # Log the most recent outfit for debugging
             latest = outfits[0]
-        logger.info(f"🔍 DEBUG: Latest outfit: '{((latest.get('name', 'Unknown') if latest else 'Unknown') if latest else 'Unknown')}' created at {latest.get('createdAt', 'Unknown')}")
-        logger.info(f"🔍 DEBUG: Latest outfit wearCount: {(latest.get('wearCount', 'NOT_FOUND') if latest else 'NOT_FOUND')}")
-        logger.info(f"🔍 DEBUG: Latest outfit lastWorn: {(latest.get('lastWorn', 'NOT_FOUND') if latest else 'NOT_FOUND')}")
+            logger.info(f"🔍 DEBUG: Latest outfit: '{((latest.get('name', 'Unknown') if latest else 'Unknown') if latest else 'Unknown')}' created at {latest.get('createdAt', 'Unknown')}")
+            logger.info(f"🔍 DEBUG: Latest outfit wearCount: {(latest.get('wearCount', 'NOT_FOUND') if latest else 'NOT_FOUND')}")
+            logger.info(f"🔍 DEBUG: Latest outfit lastWorn: {(latest.get('lastWorn', 'NOT_FOUND') if latest else 'NOT_FOUND')}")
         else:
             logger.info(f"⚠️ DEBUG: No outfits found for user {current_user_id}")
             
