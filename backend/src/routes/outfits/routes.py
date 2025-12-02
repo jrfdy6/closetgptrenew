@@ -1523,7 +1523,7 @@ async def generate_outfit(
                                 outfit['metadata']['enhanced_validation_bypassed'] = True
                                 outfit['metadata']['validation_reason'] = "Category limits already enforced"
                             else:
-                            logger.info("🔍 Running enhanced validation pipeline")
+                                logger.info("🔍 Running enhanced validation pipeline")
                             # Create validation context
                             validation_context = ValidationContext(
                                 occasion=req.occasion,
