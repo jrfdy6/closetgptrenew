@@ -3001,20 +3001,20 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                     personality_scores = user_profile.get('stylePersonality', {})
                     
                     # Analyze item characteristics and match with personality
-if 'classic' in item_style and (personality_scores.get('classic', 0) if personality_scores else 0) > 0.6:
+                    if 'classic' in item_style and (personality_scores.get('classic', 0) if personality_scores else 0) > 0.6:
                         item_score += personality_scores['classic'] * 12
                         logger.info(f"🔍 DEBUG: Classic personality match: +{personality_scores['classic'] * 12:.1f} points")
                     
-if 'modern' in item_style and (personality_scores.get('modern', 0) if personality_scores else 0) > 0.6:
+                    if 'modern' in item_style and (personality_scores.get('modern', 0) if personality_scores else 0) > 0.6:
                         item_score += personality_scores['modern'] * 12
                         logger.info(f"🔍 DEBUG: Modern personality match: +{personality_scores['modern'] * 12:.1f} points")
                     
-if 'creative' in item_style and (personality_scores.get('creative', 0) if personality_scores else 0) > 0.6:
+                    if 'creative' in item_style and (personality_scores.get('creative', 0) if personality_scores else 0) > 0.6:
                         item_score += personality_scores['creative'] * 12
                         logger.info(f"🔍 DEBUG: Creative personality match: +{personality_scores['creative'] * 12:.1f} points")
                 
                 # 6. Business/Formal Enhancement (Existing logic enhanced)
-if (req.occasion if req else "unknown").lower() in ['business', 'formal', 'office']:
+                if (req.occasion if req else "unknown").lower() in ['business', 'formal', 'office']:
                     business_colors = ['white', 'black', 'navy', 'gray', 'charcoal', 'beige', 'brown', 'blue', 'cream']
                     if item_color and item_color.lower() in business_colors:
                         item_score += 20  # Bonus for appropriate business colors
