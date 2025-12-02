@@ -1207,9 +1207,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     robust_outfit = await robust_service.generate_outfit(context)
                     logger.error(f"🚨 FORCE REDEPLOY v12.0: generate_outfit completed successfully")
                 except Exception as e:
-        import traceback
-        error_details = {
-        "error_type": str(type(e).__name__),
+                    import traceback
+                    error_details = {
+                        "error_type": str(type(e).__name__),
         "error_message": str(e),
         "full_traceback": traceback.format_exc(),
         "context_info": {
