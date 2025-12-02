@@ -3686,8 +3686,8 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
             # Check if any outerwear would create inappropriate combinations with selected bottoms
             validated_outerwear = []
             for outerwear_item in style_appropriate_outerwear:
-        outerwear_type = (outerwear_item.get('type', '') if outerwear_item else '').lower()
-        outerwear_name = (outerwear_item.get('name', '') if outerwear_item else '').lower()
+                outerwear_type = (outerwear_item.get('type', '') if outerwear_item else '').lower()
+                outerwear_name = (outerwear_item.get('name', '') if outerwear_item else '').lower()
                 
                 # Check if this outerwear would conflict with selected bottoms
                 is_inappropriate = False
