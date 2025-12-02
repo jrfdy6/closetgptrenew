@@ -1633,13 +1633,15 @@ async def generate_outfit(
         }
         }
         
-        logger.error(f"🔥 RETRY LOOP CRASH - NoneType .get() error detected", extra=error_details, exc_info=True)
-        print(f"🔥 RETRY LOOP CRASH: {error_details}")
-        # print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
-        
-                if attempt < max_attempts - 1:
-                    await asyncio.sleep(1)  # Brief delay before retry
-                    continue
+                logger.error(f"🔥 RETRY LOOP CRASH - NoneType .get() error detected", extra=error_details, exc_info=True)
+                print(f"🔥 RETRY LOOP CRASH: {error_details}")
+                # print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
+                
+                # Raise HTTPException with detailed error
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to generate outfit after {max_attempts} attempts: {str(e)}"
+                )
         
         # Check if all attempts failed
         if not outfit or not ((outfit.get('items') if outfit else None) if outfit else None) or len(outfit.get('items', [])) < 3:
