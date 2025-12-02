@@ -3032,8 +3032,8 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                     # SOFTEN VALIDATION: Allow base item to pass gender filtering
                     if user_gender == 'male':
                         feminine_styles = ['french girl', 'romantic', 'pinup', 'boho', 'cottagecore']
-if (req.style if req else "unknown").lower() in feminine_styles and not (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
-logger.info(f"🔍 DEBUG: Skipping feminine style '{req.style}' for male user: {(item.get('name', 'unnamed') if item else 'unnamed')}")
+                        if (req.style if req else "unknown").lower() in feminine_styles and not (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
+                            logger.info(f"🔍 DEBUG: Skipping feminine style '{req.style}' for male user: {(item.get('name', 'unnamed') if item else 'unnamed')}")
                             continue
 elif (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None):
 logger.info(f"🛡️ Allowing base item despite feminine style: {(item.get('name', 'Unknown') if item else 'Unknown')}")
