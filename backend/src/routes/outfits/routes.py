@@ -119,6 +119,14 @@ class OutfitResponse(BaseModel):
     generated_at: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
 
+
+def safe_get(item, key, default=None):
+    '''Safely get value from item (dict or object)'''
+    if isinstance(item, dict):
+        return safe_get(item, key, default)
+    else:
+        return getattr(item, key, default)
+
 # Import generate_outfit_logic from service
 def get_generate_outfit_logic():
     """Import generate_outfit_logic from OutfitGenerationService"""
@@ -667,10 +675,10 @@ async def generate_outfit(
             unique_items = []
             
             for item in items:
-                item_id = (item.get('id', '') if item else '')
-                item_name = (item.get('name', '') if item else '')
-                item_type = (item.get('type', '') if item else '').lower()
-                item_color = (item.get('color', '') if item else '')
+                item_id = (safe_get(item, 'id', '') if item else '')
+                item_name = (safe_get(item, 'name', '') if item else '')
+                item_type = (safe_get(item, 'type', '') if item else '').lower()
+                item_color = (safe_get(item, 'color', '') if item else '')
                 
                 combination_key = f"{item_name}|{item_type}|{item_color}"
                 
@@ -683,8 +691,8 @@ async def generate_outfit(
             
             # Second pass: enforce category limits
             for item in unique_items:
-                item_type = (item.get('type', '') if item else '').lower()
-                item_name = (item.get('name', '') if item else '').lower()
+                item_type = (safe_get(item, 'type', '') if item else '').lower()
+                item_name = (safe_get(item, 'name', '') if item else '').lower()
                 
                 # Map item type to category
                 category = None
@@ -744,24 +752,24 @@ async def generate_outfit(
                     # Special handling for shoes
                     if category == 'shoes':
                         if current_count >= max_limit:
-                            logger.info(f"❌ Skipped {(item.get('name', 'Unknown') if item else 'Unknown')} - shoe limit reached (1)")
+                            logger.info(f"❌ Skipped {(safe_get(item, 'name', 'Unknown') if item else 'Unknown')} - shoe limit reached (1)")
                             continue
                         if subtype in used_subtypes:
-                            logger.info(f"❌ Skipped {(item.get('name', 'Unknown') if item else 'Unknown')} - shoe subtype '{subtype}' already used")
+                            logger.info(f"❌ Skipped {(safe_get(item, 'name', 'Unknown') if item else 'Unknown')} - shoe subtype '{subtype}' already used")
                             continue
                         used_subtypes.add(subtype)
-                        logger.info(f"✅ Added {(item.get('name', 'Unknown') if item else 'Unknown')} (shoes: {subtype})")
+                        logger.info(f"✅ Added {(safe_get(item, 'name', 'Unknown') if item else 'Unknown')} (shoes: {subtype})")
                     
                     if current_count < max_limit:
                         final_items.append(item)
                         category_counts[category] += 1
                         if category != 'shoes':
-                            logger.info(f"✅ Added {(item.get('name', 'Unknown') if item else 'Unknown')} ({category}, count: {category_counts[category]})")
+                            logger.info(f"✅ Added {(safe_get(item, 'name', 'Unknown') if item else 'Unknown')} ({category}, count: {category_counts[category]})")
                     else:
-                        logger.info(f"❌ Skipped {(item.get('name', 'Unknown') if item else 'Unknown')} ({category}) - category limit reached ({max_limit})")
+                        logger.info(f"❌ Skipped {(safe_get(item, 'name', 'Unknown') if item else 'Unknown')} ({category}) - category limit reached ({max_limit})")
                 else:
                     final_items.append(item)
-                    logger.info(f"➕ Added {(item.get('name', 'Unknown') if item else 'Unknown')} (unknown category)")
+                    logger.info(f"➕ Added {(safe_get(item, 'name', 'Unknown') if item else 'Unknown')} (unknown category)")
             
             logger.info(f"🎯 Final outfit category distribution: {dict(category_counts)}")
             logger.info(f"🎯 Used shoe subtypes: {list(used_subtypes)}")
@@ -780,18 +788,18 @@ async def generate_outfit(
                 for missing_item in missing_required:
                     if missing_item == 'shirt':
                         for item in relaxed_items:
-                            if item.get('type', '').lower() in ['shirt', 'blouse', 'sweater', 'polo']:
-                                logger.info(f"✅ Found flexible shirt alternative: {item.get('name', 'Unknown')}")
+                            if safe_get(item, 'type', '').lower() in ['shirt', 'blouse', 'sweater', 'polo']:
+                                logger.info(f"✅ Found flexible shirt alternative: {safe_get(item, 'name', 'Unknown')}")
                                 break
                     elif missing_item == 'pants':
                         for item in relaxed_items:
-                            if item.get('type', '').lower() in ['pants', 'jeans', 'trousers', 'slacks']:
-                                logger.info(f"✅ Found flexible pants alternative: {item.get('name', 'Unknown')}")
+                            if safe_get(item, 'type', '').lower() in ['pants', 'jeans', 'trousers', 'slacks']:
+                                logger.info(f"✅ Found flexible pants alternative: {safe_get(item, 'name', 'Unknown')}")
                                 break
                     elif missing_item == 'shoes':
                         for item in relaxed_items:
-                            if item.get('type', '').lower() in ['shoes', 'sneakers', 'boots', 'oxford']:
-                                logger.info(f"✅ Found flexible shoes alternative: {item.get('name', 'Unknown')}")
+                            if safe_get(item, 'type', '').lower() in ['shoes', 'sneakers', 'boots', 'oxford']:
+                                logger.info(f"✅ Found flexible shoes alternative: {safe_get(item, 'name', 'Unknown')}")
                                 break
             
             logger.info(f"🔄 Relaxed rules result: {len(relaxed_items)} items")
@@ -815,10 +823,10 @@ async def generate_outfit(
             
             occasion_lower = occasion.lower()
             if occasion_lower in ['business', 'formal']:
-                has_formal_shirt = any('dress' in item.get('name', '').lower() or 'button' in item.get('name', '').lower() 
-                                     for item in items if item.get('type', '').lower() in ['shirt', 'blouse'])
-                has_formal_pants = any('dress' in item.get('name', '').lower() or 'slacks' in item.get('name', '').lower()
-                                     for item in items if item.get('type', '').lower() in ['pants', 'trousers'])
+                has_formal_shirt = any('dress' in safe_get(item, 'name', '').lower() or 'button' in safe_get(item, 'name', '').lower() 
+                                     for item in items if safe_get(item, 'type', '').lower() in ['shirt', 'blouse'])
+                has_formal_pants = any('dress' in safe_get(item, 'name', '').lower() or 'slacks' in safe_get(item, 'name', '').lower()
+                                     for item in items if safe_get(item, 'type', '').lower() in ['pants', 'trousers'])
                 if has_formal_shirt and has_formal_pants:
                     confidence_score += 0.03
             
@@ -844,7 +852,7 @@ async def generate_outfit(
         # Log base item information
         logger.info(f"🔍 DEBUG: Received baseItemId: {req.baseItemId}")
         if (req.baseItemId if req else None):
-            base_item = next((item for item in (req.wardrobe if req else []) if item.get("id") == (req.baseItemId if req else None)), None)
+            base_item = next((item for item in (req.wardrobe if req else []) if safe_get(item, "id") == (req.baseItemId if req else None)), None)
             if base_item:
                 logger.info(f"🔍 DEBUG: Found base item in wardrobe: {base_item.get('name', 'Unknown')} ({base_item.get('type', 'Unknown')})")
             else:
