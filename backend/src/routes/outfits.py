@@ -3710,7 +3710,7 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
                 if not is_inappropriate:
                     validated_outerwear.append(outerwear_item)
                 else:
-        logger.info(f"✅ FALLBACK VALIDATION: Filtered out inappropriate outerwear: {(outerwear_item.get('name', 'Unknown') if outerwear_item else 'Unknown')}")
+                    logger.info(f"✅ FALLBACK VALIDATION: Filtered out inappropriate outerwear: {(outerwear_item.get('name', 'Unknown') if outerwear_item else 'Unknown')}")
             
             style_appropriate_outerwear = validated_outerwear
         
