@@ -1557,7 +1557,7 @@ async def generate_outfit(
                             # Just log the error and continue with the outfit
                     elif outfit and outfit.get('items') and not validation_available:
                         logger.info("⚠️ Validation pipeline not available, skipping validation")
-                else:
+                    else:
                     logger.warning("⚠️ No outfit generated or validation not available")
                 
                 # Validate the generated outfit (basic validation)
