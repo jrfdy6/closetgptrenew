@@ -1991,10 +1991,8 @@ async def _validate_final_outfit(outfit_record: Dict[str, Any], req: OutfitReque
                 
                 for combo1, combo2 in inappropriate_combinations:
                     if (combo1 in type1 and combo2 in type2) or (combo1 in type2 and combo2 in type1):
-
-            issues.append(f"Inappropriate combination: {type1} with {type2}")
-
-            is_valid = False
+                        issues.append(f"Inappropriate combination: {type1} with {type2}")
+                        is_valid = False
 
     
     return {
