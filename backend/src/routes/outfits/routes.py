@@ -2717,9 +2717,9 @@ async def generate_intelligent_reasoning(items: List[Dict], req: OutfitRequest, 
                 if weather_context:
                     temp_note = weather_context.get('temperature_note', '')
                     if temp_note and ('perfect' in temp_note or 'ideal' in temp_note or 'excellent' in temp_note):
-        weather_notes.append(f"the {(item.get('type', 'item') if item else 'item')} is {temp_note}")
-        elif temp_note and ('borderline' in (weather_context.get('temperature_appropriateness', '') if weather_context else '') or 'may be' in temp_note):
-        weather_notes.append(f"the {(item.get('type', 'item') if item else 'item')} {temp_note}")
+                        weather_notes.append(f"the {(item.get('type', 'item') if item else 'item')} is {temp_note}")
+                    elif temp_note and ('borderline' in (weather_context.get('temperature_appropriateness', '') if weather_context else '') or 'may be' in temp_note):
+                        weather_notes.append(f"the {(item.get('type', 'item') if item else 'item')} {temp_note}")
             
             # Build the sentence
             if colors:
