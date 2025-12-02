@@ -3070,8 +3070,8 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 # print(f"📊 SUITABLE_ITEMS COUNT: {len(suitable_items)} items now in pool")
                 logger.info(f"🔍 DEBUG: Item {(item.get('name', 'unnamed') if item else 'unnamed')} is suitable with score: {item_score}")
             else:
-# print(f"❌ REJECTED: {(item.get('name', 'unnamed') if item else 'unnamed')} failed core style/occasion criteria")
-logger.info(f"🔍 DEBUG: Item {(item.get('name', 'unnamed') if item else 'unnamed')} failed core style/occasion criteria")
+                # print(f"❌ REJECTED: {(item.get('name', 'unnamed') if item else 'unnamed')} failed core style/occasion criteria")
+                logger.info(f"🔍 DEBUG: Item {(item.get('name', 'unnamed') if item else 'unnamed')} failed core style/occasion criteria")
         
         # DEBUG: After scoring loop
         debug_scores("after_scoring_loop", suitable_items)
