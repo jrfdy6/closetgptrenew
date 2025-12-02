@@ -3359,7 +3359,7 @@ def _pick_any_item_safe(wardrobe: List[Dict[str, Any]], category: str, occasion:
     elif 'business' in occasion_lower or 'formal' in occasion_lower or 'interview' in occasion_lower:
         # For formal occasions, prefer formal items
         if category == 'shoes':
-        candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['dress shoe', 'oxford', 'loafer', 'derby', 'wingtip', 'brogue'])]
+            candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['dress shoe', 'oxford', 'loafer', 'derby', 'wingtip', 'brogue'])]
         elif category == 'tops':
         candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['dress shirt', 'button down', 'button-up', 'blazer', 'suit jacket'])]
         elif category == 'bottoms':
