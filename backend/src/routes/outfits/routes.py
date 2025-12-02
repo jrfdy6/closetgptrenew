@@ -2556,10 +2556,10 @@ async def get_outfit_stats(
         
         # Count occasions and styles
         for outfit in outfits:
-        occasion = (outfit.get('occasion', 'Unknown') if outfit else 'Unknown')
+            occasion = (outfit.get('occasion', 'Unknown') if outfit else 'Unknown')
             stats['occasions'][occasion] = stats['occasions'].get(occasion, 0) + 1
             
-        style = (outfit.get('style', 'Unknown') if outfit else 'Unknown')
+            style = (outfit.get('style', 'Unknown') if outfit else 'Unknown')
             stats['styles'][style] = stats['styles'].get(style, 0) + 1
         
         # Add recent activity
