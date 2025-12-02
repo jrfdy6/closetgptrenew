@@ -4217,7 +4217,7 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_c
                 item_data = doc.to_dict()
                 item_data['id'] = doc.id
                 # Fix imageUrl for fetched items
-        raw_url = (((item_data.get('imageUrl', '') if item_data else '') if item_data else '') if item_data else '') or item_data.get('image_url', '') or item_data.get('image', '')
+                raw_url = (((item_data.get('imageUrl', '') if item_data else '') if item_data else '') if item_data else '') or item_data.get('image_url', '') or item_data.get('image', '')
                 item_data['imageUrl'] = convert_firebase_url(raw_url)
                 user_wardrobe[doc.id] = item_data
             
