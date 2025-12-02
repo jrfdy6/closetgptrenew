@@ -388,10 +388,6 @@ class OutfitResponse(BaseModel):
     wearCount: Optional[int] = 0
     lastWorn: Optional[datetime] = None
     metadata: Optional[Dict[str, Any]] = None  # Include generation_strategy and other metadata
-    generation_duration: Optional[float] = None  # Performance metric: generation time in seconds
-    is_slow: Optional[bool] = None  # Performance metric: true if generation took >10s
-    cache_hit: Optional[bool] = None  # Cache metric: true if outfit was served from cache
-    generation_attempts: Optional[int] = None  # Performance metric: number of generation attempts
     flat_lay_status: Optional[str] = None
     flatLayStatus: Optional[str] = None
     flat_lay_url: Optional[str] = None
@@ -2245,8 +2241,8 @@ async def calculate_wardrobe_intelligence_score(items: List[Dict], user_id: str)
                 # Also check wardrobe collection for favorite status
                 try:
                     wardrobe_ref = db.collection('wardrobe').document(item_id)
-        wardrobe_doc = wardrobe_ref.get() if wardrobe_ref else None if wardrobe_ref else None
-                    if wardrobe_doc.exists:
+                    wardrobe_doc = wardrobe_ref.get() if wardrobe_ref else None
+                    if wardrobe_doc and wardrobe_doc.exists:
                         wardrobe_data = wardrobe_doc.to_dict()
                         if wardrobe_data.get('isFavorite', False):
                             is_favorite = True
@@ -2255,51 +2251,51 @@ async def calculate_wardrobe_intelligence_score(items: List[Dict], user_id: str)
                 
                 if is_favorite:
                     item_score += 25
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +25 favorite bonus")
+                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +25 favorite bonus")
                 else:
                     # Bonus for non-favorited items that perform well in outfits
                     outfit_performance_bonus = min(10, outfit_performance_score)  # Up to 10 bonus points
                     item_score += outfit_performance_bonus
-        logger.info(f"🔍 DEBUG: Non-favorited item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{outfit_performance_bonus} performance bonus")
+                    logger.info(f"🔍 DEBUG: Non-favorited item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{outfit_performance_bonus} performance bonus")
                 
                 # 2. Wear Count Scoring (up to 20 points)
-        wear_count = (analytics_data.get('wear_count', 0) if analytics_data else 0)
+                wear_count = (analytics_data.get('wear_count', 0) if analytics_data else 0)
                 
                 # Fallback to wardrobe collection if no analytics data
                 if wear_count == 0:
                     try:
                         wardrobe_ref = db.collection('wardrobe').document(item_id)
-        wardrobe_doc = wardrobe_ref.get() if wardrobe_ref else None if wardrobe_ref else None
-                        if wardrobe_doc.exists:
+                        wardrobe_doc = wardrobe_ref.get() if wardrobe_ref else None
+                        if wardrobe_doc and wardrobe_doc.exists:
                             wardrobe_data = wardrobe_doc.to_dict()
-        wear_count = (wardrobe_data.get('wearCount', 0) if wardrobe_data else 0)
+                            wear_count = (wardrobe_data.get('wearCount', 0) if wardrobe_data else 0)
                     except Exception as e:
                         logger.warning(f"⚠️ Could not get wear count from wardrobe for item {item_id}: {e}")
                 
                 if wear_count == 0:
                     item_score += 20  # Bonus for unworn items
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +20 unworn bonus")
+                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +20 unworn bonus")
                 elif wear_count <= 3:
                     item_score += 15  # Good for moderately worn items
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +15 moderately worn bonus")
+                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +15 moderately worn bonus")
                 elif wear_count <= 7:
                     item_score += 10  # Acceptable for frequently worn items
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +10 frequently worn bonus")
+                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +10 frequently worn bonus")
                 else:
                     item_score += 5   # Minimal points for over-worn items
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +5 over-worn bonus")
+                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +5 over-worn bonus")
                 
                 # 3. Recent Wear Penalty (up to -15 points)
-        last_worn = (analytics_data.get('last_worn') if analytics_data else None)
+                last_worn = (analytics_data.get('last_worn') if analytics_data else None)
                 
                 # Fallback to wardrobe collection if no analytics data
                 if not last_worn:
                     try:
                         wardrobe_ref = db.collection('wardrobe').document(item_id)
-        wardrobe_doc = wardrobe_ref.get() if wardrobe_ref else None if wardrobe_ref else None
-                        if wardrobe_doc.exists:
+                        wardrobe_doc = wardrobe_ref.get() if wardrobe_ref else None
+                        if wardrobe_doc and wardrobe_doc.exists:
                             wardrobe_data = wardrobe_doc.to_dict()
-        last_worn = (wardrobe_data.get('lastWorn') if wardrobe_data else None)
+                            last_worn = (wardrobe_data.get('lastWorn') if wardrobe_data else None)
                     except Exception as e:
                         logger.warning(f"⚠️ Could not get last worn from wardrobe for item {item_id}: {e}")
                 
@@ -2315,52 +2311,52 @@ async def calculate_wardrobe_intelligence_score(items: List[Dict], user_id: str)
                         
                         if days_since_worn <= 1:
                             item_score -= 15  # Heavy penalty for worn yesterday
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets -15 penalty (worn yesterday)")
+                            logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets -15 penalty (worn yesterday)")
                         elif days_since_worn <= 3:
                             item_score -= 10  # Penalty for worn this week
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets -10 penalty (worn this week)")
+                            logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets -10 penalty (worn this week)")
                         elif days_since_worn <= 7:
                             item_score -= 5   # Light penalty for worn this month
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets -5 penalty (worn this month)")
+                            logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets -5 penalty (worn this month)")
                         else:
                             item_score += 5   # Bonus for items not worn recently
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +5 bonus (not worn recently)")
+                            logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +5 bonus (not worn recently)")
                     
                     except Exception as e:
                         logger.warning(f"⚠️ Could not parse last_worn date for item {item_id}: {e}")
                         item_score += 5  # Neutral score if date parsing fails
                 
                 # 4. User Feedback Bonus (up to 15 points)
-        feedback_rating = (analytics_data.get('average_feedback_rating', 0) if analytics_data else 0)
+                feedback_rating = (analytics_data.get('average_feedback_rating', 0) if analytics_data else 0)
                 if feedback_rating >= 4.5:
                     item_score += 15  # Excellent feedback
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +15 feedback bonus (rating: {feedback_rating})")
+                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +15 feedback bonus (rating: {feedback_rating})")
                 elif feedback_rating >= 4.0:
                     item_score += 10  # Good feedback
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +10 feedback bonus (rating: {feedback_rating})")
+                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +10 feedback bonus (rating: {feedback_rating})")
                 elif feedback_rating >= 3.5:
                     item_score += 5   # Average feedback
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +5 feedback bonus (rating: {feedback_rating})")
+                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +5 feedback bonus (rating: {feedback_rating})")
                 
                 # 5. Style Preference Match (up to 10 points)
-        style_match = (analytics_data.get('style_preference_score', 0.5) if analytics_data else 0.5)
+                style_match = (analytics_data.get('style_preference_score', 0.5) if analytics_data else 0.5)
                 item_score += style_match * 10
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{style_match * 10:.1f} style preference bonus")
+                logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{style_match * 10:.1f} style preference bonus")
                 
                 # 6. Outfit Performance Bonus (up to 20 points) - NEW!
                 outfit_performance_score = await calculate_outfit_performance_score(item_id, current_user_id)
                 item_score += outfit_performance_score
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{outfit_performance_score} outfit performance bonus")
+                logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{outfit_performance_score} outfit performance bonus")
                 
                 # 7. Wardrobe Diversity Bonus (up to 5 points) - NEW!
                 diversity_bonus = await calculate_wardrobe_diversity_bonus(item_id, current_user_id)
                 item_score += diversity_bonus
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{diversity_bonus} diversity bonus")
+                logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{diversity_bonus} diversity bonus")
                 
             else:
                 # No analytics data - neutral score
                 item_score = 50
-        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets neutral score (no analytics data)")
+                logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets neutral score (no analytics data)")
             
         except Exception as e:
             logger.error(f"❌ Error calculating wardrobe intelligence for item {item_id}: {e}")
@@ -2397,17 +2393,17 @@ async def calculate_outfit_performance_score(item_id: str, user_id: str) -> floa
         
         for outfit_doc in outfits_docs:
             outfit_data = outfit_doc.to_dict()
-        outfit_items = (outfit_data.get('items', []) if outfit_data else [])
+            outfit_items = (outfit_data.get('items', []) if outfit_data else [])
             
             # Check if this item is in this outfit
-        item_in_outfit = any((item.get('id') if item else None) == item_id for item in outfit_items)
+            item_in_outfit = any((item.get('id') if item else None) == item_id for item in outfit_items)
             if not item_in_outfit:
                 continue
             
             outfit_count += 1
             
             # 1. Outfit Rating Bonus (up to 10 points)
-        outfit_rating = (outfit_data.get('rating', 0) if outfit_data else 0)
+            outfit_rating = (outfit_data.get('rating', 0) if outfit_data else 0)
             if outfit_rating >= 4.5:
                 total_score += 10  # Excellent outfit rating
                 high_rated_outfits += 1
@@ -2430,7 +2426,7 @@ async def calculate_outfit_performance_score(item_id: str, user_id: str) -> floa
                 logger.info(f"🔍 DEBUG: Item in 1-star outfit: +0 points")
             
             # 2. Outfit Wear Count Bonus (up to 5 points)
-        outfit_wear_count = (outfit_data.get('wearCount', 0) if outfit_data else 0)
+            outfit_wear_count = (outfit_data.get('wearCount', 0) if outfit_data else 0)
             if outfit_wear_count >= 5:
                 total_score += 5   # Frequently worn outfit
                 worn_outfits += 1
@@ -2445,8 +2441,8 @@ async def calculate_outfit_performance_score(item_id: str, user_id: str) -> floa
                 logger.info(f"🔍 DEBUG: Item in worn outfit: +1 point")
             
             # 3. Outfit Like/Dislike Bonus (up to 5 points)
-        outfit_liked = (outfit_data.get('isLiked', False) if outfit_data else False)
-        outfit_disliked = (outfit_data.get('isDisliked', False) if outfit_data else False)
+            outfit_liked = (outfit_data.get('isLiked', False) if outfit_data else False)
+            outfit_disliked = (outfit_data.get('isDisliked', False) if outfit_data else False)
             
             if outfit_liked:
                 total_score += 5   # Liked outfit bonus
@@ -2751,10 +2747,10 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
             logger.info(f"✅ Retrieved profile for user {user_id}")
             
             # CRITICAL: Ensure gender is set - if missing or null, default to male
-        if not (profile_data.get('gender') if profile_data else None):
+            if not (profile_data.get('gender') if profile_data else None):
                 profile_data['gender'] = 'male'
                 logger.info(f"🔧 Setting missing gender to 'male' for user {user_id}")
-                
+            
             return profile_data
         else:
             logger.info(f"⚠️ No profile found for user {user_id}, using defaults")
@@ -2866,11 +2862,11 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
 
         # CRITICAL: Add base item FIRST before any filtering
         if (req.baseItemId if req else None):
-        base_item = next((item for item in wardrobe_items if item.get("id") == (req.baseItemId if req else None)), None)
+            base_item = next((item for item in wardrobe_items if item.get("id") == (req.baseItemId if req else None)), None)
             if base_item:
                 logger.info(f"🎯 DEBUG: Adding base item BEFORE filtering: {base_item.get('name', 'Unknown')}")
                 suitable_items.append(base_item)
-        item_scores[(base_item.get('id', 'unknown') if base_item else 'unknown')] = 1000  # Give base item highest score
+                item_scores[(base_item.get('id', 'unknown') if base_item else 'unknown')] = 1000  # Give base item highest score
             else:
                 logger.warning(f"⚠️ DEBUG: Base item {req.baseItemId} not found in wardrobe")
         
@@ -2892,20 +2888,20 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         
         for item in wardrobe_items:
             # Skip base item since it's already been added
-        if (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None):
-        logger.info(f"🎯 DEBUG: Skipping base item in filtering loop: {(item.get('name', 'Unknown') if item else 'Unknown')}")
+            if (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None):
+                logger.info(f"🎯 DEBUG: Skipping base item in filtering loop: {(item.get('name', 'Unknown') if item else 'Unknown')}")
                 continue
                 
         item_style = (item.get('style', '') if item else '') or ''
         item_occasion = (item.get('occasion', '') if item else '') or ''
         item_color = (item.get('color', '') if item else '') or ''
         item_material = (item.get('material', '') if item else '') or ''
-            
-            # Convert to string if it's a list
-            if isinstance(item_style, list):
-                item_style = ' '.join(item_style).lower()
-            else:
-                item_style = str(item_style).lower()
+        
+        # Convert to string if it's a list
+        if isinstance(item_style, list):
+            item_style = ' '.join(item_style).lower()
+        else:
+            item_style = str(item_style).lower()
                 
             if isinstance(item_occasion, list):
                 item_occasion = ' '.join(item_occasion).lower()
@@ -6200,65 +6196,9 @@ async def generate_outfit(
             logger.info(f"🔍 DEBUG: response_dict metadata before OutfitResponse: {list(response_dict.get('metadata', {}).keys())}")
             logger.info(f"🔍 DEBUG: generation_duration={response_dict.get('metadata', {}).get('generation_duration')}, is_slow={response_dict.get('metadata', {}).get('is_slow')}")
             
-            # CRITICAL FIX: Merge performance metadata into existing metadata BEFORE creating OutfitResponse
-            # The issue is that metadata from generation service might overwrite our fields
-            # So we merge them together, with performance fields taking precedence
-            existing_meta = response_dict.get('metadata', {})
-            if not isinstance(existing_meta, dict):
-                existing_meta = {}
-            
-            # Merge: existing metadata + performance fields (performance fields override if conflict)
-            merged_metadata = {
-                **existing_meta,  # All existing metadata first
-                'generation_duration': round(generation_time, 2),  # Our performance fields override
-                'is_slow': is_slow,
-                'generation_attempts': generation_attempts,
-                'cache_hit': cache_hit
-            }
-            response_dict['metadata'] = merged_metadata
-            
-            logger.info(f"🔍 DEBUG: Merged metadata keys: {list(merged_metadata.keys())}")
-            logger.info(f"🔍 DEBUG: generation_duration={merged_metadata.get('generation_duration')}, is_slow={merged_metadata.get('is_slow')}")
-            
-            # CRITICAL: Set top-level performance fields in response_dict
-            # This ensures they're always included even if metadata is filtered
-            response_dict['generation_duration'] = round(generation_time, 2)
-            response_dict['is_slow'] = is_slow
-            response_dict['cache_hit'] = cache_hit
-            response_dict['generation_attempts'] = generation_attempts
-            
-            # Create response with merged metadata AND top-level fields
+            # Create response with merged metadata (performance fields are in metadata only)
             response_data = OutfitResponse(**response_dict)
             
-            # PERFORMANCE MONITORING DISABLED - Commented out for now
-            # # CRITICAL: Use model_dump() to get dict, then manually add performance fields
-            # # This ensures they're included even if Pydantic serialization filters them
-            # response_dict_final = response_data.model_dump(exclude_none=False)
-            # 
-            # # Force add performance fields to the final dict (they should already be there, but ensure it)
-            # response_dict_final['generation_duration'] = round(generation_time, 2)
-            # response_dict_final['is_slow'] = is_slow
-            # response_dict_final['cache_hit'] = cache_hit
-            # response_dict_final['generation_attempts'] = generation_attempts
-            # 
-            # # Also ensure they're in metadata
-            # if response_dict_final.get('metadata'):
-            #     response_dict_final['metadata']['generation_duration'] = round(generation_time, 2)
-            #     response_dict_final['metadata']['is_slow'] = is_slow
-            #     response_dict_final['metadata']['cache_hit'] = cache_hit
-            #     response_dict_final['metadata']['generation_attempts'] = generation_attempts
-            # 
-            # # Return the dict directly using JSONResponse to bypass Pydantic serialization filtering
-            # # This ensures all fields are included, especially the performance metrics
-            # response = JSONResponse(
-            #     content=response_dict_final,
-            #     status_code=200,
-            #     headers={"Content-Type": "application/json"}
-            # )
-            # logger.info(f"🚀 JSONResponse created, returning now")
-            # return response
-            
-            # Normal response (performance monitoring disabled)
             return response_data
         except Exception as response_error:
             logger.error(f"❌ Error creating OutfitResponse: {response_error}")
