@@ -566,6 +566,56 @@ async def mark_outfit_as_worn(
         logger.error(f"Error marking outfit as worn: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/", response_model=dict)
+async def create_custom_outfit(
+    req: CreateOutfitRequest,
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """Create a custom outfit by manually selecting items."""
+    try:
+        logger.info(f"🎨 Creating custom outfit: {req.name} for user {current_user_id}")
+        
+        # Import Firebase
+        try:
+            from src.config.firebase import db
+        except ImportError:
+            raise HTTPException(status_code=503, detail="Database unavailable")
+        
+        # Create outfit document
+        outfit_id = f"outfit_{int(time.time())}"
+        outfit_data = {
+            "id": outfit_id,
+            "name": req.name,
+            "occasion": req.occasion,
+            "style": req.style,
+            "description": req.description or "",
+            "items": req.items,
+            "userId": current_user_id,
+            "createdAt": datetime.now().isoformat(),
+            "wearCount": 0,
+            "favorite": False,
+            "metadata": {
+                "creation_type": "manual",
+                "item_count": len(req.items)
+            }
+        }
+        
+        # Save to Firestore
+        db.collection('outfits').document(outfit_id).set(outfit_data)
+        logger.info(f"✅ Custom outfit saved: {outfit_id}")
+        
+        return {
+            "success": True,
+            "outfit_id": outfit_id,
+            "message": "Outfit created successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to create outfit: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create outfit: {str(e)}")
+
 @router.post("/generate")
 async def generate_outfit(
     req: OutfitRequest,
