@@ -1559,9 +1559,9 @@ async def generate_outfit(
                         logger.info("⚠️ Validation pipeline not available, skipping validation")
                     else:
                         logger.warning("⚠️ No outfit generated or validation not available")
-                
-                # Validate the generated outfit (basic validation)
-                if outfit and outfit.get('items') and len(outfit.get('items', [])) >= 3:
+                    
+                    # Validate the generated outfit (basic validation)
+                    if outfit and outfit.get('items') and len(outfit.get('items', [])) >= 3:
                     logger.info(f"✅ Generation successful on attempt {generation_attempts}")
                     
                     # CACHE STORAGE: Store successful generation in cache
