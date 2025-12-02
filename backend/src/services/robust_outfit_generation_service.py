@@ -2839,7 +2839,7 @@ class RobustOutfitGenerationService:
                 # Use semantic filtering with compatibility helpers
                 ok_occ = occasion_matches(context.occasion if context else None, safe_item_access(item, 'occasion', []))
                 ok_style = style_matches(context.style if context else None, safe_item_access(item, 'style', []))
-                ok_mood = mood_matches(context.mood if context else None, item.get('mood', []))
+                ok_mood = mood_matches(context.mood if context else None, safe_item_access(item, 'mood', []))
             else:
                 # Enhanced: Use normalized metadata for consistent filtering
                 context_occasion = (context.occasion or "").lower() if context else ""
@@ -2909,7 +2909,7 @@ class RobustOutfitGenerationService:
             if heuristics_applied:
                 debug_entry_extra = {
                     'heuristics': heuristics_applied,
-                    'item_id': item.get('id', getattr(raw_item, 'id', 'unknown'))
+                    'item_id': safe_item_access(item, 'id', safe_item_access(raw_item, 'id', 'unknown'))
                 }
                 logger.debug(f"🎯 STYLE HEURISTICS APPLIED: {debug_entry_extra}")
                 if hasattr(context, "metadata_notes") and isinstance(context.metadata_notes, dict):
@@ -2932,12 +2932,12 @@ class RobustOutfitGenerationService:
             if not ok_style:
                 reasons.append(f"Style mismatch: item styles {safe_item_access(item, 'style', [])}")
             if not ok_mood:
-                reasons.append(f"Mood mismatch: item moods {item.get('mood', [])}")
+                reasons.append(f"Mood mismatch: item moods {safe_item_access(item, 'mood', [])}")
             
             # Create debug entry
             debug_entry = {
-                'id': item.get('id', getattr(raw_item, 'id', 'unknown')),
-                'name': item.get('name', getattr(raw_item, 'name', 'Unknown')),
+                'id': safe_item_access(item, 'id', safe_item_access(raw_item, 'id', 'unknown')),
+                'name': safe_item_access(item, 'name', safe_item_access(raw_item, 'name', 'Unknown')),
                 'valid': ok_occ and ok_style and ok_mood,
                 'reasons': reasons
             }
@@ -3092,7 +3092,7 @@ class RobustOutfitGenerationService:
                     if tokens and normalized == "contrast":
                         logger.info(f"🆘 EMERGENCY: Skipped {getattr(item, 'name', 'Unknown')} due to contrast color in monochrome fallback")
                         continue
-                    visual_attrs = normalized_item.get('visualAttributes', {})
+                    visual_attrs = safe_item_access(normalized_item, 'visualAttributes', {})
                     pattern_value = ''
                     if isinstance(visual_attrs, dict):
                         pattern_value = (visual_attrs.get('pattern') or '').lower()
@@ -3196,8 +3196,8 @@ class RobustOutfitGenerationService:
             # Extract debug reasons for telemetry
             debug_reasons = []
             for item in debug_analysis:
-                if not item.get('valid', False):
-                    debug_reasons.extend(item.get('reasons', []))
+                if not safe_item_access(item, 'valid', False):
+                    debug_reasons.extend(safe_item_access(item, 'reasons', []))
             
             # Record telemetry
             record_semantic_filtering_metrics(
