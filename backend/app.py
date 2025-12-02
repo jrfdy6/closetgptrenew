@@ -173,7 +173,7 @@ ROUTERS = [
     # ("src.routes.outfit_minimal", ""),   # Minimal outfit router - testing import issues
     # ("src.routes.outfit", ""),           # Original outfit router - testing import errors
     ("src.routes.outfits", "/api/outfits"),               # Main outfits router with all endpoints including flatlay processing
-    ("src.routes.outfits.main_hybrid", "/api/outfits"),   # Main hybrid outfit generation router - MIGRATED FROM PERSONALIZATION DEMO
+    # ("src.routes.outfits.main_hybrid", "/api/outfits"),   # Main hybrid outfit generation router - DISABLED to use main router with performance monitoring
     ("src.routes.backfill_ultra_simple", "/api/backfill"), # Ultra simple backfill endpoint - just visit the URL!
     # ("src.routes.backfill_simple_test", "/api/backfill"), # Simple backfill test endpoint
     # ("src.routes.backfill_trigger", "/api/backfill"),      # Database backfill trigger endpoint - TEMPORARILY DISABLED DUE TO IMPORT ISSUES
