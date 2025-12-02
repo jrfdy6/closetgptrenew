@@ -1283,15 +1283,15 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.info(f"🔄 Converting robust outfit to expected format...")
                     logger.info(f"🔄 Robust outfit type: {type(robust_outfit)}")
                     logger.info(f"🔄 Robust outfit attributes: {dir(robust_outfit)}")
-        
-        # DEBUG: Log robust outfit attributes before conversion
-        # print(f"🔍 DEBUG CONVERSION: Robust outfit type: {type(robust_outfit)}")
-        # print(f"🔍 DEBUG CONVERSION: Robust outfit dir: {dir(robust_outfit)}")
-        # print(f"🔍 DEBUG CONVERSION: Has items: {hasattr(robust_outfit, 'items')}")
-        if hasattr(robust_outfit, 'items'):
-        # print(f"🔍 DEBUG CONVERSION: Items type: {type(robust_outfit.items)}")
-        # print(f"🔍 DEBUG CONVERSION: Items length: {len(robust_outfit.items) if robust_outfit.items else 0}")
-        if robust_outfit.items:
+                    
+                    # DEBUG: Log robust outfit attributes before conversion
+                    # print(f"🔍 DEBUG CONVERSION: Robust outfit type: {type(robust_outfit)}")
+                    # print(f"🔍 DEBUG CONVERSION: Robust outfit dir: {dir(robust_outfit)}")
+                    # print(f"🔍 DEBUG CONVERSION: Has items: {hasattr(robust_outfit, 'items')}")
+                    if hasattr(robust_outfit, 'items'):
+                        # print(f"🔍 DEBUG CONVERSION: Items type: {type(robust_outfit.items)}")
+                        # print(f"🔍 DEBUG CONVERSION: Items length: {len(robust_outfit.items) if robust_outfit.items else 0}")
+                        if robust_outfit.items:
         print(f"🔍 DEBUG CONVERSION: First item: {robust_outfit.items[0]}")
                     
                     outfit = {
