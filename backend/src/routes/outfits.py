@@ -1105,18 +1105,18 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             clothing_items = []
             
             if ClothingItem is None:
-                    logger.warning(f"⚠️ ClothingItem not available, skipping validation")
-                    clothing_items = hydrated_wardrobe_items  # Use raw items if ClothingItem not available
-                else:
-                    for i, item_dict in enumerate(hydrated_wardrobe_items):
-                        print(f"🔍 DEBUG ITEM CONVERSION: Processing item {i}: {item_dict}")
-                        # print(f"🔍 DEBUG ITEM CONVERSION: item_dict type = {type(item_dict)}")
-                        try:
-                            clothing_item = ClothingItem(**item_dict)
-                            clothing_items.append(clothing_item)
-                            print(f"🔍 DEBUG ITEM CONVERSION: Successfully converted item {i}")
-                        except Exception as item_error:
-                            logger.warning(f"⚠️ Failed to convert item {i}: {item_error}")
+                logger.warning(f"⚠️ ClothingItem not available, skipping validation")
+                clothing_items = hydrated_wardrobe_items  # Use raw items if ClothingItem not available
+            else:
+                for i, item_dict in enumerate(hydrated_wardrobe_items):
+                    print(f"🔍 DEBUG ITEM CONVERSION: Processing item {i}: {item_dict}")
+                    # print(f"🔍 DEBUG ITEM CONVERSION: item_dict type = {type(item_dict)}")
+                    try:
+                        clothing_item = ClothingItem(**item_dict)
+                        clothing_items.append(clothing_item)
+                        print(f"🔍 DEBUG ITEM CONVERSION: Successfully converted item {i}")
+                    except Exception as item_error:
+                        logger.warning(f"⚠️ Failed to convert item {i}: {item_error}")
                             print(f"🚨 ITEM CONVERSION ERROR: {item_error}")
                             import traceback
                             # print(f"🚨 ITEM CONVERSION TRACEBACK: {traceback.format_exc()}")
