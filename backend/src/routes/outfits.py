@@ -4184,7 +4184,7 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_c
         if isinstance(item, dict):
             # Item is already a complete object - fix imageUrl
             item_copy = item.copy()
-        raw_url = (((item_copy.get('imageUrl', '') if item_copy else '') if item_copy else '') if item_copy else '') or item_copy.get('image_url', '') or item_copy.get('image', '')
+            raw_url = (((item_copy.get('imageUrl', '') if item_copy else '') if item_copy else '') if item_copy else '') or item_copy.get('image_url', '') or item_copy.get('image', '')
             item_copy['imageUrl'] = convert_firebase_url(raw_url)
             resolved_items.append(item_copy)
         elif isinstance(item, str):
