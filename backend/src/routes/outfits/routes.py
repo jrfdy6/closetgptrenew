@@ -1510,35 +1510,8 @@ async def generate_outfit(
                     outfit['metadata']['category_limits_enforced'] = True  # NEW: Category cardinality limits
                     outfit['metadata']['unique_items_count'] = len(outfit['items'])
                     outfit['metadata']['occasion_requirements_met'] = validation_passed
-
-                            outfit['metadata'] = {}
-
-                            outfit['metadata']['subtype_tracking_enabled'] = True
-
-                            outfit['metadata']['confidence_calculated'] = True
-
-                            outfit['metadata']['validation_passed'] = validation_passed
-
-                            outfit['metadata']['retry_with_relaxed_rules'] = not validation_passed
-
                     
-                    # CRITICAL DEBUG: Log strategy after metadata modification
-                            logger.info(f"🔍 DEBUG AFTER METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
-
-        # print(f"🔍 DEBUG AFTER METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
-                    
-                    # Update metadata with processing status (simplified)
-                            if 'metadata' not in outfit:
-
-                            outfit['metadata'] = None
-
-                            outfit['metadata']['validation_applied'] = True
-
-                            outfit['metadata']['hard_requirements_enforced'] = True
-
-                            outfit['metadata']['deduplication_applied'] = True
-
-                            outfit['metadata']['category_limits_enforced'] = True  # NEW: Category cardinality limits
+                    # NEW: Apply comprehensive validation pipeline to generated outfit (with category limits bypass)
 
                             outfit['metadata']['unique_items_count'] = len(outfit['items'])
 
