@@ -1450,49 +1450,36 @@ async def generate_outfit(
                     # CRITICAL DEBUG: Log strategy after category limits
                     logger.info(f"🔍 DEBUG AFTER CATEGORY LIMITS: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
         # print(f"🔍 DEBUG AFTER CATEGORY LIMITS: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
-                    
                     # Step 2: If validation fails, retry with relaxed rules instead of falling back
-                        validation_passed = True
-
-                        if occasion_lower in occasion_requirements:
-
-                            requirements = occasion_requirements[occasion_lower]
-
-                            missing_required = validate_outfit_completeness(outfit['items'], requirements, (req.occasion if req else "unknown"))
-
+                    validation_passed = True
+                    if occasion_lower in occasion_requirements:
+                        requirements = occasion_requirements[occasion_lower]
+                        missing_required = validate_outfit_completeness(outfit['items'], requirements, (req.occasion if req else "unknown"))
                         
-                                if len(missing_required) > 0:
-
-                                logger.warning(f"⚠️ VALIDATION FAILED: Missing {missing_required} - retrying with relaxed rules")
-
-                                validation_passed = False
-
+                        if len(missing_required) > 0:
+                            logger.warning(f"⚠️ VALIDATION FAILED: Missing {missing_required} - retrying with relaxed rules")
+                            validation_passed = False
                             
                             # CRITICAL DEBUG: Log strategy before relaxed rules
-                                logger.info(f"🔍 DEBUG BEFORE RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
-
-        # print(f"🔍 DEBUG BEFORE RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                            logger.info(f"🔍 DEBUG BEFORE RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                            # print(f"🔍 DEBUG BEFORE RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
                             
                             # Retry with relaxed rules instead of falling back
-                                outfit['items'] = retry_with_relaxed_rules(original_items, (req.occasion if req else "unknown"), requirements)
-
+                            outfit['items'] = retry_with_relaxed_rules(original_items, (req.occasion if req else "unknown"), requirements)
                             
                             # Re-apply category limits to relaxed outfit
-                                outfit['items'] = deduplicate_items_with_limits(outfit['items'], (req.occasion if req else "unknown"))
-
+                            outfit['items'] = deduplicate_items_with_limits(outfit['items'], (req.occasion if req else "unknown"))
                             
                             # CRITICAL DEBUG: Log strategy after relaxed rules
-                                logger.info(f"🔍 DEBUG AFTER RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
-
-        # print(f"🔍 DEBUG AFTER RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                            logger.info(f"🔍 DEBUG AFTER RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                            # print(f"🔍 DEBUG AFTER RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
                             
-                                logger.info(f"🔄 Retried with relaxed rules - final items: {len(outfit['items'])}")
-
+                            logger.info(f"🔄 Retried with relaxed rules - final items: {len(outfit['items'])}")
                     
                     # Step 3: Calculate confidence score AFTER all processing
                     # Only calculate new confidence if robust generator didn't provide one
                     if 'confidence_score' not in outfit or outfit['confidence_score'] is None or outfit['confidence_score'] == 0.0:
-                    confidence_score = calculate_robust_confidence(outfit['items'], validation_passed, (req.occasion if req else "unknown"))
+                        confidence_score = calculate_robust_confidence(outfit['items'], validation_passed, (req.occasion if req else "unknown"))
                         outfit['confidence_score'] = confidence_score
                         logger.info(f"🎯 Calculated new confidence score: {confidence_score}")
                     else:
@@ -1512,17 +1499,51 @@ async def generate_outfit(
                     
                     # CRITICAL DEBUG: Log strategy after metadata modification
                     logger.info(f"🔍 DEBUG AFTER METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
-        # print(f"🔍 DEBUG AFTER METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                    # print(f"🔍 DEBUG AFTER METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
                     
                     # Update metadata with processing status (simplified)
                     if 'metadata' not in outfit:
-                    outfit['metadata'] = None
+                        outfit['metadata'] = {}
                     outfit['metadata']['validation_applied'] = True
                     outfit['metadata']['hard_requirements_enforced'] = True
                     outfit['metadata']['deduplication_applied'] = True
                     outfit['metadata']['category_limits_enforced'] = True  # NEW: Category cardinality limits
                     outfit['metadata']['unique_items_count'] = len(outfit['items'])
                     outfit['metadata']['occasion_requirements_met'] = validation_passed
+
+                            outfit['metadata'] = {}
+
+                            outfit['metadata']['subtype_tracking_enabled'] = True
+
+                            outfit['metadata']['confidence_calculated'] = True
+
+                            outfit['metadata']['validation_passed'] = validation_passed
+
+                            outfit['metadata']['retry_with_relaxed_rules'] = not validation_passed
+
+                    
+                    # CRITICAL DEBUG: Log strategy after metadata modification
+                            logger.info(f"🔍 DEBUG AFTER METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+
+        # print(f"🔍 DEBUG AFTER METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                    
+                    # Update metadata with processing status (simplified)
+                            if 'metadata' not in outfit:
+
+                            outfit['metadata'] = None
+
+                            outfit['metadata']['validation_applied'] = True
+
+                            outfit['metadata']['hard_requirements_enforced'] = True
+
+                            outfit['metadata']['deduplication_applied'] = True
+
+                            outfit['metadata']['category_limits_enforced'] = True  # NEW: Category cardinality limits
+
+                            outfit['metadata']['unique_items_count'] = len(outfit['items'])
+
+                            outfit['metadata']['occasion_requirements_met'] = validation_passed
+
                 
                 # NEW: Apply comprehensive validation pipeline to generated outfit (with category limits bypass)
                     if outfit and outfit.get('items') and validation_available:
@@ -1542,7 +1563,7 @@ async def generate_outfit(
                                 occasion=req.occasion,
                                 style=req.style or "casual",
                                 mood=req.mood or "neutral",
-                    weather=req.weather.__dict__ if hasattr(req.weather, '__dict__') else (req.weather if req else None),
+                                weather=req.weather.__dict__ if hasattr(req.weather, '__dict__') else (req.weather if req else None),
                                 user_profile={"id": current_user_id},  # Basic profile for validation
                                 temperature=getattr(req.weather, 'temperature', 70.0) if hasattr(req.weather, 'temperature') else 70.0
                             )
