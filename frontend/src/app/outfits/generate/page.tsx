@@ -37,6 +37,7 @@ import StyleEducationModule from '@/components/ui/style-education-module';
 // Phase 2: Progressive Reveal Components
 import OutfitRevealAnimation from '@/components/OutfitRevealAnimation';
 import { useToast } from '@/components/ui/use-toast';
+import LearningConfirmation from '@/components/LearningConfirmation';
 
 interface OutfitGenerationForm {
   occasion: string;
@@ -269,6 +270,7 @@ export default function OutfitGenerationPage() {
     feedback: ''
   });
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [learningData, setLearningData] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [filteredStyles, setFilteredStyles] = useState<string[]>([]);
 
@@ -1163,7 +1165,15 @@ export default function OutfitGenerationPage() {
       });
       
       if (response.ok) {
+        const result = await response.json();
         setRatingSubmitted(true);
+        
+        // Show learning confirmation if provided
+        if (result.learning) {
+          setLearningData(result.learning);
+          console.log('✨ Learning data received:', result.learning);
+        }
+        
         // Update the generated outfit with rating data
         setGeneratedOutfit(prev => prev ? {
           ...prev,
@@ -1204,11 +1214,19 @@ export default function OutfitGenerationPage() {
             <Palette className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
             <p className="text-muted-foreground mb-4">Please sign in to generate outfits</p>
-          </div>
         </div>
       </div>
-    );
-  }
+      
+      {/* Learning Confirmation (Spotify-style feedback) */}
+      {learningData && (
+        <LearningConfirmation
+          learning={learningData}
+          onClose={() => setLearningData(null)}
+        />
+      )}
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">

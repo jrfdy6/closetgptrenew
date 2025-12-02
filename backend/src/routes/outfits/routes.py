@@ -103,6 +103,29 @@ class CreateOutfitRequest(BaseModel):
     items: List[Dict[str, Any]]
     createdAt: Optional[int] = None
 
+class OutfitRatingRequest(BaseModel):
+    """Request model for outfit rating."""
+    outfitId: str
+    rating: Optional[int] = None  # 1-5 stars
+    isLiked: Optional[bool] = False
+    isDisliked: Optional[bool] = False
+    feedback: Optional[str] = None
+
+class LearningConfirmation(BaseModel):
+    """Learning confirmation data returned to user."""
+    messages: List[str]
+    total_feedback_count: int
+    personalization_level: int
+    confidence_level: str
+    preferred_colors: Optional[List[str]] = None
+    preferred_styles: Optional[List[str]] = None
+
+class OutfitRatingResponse(BaseModel):
+    """Response model for outfit rating."""
+    status: str
+    message: str
+    learning: Optional[LearningConfirmation] = None
+
 class OutfitResponse(BaseModel):
     """Response model for outfits."""
     model_config = ConfigDict(exclude_none=False)
@@ -508,6 +531,18 @@ async def mark_outfit_as_worn(
         logger.info(f"✅ COUNTER 1 UPDATED: Outfit {outfit_id} wearCount {current_wear_count} → {current_wear_count + 1}")
         logger.info(f"    lastWorn set to: {current_time.isoformat()}")
 
+        # Update user preferences from wear (Spotify-style learning)
+        try:
+            from ...services.user_preference_service import user_preference_service
+            await user_preference_service.update_from_wear(
+                user_id=current_user.id,
+                outfit=outfit_data
+            )
+            logger.info(f"✨ Updated user preferences from wear event")
+        except Exception as pref_error:
+            logger.warning(f"⚠️ Failed to update preferences from wear: {pref_error}")
+            # Don't fail the whole request if preference update fails
+
         try:
             debug_ref = db.collection('debug_stats_updates').document()
             debug_ref.set({
@@ -615,6 +650,91 @@ async def create_custom_outfit(
     except Exception as e:
         logger.error(f"❌ Failed to create outfit: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create outfit: {str(e)}")
+
+@router.post("/rate", response_model=OutfitRatingResponse)
+async def rate_outfit(
+    rating_request: OutfitRatingRequest,
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """
+    Rate an outfit and update user preferences (Spotify-style learning).
+    
+    This endpoint:
+    1. Saves rating/like/dislike to outfit
+    2. Updates comprehensive user_preferences in Firestore
+    3. Returns learning confirmation with specific insights
+    """
+    try:
+        if not current_user_id:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # Import services
+        from ...config.firebase import db
+        from ...services.user_preference_service import user_preference_service
+        
+        # Get outfit
+        outfit_ref = db.collection('outfits').document(rating_request.outfitId)
+        outfit_doc = outfit_ref.get()
+        
+        if not outfit_doc.exists:
+            raise HTTPException(status_code=404, detail="Outfit not found")
+        
+        outfit_data = outfit_doc.to_dict()
+        
+        # Verify ownership
+        if outfit_data.get('user_id') != current_user_id and outfit_data.get('userId') != current_user_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        logger.info(f"⭐ Rating outfit {rating_request.outfitId}: rating={rating_request.rating}, liked={rating_request.isLiked}, disliked={rating_request.isDisliked}")
+        
+        # Update outfit with rating
+        update_data = {
+            'updatedAt': datetime.now(timezone.utc)
+        }
+        
+        if rating_request.rating is not None:
+            update_data['rating'] = rating_request.rating
+        
+        if rating_request.isLiked is not None:
+            update_data['isLiked'] = rating_request.isLiked
+        
+        if rating_request.isDisliked is not None:
+            update_data['isDisliked'] = rating_request.isDisliked
+        
+        if rating_request.feedback:
+            update_data['userFeedback'] = rating_request.feedback
+        
+        outfit_ref.update(update_data)
+        logger.info(f"✅ Updated outfit {rating_request.outfitId} with rating data")
+        
+        # Update user preferences (Spotify-style learning)
+        learning_result = await user_preference_service.update_from_rating(
+            user_id=current_user_id,
+            outfit=outfit_data,
+            rating=rating_request.rating,
+            is_liked=rating_request.isLiked or False,
+            is_disliked=rating_request.isDisliked or False,
+            feedback_text=rating_request.feedback
+        )
+        
+        logger.info(f"✨ Updated user preferences: {len(learning_result['learning_messages'])} insights generated")
+        
+        # Return response with learning confirmation
+        return OutfitRatingResponse(
+            status="success",
+            message="Rating submitted and preferences updated",
+            learning=LearningConfirmation(**learning_result)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to rate outfit: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to submit rating: {str(e)}"
+        )
+
 
 @router.post("/generate")
 async def generate_outfit(
