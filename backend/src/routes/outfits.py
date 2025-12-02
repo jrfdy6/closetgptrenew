@@ -3563,8 +3563,8 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         if (req.weather if req else None) and wardrobe_items:
             # Handle both dict and object weather data
             if isinstance(req.weather, dict):
-        temp = req.weather.get('temperature', 70) if req.weather else 70
-        condition = req.weather.get('condition', 'clear') if req.weather else 'clear'
+                temp = req.weather.get('temperature', 70) if req.weather else 70
+                condition = req.weather.get('condition', 'clear') if req.weather else 'clear'
         precipitation = req.weather.get('precipitation', 0) if req.weather else 0
             else:
                 temp = getattr(req.weather, 'temperature', 70)
