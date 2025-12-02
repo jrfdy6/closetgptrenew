@@ -391,27 +391,35 @@ export default function StyleEducationModule({
     
     // Add Personalization with Spotify-style specific insights
     if (personalizationInsights && personalizationInsights.insights && personalizationInsights.insights.length > 0) {
-      // Use backend-provided Spotify-style insights
+      // Enhanced Spotify-style personalization with specific learned data
       const confidenceBadge = personalizationInsights.confidence === 'high' 
         ? '🎯 Highly Confident' 
         : personalizationInsights.confidence === 'medium'
         ? '✨ Good Match'
         : '🌱 Learning Your Style';
       
+      // Build comprehensive tips combining learned insights + current outfit
+      const enhancedTips = [
+        `${confidenceBadge} - ${personalizationInsights.summary}`,
+        ...personalizationInsights.insights,
+        personalizationInsights.personalization_level > 0 
+          ? `Your AI is ${personalizationInsights.personalization_level}% trained (${
+              personalizationInsights.confidence === 'high' ? 'Expert level!' :
+              personalizationInsights.confidence === 'medium' ? 'Getting smarter!' :
+              'Building your profile'
+            })`
+          : 'Rate more outfits to improve personalization'
+      ];
+      
       insights.push({
         id: 'personalization',
         icon: Heart,
         title: 'Personalized for You',
-        insight: `${personalizationInsights.summary} ${confidenceBadge}`,
-        tips: [
-          ...personalizationInsights.insights,
-          personalizationInsights.personalization_level > 0 
-            ? `Your AI is ${personalizationInsights.personalization_level}% trained`
-            : 'Rate more outfits to improve personalization'
-        ]
+        insight: 'This outfit matches your learned preferences and style evolution.',
+        tips: enhancedTips
       });
     } else {
-      // Fallback to generic personalization
+      // Fallback for users with no feedback history yet
       insights.push({
         id: 'personalization',
         icon: Heart,
@@ -420,7 +428,8 @@ export default function StyleEducationModule({
         tips: [
           'Based on your personal style profile',
           'Combines items you love wearing',
-          'Rate outfits to help us learn your style better'
+          '💡 Rate outfits to unlock Spotify-style personalization!',
+          'Each rating helps us learn: colors, styles, patterns you prefer'
         ]
       });
     }
