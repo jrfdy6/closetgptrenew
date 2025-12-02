@@ -385,6 +385,10 @@ class OutfitResponse(BaseModel):
     wearCount: Optional[int] = 0
     lastWorn: Optional[datetime] = None
     metadata: Optional[Dict[str, Any]] = None  # Include generation_strategy and other metadata
+    generation_duration: Optional[float] = None  # Performance metric: generation time in seconds
+    is_slow: Optional[bool] = None  # Performance metric: true if generation took >10s
+    cache_hit: Optional[bool] = None  # Cache metric: true if outfit was served from cache
+    generation_attempts: Optional[int] = None  # Performance metric: number of generation attempts
     flat_lay_status: Optional[str] = None
     flatLayStatus: Optional[str] = None
     flat_lay_url: Optional[str] = None
@@ -6223,7 +6227,14 @@ async def generate_outfit(
             logger.info(f"🔍 DEBUG: Merged metadata keys: {list(merged_metadata.keys())}")
             logger.info(f"🔍 DEBUG: generation_duration={merged_metadata.get('generation_duration')}, is_slow={merged_metadata.get('is_slow')}")
             
-            # Create response with merged metadata
+            # CRITICAL: Set top-level performance fields in response_dict
+            # This ensures they're always included even if metadata is filtered
+            response_dict['generation_duration'] = round(generation_time, 2)
+            response_dict['is_slow'] = is_slow
+            response_dict['cache_hit'] = cache_hit
+            response_dict['generation_attempts'] = generation_attempts
+            
+            # Create response with merged metadata AND top-level fields
             response_data = OutfitResponse(**response_dict)
             
             # Verify metadata is in response object
@@ -6233,6 +6244,11 @@ async def generate_outfit(
                 logger.info(f"✅ Response has is_slow: {'is_slow' in response_data.metadata}")
             else:
                 logger.error(f"❌ Response metadata is None!")
+            
+            # Verify top-level fields
+            logger.info(f"✅ Top-level generation_duration: {response_data.generation_duration}")
+            logger.info(f"✅ Top-level is_slow: {response_data.is_slow}")
+            logger.info(f"✅ Top-level cache_hit: {response_data.cache_hit}")
             
             return response_data
         except Exception as response_error:
