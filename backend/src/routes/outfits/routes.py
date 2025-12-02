@@ -1639,10 +1639,10 @@ async def generate_outfit(
                             detail=error_detail  # Return original error if no enhanced details
                         )
                 else:
-        raise HTTPException(
-        status_code=500,
-        detail=f"Outfit generation failed after {max_attempts} attempts: {error_detail}"
-                )
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Outfit generation failed after {max_attempts} attempts: {error_detail}"
+                    )
             else:
                 print(f"🚨 FINAL ERROR: No specific error - unable to generate valid outfit")
                 raise HTTPException(
