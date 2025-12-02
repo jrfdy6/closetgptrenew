@@ -1452,30 +1452,42 @@ async def generate_outfit(
         # print(f"🔍 DEBUG AFTER CATEGORY LIMITS: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
                     
                     # Step 2: If validation fails, retry with relaxed rules instead of falling back
-                    validation_passed = True
-                    if occasion_lower in occasion_requirements:
-                        requirements = occasion_requirements[occasion_lower]
-                        missing_required = validate_outfit_completeness(outfit['items'], requirements, (req.occasion if req else "unknown"))
+                        validation_passed = True
+
+                        if occasion_lower in occasion_requirements:
+
+                            requirements = occasion_requirements[occasion_lower]
+
+                            missing_required = validate_outfit_completeness(outfit['items'], requirements, (req.occasion if req else "unknown"))
+
                         
-                        if len(missing_required) > 0:
-                            logger.warning(f"⚠️ VALIDATION FAILED: Missing {missing_required} - retrying with relaxed rules")
-                            validation_passed = False
+                                if len(missing_required) > 0:
+
+                                logger.warning(f"⚠️ VALIDATION FAILED: Missing {missing_required} - retrying with relaxed rules")
+
+                                validation_passed = False
+
                             
                             # CRITICAL DEBUG: Log strategy before relaxed rules
-                    logger.info(f"🔍 DEBUG BEFORE RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                                logger.info(f"🔍 DEBUG BEFORE RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+
         # print(f"🔍 DEBUG BEFORE RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
                             
                             # Retry with relaxed rules instead of falling back
-                    outfit['items'] = retry_with_relaxed_rules(original_items, (req.occasion if req else "unknown"), requirements)
+                                outfit['items'] = retry_with_relaxed_rules(original_items, (req.occasion if req else "unknown"), requirements)
+
                             
                             # Re-apply category limits to relaxed outfit
-                    outfit['items'] = deduplicate_items_with_limits(outfit['items'], (req.occasion if req else "unknown"))
+                                outfit['items'] = deduplicate_items_with_limits(outfit['items'], (req.occasion if req else "unknown"))
+
                             
                             # CRITICAL DEBUG: Log strategy after relaxed rules
-                    logger.info(f"🔍 DEBUG AFTER RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                                logger.info(f"🔍 DEBUG AFTER RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+
         # print(f"🔍 DEBUG AFTER RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
                             
-                            logger.info(f"🔄 Retried with relaxed rules - final items: {len(outfit['items'])}")
+                                logger.info(f"🔄 Retried with relaxed rules - final items: {len(outfit['items'])}")
+
                     
                     # Step 3: Calculate confidence score AFTER all processing
                     # Only calculate new confidence if robust generator didn't provide one
