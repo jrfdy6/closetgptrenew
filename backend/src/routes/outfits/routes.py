@@ -1512,14 +1512,12 @@ async def generate_outfit(
                     outfit['metadata']['occasion_requirements_met'] = validation_passed
                     
                     # NEW: Apply comprehensive validation pipeline to generated outfit (with category limits bypass)
-
-
-
-                
-                # NEW: Apply comprehensive validation pipeline to generated outfit (with category limits bypass)
-                        # Check if category limits have already been enforced
-                        
-                        if category_limits_applied:
+                    if outfit and outfit.get('items') and validation_available:
+                        try:
+                            # Check if category limits have already been enforced
+                            category_limits_applied = safe_get_metadata(outfit, 'category_limits_enforced', False)
+                            
+                            if category_limits_applied:
                             logger.info("🎯 Category limits already applied - skipping enhanced validation to prevent rejection")
                             # Skip enhanced validation since we've already enforced category limits
                             outfit['metadata']['enhanced_validation_bypassed'] = True
