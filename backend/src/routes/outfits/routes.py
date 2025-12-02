@@ -1986,14 +1986,11 @@ async def _validate_final_outfit(outfit_record: Dict[str, Any], req: OutfitReque
     for item1 in items:
         for item2 in items:
             if item1 != item2:
-        type1 = item1.get('type', '').lower()
-
-        type2 = (item2.get('type', '') if item2 else '').lower()
-
+                type1 = item1.get('type', '').lower()
+                type2 = (item2.get('type', '') if item2 else '').lower()
                 
-    for combo1, combo2 in inappropriate_combinations:
-
-        if (combo1 in type1 and combo2 in type2) or (combo1 in type2 and combo2 in type1):
+                for combo1, combo2 in inappropriate_combinations:
+                    if (combo1 in type1 and combo2 in type2) or (combo1 in type2 and combo2 in type1):
 
             issues.append(f"Inappropriate combination: {type1} with {type2}")
 
