@@ -25,7 +25,8 @@ from ...core.cache import cache_manager
 # Import from local modules
 from .database import (
     get_user_wardrobe, get_user_profile, save_outfit,
-    get_user_outfits, get_user_wardrobe_cached, get_user_profile_cached
+    get_user_outfits, get_user_wardrobe_cached, get_user_profile_cached,
+    normalize_created_at
 )
 from .helpers import (
     _generate_outfit_cache_key, _validate_cached_outfit,
@@ -1169,3 +1170,370 @@ async def generate_outfit(
             status_code=500,
             detail=f"🔥 ENDPOINT CRASH: {error_details['error_type']}: {error_details['error_message']}"
         )
+
+# 9. GET "" (List outfits no slash)
+@router.get("", include_in_schema=False, response_model=List[OutfitResponse])
+async def list_outfits_no_slash(
+    limit: int = 50,
+    offset: int = 0,
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Fetch a user's outfit history from Firestore (no trailing slash).
+    """
+    try:
+        # Require authentication - no fallback to hardcoded user ID
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        current_user_id = current_user.id
+        logger.info(f"📚 Fetching outfits for authenticated user: {current_user_id}")
+        
+        outfits = await get_user_outfits(current_user_id, limit, offset)
+        
+        # Enhanced logging for debugging
+        logger.info(f"📥 Fetch returned {len(outfits)} outfits for user {current_user_id}")
+        if outfits:
+            # Log the most recent outfit for debugging
+            latest = outfits[0]
+            logger.info(f"🔍 DEBUG: Latest outfit: '{((latest.get('name', 'Unknown') if latest else 'Unknown') if latest else 'Unknown')}' created at {latest.get('createdAt', 'Unknown')}")
+            logger.info(f"🔍 DEBUG: Latest outfit wearCount: {(latest.get('wearCount', 'NOT_FOUND') if latest else 'NOT_FOUND')}")
+            logger.info(f"🔍 DEBUG: Latest outfit lastWorn: {(latest.get('lastWorn', 'NOT_FOUND') if latest else 'NOT_FOUND')}")
+        else:
+            logger.info(f"⚠️ DEBUG: No outfits found for user {current_user_id}")
+            
+        return [OutfitResponse(**o) for o in outfits]
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch outfits for {current_user_id}: {e}", exc_info=True)
+        # Fallback to mock data on error
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user outfits: {e}")
+
+# 10. GET /stats/summary (Outfit statistics)
+@router.get("/stats/summary")
+async def get_outfit_stats(
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Get outfit statistics for user.
+    """
+    try:
+        # Require authentication - no fallback to hardcoded user ID
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        current_user_id = current_user.id
+        logger.info(f"📊 Getting outfit stats for authenticated user {current_user_id}")
+        
+        logger.info(f"📊 Getting outfit stats for user {current_user_id}")
+        
+        # Get reasonable sample of outfits for stats (performance optimized)
+        outfits = await get_user_outfits(current_user_id, 100, 0)  # Get recent 100 outfits for stats
+        
+        # Calculate basic statistics
+        stats = {
+            'totalOutfits': len(outfits),
+            'favoriteOutfits': len([o for o in outfits if o.get('isFavorite', False)]),
+            'totalWearCount': sum(o.get('wearCount', 0) for o in outfits),
+            'occasions': {},
+            'styles': {},
+            'recentActivity': []
+        }
+        
+        # Count occasions and styles
+        for outfit in outfits:
+            occasion = (outfit.get('occasion', 'Unknown') if outfit else 'Unknown')
+            stats['occasions'][occasion] = stats['occasions'].get(occasion, 0) + 1
+            
+            style = (outfit.get('style', 'Unknown') if outfit else 'Unknown')
+            stats['styles'][style] = stats['styles'].get(style, 0) + 1
+        
+        # Add recent activity
+        if outfits:
+            stats['recentActivity'] = [
+                {
+                    'id': o['id'],
+                    'name': o['name'],
+                    'lastUpdated': normalize_created_at(o.get('createdAt')) if o.get('createdAt') else datetime.utcnow().isoformat() + 'Z'
+                }
+                for o in outfits[:5]  # Last 5 outfits
+            ]
+        
+        logger.info(f"✅ Successfully retrieved outfit stats")
+        
+        return {
+            "success": True,
+            "data": stats,
+            "message": "Outfit statistics retrieved successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get outfit stats: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get outfit statistics"
+        )
+
+# 11. GET /debug-routes
+@router.get("/debug-routes", response_model=dict)
+async def debug_routes():
+    """Debug endpoint to show all registered routes in this router"""
+    routes = []
+    for route in router.routes:
+        routes.append({
+            "path": route.path,
+            "name": route.name,
+            "methods": list(route.methods),
+            "endpoint": str(route.endpoint)
+        })
+    return {
+        "router_name": "outfits",
+        "total_routes": len(routes),
+        "routes": routes
+    }
+
+# 12. GET /analytics/worn-this-week (Analytics)
+@router.get("/analytics/worn-this-week")
+async def get_outfits_worn_this_week_simple(
+    current_user: UserProfile = Depends(get_current_user),
+    force_fresh: bool = False
+):
+    """
+    SIMPLE: Count outfits worn this week - added to working outfits router.
+    """
+    try:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # Import Firebase inside function to avoid startup issues
+        try:
+            from ..config.firebase import db, firebase_initialized
+        except ImportError as e:
+            logger.error(f"⚠️ Firebase import failed: {e}")
+            raise HTTPException(status_code=503, detail="Firebase service unavailable")
+        
+        if not db:
+            logger.error("⚠️ Firebase not available")
+            raise HTTPException(status_code=503, detail="Firebase service unavailable")
+        
+        # Calculate start of week (Sunday)
+        from datetime import datetime, timezone, timedelta
+        now = datetime.now(timezone.utc)
+        # weekday() returns 0=Monday, 6=Sunday
+        # For Sunday start: if today is Sunday (6), days_since_sunday = 0
+        # if today is Monday (0), days_since_sunday = 1, etc.
+        days_since_sunday = (now.weekday() + 1) % 7
+        week_start = now - timedelta(days=days_since_sunday)
+        week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        logger.info(f"📊 Counting outfits worn since {week_start.isoformat()} for user {current_user.id}")
+        
+        worn_count = 0
+        processed_count = 0
+        
+        # Count individual wear events from outfit_history collection
+        logger.info("📊 Counting individual wear events from outfit_history collection")
+        
+        # Query outfit_history to count individual wear events
+        from google.cloud.firestore import Query
+        history_ref = db.collection('outfit_history').where('user_id', '==', current_user.id).order_by('date_worn', direction=Query.DESCENDING).limit(1000)
+        
+        for history_doc in history_ref.stream():
+            history_data = history_doc.to_dict()
+            processed_count += 1
+            date_worn = (history_data.get('date_worn') if history_data else None)
+            
+            if date_worn:
+                # Parse date_worn safely - handle multiple formats
+                try:
+                    worn_date = None
+                    
+                    if isinstance(date_worn, str):
+                        # Handle ISO string formats
+                        worn_date = datetime.fromisoformat(date_worn.replace('Z', '+00:00'))
+                    elif hasattr(date_worn, 'timestamp'):
+                        # Firestore Timestamp object - convert to datetime
+                        if hasattr(date_worn, 'timestamp'):
+                            worn_date = datetime.fromtimestamp(date_worn.timestamp(), tz=timezone.utc)
+                        else:
+                            worn_date = date_worn
+                    elif isinstance(date_worn, datetime):
+                        # Already a datetime object
+                        worn_date = date_worn
+                    elif isinstance(date_worn, (int, float)):
+                        # Unix timestamp (seconds or milliseconds)
+                        if date_worn > 1e12:  # Likely milliseconds
+                            worn_date = datetime.fromtimestamp(date_worn / 1000.0, tz=timezone.utc)
+                        else:
+                            worn_date = datetime.fromtimestamp(date_worn, tz=timezone.utc)
+                    else:
+                        logger.warning(f"Unknown date_worn type: {type(date_worn)} - {date_worn}")
+                        continue
+                    
+                    # Ensure timezone aware
+                    if worn_date and worn_date.tzinfo is None:
+                        worn_date = worn_date.replace(tzinfo=timezone.utc)
+                    
+                    # Check if this wear event is within the current week
+                    if worn_date and worn_date >= week_start:
+                        worn_count += 1
+                        logger.info(f"📅 Wear event {history_doc.id} this week: {worn_date}")
+                        
+                except Exception as parse_error:
+                    logger.warning(f"Error parsing date_worn {date_worn}: {parse_error}")
+                    continue
+        
+        logger.info(f"✅ Found {worn_count} wear events this week for user {current_user.id}")
+        
+        # If no outfit_history records found, fall back to lastWorn dates from outfits collection
+        if worn_count == 0 and processed_count == 0:
+            logger.info("📊 No outfit_history records found, falling back to lastWorn dates from outfits collection")
+            
+            # Query outfits collection for lastWorn dates
+            outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id)
+            
+            for outfit_doc in outfits_ref.stream():
+                outfit_data = outfit_doc.to_dict()
+                last_worn = (outfit_data.get('lastWorn') if outfit_data else None)
+                
+                if last_worn:
+                    try:
+                        # Parse lastWorn date
+                        if isinstance(last_worn, str):
+                            last_worn_date = datetime.fromisoformat(last_worn.replace('Z', '+00:00'))
+                        elif hasattr(last_worn, 'timestamp'):
+                            last_worn_date = datetime.fromtimestamp(last_worn.timestamp(), tz=timezone.utc)
+                        elif isinstance(last_worn, datetime):
+                            last_worn_date = last_worn
+                        else:
+                            continue
+                        
+                        # Ensure timezone aware
+                        if last_worn_date.tzinfo is None:
+                            last_worn_date = last_worn_date.replace(tzinfo=timezone.utc)
+                        
+                        # Check if this outfit was worn this week
+                        if last_worn_date >= week_start:
+                            worn_count += 1
+                            logger.info(f"📅 Outfit {outfit_doc.id} worn this week (lastWorn fallback): {last_worn_date}")
+                            
+                    except Exception as parse_error:
+                        logger.warning(f"Error parsing lastWorn {last_worn}: {parse_error}")
+                        continue
+            
+            logger.info(f"✅ Fallback found {worn_count} outfits worn this week from lastWorn dates")
+            
+            return {
+                "success": True,
+                "user_id": current_user.id,
+                "outfits_worn_this_week": worn_count,
+                "source": "lastWorn_fallback",
+                "version": "2025-09-23",
+                "api_version": "v2.0",
+                "week_start": week_start.isoformat(),
+                "calculated_at": datetime.now(timezone.utc).isoformat(),
+                "note": "Using lastWorn dates as fallback - outfit_history is empty"
+            }
+        
+        return {
+            "success": True,
+            "user_id": current_user.id,
+            "outfits_worn_this_week": worn_count,
+            "source": "outfit_history_individual_events",
+            "version": "2025-09-23",
+            "api_version": "v2.0",
+            "week_start": week_start.isoformat(),
+            "calculated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error counting worn outfits: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to count worn outfits: {e}")
+
+# Helper function for admin routes
+async def check_admin_user(current_user: UserProfile = Depends(get_current_user)) -> UserProfile:
+    """Check if user has admin privileges."""
+    try:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # Check if user is in admin list
+        admin_emails = [
+            "admin@example.com",  # Replace with actual admin emails
+            # Add more admin emails as needed
+        ]
+        
+        if current_user.email and current_user.email in admin_emails:
+            return current_user
+        
+        raise HTTPException(status_code=403, detail="Admin access required")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error checking admin status: {e}")
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+# 13. GET /admin/cache-stats
+@router.get("/admin/cache-stats")
+async def get_cache_stats(
+    current_user: UserProfile = Depends(check_admin_user)
+) -> Dict[str, Any]:
+    """Get cache statistics (admin only)."""
+    try:
+        outfit_cache = cache_manager.get_cache("outfit")
+        if not outfit_cache:
+            return {
+                "success": False,
+                "error": "Outfit cache not found"
+            }
+        
+        stats = outfit_cache.get_stats()
+        all_stats = cache_manager.get_all_stats()
+        
+        return {
+            "success": True,
+            "outfit_cache": stats,
+            "all_caches": all_stats,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting cache stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting cache stats: {str(e)}")
+
+# 14. POST /admin/cache-clear
+@router.post("/admin/cache-clear")
+async def clear_outfit_cache(
+    current_user: UserProfile = Depends(check_admin_user)
+) -> Dict[str, Any]:
+    """Clear outfit cache (admin only)."""
+    try:
+        cache_manager.clear_cache("outfit")
+        logger.info(f"Admin {current_user.id} cleared outfit cache")
+        return {
+            "success": True,
+            "message": "Outfit cache cleared",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error clearing outfit cache: {e}")
+        raise HTTPException(status_code=500, detail=f"Error clearing outfit cache: {str(e)}")
+
+# 15. POST /admin/cache-clear-all
+@router.post("/admin/cache-clear-all")
+async def clear_all_caches(
+    current_user: UserProfile = Depends(check_admin_user)
+) -> Dict[str, Any]:
+    """Clear all caches (admin only)."""
+    try:
+        cache_manager.clear_all()
+        logger.info(f"Admin {current_user.id} cleared all caches")
+        return {
+            "success": True,
+            "message": "All caches cleared",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error clearing all caches: {e}")
+        raise HTTPException(status_code=500, detail=f"Error clearing all caches: {str(e)}")
