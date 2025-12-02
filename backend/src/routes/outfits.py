@@ -6203,32 +6203,38 @@ async def generate_outfit(
             logger.info(f"🔍 DEBUG: response_dict metadata before OutfitResponse: {list(response_dict.get('metadata', {}).keys())}")
             logger.info(f"🔍 DEBUG: generation_duration={response_dict.get('metadata', {}).get('generation_duration')}, is_slow={response_dict.get('metadata', {}).get('is_slow')}")
             
-            # Create OutfitResponse and immediately convert to dict to modify
+            # CRITICAL FIX: Merge performance metadata into existing metadata BEFORE creating OutfitResponse
+            # The issue is that metadata from generation service might overwrite our fields
+            # So we merge them together, with performance fields taking precedence
+            existing_meta = response_dict.get('metadata', {})
+            if not isinstance(existing_meta, dict):
+                existing_meta = {}
+            
+            # Merge: existing metadata + performance fields (performance fields override if conflict)
+            merged_metadata = {
+                **existing_meta,  # All existing metadata first
+                'generation_duration': round(generation_time, 2),  # Our performance fields override
+                'is_slow': is_slow,
+                'generation_attempts': generation_attempts,
+                'cache_hit': cache_hit
+            }
+            response_dict['metadata'] = merged_metadata
+            
+            logger.info(f"🔍 DEBUG: Merged metadata keys: {list(merged_metadata.keys())}")
+            logger.info(f"🔍 DEBUG: generation_duration={merged_metadata.get('generation_duration')}, is_slow={merged_metadata.get('is_slow')}")
+            
+            # Create response with merged metadata
             response_data = OutfitResponse(**response_dict)
             
-            # Convert to dict, modify metadata, then create new response
-            # This ensures FastAPI serializes the modified version
-            response_dict_final = response_data.model_dump(exclude_none=False)
+            # Verify metadata is in response object
+            if response_data.metadata:
+                logger.info(f"✅ Response metadata keys: {list(response_data.metadata.keys())}")
+                logger.info(f"✅ Response has generation_duration: {'generation_duration' in response_data.metadata}")
+                logger.info(f"✅ Response has is_slow: {'is_slow' in response_data.metadata}")
+            else:
+                logger.error(f"❌ Response metadata is None!")
             
-            # Ensure metadata dict exists
-            if 'metadata' not in response_dict_final or response_dict_final['metadata'] is None:
-                response_dict_final['metadata'] = {}
-            
-            # Force set performance metadata
-            response_dict_final['metadata']['generation_duration'] = round(generation_time, 2)
-            response_dict_final['metadata']['is_slow'] = is_slow
-            response_dict_final['metadata']['generation_attempts'] = generation_attempts
-            response_dict_final['metadata']['cache_hit'] = cache_hit
-            
-            logger.info(f"🔍 DEBUG: Final response_dict metadata keys: {list(response_dict_final.get('metadata', {}).keys())}")
-            logger.info(f"🔍 DEBUG: generation_duration={response_dict_final.get('metadata', {}).get('generation_duration')}, is_slow={response_dict_final.get('metadata', {}).get('is_slow')}")
-            
-            # Create final response with modified metadata
-            final_response = OutfitResponse(**response_dict_final)
-            
-            logger.info(f"✅ Final response metadata includes: {list(final_response.metadata.keys()) if final_response.metadata else 'None'}")
-            
-            return final_response
+            return response_data
         except Exception as response_error:
             logger.error(f"❌ Error creating OutfitResponse: {response_error}")
             logger.error(f"❌ outfit_record keys: {list(outfit_record.keys())}")
