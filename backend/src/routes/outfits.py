@@ -1215,8 +1215,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                         "context_info": {
                             "context_type": str(type(context)),
                             "context_wardrobe_length": len(context.wardrobe) if hasattr(context, 'wardrobe') and context.wardrobe else 0,
-        "context_occasion": getattr(context, 'occasion', 'NO_OCCASION'),
-        "context_style": getattr(context, 'style', 'NO_STYLE'),
+                            "context_occasion": getattr(context, 'occasion', 'NO_OCCASION'),
+                            "context_style": getattr(context, 'style', 'NO_STYLE'),
                             "context_user_id": getattr(context, 'user_id', 'NO_USER_ID')
                         }
                     }
