@@ -1531,28 +1531,27 @@ async def generate_outfit(
                                     mood=req.mood or "neutral",
                                     weather=req.weather.__dict__ if hasattr(req.weather, '__dict__') else (req.weather if req else None),
                                     user_profile={"id": current_user_id},  # Basic profile for validation
-                                    temperature=getattr(req.weather, 'temperature', 70.0) if hasattr(req.weather, 'temperature') else 70.0
+                                temperature=getattr(req.weather, 'temperature', 70.0) if hasattr(req.weather, 'temperature') else 70.0
                                 )
                                 
                                 # Run validation pipeline
                                 validation_result = await validation_pipeline.validate_outfit(outfit, validation_context)
-                            
-                            if not validation_result.valid:
-                                failed_rules = validation_result.errors or []
-                                logger.warning(f"⚠️ VALIDATION FAILED on attempt {generation_attempts}: {validation_result.errors}")
-                                print(f"🚨 VALIDATION ALERT: Attempt {generation_attempts} failed validation")
-                                # If validation fails, retry or use emergency outfit
-                                if attempt < max_attempts - 1:
-                                    await asyncio.sleep(1)  # Brief delay before retry
-                                    continue
-                                else:
-                                    # Final attempt failed validation - NO EMERGENCY FALLBACK
-                                    logger.error(f"❌ VALIDATION FAILURE: All {max_attempts} attempts failed validation")
-                                    print(f"🚨 VALIDATION FAILURE: All {max_attempts} attempts failed validation")
-                                    # NO EMERGENCY FALLBACK - let the robust service handle this
-                                    raise Exception(f"Validation failed after {max_attempts} attempts")
                                 
-                    except Exception as validation_error:
+                                if not validation_result.valid:
+                                    failed_rules = validation_result.errors or []
+                                    logger.warning(f"⚠️ VALIDATION FAILED on attempt {generation_attempts}: {validation_result.errors}")
+                                    print(f"🚨 VALIDATION ALERT: Attempt {generation_attempts} failed validation")
+                                    # If validation fails, retry or use emergency outfit
+                                    if attempt < max_attempts - 1:
+                                        await asyncio.sleep(1)  # Brief delay before retry
+                                        continue
+                                    else:
+                                        # Final attempt failed validation - NO EMERGENCY FALLBACK
+                                        logger.error(f"❌ VALIDATION FAILURE: All {max_attempts} attempts failed validation")
+                                        print(f"🚨 VALIDATION FAILURE: All {max_attempts} attempts failed validation")
+                                        # NO EMERGENCY FALLBACK - let the robust service handle this
+                                        raise Exception(f"Validation failed after {max_attempts} attempts")
+                        except Exception as validation_error:
                         logger.warning(f"⚠️ Validation pipeline failed: {validation_error}, continuing with outfit")
                         # Don't fail the entire request if validation pipeline has issues
                         # Just log the error and continue with the outfit
