@@ -3026,7 +3026,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 # 7. Gender-appropriate style validation (Enhanced)
                 if user_profile and user_profile.get('gender'):
                     user_gender = user_profile.get('gender').lower()
-item_gender = (item.get('gender', '') if item else '').lower()
+                    item_gender = (item.get('gender', '') if item else '').lower()
                     
                     # Gender-specific style filtering with scoring
                     # SOFTEN VALIDATION: Allow base item to pass gender filtering
