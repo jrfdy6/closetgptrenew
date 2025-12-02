@@ -1964,7 +1964,7 @@ async def _validate_final_outfit(outfit_record: Dict[str, Any], req: OutfitReque
     categories = set()
     for item in items:
                 item_type = item.get('type', '').lower()
-        if item_type in ['shirt', 'blouse', 'sweater', 'tank', 'top']:
+    if item_type in ['shirt', 'blouse', 'sweater', 'tank', 'top']:
             categories.add('tops')
         elif item_type in ['pants', 'jeans', 'shorts', 'skirt']:
             categories.add('bottoms')
