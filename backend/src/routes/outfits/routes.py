@@ -2713,7 +2713,7 @@ async def generate_intelligent_reasoning(items: List[Dict], req: OutfitRequest, 
             
             # Check for any weather-related item notes
             for item in items:
-        weather_context = (item.get('weather_context', {}) if item else {})
+                weather_context = (item.get('weather_context', {}) if item else {})
                 if weather_context:
                     temp_note = weather_context.get('temperature_note', '')
                     if temp_note and ('perfect' in temp_note or 'ideal' in temp_note or 'excellent' in temp_note):
