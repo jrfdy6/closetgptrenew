@@ -1217,17 +1217,17 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                             "context_wardrobe_length": len(context.wardrobe) if hasattr(context, 'wardrobe') and context.wardrobe else 0,
         "context_occasion": getattr(context, 'occasion', 'NO_OCCASION'),
         "context_style": getattr(context, 'style', 'NO_STYLE'),
-        "context_user_id": getattr(context, 'user_id', 'NO_USER_ID')
-        }
-        }
-        logger.error("🔥 Robust outfit generation crash", extra=error_details, exc_info=True)
-        print(f"🔥 ROBUST GENERATION CRASH: {error_details}")
-        # print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
-        raise
+                            "context_user_id": getattr(context, 'user_id', 'NO_USER_ID')
+                        }
+                    }
+                    logger.error("🔥 Robust outfit generation crash", extra=error_details, exc_info=True)
+                    print(f"🔥 ROBUST GENERATION CRASH: {error_details}")
+                    # print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
+                    raise
                     
-        print(f"🔍 DEBUG ROBUST RETURN: robust_outfit = {robust_outfit}")
-        # print(f"🔍 DEBUG ROBUST RETURN: type = {type(robust_outfit)}")
-        if robust_outfit is None:
+                    print(f"🔍 DEBUG ROBUST RETURN: robust_outfit = {robust_outfit}")
+                    # print(f"🔍 DEBUG ROBUST RETURN: type = {type(robust_outfit)}")
+                    if robust_outfit is None:
         print(f"🚨 CRITICAL: robust_outfit is None!")
         raise Exception("Robust service returned None - this should not happen")
         
