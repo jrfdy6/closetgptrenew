@@ -837,7 +837,7 @@ def attach_weather_context_to_items(items: List, weather_data: Dict[str, Any]) -
                     visual_attrs = (metadata.get('visualAttributes', {}) if metadata else {})
                     if isinstance(visual_attrs, dict):
                         material = (visual_attrs.get('material', '') if visual_attrs else '').lower()
-        color = (item.get('color', '') if item else '').title()
+                color = (item.get('color', '') if item else '').title()
             
             # Temperature appropriateness analysis
             temp_appropriateness = "excellent"
