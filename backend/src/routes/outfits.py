@@ -1292,7 +1292,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                         # print(f"🔍 DEBUG CONVERSION: Items type: {type(robust_outfit.items)}")
                         # print(f"🔍 DEBUG CONVERSION: Items length: {len(robust_outfit.items) if robust_outfit.items else 0}")
                         if robust_outfit.items:
-        print(f"🔍 DEBUG CONVERSION: First item: {robust_outfit.items[0]}")
+                            print(f"🔍 DEBUG CONVERSION: First item: {robust_outfit.items[0]}")
                     
                     outfit = {
                         'id': getattr(robust_outfit, 'id', 'unknown'),
