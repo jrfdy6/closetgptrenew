@@ -1234,21 +1234,21 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 # DEBUG: Collect robust generation result
                 debug_info["robust_output"] = {
                     "outfit_type": str(type(robust_outfit)),
-        "has_items_attr": hasattr(robust_outfit, 'items'),
-        "items_count": len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 0,
-        "items_list": [
-        {
-        "id": getattr(item, 'id', 'NO_ID'),
-        "name": getattr(item, 'name', 'NO_NAME')
-        } for item in robust_outfit.items[:3]
-        ] if hasattr(robust_outfit, 'items') and robust_outfit.items else []
-        }
-        
-        # Store debug info for later use
-        context.debug_info = debug_info
-        robust_debug_info = debug_info  # Store in local scope for error handling
-                    
-                    logger.info(f"🚀 ROBUST SERVICE RETURNED: {type(robust_outfit)}")
+                    "has_items_attr": hasattr(robust_outfit, 'items'),
+                    "items_count": len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 0,
+                    "items_list": [
+                        {
+                            "id": getattr(item, 'id', 'NO_ID'),
+                            "name": getattr(item, 'name', 'NO_NAME')
+                        } for item in robust_outfit.items[:3]
+                    ] if hasattr(robust_outfit, 'items') and robust_outfit.items else []
+                }
+                
+                # Store debug info for later use
+                context.debug_info = debug_info
+                robust_debug_info = debug_info  # Store in local scope for error handling
+                
+                logger.info(f"🚀 ROBUST SERVICE RETURNED: {type(robust_outfit)}")
                     logger.info(f"🚀 ROBUST OUTFIT ITEMS: {len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 'NO ITEMS ATTR'}")
                     logger.info(f"🚀 ROBUST METADATA: {robust_outfit.metadata if hasattr(robust_outfit, 'metadata') else 'NO METADATA ATTR'}")
                     
