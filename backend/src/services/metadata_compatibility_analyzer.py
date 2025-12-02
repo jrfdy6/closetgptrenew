@@ -234,12 +234,12 @@ class MetadataCompatibilityAnalyzer:
             # ═══════════════════════════════════════════════════════════
             
             compatibility_score = (
-                layer_score * 0.28 +       # Most critical (hard blocks)
-                pattern_score * 0.18 +     # Very visible conflicts
+                layer_score * 0.24 +       # Critical but balanced (was 0.28)
+                pattern_score * 0.20 +     # Very visible conflicts (was 0.18)
                 fit_score * 0.18 +         # Important for aesthetics
-                formality_score * 0.14 +   # Context-dependent
-                color_score * 0.14 +       # AI pre-analyzed
-                brand_score * 0.08         # Style consistency polish
+                formality_score * 0.16 +   # More important than realized (was 0.14)
+                color_score * 0.18 +       # Highly visible, boosted (was 0.14)
+                brand_score * 0.04         # Less critical (was 0.08)
             )
             
             # Store final score

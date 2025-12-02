@@ -1279,21 +1279,21 @@ class RobustOutfitGenerationService:
         # CALCULATE FINAL COMPOSITE SCORES (6 DIMENSIONS)
         # ═══════════════════════════════════════════════════════════════════════
         
-        diversity_weight = 0.30  # 30% weight for diversity - INCREASED to ensure variety (was 0.10)
+        diversity_weight = 0.22  # 22% weight for diversity - OPTIMIZED for quality (was 0.30)
         if (context.style or "").lower() == 'monochrome':
-            diversity_weight = 0.18  # Keep some rotation but avoid fighting monochrome cohesion
+            diversity_weight = 0.15  # Lower for monochrome cohesion (was 0.18)
         
         # Adjust other weights to accommodate diversity dimension (must sum to 100%)
         if temp > 75 or temp < 50:  # Extreme weather
-            weather_weight = 0.18  # Reduced to accommodate higher diversity
-            compatibility_weight = 0.12
-            style_weight = 0.16
+            weather_weight = 0.20  # Increased for weather importance (was 0.18)
+            compatibility_weight = 0.14  # Increased for better cohesion (was 0.12)
+            style_weight = 0.20  # Increased for style matching (was 0.16)
             body_weight = 0.12
             user_feedback_weight = 0.12
         else:  # Moderate weather
-            weather_weight = 0.14  # Reduced to accommodate higher diversity
-            compatibility_weight = 0.11
-            style_weight = 0.18
+            weather_weight = 0.16  # Increased for consistency (was 0.14)
+            compatibility_weight = 0.13  # Increased for cohesion (was 0.11)
+            style_weight = 0.22  # Increased for better style (was 0.18)
             body_weight = 0.15
             user_feedback_weight = 0.12
         
@@ -1366,12 +1366,12 @@ class RobustOutfitGenerationService:
         if favorites_mode:
             # Boost user feedback (favorites/wear history), but keep diversity high enough
             if temp > 75 or temp < 50:  # Extreme weather
-                weather_weight = 0.18
+                weather_weight = 0.20
                 compatibility_weight = 0.12
-                style_weight = 0.16
+                style_weight = 0.18
                 body_weight = 0.10
-                user_feedback_weight = 0.24  # ⬆️ BOOSTED from 0.12 (reduced from 0.30 to keep diversity higher)
-                diversity_weight = 0.20  # ⬇️ REDUCED from 0.30 but still significant (was 0.14)
+                user_feedback_weight = 0.22  # ⬆️ BOOSTED from 0.12
+                diversity_weight = 0.18  # ⬇️ Slightly lower in favorites mode
             else:  # Moderate weather
                 weather_weight = 0.14
                 compatibility_weight = 0.11
