@@ -1079,9 +1079,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             
             # WardrobePreprocessor integration
             logger.info(f"🔧 Starting WardrobePreprocessor integration")
-                
-                # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
-                logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
+            
+            # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
+            logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
             print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items = {wardrobe_items}")
             # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items type = {type(wardrobe_items)}")
             # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items length = {len(wardrobe_items) if wardrobe_items else 'None'}")
