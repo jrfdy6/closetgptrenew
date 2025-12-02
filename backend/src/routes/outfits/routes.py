@@ -1552,7 +1552,7 @@ async def generate_outfit(
                                         # NO EMERGENCY FALLBACK - let the robust service handle this
                                         raise Exception(f"Validation failed after {max_attempts} attempts")
                         except Exception as validation_error:
-                        logger.warning(f"⚠️ Validation pipeline failed: {validation_error}, continuing with outfit")
+                            logger.warning(f"⚠️ Validation pipeline failed: {validation_error}, continuing with outfit")
                         # Don't fail the entire request if validation pipeline has issues
                         # Just log the error and continue with the outfit
                 elif outfit and outfit.get('items') and not validation_available:
