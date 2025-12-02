@@ -4191,7 +4191,7 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_c
             if wardrobe_cache and item in wardrobe_cache:
                 # Use cached item - fix imageUrl
                 cached_item = wardrobe_cache[item].copy()
-        raw_url = (((cached_item.get('imageUrl', '') if cached_item else '') if cached_item else '') if cached_item else '') or cached_item.get('image_url', '') or cached_item.get('image', '')
+                raw_url = (((cached_item.get('imageUrl', '') if cached_item else '') if cached_item else '') if cached_item else '') or cached_item.get('image_url', '') or cached_item.get('image', '')
                 cached_item['imageUrl'] = convert_firebase_url(raw_url)
                 resolved_items.append(cached_item)
             else:
