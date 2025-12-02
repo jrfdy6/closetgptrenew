@@ -1129,10 +1129,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items length = {len(clothing_items)}")
             # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items type = {type(clothing_items)}")
             for i, item in enumerate(clothing_items):
-            pass
-            pass
-            pass
-            print(f"🔍 DEBUG CONTEXT CREATION: item {i} = {item}")
+                pass
+                pass
+                pass
+                print(f"🔍 DEBUG CONTEXT CREATION: item {i} = {item}")
             # print(f"🔍 DEBUG CONTEXT CREATION: item {i} type = {type(item)}")
             if item is None:
                 print(f"🚨 CRITICAL: clothing_items[{i}] is None!")
