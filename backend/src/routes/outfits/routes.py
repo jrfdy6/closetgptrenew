@@ -1553,9 +1553,9 @@ async def generate_outfit(
                                         raise Exception(f"Validation failed after {max_attempts} attempts")
                         except Exception as validation_error:
                             logger.warning(f"⚠️ Validation pipeline failed: {validation_error}, continuing with outfit")
-                        # Don't fail the entire request if validation pipeline has issues
-                        # Just log the error and continue with the outfit
-                elif outfit and outfit.get('items') and not validation_available:
+                            # Don't fail the entire request if validation pipeline has issues
+                            # Just log the error and continue with the outfit
+                    elif outfit and outfit.get('items') and not validation_available:
                     logger.info("⚠️ Validation pipeline not available, skipping validation")
                 else:
                     logger.warning("⚠️ No outfit generated or validation not available")
