@@ -3796,7 +3796,7 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         requirements = occasion_requirements[occasion_lower]
         logger.error(f"🚨 STRESS TEST v1.0: FALLBACK VALIDATION START - Calling validate_outfit_completeness")
         try:
-        missing_required = validate_outfit_completeness(selected_items, requirements, (req.occasion if req else "unknown"))
+            missing_required = validate_outfit_completeness(selected_items, requirements, (req.occasion if req else "unknown"))
             logger.error(f"🚨 STRESS TEST v1.0: FALLBACK VALIDATION SUCCESS - {len(missing_required)} missing items")
         except Exception as e:
             logger.error(f"🚨 STRESS TEST v1.0: FALLBACK VALIDATION ERROR - {type(e).__name__}: {str(e)}")
