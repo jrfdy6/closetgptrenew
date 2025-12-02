@@ -669,6 +669,8 @@ export default function OutfitResultsDisplay({
         outfitAnalysis={outfit.outfitAnalysis}
         structuredExplanation={outfit.metadata?.structuredExplanation || outfit.metadata?.explanation}
         weather={outfit.metadata?.weather || (outfit as any).weather}
+        personalizationInsights={outfit.metadata?.personalization_insights}
+        className="mt-8"
         className="mt-8"
       />
     </div>

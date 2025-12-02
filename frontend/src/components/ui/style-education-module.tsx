@@ -93,6 +93,12 @@ interface StyleEducationModuleProps {
     temperature?: number;
     condition?: string;
   };
+  personalizationInsights?: {
+    summary: string;
+    confidence: string;
+    insights: string[];
+    personalization_level: number;
+  };
   className?: string;
 }
 
@@ -106,6 +112,7 @@ export default function StyleEducationModule({
   outfitAnalysis,
   structuredExplanation,
   weather,
+  personalizationInsights,
   className = "" 
 }: StyleEducationModuleProps) {
   const { user } = useFirebase();
@@ -382,18 +389,41 @@ export default function StyleEducationModule({
       });
     }
     
-    // Add Personalization placeholder (will be populated from backend explanation)
-    insights.push({
-      id: 'personalization',
-      icon: Heart,
-      title: 'Personalized for You',
-      insight: 'This outfit is tailored to your style preferences.',
-      tips: [
-        'Based on your personal style profile',
-        'Combines items you love wearing',
-        'A combination that matches your preferences'
-      ]
-    });
+    // Add Personalization with Spotify-style specific insights
+    if (personalizationInsights && personalizationInsights.insights && personalizationInsights.insights.length > 0) {
+      // Use backend-provided Spotify-style insights
+      const confidenceBadge = personalizationInsights.confidence === 'high' 
+        ? '🎯 Highly Confident' 
+        : personalizationInsights.confidence === 'medium'
+        ? '✨ Good Match'
+        : '🌱 Learning Your Style';
+      
+      insights.push({
+        id: 'personalization',
+        icon: Heart,
+        title: 'Personalized for You',
+        insight: `${personalizationInsights.summary} ${confidenceBadge}`,
+        tips: [
+          ...personalizationInsights.insights,
+          personalizationInsights.personalization_level > 0 
+            ? `Your AI is ${personalizationInsights.personalization_level}% trained`
+            : 'Rate more outfits to improve personalization'
+        ]
+      });
+    } else {
+      // Fallback to generic personalization
+      insights.push({
+        id: 'personalization',
+        icon: Heart,
+        title: 'Personalized for You',
+        insight: 'This outfit is tailored to your style preferences.',
+        tips: [
+          'Based on your personal style profile',
+          'Combines items you love wearing',
+          'Rate outfits to help us learn your style better'
+        ]
+      });
+    }
     
     return insights;
   };
