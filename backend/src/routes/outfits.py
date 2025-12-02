@@ -1345,17 +1345,17 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 logger.info(f"🎯 FINAL STRATEGY: {final_strategy}")
                 print(f"🎯 FINAL STRATEGY: {final_strategy}")
                 # CRITICAL DEBUG: Log outfit metadata before any post-processing
-        logger.info(f"🔍 DEBUG BEFORE POST-PROCESSING: outfit metadata = {(outfit.get('metadata') if outfit else None)}")
+                logger.info(f"🔍 DEBUG BEFORE POST-PROCESSING: outfit metadata = {(outfit.get('metadata') if outfit else None)}")
         # print(f"🔍 DEBUG BEFORE POST-PROCESSING: outfit metadata = {(outfit.get('metadata') if outfit else None)}")
                 
                 if final_strategy == 'fallback_simple':
                     logger.warning(f"⚠️ WARNING: Robust path returned fallback_simple strategy")
                     print(f"🚨 WARNING: Robust path returned fallback_simple strategy - this should be a robust strategy!")
-        logger.info(f"✅ Robust generation successful with {len((outfit.get('items', []) if outfit else []))} items")
+                logger.info(f"✅ Robust generation successful with {len((outfit.get('items', []) if outfit else []))} items")
             
             # Add weather data to outfit for base item validation
-        logger.error(f"🚨 DEBUG: About to add weather data - (req.weather if req else None) = {req.weather}")
-        if (req.weather if req else None):
+            logger.error(f"🚨 DEBUG: About to add weather data - (req.weather if req else None) = {req.weather}")
+            if (req.weather if req else None):
                 try:
                     # Handle both dict and object weather data
                     if isinstance(req.weather, dict):
@@ -1390,10 +1390,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             logger.error(f"🔎 MAIN LOGIC: Rule-based generation FAILED: {rule_exception}")
             raise rule_exception
         if outfit:
-        logger.info(f"✨ Generated outfit: {outfit.get('name', 'Unknown')}")
+            logger.info(f"✨ Generated outfit: {outfit.get('name', 'Unknown')}")
         else:
-        logger.error("❌ Generated outfit is None - this should not happen")
-        raise Exception("🔥 OUTFIT NONE ERROR: Outfit generation failed - outfit is None")
+            logger.error("❌ Generated outfit is None - this should not happen")
+            raise Exception("🔥 OUTFIT NONE ERROR: Outfit generation failed - outfit is None")
         # Outfit generated successfully
         
         # Check if outfit generation was successful
@@ -1401,9 +1401,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         # print(f"🔍 DEBUG FINAL CHECK: Outfit keys: {list(outfit.keys()) if isinstance(outfit, dict) else 'NOT A DICT'}")
         # print(f"🔍 DEBUG FINAL CHECK: Has 'items' key: {'items' in outfit if isinstance(outfit, dict) else 'N/A'}")
         if isinstance(outfit, dict) and 'items' in outfit:
-        print(f"🔍 DEBUG FINAL CHECK: Items value: {outfit['items']}")
-        print(f"🔍 DEBUG FINAL CHECK: Items type: {type(outfit['items'])}")
-        print(f"🔍 DEBUG FINAL CHECK: Items length: {len(outfit['items']) if outfit['items'] else 'None/Empty'}")
+            print(f"🔍 DEBUG FINAL CHECK: Items value: {outfit['items']}")
+            print(f"🔍 DEBUG FINAL CHECK: Items type: {type(outfit['items'])}")
+            print(f"🔍 DEBUG FINAL CHECK: Items length: {len(outfit['items']) if outfit['items'] else 'None/Empty'}")
         
         if not outfit or not outfit.get('items') or len(outfit.get('items', [])) == 0:
             logger.error(f"❌ GENERATION FAILED: No items generated")
@@ -1437,16 +1437,16 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     'condition': getattr(req.weather, 'condition', 'clear'),
                     'precipitation': getattr(req.weather, 'precipitation', 0)
                 }
-        outfit['items'] = attach_weather_context_to_items((outfit.get('items', []) if outfit else []), weather_data)
-        logger.info(f"🌤️ Attached weather context to {len((outfit.get('items', []) if outfit else []))} items")
+                outfit['items'] = attach_weather_context_to_items((outfit.get('items', []) if outfit else []), weather_data)
+                logger.info(f"🌤️ Attached weather context to {len((outfit.get('items', []) if outfit else []))} items")
             except Exception as weather_error:
                 logger.warning(f"⚠️ Weather context attachment failed: {weather_error}")
-        logger.warning(f"⚠️ Item types: {[type(item) for item in (outfit.get('items', []) if outfit else [])]}")
+                logger.warning(f"⚠️ Item types: {[type(item) for item in (outfit.get('items', []) if outfit else [])]}")
                 # Continue without weather context rather than crashing
         
         # ENHANCED: Add weather combination validation
         if (req.weather if req else None):
-        outfit = validate_weather_outfit_combinations(outfit, (req.weather if req else None))
+            outfit = validate_weather_outfit_combinations(outfit, (req.weather if req else None))
         
         logger.info(f"✅ Final outfit: {len((outfit.get('items', []) if outfit else []))} items")
         logger.info(f"🔍 Final item IDs: {[item.get('id', 'no-id') for item in (outfit.get('items', []) if outfit else []) if item]}")
@@ -1460,7 +1460,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         # Ensure metadata exists
         if 'metadata' not in outfit:
-        outfit['metadata'] = None
+            outfit['metadata'] = None
         
         # Log generation strategy for monitoring (WITHOUT changing it)
         failed_rules = safe_get_metadata(outfit, 'failed_rules', [])
@@ -1545,12 +1545,12 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         try:
             # Normalize the type using the validation utility
             from ..utils.validation import normalize_clothing_type
-        normalized_type = normalize_clothing_type((item_dict.get('type', 'other') if item_dict else 'other'))
+            normalized_type = normalize_clothing_type((item_dict.get('type', 'other') if item_dict else 'other'))
             
             # Create a basic ClothingItem from the dict with all required fields
             clothing_item = ClothingItem(
-        id=(item_dict.get('id', '') if item_dict else ''),
-        name=(item_dict.get('name', '') if item_dict else ''),
+                id=(item_dict.get('id', '') if item_dict else ''),
+                name=(item_dict.get('name', '') if item_dict else ''),
                 type=normalized_type,
         color=(item_dict.get('color', 'unknown') if item_dict else 'unknown'),
         imageUrl=(item_dict.get('imageUrl', '') if item_dict else ''),
@@ -2240,7 +2240,7 @@ async def calculate_wardrobe_intelligence_score(items: List[Dict], user_id: str)
             if analytics_data:
                 # 1. Favorite Status Bonus (up to 25 points)
                 # Check both analytics and wardrobe collection for favorite status
-        is_favorite = (analytics_data.get('is_favorite', False) if analytics_data else False)
+                is_favorite = (analytics_data.get('is_favorite', False) if analytics_data else False)
                 
                 # Also check wardrobe collection for favorite status
                 try:
@@ -6230,45 +6230,36 @@ async def generate_outfit(
             # Create response with merged metadata AND top-level fields
             response_data = OutfitResponse(**response_dict)
             
-            # CRITICAL: Use model_dump() to get dict, then manually add performance fields
-            # This ensures they're included even if Pydantic serialization filters them
-            response_dict_final = response_data.model_dump(exclude_none=False)
+            # PERFORMANCE MONITORING DISABLED - Commented out for now
+            # # CRITICAL: Use model_dump() to get dict, then manually add performance fields
+            # # This ensures they're included even if Pydantic serialization filters them
+            # response_dict_final = response_data.model_dump(exclude_none=False)
+            # 
+            # # Force add performance fields to the final dict (they should already be there, but ensure it)
+            # response_dict_final['generation_duration'] = round(generation_time, 2)
+            # response_dict_final['is_slow'] = is_slow
+            # response_dict_final['cache_hit'] = cache_hit
+            # response_dict_final['generation_attempts'] = generation_attempts
+            # 
+            # # Also ensure they're in metadata
+            # if response_dict_final.get('metadata'):
+            #     response_dict_final['metadata']['generation_duration'] = round(generation_time, 2)
+            #     response_dict_final['metadata']['is_slow'] = is_slow
+            #     response_dict_final['metadata']['cache_hit'] = cache_hit
+            #     response_dict_final['metadata']['generation_attempts'] = generation_attempts
+            # 
+            # # Return the dict directly using JSONResponse to bypass Pydantic serialization filtering
+            # # This ensures all fields are included, especially the performance metrics
+            # response = JSONResponse(
+            #     content=response_dict_final,
+            #     status_code=200,
+            #     headers={"Content-Type": "application/json"}
+            # )
+            # logger.info(f"🚀 JSONResponse created, returning now")
+            # return response
             
-            # Force add performance fields to the final dict (they should already be there, but ensure it)
-            response_dict_final['generation_duration'] = round(generation_time, 2)
-            response_dict_final['is_slow'] = is_slow
-            response_dict_final['cache_hit'] = cache_hit
-            response_dict_final['generation_attempts'] = generation_attempts
-            
-            # Also ensure they're in metadata
-            if response_dict_final.get('metadata'):
-                response_dict_final['metadata']['generation_duration'] = round(generation_time, 2)
-                response_dict_final['metadata']['is_slow'] = is_slow
-                response_dict_final['metadata']['cache_hit'] = cache_hit
-                response_dict_final['metadata']['generation_attempts'] = generation_attempts
-            
-            # Verify fields are in final dict
-            logger.info(f"✅ Final dict has generation_duration: {'generation_duration' in response_dict_final}")
-            logger.info(f"✅ Final dict has is_slow: {'is_slow' in response_dict_final}")
-            logger.info(f"✅ Final dict generation_duration value: {response_dict_final.get('generation_duration')}")
-            logger.info(f"✅ Final dict is_slow value: {response_dict_final.get('is_slow')}")
-            
-            # CRITICAL: Log the final dict to verify fields are present
-            logger.info(f"🚀 RETURNING JSONResponse with keys: {list(response_dict_final.keys())}")
-            logger.info(f"🚀 generation_duration in final dict: {response_dict_final.get('generation_duration')}")
-            logger.info(f"🚀 is_slow in final dict: {response_dict_final.get('is_slow')}")
-            logger.info(f"🚀 cache_hit in final dict: {response_dict_final.get('cache_hit')}")
-            logger.info(f"🚀 generation_attempts in final dict: {response_dict_final.get('generation_attempts')}")
-            
-            # Return the dict directly using JSONResponse to bypass Pydantic serialization filtering
-            # This ensures all fields are included, especially the performance metrics
-            response = JSONResponse(
-                content=response_dict_final,
-                status_code=200,
-                headers={"Content-Type": "application/json"}
-            )
-            logger.info(f"🚀 JSONResponse created, returning now")
-            return response
+            # Normal response (performance monitoring disabled)
+            return response_data
         except Exception as response_error:
             logger.error(f"❌ Error creating OutfitResponse: {response_error}")
             logger.error(f"❌ outfit_record keys: {list(outfit_record.keys())}")
