@@ -1117,10 +1117,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                         print(f"🔍 DEBUG ITEM CONVERSION: Successfully converted item {i}")
                     except Exception as item_error:
                         logger.warning(f"⚠️ Failed to convert item {i}: {item_error}")
-                            print(f"🚨 ITEM CONVERSION ERROR: {item_error}")
-                            import traceback
-                            # print(f"🚨 ITEM CONVERSION TRACEBACK: {traceback.format_exc()}")
-                            continue
+                        print(f"🚨 ITEM CONVERSION ERROR: {item_error}")
+                        import traceback
+                        # print(f"🚨 ITEM CONVERSION TRACEBACK: {traceback.format_exc()}")
+                        continue
                 
                 logger.info(f"✅ Pre-outfit-construction guard completed - {len(clothing_items)} items converted successfully")
         
