@@ -1256,10 +1256,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 metadata = getattr(robust_outfit, 'metadata', None)
                 strategy = metadata.get('generation_strategy', 'unknown') if metadata else 'unknown'
                 logger.info(f"[GENERATION][ROBUST] SUCCESS - Generated outfit using strategy: {strategy}")
-                    logger.info(f"[GENERATION][ROBUST] Outfit items: {len(robust_outfit.items)} items")
-                    print(f"🎯 GENERATION STRATEGY: {strategy}")
-                    # Check if robust service is internally falling back
-                    if strategy == 'fallback_simple':
+                logger.info(f"[GENERATION][ROBUST] Outfit items: {len(robust_outfit.items)} items")
+                print(f"🎯 GENERATION STRATEGY: {strategy}")
+                # Check if robust service is internally falling back
+                if strategy == 'fallback_simple':
                         logger.warning(f"⚠️ ROBUST SERVICE INTERNAL FALLBACK: Strategy is fallback_simple")
                         print(f"🚨 ROBUST SERVICE INTERNAL FALLBACK: The robust service itself is falling back!")
                         print(f"🚨 This means the robust service is working but failing internally")
