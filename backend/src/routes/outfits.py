@@ -3716,7 +3716,7 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         
         if style_appropriate_outerwear:
             # Use priority-based selection for outerwear too
-        selected_outerwear = _select_priority_item(style_appropriate_outerwear, (req.occasion if req else "unknown"), (req.style if req else "unknown"), 'outerwear')
+            selected_outerwear = _select_priority_item(style_appropriate_outerwear, (req.occasion if req else "unknown"), (req.style if req else "unknown"), 'outerwear')
             selected_items.append(selected_outerwear)
         logger.info(f"Added priority outerwear: {(selected_outerwear.get('name', 'Unknown') if selected_outerwear else 'Unknown')} for {req.style} style")
         
