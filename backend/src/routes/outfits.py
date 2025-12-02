@@ -215,6 +215,7 @@ def normalize_ts(value):
     return None
 
 from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, field_validator, ConfigDict
 
@@ -6239,20 +6240,36 @@ async def generate_outfit(
             # Create response with merged metadata AND top-level fields
             response_data = OutfitResponse(**response_dict)
             
-            # Verify metadata is in response object
-            if response_data.metadata:
-                logger.info(f"✅ Response metadata keys: {list(response_data.metadata.keys())}")
-                logger.info(f"✅ Response has generation_duration: {'generation_duration' in response_data.metadata}")
-                logger.info(f"✅ Response has is_slow: {'is_slow' in response_data.metadata}")
-            else:
-                logger.error(f"❌ Response metadata is None!")
+            # CRITICAL: Use model_dump() to get dict, then manually add performance fields
+            # This ensures they're included even if Pydantic serialization filters them
+            response_dict_final = response_data.model_dump(exclude_none=False)
             
-            # Verify top-level fields
-            logger.info(f"✅ Top-level generation_duration: {response_data.generation_duration}")
-            logger.info(f"✅ Top-level is_slow: {response_data.is_slow}")
-            logger.info(f"✅ Top-level cache_hit: {response_data.cache_hit}")
+            # Force add performance fields to the final dict (they should already be there, but ensure it)
+            response_dict_final['generation_duration'] = round(generation_time, 2)
+            response_dict_final['is_slow'] = is_slow
+            response_dict_final['cache_hit'] = cache_hit
+            response_dict_final['generation_attempts'] = generation_attempts
             
-            return response_data
+            # Also ensure they're in metadata
+            if response_dict_final.get('metadata'):
+                response_dict_final['metadata']['generation_duration'] = round(generation_time, 2)
+                response_dict_final['metadata']['is_slow'] = is_slow
+                response_dict_final['metadata']['cache_hit'] = cache_hit
+                response_dict_final['metadata']['generation_attempts'] = generation_attempts
+            
+            # Verify fields are in final dict
+            logger.info(f"✅ Final dict has generation_duration: {'generation_duration' in response_dict_final}")
+            logger.info(f"✅ Final dict has is_slow: {'is_slow' in response_dict_final}")
+            logger.info(f"✅ Final dict generation_duration value: {response_dict_final.get('generation_duration')}")
+            logger.info(f"✅ Final dict is_slow value: {response_dict_final.get('is_slow')}")
+            
+            # Return the dict directly using JSONResponse to bypass Pydantic serialization filtering
+            # This ensures all fields are included, especially the performance metrics
+            return JSONResponse(
+                content=response_dict_final,
+                status_code=200,
+                headers={"Content-Type": "application/json"}
+            )
         except Exception as response_error:
             logger.error(f"❌ Error creating OutfitResponse: {response_error}")
             logger.error(f"❌ outfit_record keys: {list(outfit_record.keys())}")
