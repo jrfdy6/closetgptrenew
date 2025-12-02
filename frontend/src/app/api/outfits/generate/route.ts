@@ -43,7 +43,8 @@ export async function POST(request: NextRequest) {
     console.log('🔍 DEBUG: Request body:', body);
     
     // Call the real backend generate endpoint
-    const fullBackendUrl = `${backendUrl}/api/outfits/generate`;
+    // TEMPORARY: Use working endpoint while fixing /api/outfits/generate
+    const fullBackendUrl = `${backendUrl}/api/outfits-existing-data/generate-personalized`;
     console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
