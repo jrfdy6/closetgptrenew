@@ -1266,8 +1266,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                         # Add detailed fallback reason logging
                         fallback_reason = "Unknown - robust service returned fallback_simple strategy"
                         if hasattr(robust_outfit, 'metadata'):
-        metadata = getattr(robust_outfit, 'metadata', None)
-        failed_rules = metadata.get('failed_rules', []) if metadata else []
+                            metadata = getattr(robust_outfit, 'metadata', None)
+                            failed_rules = metadata.get('failed_rules', []) if metadata else []
                             if failed_rules:
                                 fallback_reason = f"Failed validation rules: {failed_rules}"
                             elif len(robust_outfit.items) == 0:
