@@ -3909,8 +3909,8 @@ def generate_weather_aware_fallback_reasoning(req: OutfitRequest, selected_items
         if (req.weather if req else None):
             # Handle both dict and object weather data
             if isinstance(req.weather, dict):
-        temp = req.weather.get('temperature', 70) if req.weather else 70
-        condition = req.weather.get('condition', 'clear') if req.weather else 'clear'
+                temp = req.weather.get('temperature', 70) if req.weather else 70
+                condition = req.weather.get('condition', 'clear') if req.weather else 'clear'
             else:
                 temp = getattr(req.weather, 'temperature', 70)
                 condition = getattr(req.weather, 'condition', 'clear')
@@ -7036,8 +7036,8 @@ async def generate_intelligent_reasoning(items: List[Dict], req: OutfitRequest, 
         if (req.weather if req else None):
             # Handle both dict and object weather data
             if isinstance(req.weather, dict):
-        temp = req.weather.get('temperature', 70) if req.weather else 70
-        condition = req.weather.get('condition', 'clear') if req.weather else 'clear'
+                temp = req.weather.get('temperature', 70) if req.weather else 70
+                condition = req.weather.get('condition', 'clear') if req.weather else 'clear'
             else:
                 temp = getattr(req.weather, 'temperature', 70)
                 condition = getattr(req.weather, 'condition', 'clear')
