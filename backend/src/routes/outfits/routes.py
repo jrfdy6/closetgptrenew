@@ -1500,11 +1500,11 @@ async def generate_outfit(
                     
                     # CRITICAL DEBUG: Log strategy before metadata modification
                     logger.info(f"🔍 DEBUG BEFORE METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
-        # print(f"🔍 DEBUG BEFORE METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                    # print(f"🔍 DEBUG BEFORE METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
                     
                     # Ensure metadata exists
                     if 'metadata' not in outfit:
-                    outfit['metadata'] = None
+                        outfit['metadata'] = {}
                     outfit['metadata']['subtype_tracking_enabled'] = True
                     outfit['metadata']['confidence_calculated'] = True
                     outfit['metadata']['validation_passed'] = validation_passed
