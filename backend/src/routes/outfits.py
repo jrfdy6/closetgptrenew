@@ -1203,10 +1203,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     print(f"🔍 DEBUG BEFORE ROBUST CALL: context = {context}")
         # print(f"🔍 DEBUG BEFORE ROBUST CALL: context.wardrobe = {len(context.wardrobe) if hasattr(context, 'wardrobe') else 'NO WARDROBE'}")
         
-        # 🔥 COMPREHENSIVE ERROR TRACING FOR NoneType .get() DEBUGGING
+                    # 🔥 COMPREHENSIVE ERROR TRACING FOR NoneType .get() DEBUGGING
                     robust_outfit = await robust_service.generate_outfit(context)
-        logger.error(f"🚨 FORCE REDEPLOY v12.0: generate_outfit completed successfully")
-        except Exception as e:
+                    logger.error(f"🚨 FORCE REDEPLOY v12.0: generate_outfit completed successfully")
+                except Exception as e:
         import traceback
         error_details = {
         "error_type": str(type(e).__name__),
