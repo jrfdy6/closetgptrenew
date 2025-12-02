@@ -5311,7 +5311,7 @@ async def debug_user_outfits(
     return debug_info
 
 # ✅ Generate + Save Outfit (single source of truth)
-@router.post("/generate", response_model=OutfitResponse, response_model_exclude_none=False)
+@router.post("/generate")  # Removed response_model to allow JSONResponse to work properly
 async def generate_outfit(
     req: OutfitRequest,
     current_user_id: str = Depends(get_current_user_id)
