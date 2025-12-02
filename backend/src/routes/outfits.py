@@ -3347,7 +3347,7 @@ def _pick_any_item_safe(wardrobe: List[Dict[str, Any]], category: str, occasion:
     if 'athletic' in occasion_lower or 'gym' in occasion_lower or 'workout' in occasion_lower:
         # For athletic occasions, prefer athletic items
         if category == 'shoes':
-        candidates = [item for item in candidates if any(athletic_term in (item.get('name', '') if item else '').lower() for athletic_term in ['sneaker', 'athletic', 'sport', 'gym', 'workout'])]
+            candidates = [item for item in candidates if any(athletic_term in (item.get('name', '') if item else '').lower() for athletic_term in ['sneaker', 'athletic', 'sport', 'gym', 'workout'])]
         elif category == 'tops':
         candidates = [item for item in candidates if any(athletic_term in (item.get('name', '') if item else '').lower() for athletic_term in ['athletic', 'sport', 'gym', 'workout', 'jersey', 'tank'])]
         elif category == 'bottoms':
