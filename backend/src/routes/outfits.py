@@ -1076,9 +1076,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     from types import SimpleNamespace
                     weather_data = SimpleNamespace(**weather_data)
                     logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
-                
-                # WardrobePreprocessor integration
-                logger.info(f"🔧 Starting WardrobePreprocessor integration")
+            
+            # WardrobePreprocessor integration
+            logger.info(f"🔧 Starting WardrobePreprocessor integration")
                 
                 # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
                 logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
