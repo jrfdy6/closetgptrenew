@@ -32,7 +32,7 @@ logger.error("🚨 FORCE REDEPLOY v13.0: OUTFITS ROUTER LOADING - This should ap
 try:
     from .routes import router
     ROUTES_MODULE_LOADED = True
-except ImportError as e:
+    except ImportError as e:
     logger.warning(f"⚠️ Could not import routes module: {e}")
     # Create empty router as fallback
     from fastapi import APIRouter
