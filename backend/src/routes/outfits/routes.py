@@ -1453,9 +1453,9 @@ async def generate_outfit(
                     
                     # Step 2: If validation fails, retry with relaxed rules instead of falling back
                     validation_passed = True
-                        if occasion_lower in occasion_requirements:
+                    if occasion_lower in occasion_requirements:
                         requirements = occasion_requirements[occasion_lower]
-                    missing_required = validate_outfit_completeness(outfit['items'], requirements, (req.occasion if req else "unknown"))
+                        missing_required = validate_outfit_completeness(outfit['items'], requirements, (req.occasion if req else "unknown"))
                         
                         if len(missing_required) > 0:
                             logger.warning(f"⚠️ VALIDATION FAILED: Missing {missing_required} - retrying with relaxed rules")
