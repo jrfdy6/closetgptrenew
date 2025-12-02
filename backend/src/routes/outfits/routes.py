@@ -2292,7 +2292,7 @@ async def _update_item_analytics_from_outfit_rating(
         updated_count = 0
         
         for item in outfit_items:
-        item_id = (item.get('id') if item else None)
+            item_id = (item.get('id') if item else None)
             if not item_id:
                 continue
             
