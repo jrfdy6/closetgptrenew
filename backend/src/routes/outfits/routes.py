@@ -2292,18 +2292,18 @@ async def _update_item_analytics_from_outfit_rating(
         updated_count = 0
         
         for item in outfit_items:
-            item_id = (item.get('id') if item else None)
+        for item in outfit_items:
             if not item_id:
                 continue
             
             try:
                 # Check if analytics document exists for this item
                 analytics_ref = db.collection('item_analytics').document(f"{user_id}_{item_id}")
-        analytics_doc = analytics_ref.get() if analytics_ref else None
+                analytics_doc = analytics_ref.get() if analytics_ref else None
                 
                 if analytics_doc.exists:
                     # Update existing analytics
-                    current_data = analytics_doc.to_dict()
+                current_data = analytics_doc.to_dict()
                     
                     # Update feedback ratings
         feedback_ratings = (current_data.get('feedback_ratings', []) if current_data else [])
