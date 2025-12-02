@@ -4378,7 +4378,7 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
                 try:
                     outfit_data['items'] = await resolve_item_ids_to_objects(outfit_data['items'], user_id, wardrobe_cache)
                 except Exception as e:
-        logger.error(f"🔥 Failed to resolve items for outfit {(outfit_data.get('id') if outfit_data else None)}: {e}")
+                    logger.error(f"🔥 Failed to resolve items for outfit {(outfit_data.get('id') if outfit_data else None)}: {e}")
                     outfit_data['items'] = []  # Set empty items instead of crashing
         else:
             logger.info(f"✅ DEBUG: Firestore returned {len(outfits)} pre-sorted outfits")
