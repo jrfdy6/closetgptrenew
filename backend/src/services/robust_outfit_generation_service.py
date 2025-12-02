@@ -377,7 +377,7 @@ class RobustOutfitGenerationService:
         if hasattr(item, 'name'):
             return item.name
         elif isinstance(item, dict):
-            return item.get('name', 'Unknown')
+            return safe_item_access(item, 'name', 'Unknown')
         else:
             return 'Unknown'
     
@@ -1737,16 +1737,16 @@ class RobustOutfitGenerationService:
         rejection_reasons = []
         
         # Check occasion compatibility
-        if not occasion_matches(occasion, normalized_item.get('occasion', [])):
-            rejection_reasons.append(f"Occasion mismatch: item occasions {normalized_item.get('occasion', [])}")
+        if not occasion_matches(occasion, safe_item_access(normalized_item, 'occasion', [])):
+            rejection_reasons.append(f"Occasion mismatch: item occasions {safe_item_access(normalized_item, 'occasion', [])}")
         
         # Check style compatibility  
-        if not style_matches(style, normalized_item.get('style', [])):
-            rejection_reasons.append(f"Style mismatch: item styles {normalized_item.get('style', [])}")
+        if not style_matches(style, safe_item_access(normalized_item, 'style', [])):
+            rejection_reasons.append(f"Style mismatch: item styles {safe_item_access(normalized_item, 'style', [])}")
         
         # Check mood compatibility
-        if not mood_matches(mood, normalized_item.get('mood', [])):
-            rejection_reasons.append(f"Mood mismatch: item moods {normalized_item.get('mood', [])}")
+        if not mood_matches(mood, safe_item_access(normalized_item, 'mood', [])):
+            rejection_reasons.append(f"Mood mismatch: item moods {safe_item_access(normalized_item, 'mood', [])}")
         
         is_suitable = len(rejection_reasons) == 0
         return is_suitable, rejection_reasons
@@ -2729,9 +2729,9 @@ class RobustOutfitGenerationService:
                                 
                                 if normalized_target != normalized_user:
                                     gender_appropriate = False
-                                    logger.info(f"🚫 GENDER FILTER: Blocked '{item.get('name', 'Unknown')[:40]}' - genderTarget={gender_target} (normalized: {normalized_target}), user={user_gender} (normalized: {normalized_user})")
+                                    logger.info(f"🚫 GENDER FILTER: Blocked '{safe_item_access(item, 'name', 'Unknown')[:40]}' - genderTarget={gender_target} (normalized: {normalized_target}), user={user_gender} (normalized: {normalized_user})")
                                 else:
-                                    logger.debug(f"✅ GENDER FILTER: Allowed '{item.get('name', 'Unknown')[:40]}' - genderTarget={gender_target} matches user={user_gender}")
+                                    logger.debug(f"✅ GENDER FILTER: Allowed '{safe_item_access(item, 'name', 'Unknown')[:40]}' - genderTarget={gender_target} matches user={user_gender}")
                 
                 if not gender_appropriate:
                     continue  # Skip this item entirely
@@ -2766,7 +2766,7 @@ class RobustOutfitGenerationService:
                 item_color_attr = (self.safe_get_item_attr(raw_item, 'color', '') or '').lower()
                 if item_color_attr:
                     monochrome_color_tokens.add(item_color_attr)
-                dominant_colors = getattr(raw_item, 'dominantColors', []) or item.get('dominantColors', [])
+                dominant_colors = getattr(raw_item, 'dominantColors', []) or safe_item_access(item, 'dominantColors', [])
                 if dominant_colors:
                     for color_entry in dominant_colors:
                         if isinstance(color_entry, dict):
@@ -2837,8 +2837,8 @@ class RobustOutfitGenerationService:
             
             if semantic_filtering:
                 # Use semantic filtering with compatibility helpers
-                ok_occ = occasion_matches(context.occasion if context else None, item.get('occasion', []))
-                ok_style = style_matches(context.style if context else None, item.get('style', []))
+                ok_occ = occasion_matches(context.occasion if context else None, safe_item_access(item, 'occasion', []))
+                ok_style = style_matches(context.style if context else None, safe_item_access(item, 'style', []))
                 ok_mood = mood_matches(context.mood if context else None, item.get('mood', []))
             else:
                 # Enhanced: Use normalized metadata for consistent filtering
@@ -2928,9 +2928,9 @@ class RobustOutfitGenerationService:
             
             # Build rejection reasons
             if not ok_occ:
-                reasons.append(f"Occasion mismatch: item occasions {item.get('occasion', [])}")
+                reasons.append(f"Occasion mismatch: item occasions {safe_item_access(item, 'occasion', [])}")
             if not ok_style:
-                reasons.append(f"Style mismatch: item styles {item.get('style', [])}")
+                reasons.append(f"Style mismatch: item styles {safe_item_access(item, 'style', [])}")
             if not ok_mood:
                 reasons.append(f"Mood mismatch: item moods {item.get('mood', [])}")
             
@@ -3074,7 +3074,7 @@ class RobustOutfitGenerationService:
                         tokens.add(color_attr)
                         if ' ' in color_attr:
                             tokens.update(color_attr.split())
-                    dominant_colors = normalized_item.get('dominantColors', []) or getattr(item, 'dominantColors', []) or []
+                    dominant_colors = normalized_safe_item_access(item, 'dominantColors', []) or getattr(item, 'dominantColors', []) or []
                     for color_entry in dominant_colors:
                         if isinstance(color_entry, dict):
                             name = (color_entry.get('name') or '').lower()
