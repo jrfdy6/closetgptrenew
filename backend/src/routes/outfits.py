@@ -3184,8 +3184,8 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
 
         # Validate and ensure complete outfit composition
         try:
-        # print(f"🔍 VALIDATION: About to validate outfit composition with {len(suitable_items)} items...")
-        validated_items = await validate_outfit_composition(suitable_items, (req.occasion if req else "unknown"), base_item_obj, (req.style if req else "unknown"))
+            # print(f"🔍 VALIDATION: About to validate outfit composition with {len(suitable_items)} items...")
+            validated_items = await validate_outfit_composition(suitable_items, (req.occasion if req else "unknown"), base_item_obj, (req.style if req else "unknown"))
         # print(f"✅ VALIDATION: Successfully validated outfit, got {len(validated_items)} items")
         except Exception as validation_error:
             print(f"❌ VALIDATION FAILED: {validation_error}")
