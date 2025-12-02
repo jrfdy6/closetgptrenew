@@ -1224,12 +1224,12 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     print(f"🔥 ROBUST GENERATION CRASH: {error_details}")
                     # print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
                     raise
-                    
-                    print(f"🔍 DEBUG ROBUST RETURN: robust_outfit = {robust_outfit}")
-                    # print(f"🔍 DEBUG ROBUST RETURN: type = {type(robust_outfit)}")
-                    if robust_outfit is None:
-        print(f"🚨 CRITICAL: robust_outfit is None!")
-        raise Exception("Robust service returned None - this should not happen")
+                
+                print(f"🔍 DEBUG ROBUST RETURN: robust_outfit = {robust_outfit}")
+                # print(f"🔍 DEBUG ROBUST RETURN: type = {type(robust_outfit)}")
+                if robust_outfit is None:
+                    print(f"🚨 CRITICAL: robust_outfit is None!")
+                    raise Exception("Robust service returned None - this should not happen")
         
         # DEBUG: Collect robust generation result
         debug_info["robust_output"] = {
