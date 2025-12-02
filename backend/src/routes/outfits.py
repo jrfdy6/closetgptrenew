@@ -3893,7 +3893,7 @@ def generate_weather_aware_fallback_reasoning(req: OutfitRequest, selected_items
         if (req.weather if req else None):
             # Handle both dict and object weather data
             if isinstance(req.weather, dict):
-        temp = req.weather.get('temperature', 70) if req.weather else 70
+                temp = req.weather.get('temperature', 70) if req.weather else 70
             else:
                 temp = getattr(req.weather, 'temperature', 70)
             sentences.append(f"Each item has been chosen to ensure comfort in {temp}°F conditions while maintaining your desired {req.style} style.")
