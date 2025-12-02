@@ -1725,8 +1725,8 @@ async def generate_outfit(
         metadata = (outfit_record.get("metadata", {}) if outfit_record else {})
         if isinstance(metadata, dict):
             outfit_record_cleaned["metadata"] = metadata
-        else:
-        outfit_record_cleaned["metadata"] = None
+            else:
+                outfit_record_cleaned["metadata"] = {}
         
         # Apply final cleaning
         clean_outfit_record = clean_for_firestore(outfit_record_cleaned)
