@@ -216,7 +216,7 @@ def normalize_ts(value):
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ConfigDict
 
 # Import authentication
 from ..auth.auth_service import get_current_user, get_current_user_id
@@ -371,6 +371,8 @@ class CreateOutfitRequest(BaseModel):
 
 class OutfitResponse(BaseModel):
     """Response model for outfits."""
+    model_config = ConfigDict(exclude_none=False)  # Include None values in response
+    
     id: str
     name: str
     style: Optional[str] = None
@@ -5308,7 +5310,7 @@ async def debug_user_outfits(
     return debug_info
 
 # ✅ Generate + Save Outfit (single source of truth)
-@router.post("/generate", response_model=OutfitResponse)
+@router.post("/generate", response_model=OutfitResponse, response_model_exclude_none=False)
 async def generate_outfit(
     req: OutfitRequest,
     current_user_id: str = Depends(get_current_user_id)
