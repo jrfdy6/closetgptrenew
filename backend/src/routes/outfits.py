@@ -3354,7 +3354,7 @@ def _pick_any_item_safe(wardrobe: List[Dict[str, Any]], category: str, occasion:
             candidates = [item for item in candidates if any(athletic_term in (item.get('name', '') if item else '').lower() for athletic_term in ['athletic', 'sport', 'gym', 'workout', 'shorts', 'joggers'])]
         elif category == 'outerwear':
             # Exclude formal jackets for athletic occasions
-        candidates = [item for item in candidates if not any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['blazer', 'suit', 'dress', 'formal'])]
+            candidates = [item for item in candidates if not any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['blazer', 'suit', 'dress', 'formal'])]
     
     elif 'business' in occasion_lower or 'formal' in occasion_lower or 'interview' in occasion_lower:
         # For formal occasions, prefer formal items
