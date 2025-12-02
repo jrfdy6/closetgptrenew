@@ -1329,12 +1329,12 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.error(f"❌ Conversion error details: {str(conversion_error)}")
                     raise conversion_error
                 
-        # Ensure outfit was successfully created
-        if outfit is None:
-        raise Exception("Outfit generation failed - outfit is None")
+                # Ensure outfit was successfully created
+                if outfit is None:
+                    raise Exception("Outfit generation failed - outfit is None")
                 
                 # Log generation strategy for monitoring
-        failed_rules = safe_get_metadata(outfit, 'failed_rules', [])
+                failed_rules = safe_get_metadata(outfit, 'failed_rules', [])
                 log_generation_strategy(outfit, user_id, failed_rules=failed_rules)
                 
                 # Verify strategy is set correctly
