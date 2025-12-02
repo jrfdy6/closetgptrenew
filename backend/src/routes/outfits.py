@@ -3035,24 +3035,24 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                         if (req.style if req else "unknown").lower() in feminine_styles and not (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
                             logger.info(f"🔍 DEBUG: Skipping feminine style '{req.style}' for male user: {(item.get('name', 'unnamed') if item else 'unnamed')}")
                             continue
-elif (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None):
-logger.info(f"🛡️ Allowing base item despite feminine style: {(item.get('name', 'Unknown') if item else 'Unknown')}")
+                        elif (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None):
+                            logger.info(f"🛡️ Allowing base item despite feminine style: {(item.get('name', 'Unknown') if item else 'Unknown')}")
                     
                     elif user_gender == 'female':
                         masculine_styles = ['techwear', 'grunge', 'streetwear']
-if (req.style if req else "unknown").lower() in masculine_styles and not (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
-logger.info(f"🔍 DEBUG: Skipping masculine style '{req.style}' for female user: {(item.get('name', 'unnamed') if item else 'unnamed')}")
+                        if (req.style if req else "unknown").lower() in masculine_styles and not (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
+                            logger.info(f"🔍 DEBUG: Skipping masculine style '{req.style}' for female user: {(item.get('name', 'unnamed') if item else 'unnamed')}")
                             continue
-elif (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None):
-logger.info(f"🛡️ Allowing base item despite masculine style: {(item.get('name', 'Unknown') if item else 'Unknown')}")
+                        elif (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None):
+                            logger.info(f"🛡️ Allowing base item despite masculine style: {(item.get('name', 'Unknown') if item else 'Unknown')}")
                     
                     # Item gender compatibility with scoring
                     # SOFTEN VALIDATION: Allow base item to pass gender compatibility check
-if item_gender and item_gender not in ['unisex', user_gender] and not (req.baseItemId and item.get('id') == (req.baseItemId if req else None)):
+                    if item_gender and item_gender not in ['unisex', user_gender] and not (req.baseItemId and item.get('id') == (req.baseItemId if req else None)):
                         logger.info(f"🔍 DEBUG: Skipping gender-incompatible item: {item.get('name', 'unnamed')} (item: {item_gender}, user: {user_gender})")
                         continue
-elif (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None) and item_gender and item_gender not in ['unisex', user_gender]:
-logger.info(f"🛡️ Allowing base item despite gender mismatch: {(item.get('name', 'Unknown') if item else 'Unknown')} (item: {item_gender}, user: {user_gender})")
+                    elif (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None) and item_gender and item_gender not in ['unisex', user_gender]:
+                        logger.info(f"🛡️ Allowing base item despite gender mismatch: {(item.get('name', 'Unknown') if item else 'Unknown')} (item: {item_gender}, user: {user_gender})")
                     
                     # Gender preference bonus
                     if item_gender == user_gender:
@@ -3063,12 +3063,12 @@ logger.info(f"🛡️ Allowing base item despite gender mismatch: {(item.get('na
                         logger.info(f"🔍 DEBUG: Unisex item: +5 points")
                 
                 # Store item with its score
-item_id = ((item.get('id', item.get('name', 'unknown') if item else 'unknown') if item else 'unknown'))
+                item_id = ((item.get('id', item.get('name', 'unknown') if item else 'unknown') if item else 'unknown'))
                 item_scores[item_id] = item_score
                 suitable_items.append(item)
-# print(f"✅ SCORED: {(item.get('name', 'unnamed') if item else 'unnamed')} (ID: {item_id}) = {item_score} points")
-#                 print(f"📊 SUITABLE_ITEMS COUNT: {len(suitable_items)} items now in pool")
-logger.info(f"🔍 DEBUG: Item {(item.get('name', 'unnamed') if item else 'unnamed')} is suitable with score: {item_score}")
+                # print(f"✅ SCORED: {(item.get('name', 'unnamed') if item else 'unnamed')} (ID: {item_id}) = {item_score} points")
+                # print(f"📊 SUITABLE_ITEMS COUNT: {len(suitable_items)} items now in pool")
+                logger.info(f"🔍 DEBUG: Item {(item.get('name', 'unnamed') if item else 'unnamed')} is suitable with score: {item_score}")
             else:
 # print(f"❌ REJECTED: {(item.get('name', 'unnamed') if item else 'unnamed')} failed core style/occasion criteria")
 logger.info(f"🔍 DEBUG: Item {(item.get('name', 'unnamed') if item else 'unnamed')} failed core style/occasion criteria")
