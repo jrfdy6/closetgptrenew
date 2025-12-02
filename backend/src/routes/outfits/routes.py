@@ -1437,7 +1437,7 @@ async def generate_outfit(
                     
                     # NEW STRATEGY: Keep robust generator in control, don't auto-fallback
                     if outfit and outfit.get('items'):
-        occasion_lower = (req.occasion if req else "unknown").lower()
+                        occasion_lower = (req.occasion if req else "unknown").lower()
                     
                     # CRITICAL DEBUG: Log strategy before category limits
         logger.info(f"🔍 DEBUG BEFORE CATEGORY LIMITS: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
