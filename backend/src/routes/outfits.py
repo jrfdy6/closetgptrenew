@@ -1191,7 +1191,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                         for i, item in enumerate(context.wardrobe):
                             item_type = getattr(item, 'type', 'NO_TYPE')
                             item_name = getattr(item, 'name', 'NO_NAME')
-        print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type='{item_type}' name='{item_name}'")
+                            print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type='{item_type}' name='{item_name}'")
         if hasattr(item_type, 'value'):
         print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.value='{item_type.value}'")
         if hasattr(item_type, 'name'):
