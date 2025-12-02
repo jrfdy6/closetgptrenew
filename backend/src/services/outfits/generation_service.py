@@ -165,7 +165,7 @@ class OutfitGenerationService:
             
             logger.info(f"[GENERATION][ROBUST] START for user {user_id}, wardrobe size={len(wardrobe_items)}")
             logger.info(f"[GENERATION][ROBUST] Context: occasion={req.occasion}, style={req.style}, mood={req.mood}")
-            logger.info(f"[GENERATION][ROBUST] Wardrobe categories: {[(item.get('type', 'unknown') if item else 'unknown') for item in wardrobe_items[:10]]}...")
+            logger.info(f"[GENERATION][ROBUST] Wardrobe categories: {[(item.get('type', 'unknown') if isinstance(item, dict) else getattr(item, 'type', 'unknown')) for item in wardrobe_items[:10]]}...")
             
             # CRITICAL DEBUG: Check context wardrobe
             print(f"🔍 DEBUG CONTEXT WARDROBE: context.wardrobe has {len(context.wardrobe)} items")
@@ -305,8 +305,9 @@ class OutfitGenerationService:
                     logger.info(f"🎨 Sample item type: {type(sample_item)}")
                     logger.info(f"🎨 Sample item keys: {list(sample_item.keys()) if isinstance(sample_item, dict) else 'not a dict'}")
                     if isinstance(sample_item, dict) and 'metadata' in sample_item:
-                        logger.info(f"🎨 Sample item metadata keys: {list(sample_item.get('metadata', {}).keys())}")
-                        visual_attrs = sample_item.get('metadata', {}).get('visualAttributes', {})
+                        sample_metadata = sample_item.get('metadata', {}) if isinstance(sample_item, dict) else getattr(sample_item, 'metadata', {})
+                        logger.info(f"🎨 Sample item metadata keys: {list(sample_metadata.keys()) if isinstance(sample_metadata, dict) else []}")
+                        visual_attrs = sample_metadata.get('visualAttributes', {}) if isinstance(sample_metadata, dict) else getattr(sample_metadata, 'visualAttributes', {})
                         if visual_attrs:
                             logger.info(f"🎨 Sample item visualAttributes: {visual_attrs}")
                 
