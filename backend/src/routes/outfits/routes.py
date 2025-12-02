@@ -1611,12 +1611,10 @@ async def generate_outfit(
                     logger.warning(f"⚠️ Generation attempt {generation_attempts} produced invalid outfit")
                     print(f"🚨 RETRY ALERT: Attempt {generation_attempts} failed - invalid outfit")
                     print(f"🚨 RETRY CONTEXT: User={current_user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
-        # print(f"🚨 RETRY REASON: Generated outfit has {len((outfit.get('items', []) if outfit else []))} items (minimum 3 required)")
+                    # print(f"🚨 RETRY REASON: Generated outfit has {len((outfit.get('items', []) if outfit else []))} items (minimum 3 required)")
                     if attempt < max_attempts - 1:
                         await asyncio.sleep(1)  # Brief delay before retry
                         continue
-                    
-            except Exception as e:
                 last_error = e
         import traceback
         
