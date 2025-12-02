@@ -420,9 +420,9 @@ class UserPreferenceService:
             logger.error(f"❌ Failed to save preferences for {user_id}: {e}")
             raise
     
-    def generate_learning_summary(self, prefs: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_learning_summary(self, prefs: Dict[str, Any], outfit_metadata: Dict[str, Any] = None) -> Dict[str, Any]:
         """
-        Generate a Spotify-style summary of what we've learned.
+        Generate a Spotify-style summary combining user preferences + outfit metadata.
         Used for "Personalized for You" explanations.
         """
         total_feedback = prefs.get('total_feedback_count', 0)
@@ -431,27 +431,53 @@ class UserPreferenceService:
             return {
                 'summary': "We're learning your style! Rate more outfits to improve suggestions.",
                 'confidence': 'low',
-                'insights': []
+                'insights': [
+                    "Rate outfits to help us learn your preferences",
+                    "The more you engage, the better our suggestions become"
+                ],
+                'personalization_level': prefs.get('personalization_level', 0)
             }
         
         insights = []
         
-        # Top preferred colors
+        # Top preferred colors (Spotify-style: show frequency)
         preferred_colors = prefs.get('preferred_colors', [])
         if preferred_colors:
             top_colors = ', '.join(preferred_colors[:3])
-            insights.append(f"You prefer {top_colors} colors ({len(preferred_colors)} total)")
+            color_count = len(preferred_colors)
+            insights.append(f"You prefer {top_colors} colors (learned from {color_count} outfits)")
         
-        # Top styles
+        # Top styles with evolution context
         preferred_styles = prefs.get('preferred_styles', [])
         if preferred_styles:
-            top_styles = ', '.join(preferred_styles[:2])
-            insights.append(f"Your go-to styles: {top_styles}")
+            top_style = preferred_styles[0]
+            if len(preferred_styles) > 1:
+                insights.append(f"Your signature style: {top_style} (with {', '.join(preferred_styles[1:2])} influences)")
+            else:
+                insights.append(f"Your go-to style: {top_style}")
         
-        # Wear patterns
+        # Frequently worn items (Spotify: "Your top songs")
+        freq_items = prefs.get('frequently_worn_items', [])
+        if len(freq_items) >= 3:
+            insights.append(f"You have {len(freq_items)} frequently worn favorite items")
+        
+        # Wear patterns (engagement signal)
         wear_count = prefs.get('wear_count_total', 0)
         if wear_count > 0:
-            insights.append(f"You've worn {wear_count} outfits we suggested")
+            insights.append(f"You've worn {wear_count} of our suggested outfits")
+        
+        # Use robust service metadata if available
+        if outfit_metadata:
+            # Composite score from robust service
+            avg_score = outfit_metadata.get('avg_composite_score')
+            if avg_score:
+                match_percent = int(avg_score * 100 / 5)  # Assuming max score ~5
+                insights.append(f"This outfit scored {match_percent}% match to your profile")
+            
+            # Diversity score
+            diversity = outfit_metadata.get('diversity_score')
+            if diversity and diversity > 0.85:
+                insights.append("Fresh combination - you haven't seen these items together recently")
         
         # Style evolution
         evolution = prefs.get('style_evolution', {})
@@ -459,8 +485,17 @@ class UserPreferenceService:
             if evolution['initial_style'] != evolution['current_trending']:
                 insights.append(f"Your style is evolving: {evolution['initial_style']} → {evolution['current_trending']}")
         
+        # Limit to top 4-5 most relevant insights
+        insights = insights[:5]
+        
+        confidence_desc = {
+            'high': f"Based on {total_feedback} ratings",
+            'medium': f"Learning from {total_feedback} ratings",
+            'learning': f"Building your profile ({total_feedback} ratings so far)"
+        }.get(prefs.get('confidence_level', 'learning'), f"Based on {total_feedback} ratings")
+        
         return {
-            'summary': f"Based on {total_feedback} ratings, here's what we know about your style:",
+            'summary': f"{confidence_desc}, here's what makes this perfect for you:",
             'confidence': prefs.get('confidence_level', 'learning'),
             'insights': insights,
             'personalization_level': prefs.get('personalization_level', 0)

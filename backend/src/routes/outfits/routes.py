@@ -1329,11 +1329,17 @@ async def generate_outfit(
         except Exception as metrics_error:
             logger.warning(f"Failed to log generation metrics: {metrics_error}")
         
-        # Add personalization insights (Spotify-style)
+        # Add personalization insights (Spotify-style) - combines user prefs + robust metadata
         try:
             from ...services.user_preference_service import user_preference_service
             user_prefs = await user_preference_service.get_preferences(current_user_id)
-            learning_summary = user_preference_service.generate_learning_summary(user_prefs)
+            
+            # Pass outfit metadata from robust service to enhance insights
+            outfit_metadata = outfit_record.get('metadata', {})
+            learning_summary = user_preference_service.generate_learning_summary(
+                user_prefs, 
+                outfit_metadata=outfit_metadata
+            )
             
             # Add to metadata for frontend display
             if 'metadata' not in outfit_record:
