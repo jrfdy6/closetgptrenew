@@ -2734,7 +2734,7 @@ async def generate_intelligent_reasoning(items: List[Dict], req: OutfitRequest, 
                     sentences.append(f"The {color_combo} tones create color harmony across your pieces, while the layered composition adds depth and sophistication.")
             else:
                 # Fallback to item types with weather context
-        item_types = [(item.get('type', '') if item else '').title() for item in items]
+                item_types = [(item.get('type', '') if item else '').title() for item in items]
                 if weather_notes:
                     weather_context_text = ", ".join(weather_notes[:2])
                     sentences.append(f"The {', '.join(item_types)} work together to create a cohesive look, while {weather_context_text} for weather-appropriate comfort.")
