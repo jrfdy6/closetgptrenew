@@ -3200,7 +3200,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             
             try:
                 # Force create a basic outfit from suitable items
-        validated_items = _force_minimum_outfit(suitable_items, (req.occasion if req else "unknown"), (req.style if req else "unknown"))
+                validated_items = _force_minimum_outfit(suitable_items, (req.occasion if req else "unknown"), (req.style if req else "unknown"))
                 logger.info(f"🔧 SAFETY CHECK: Created minimum outfit with {len(validated_items)} items")
             except Exception as force_error:
                 logger.error(f"❌ SAFETY CHECK FAILED: {force_error}")
@@ -3215,16 +3215,16 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         
         # Debug: Check if base item is in final validated items
         if (req.baseItemId if req else None):
-        base_item_in_final = any((item.get('id') if item else None) == (req.baseItemId if req else None) for item in validated_items)
+            base_item_in_final = any((item.get('id') if item else None) == (req.baseItemId if req else None) for item in validated_items)
             logger.info(f"🎯 DEBUG: Base item in final validated_items: {base_item_in_final}")
             if base_item_in_final:
-        base_item_position = next(i for i, item in enumerate(validated_items) if item.get('id') == (req.baseItemId if req else None))
+                base_item_position = next(i for i, item in enumerate(validated_items) if item.get('id') == (req.baseItemId if req else None))
                 logger.info(f"🎯 DEBUG: Base item found in final outfit at position: {base_item_position}")
                 logger.info(f"🎯 DEBUG: Final outfit base item: {validated_items[base_item_position].get('name', 'Unknown')}")
             else:
                 logger.error(f"❌ DEBUG: Base item NOT in final validated_items - validation failed!")
-        logger.error(f"❌ DEBUG: Final outfit items: {[(item.get('name', 'Unknown') if item else 'Unknown') for item in validated_items]}")
-        logger.error(f"❌ DEBUG: Final outfit item IDs: {[(item.get('id') if item else None) for item in validated_items]}")
+            logger.error(f"❌ DEBUG: Final outfit items: {[(item.get('name', 'Unknown') if item else 'Unknown') for item in validated_items]}")
+            logger.error(f"❌ DEBUG: Final outfit item IDs: {[(item.get('id') if item else None) for item in validated_items]}")
         
         # Apply layering validation rules
         layering_validation = await validate_layering_rules(validated_items, (req.occasion if req else "unknown"))
