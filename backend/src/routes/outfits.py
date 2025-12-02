@@ -712,15 +712,15 @@ def ensure_base_item_included(outfit: Dict[str, Any], base_item_id: Optional[str
             temp = (weather_data.get('temperature', 70) if weather_data else 70)
             condition = (weather_data.get('condition', '') if weather_data else '').lower()
         item_name = (base_item.get('name', 'item') if base_item else 'item')
-        
-        # Get item details for specific warnings
+            
+            # Get item details for specific warnings
         item_type = (base_item.get('type', '') if base_item else '').lower()
         metadata = (base_item.get('metadata', {}) if base_item else {})
-        material = ""
-        color = ""
-        if isinstance(metadata, dict):
+            material = ""
+            color = ""
+            if isinstance(metadata, dict):
             visual_attrs = (metadata.get('visualAttributes', {}) if metadata else {})
-            if isinstance(visual_attrs, dict):
+                if isinstance(visual_attrs, dict):
                 material = (visual_attrs.get('material', '') if visual_attrs else '').lower()
                 color = (visual_attrs.get('color', '') if visual_attrs else '').lower()
             
@@ -838,69 +838,69 @@ def attach_weather_context_to_items(items: List, weather_data: Dict[str, Any]) -
                     if isinstance(visual_attrs, dict):
                         material = (visual_attrs.get('material', '') if visual_attrs else '').lower()
         color = (item.get('color', '') if item else '').title()
-        
-        # Temperature appropriateness analysis
-        temp_appropriateness = "excellent"
-        temp_note = ""
-        
-        if temp >= 85:  # Very hot weather
-            if any(heavy in item_name for heavy in ['heavy', 'winter', 'thick', 'wool', 'fleece', 'thermal']):
-                temp_appropriateness = "too warm"
-                temp_note = f"may be too warm for {temp}°F weather"
-            elif 'shorts' in item_type or 'tank' in item_type:
-                temp_appropriateness = "excellent"
-                temp_note = f"perfect for {temp}°F hot weather"
-            elif 'cotton' in material or 'linen' in material:
-                temp_appropriateness = "excellent"
-                temp_note = f"breathable fabric ideal for {temp}°F weather"
-            else:
-                temp_appropriateness = "good"
-                temp_note = f"suitable for {temp}°F warm weather"
-                
-        elif temp >= 75:  # Warm weather
-            if 'shorts' in item_type or 'tank' in item_type:
-                temp_appropriateness = "excellent"
-                temp_note = f"comfortable for {temp}°F warm weather"
-            elif any(heavy in item_name for heavy in ['heavy', 'winter', 'thick']):
-                temp_appropriateness = "borderline"
-                temp_note = f"may be warm for {temp}°F weather"
-            else:
-                temp_appropriateness = "good"
-                temp_note = f"appropriate for {temp}°F warm weather"
-                
-        elif temp >= 65:  # Mild weather
-            temp_appropriateness = "excellent"
-            temp_note = f"ideal for {temp}°F mild weather"
             
-        elif temp >= 55:  # Cool weather
-            if 'shorts' in item_type:
-                temp_appropriateness = "borderline"
-                temp_note = f"may be cool for {temp}°F weather"
-            elif 'sweater' in item_type or 'jacket' in item_type:
+            # Temperature appropriateness analysis
+            temp_appropriateness = "excellent"
+            temp_note = ""
+            
+            if temp >= 85:  # Very hot weather
+                if any(heavy in item_name for heavy in ['heavy', 'winter', 'thick', 'wool', 'fleece', 'thermal']):
+                    temp_appropriateness = "too warm"
+                    temp_note = f"may be too warm for {temp}°F weather"
+                elif 'shorts' in item_type or 'tank' in item_type:
+                    temp_appropriateness = "excellent"
+                    temp_note = f"perfect for {temp}°F hot weather"
+                elif 'cotton' in material or 'linen' in material:
+                    temp_appropriateness = "excellent"
+                    temp_note = f"breathable fabric ideal for {temp}°F weather"
+                else:
+                    temp_appropriateness = "good"
+                    temp_note = f"suitable for {temp}°F warm weather"
+                    
+            elif temp >= 75:  # Warm weather
+                if 'shorts' in item_type or 'tank' in item_type:
+                    temp_appropriateness = "excellent"
+                    temp_note = f"comfortable for {temp}°F warm weather"
+                elif any(heavy in item_name for heavy in ['heavy', 'winter', 'thick']):
+                    temp_appropriateness = "borderline"
+                    temp_note = f"may be warm for {temp}°F weather"
+                else:
+                    temp_appropriateness = "good"
+                    temp_note = f"appropriate for {temp}°F warm weather"
+                    
+            elif temp >= 65:  # Mild weather
                 temp_appropriateness = "excellent"
-                temp_note = f"perfect for {temp}°F cool weather"
-            else:
-                temp_appropriateness = "good"
-                temp_note = f"suitable for {temp}°F cool weather"
+                temp_note = f"ideal for {temp}°F mild weather"
                 
-        else:  # Cold weather
-            if any(cool in item_type for cool in ['shorts', 'tank', 'sleeveless']):
-                temp_appropriateness = "inappropriate"
-                temp_note = f"inadequate for {temp}°F cold weather"
-            elif any(warm in item_name for warm in ['heavy', 'winter', 'wool', 'fleece']):
-                temp_appropriateness = "excellent"
-                temp_note = f"ideal for {temp}°F cold weather"
-            else:
-                temp_appropriateness = "good"
-                temp_note = f"appropriate for {temp}°F cold weather"
-        
-        # Fabric and condition analysis
-        fabric_note = ""
-        if 'rain' in condition or precipitation > 50:
-            if any(delicate in material for delicate in ['silk', 'suede', 'velvet', 'linen']):
-                fabric_note = f"Note: {material} fabric may not be ideal for wet conditions"
-            elif any(water_resistant in material for water_resistant in ['nylon', 'polyester', 'gore-tex']):
-                fabric_note = f"Excellent: {material} provides good water resistance"
+            elif temp >= 55:  # Cool weather
+                if 'shorts' in item_type:
+                    temp_appropriateness = "borderline"
+                    temp_note = f"may be cool for {temp}°F weather"
+                elif 'sweater' in item_type or 'jacket' in item_type:
+                    temp_appropriateness = "excellent"
+                    temp_note = f"perfect for {temp}°F cool weather"
+                else:
+                    temp_appropriateness = "good"
+                    temp_note = f"suitable for {temp}°F cool weather"
+                    
+            else:  # Cold weather
+                if any(cool in item_type for cool in ['shorts', 'tank', 'sleeveless']):
+                    temp_appropriateness = "inappropriate"
+                    temp_note = f"inadequate for {temp}°F cold weather"
+                elif any(warm in item_name for warm in ['heavy', 'winter', 'wool', 'fleece']):
+                    temp_appropriateness = "excellent"
+                    temp_note = f"ideal for {temp}°F cold weather"
+                else:
+                    temp_appropriateness = "good"
+                    temp_note = f"appropriate for {temp}°F cold weather"
+            
+            # Fabric and condition analysis
+            fabric_note = ""
+            if 'rain' in condition or precipitation > 50:
+                if any(delicate in material for delicate in ['silk', 'suede', 'velvet', 'linen']):
+                    fabric_note = f"Note: {material} fabric may not be ideal for wet conditions"
+                elif any(water_resistant in material for water_resistant in ['nylon', 'polyester', 'gore-tex']):
+                    fabric_note = f"Excellent: {material} provides good water resistance"
                     
             # Style and occasion analysis
             style_note = ""
@@ -1056,9 +1056,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 raise Exception("RobustOutfitGenerationService or GenerationContext is None - import failed!")
             
             # Use robust service
-            logger.info("🚀 Using robust outfit generation service")
-            print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
-            print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
+                logger.info("🚀 Using robust outfit generation service")
+                print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
+                print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
             
             # Initialize outfit variable to prevent "not defined" errors
             outfit = None
@@ -1068,75 +1068,75 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             # print(f"🔍 DEBUG ROBUST START: (req.wardrobe if req else []) type = {type(req.wardrobe)}")
             print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe = {req.resolved_wardrobe}")
             # print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe type = {type(req.resolved_wardrobe)}")
-            
-            # Create generation context - ensure weather is properly formatted
+                
+                # Create generation context - ensure weather is properly formatted
             weather_data = (req.weather if req else None)
-            if isinstance(weather_data, dict):
-                # Convert dict to object-like structure for robust service
-                from types import SimpleNamespace
-                weather_data = SimpleNamespace(**weather_data)
-                logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
-            
-            # WardrobePreprocessor integration
-            logger.info(f"🔧 Starting WardrobePreprocessor integration")
-            
-            # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
-            logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
+                if isinstance(weather_data, dict):
+                    # Convert dict to object-like structure for robust service
+                    from types import SimpleNamespace
+                    weather_data = SimpleNamespace(**weather_data)
+                    logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
+                
+                # WardrobePreprocessor integration
+                logger.info(f"🔧 Starting WardrobePreprocessor integration")
+                
+                # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
+                logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
             print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items = {wardrobe_items}")
             # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items type = {type(wardrobe_items)}")
             # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items length = {len(wardrobe_items) if wardrobe_items else 'None'}")
-            try:
-                from ..utils.item_hydration import hydrate_outfit_items
-                hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
-                logger.info(f"✅ HYDRATED {len(hydrated_wardrobe_items)} items successfully")
+                try:
+                    from ..utils.item_hydration import hydrate_outfit_items
+                    hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
+                    logger.info(f"✅ HYDRATED {len(hydrated_wardrobe_items)} items successfully")
                 # print(f"🔍 DEBUG HYDRATOR CALL: Successfully hydrated {len(hydrated_wardrobe_items)} items")
-            except Exception as hydrator_error:
-                logger.warning(f"⚠️ HYDATOR ERROR: {hydrator_error}")
+                except Exception as hydrator_error:
+                    logger.warning(f"⚠️ HYDATOR ERROR: {hydrator_error}")
                 print(f"🚨 HYDRATOR ERROR: {hydrator_error}")
                 import traceback
                 # print(f"🚨 HYDRATOR TRACEBACK: {traceback.format_exc()}")
-                logger.info(f"🔄 Using original wardrobe_items as fallback")
-                hydrated_wardrobe_items = wardrobe_items
-            
-            # Update wardrobe_items with hydrated items
-            wardrobe_items = hydrated_wardrobe_items
-            
-            # Initialize clothing_items list
-            clothing_items = []
-            
-            if ClothingItem is None:
-                logger.warning(f"⚠️ ClothingItem not available, skipping validation")
-                clothing_items = hydrated_wardrobe_items  # Use raw items if ClothingItem not available
-            else:
-                for i, item_dict in enumerate(hydrated_wardrobe_items):
-                    print(f"🔍 DEBUG ITEM CONVERSION: Processing item {i}: {item_dict}")
-                    # print(f"🔍 DEBUG ITEM CONVERSION: item_dict type = {type(item_dict)}")
-                    try:
-                        clothing_item = ClothingItem(**item_dict)
-                        clothing_items.append(clothing_item)
-                        print(f"🔍 DEBUG ITEM CONVERSION: Successfully converted item {i}")
-                    except Exception as item_error:
-                        logger.warning(f"⚠️ Failed to convert item {i}: {item_error}")
-                        print(f"🚨 ITEM CONVERSION ERROR: {item_error}")
-                        import traceback
-                        # print(f"🚨 ITEM CONVERSION TRACEBACK: {traceback.format_exc()}")
-                        continue
-            
-            logger.info(f"✅ Pre-outfit-construction guard completed - {len(clothing_items)} items converted successfully")
-            
-            # DEBUG: Check clothing_items for None values
-            # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items length = {len(clothing_items)}")
-            # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items type = {type(clothing_items)}")
-            for i, item in enumerate(clothing_items):
-                pass
-                pass
-                pass
-                print(f"🔍 DEBUG CONTEXT CREATION: item {i} = {item}")
-                # print(f"🔍 DEBUG CONTEXT CREATION: item {i} type = {type(item)}")
-                if item is None:
-                    print(f"🚨 CRITICAL: clothing_items[{i}] is None!")
-                    
-                    context = GenerationContext(
+                    logger.info(f"🔄 Using original wardrobe_items as fallback")
+                    hydrated_wardrobe_items = wardrobe_items
+                
+                # Update wardrobe_items with hydrated items
+                wardrobe_items = hydrated_wardrobe_items
+                
+                # Initialize clothing_items list
+                clothing_items = []
+                
+                if ClothingItem is None:
+                    logger.warning(f"⚠️ ClothingItem not available, skipping validation")
+                    clothing_items = hydrated_wardrobe_items  # Use raw items if ClothingItem not available
+                else:
+                    for i, item_dict in enumerate(hydrated_wardrobe_items):
+                        print(f"🔍 DEBUG ITEM CONVERSION: Processing item {i}: {item_dict}")
+                        # print(f"🔍 DEBUG ITEM CONVERSION: item_dict type = {type(item_dict)}")
+                        try:
+                            clothing_item = ClothingItem(**item_dict)
+                            clothing_items.append(clothing_item)
+                            print(f"🔍 DEBUG ITEM CONVERSION: Successfully converted item {i}")
+                        except Exception as item_error:
+                            logger.warning(f"⚠️ Failed to convert item {i}: {item_error}")
+                            print(f"🚨 ITEM CONVERSION ERROR: {item_error}")
+                            import traceback
+                            # print(f"🚨 ITEM CONVERSION TRACEBACK: {traceback.format_exc()}")
+                            continue
+                
+                logger.info(f"✅ Pre-outfit-construction guard completed - {len(clothing_items)} items converted successfully")
+        
+        # DEBUG: Check clothing_items for None values
+        # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items length = {len(clothing_items)}")
+        # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items type = {type(clothing_items)}")
+        for i, item in enumerate(clothing_items):
+            pass
+            pass
+            pass
+            print(f"🔍 DEBUG CONTEXT CREATION: item {i} = {item}")
+            # print(f"🔍 DEBUG CONTEXT CREATION: item {i} type = {type(item)}")
+            if item is None:
+                print(f"🚨 CRITICAL: clothing_items[{i}] is None!")
+                
+                context = GenerationContext(
                     user_id=user_id,
                     occasion=req.occasion,
                     style=req.style,
@@ -1150,7 +1150,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 # Generate outfit using robust service
                 logger.info(f"[GENERATION][ROBUST] START for user {user_id}, wardrobe size={len(wardrobe_items)}")
                 logger.info(f"[GENERATION][ROBUST] Context: occasion={req.occasion}, style={req.style}, mood={req.mood}")
-                logger.info(f"[GENERATION][ROBUST] Wardrobe categories: {[(item.get('type', 'unknown') if item else 'unknown') for item in wardrobe_items[:10]]}...")
+        logger.info(f"[GENERATION][ROBUST] Wardrobe categories: {[(item.get('type', 'unknown') if item else 'unknown') for item in wardrobe_items[:10]]}...")
                 
                 try:
                     logger.info(f"🚀 CALLING ROBUST SERVICE: generate_outfit()")
@@ -1164,115 +1164,115 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: About to call generate_outfit with context")
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: Context has {len(context.wardrobe)} wardrobe items")
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: Context occasion: {context.occasion}, style: {context.style}")
-                    
-                    # DEBUG: Collect robust service debug information
-                    debug_info = {
-                        "robust_input": {
-                            "wardrobe_count": len(context.wardrobe),
-                            "occasion": context.occasion,
-                            "style": context.style,
-                            "mood": context.mood,
-                            "user_id": context.user_id,
-                            "wardrobe_items": [
-                                {
-                                    "id": getattr(item, 'id', 'NO_ID'),
-                                    "name": getattr(item, 'name', 'NO_NAME'),
-                                    "type": str(getattr(item, 'type', 'NO_TYPE'))
-                                } for item in context.wardrobe[:3]
-                            ]
-                        }
-                    }
-                    
-                    # DEBUG: Log wardrobe item types before robust service call
-                    print(f"🔍 DEBUG WARDROBE ITEMS: About to call robust service")
-                    if hasattr(context, 'wardrobe') and context.wardrobe:
-                        # print(f"🔍 DEBUG WARDROBE ITEMS: Wardrobe has {len(context.wardrobe)} items")
-                        for i, item in enumerate(context.wardrobe):
-                            item_type = getattr(item, 'type', 'NO_TYPE')
-                            item_name = getattr(item, 'name', 'NO_NAME')
-                            print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type='{item_type}' name='{item_name}'")
-                            if hasattr(item_type, 'value'):
-                                print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.value='{item_type.value}'")
-                            if hasattr(item_type, 'name'):
-                                print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.name='{item_type.name}'")
-                    else:
-                        print(f"🔍 DEBUG WARDROBE ITEMS: No wardrobe items or wardrobe is None")
-                    
-                    print(f"🔍 DEBUG BEFORE ROBUST CALL: robust_service = {robust_service}")
-                    print(f"🔍 DEBUG BEFORE ROBUST CALL: context = {context}")
-                    # print(f"🔍 DEBUG BEFORE ROBUST CALL: context.wardrobe = {len(context.wardrobe) if hasattr(context, 'wardrobe') else 'NO WARDROBE'}")
-                    
-                    # 🔥 COMPREHENSIVE ERROR TRACING FOR NoneType .get() DEBUGGING
+        
+        # DEBUG: Collect robust service debug information
+        debug_info = {
+        "robust_input": {
+        "wardrobe_count": len(context.wardrobe),
+        "occasion": context.occasion,
+        "style": context.style,
+        "mood": context.mood,
+        "user_id": context.user_id,
+        "wardrobe_items": [
+        {
+        "id": getattr(item, 'id', 'NO_ID'),
+        "name": getattr(item, 'name', 'NO_NAME'),
+        "type": str(getattr(item, 'type', 'NO_TYPE'))
+        } for item in context.wardrobe[:3]
+        ]
+        }
+        }
+        
+        # DEBUG: Log wardrobe item types before robust service call
+        print(f"🔍 DEBUG WARDROBE ITEMS: About to call robust service")
+        if hasattr(context, 'wardrobe') and context.wardrobe:
+        # print(f"🔍 DEBUG WARDROBE ITEMS: Wardrobe has {len(context.wardrobe)} items")
+        for i, item in enumerate(context.wardrobe):
+        item_type = getattr(item, 'type', 'NO_TYPE')
+        item_name = getattr(item, 'name', 'NO_NAME')
+        print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type='{item_type}' name='{item_name}'")
+        if hasattr(item_type, 'value'):
+        print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.value='{item_type.value}'")
+        if hasattr(item_type, 'name'):
+        print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.name='{item_type.name}'")
+        else:
+        print(f"🔍 DEBUG WARDROBE ITEMS: No wardrobe items or wardrobe is None")
+        
+        print(f"🔍 DEBUG BEFORE ROBUST CALL: robust_service = {robust_service}")
+        print(f"🔍 DEBUG BEFORE ROBUST CALL: context = {context}")
+        # print(f"🔍 DEBUG BEFORE ROBUST CALL: context.wardrobe = {len(context.wardrobe) if hasattr(context, 'wardrobe') else 'NO WARDROBE'}")
+        
+        # 🔥 COMPREHENSIVE ERROR TRACING FOR NoneType .get() DEBUGGING
                     robust_outfit = await robust_service.generate_outfit(context)
-                    logger.error(f"🚨 FORCE REDEPLOY v12.0: generate_outfit completed successfully")
-                except Exception as e:
-                    import traceback
-                    error_details = {
-                        "error_type": str(type(e).__name__),
-                        "error_message": str(e),
-                        "full_traceback": traceback.format_exc(),
-                        "context_info": {
-                            "context_type": str(type(context)),
-                            "context_wardrobe_length": len(context.wardrobe) if hasattr(context, 'wardrobe') and context.wardrobe else 0,
-                            "context_occasion": getattr(context, 'occasion', 'NO_OCCASION'),
-                            "context_style": getattr(context, 'style', 'NO_STYLE'),
-                            "context_user_id": getattr(context, 'user_id', 'NO_USER_ID')
-                        }
-                    }
-                    logger.error("🔥 Robust outfit generation crash", extra=error_details, exc_info=True)
-                    print(f"🔥 ROBUST GENERATION CRASH: {error_details}")
-                    # print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
-                    raise
+        logger.error(f"🚨 FORCE REDEPLOY v12.0: generate_outfit completed successfully")
+        except Exception as e:
+        import traceback
+        error_details = {
+        "error_type": str(type(e).__name__),
+        "error_message": str(e),
+        "full_traceback": traceback.format_exc(),
+        "context_info": {
+        "context_type": str(type(context)),
+        "context_wardrobe_length": len(context.wardrobe) if hasattr(context, 'wardrobe') and context.wardrobe else 0,
+        "context_occasion": getattr(context, 'occasion', 'NO_OCCASION'),
+        "context_style": getattr(context, 'style', 'NO_STYLE'),
+        "context_user_id": getattr(context, 'user_id', 'NO_USER_ID')
+        }
+        }
+        logger.error("🔥 Robust outfit generation crash", extra=error_details, exc_info=True)
+        print(f"🔥 ROBUST GENERATION CRASH: {error_details}")
+        # print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
+        raise
                     
-                print(f"🔍 DEBUG ROBUST RETURN: robust_outfit = {robust_outfit}")
-                # print(f"🔍 DEBUG ROBUST RETURN: type = {type(robust_outfit)}")
-                if robust_outfit is None:
-                    print(f"🚨 CRITICAL: robust_outfit is None!")
-                    raise Exception("Robust service returned None - this should not happen")
-                
-                # DEBUG: Collect robust generation result
-                debug_info["robust_output"] = {
-                    "outfit_type": str(type(robust_outfit)),
-                    "has_items_attr": hasattr(robust_outfit, 'items'),
-                    "items_count": len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 0,
-                    "items_list": [
-                        {
-                            "id": getattr(item, 'id', 'NO_ID'),
-                            "name": getattr(item, 'name', 'NO_NAME')
-                        } for item in robust_outfit.items[:3]
-                    ] if hasattr(robust_outfit, 'items') and robust_outfit.items else []
-                }
-                
-                # Store debug info for later use
-                context.debug_info = debug_info
-                robust_debug_info = debug_info  # Store in local scope for error handling
-                
-                logger.info(f"🚀 ROBUST SERVICE RETURNED: {type(robust_outfit)}")
-                logger.info(f"🚀 ROBUST OUTFIT ITEMS: {len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 'NO ITEMS ATTR'}")
-                logger.info(f"🚀 ROBUST METADATA: {robust_outfit.metadata if hasattr(robust_outfit, 'metadata') else 'NO METADATA ATTR'}")
-                
-                # Log the generation strategy used
-                metadata = getattr(robust_outfit, 'metadata', None)
-                strategy = metadata.get('generation_strategy', 'unknown') if metadata else 'unknown'
-                logger.info(f"[GENERATION][ROBUST] SUCCESS - Generated outfit using strategy: {strategy}")
-                logger.info(f"[GENERATION][ROBUST] Outfit items: {len(robust_outfit.items)} items")
-                print(f"🎯 GENERATION STRATEGY: {strategy}")
-                # Check if robust service is internally falling back
-                if strategy == 'fallback_simple':
-                    logger.warning(f"⚠️ ROBUST SERVICE INTERNAL FALLBACK: Strategy is fallback_simple")
-                    print(f"🚨 ROBUST SERVICE INTERNAL FALLBACK: The robust service itself is falling back!")
-                    print(f"🚨 This means the robust service is working but failing internally")
-                    # Add detailed fallback reason logging
-                    fallback_reason = "Unknown - robust service returned fallback_simple strategy"
-                    if hasattr(robust_outfit, 'metadata'):
-                        metadata = getattr(robust_outfit, 'metadata', None)
-                        failed_rules = metadata.get('failed_rules', []) if metadata else []
-                        if failed_rules:
-                            fallback_reason = f"Failed validation rules: {failed_rules}"
-                        elif len(robust_outfit.items) == 0:
-                            fallback_reason = "Empty candidate pool - no items generated"
-                        elif len(robust_outfit.items) < 3:
-                            fallback_reason = f"Too few items generated: {len(robust_outfit.items)}"
+        print(f"🔍 DEBUG ROBUST RETURN: robust_outfit = {robust_outfit}")
+        # print(f"🔍 DEBUG ROBUST RETURN: type = {type(robust_outfit)}")
+        if robust_outfit is None:
+        print(f"🚨 CRITICAL: robust_outfit is None!")
+        raise Exception("Robust service returned None - this should not happen")
+        
+        # DEBUG: Collect robust generation result
+        debug_info["robust_output"] = {
+        "outfit_type": str(type(robust_outfit)),
+        "has_items_attr": hasattr(robust_outfit, 'items'),
+        "items_count": len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 0,
+        "items_list": [
+        {
+        "id": getattr(item, 'id', 'NO_ID'),
+        "name": getattr(item, 'name', 'NO_NAME')
+        } for item in robust_outfit.items[:3]
+        ] if hasattr(robust_outfit, 'items') and robust_outfit.items else []
+        }
+        
+        # Store debug info for later use
+        context.debug_info = debug_info
+        robust_debug_info = debug_info  # Store in local scope for error handling
+                    
+                    logger.info(f"🚀 ROBUST SERVICE RETURNED: {type(robust_outfit)}")
+                    logger.info(f"🚀 ROBUST OUTFIT ITEMS: {len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 'NO ITEMS ATTR'}")
+                    logger.info(f"🚀 ROBUST METADATA: {robust_outfit.metadata if hasattr(robust_outfit, 'metadata') else 'NO METADATA ATTR'}")
+                    
+                    # Log the generation strategy used
+        metadata = getattr(robust_outfit, 'metadata', None)
+        strategy = metadata.get('generation_strategy', 'unknown') if metadata else 'unknown'
+                    logger.info(f"[GENERATION][ROBUST] SUCCESS - Generated outfit using strategy: {strategy}")
+                    logger.info(f"[GENERATION][ROBUST] Outfit items: {len(robust_outfit.items)} items")
+                    print(f"🎯 GENERATION STRATEGY: {strategy}")
+                    # Check if robust service is internally falling back
+                    if strategy == 'fallback_simple':
+                        logger.warning(f"⚠️ ROBUST SERVICE INTERNAL FALLBACK: Strategy is fallback_simple")
+                        print(f"🚨 ROBUST SERVICE INTERNAL FALLBACK: The robust service itself is falling back!")
+                        print(f"🚨 This means the robust service is working but failing internally")
+                        # Add detailed fallback reason logging
+                        fallback_reason = "Unknown - robust service returned fallback_simple strategy"
+                        if hasattr(robust_outfit, 'metadata'):
+        metadata = getattr(robust_outfit, 'metadata', None)
+        failed_rules = metadata.get('failed_rules', []) if metadata else []
+                            if failed_rules:
+                                fallback_reason = f"Failed validation rules: {failed_rules}"
+                            elif len(robust_outfit.items) == 0:
+                                fallback_reason = "Empty candidate pool - no items generated"
+                            elif len(robust_outfit.items) < 3:
+                                fallback_reason = f"Too few items generated: {len(robust_outfit.items)}"
                         
                         logger.warning(f"🔍 ROBUST FALLBACK REASON: {fallback_reason}")
                         print(f"🚨 ROBUST FALLBACK REASON: {fallback_reason}")
@@ -1282,16 +1282,16 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.info(f"🔄 Converting robust outfit to expected format...")
                     logger.info(f"🔄 Robust outfit type: {type(robust_outfit)}")
                     logger.info(f"🔄 Robust outfit attributes: {dir(robust_outfit)}")
-                    
-                    # DEBUG: Log robust outfit attributes before conversion
-                    # print(f"🔍 DEBUG CONVERSION: Robust outfit type: {type(robust_outfit)}")
-                    # print(f"🔍 DEBUG CONVERSION: Robust outfit dir: {dir(robust_outfit)}")
-                    # print(f"🔍 DEBUG CONVERSION: Has items: {hasattr(robust_outfit, 'items')}")
-                    if hasattr(robust_outfit, 'items'):
-                        # print(f"🔍 DEBUG CONVERSION: Items type: {type(robust_outfit.items)}")
-                        # print(f"🔍 DEBUG CONVERSION: Items length: {len(robust_outfit.items) if robust_outfit.items else 0}")
-                        if robust_outfit.items:
-                            print(f"🔍 DEBUG CONVERSION: First item: {robust_outfit.items[0]}")
+        
+        # DEBUG: Log robust outfit attributes before conversion
+        # print(f"🔍 DEBUG CONVERSION: Robust outfit type: {type(robust_outfit)}")
+        # print(f"🔍 DEBUG CONVERSION: Robust outfit dir: {dir(robust_outfit)}")
+        # print(f"🔍 DEBUG CONVERSION: Has items: {hasattr(robust_outfit, 'items')}")
+        if hasattr(robust_outfit, 'items'):
+        # print(f"🔍 DEBUG CONVERSION: Items type: {type(robust_outfit.items)}")
+        # print(f"🔍 DEBUG CONVERSION: Items length: {len(robust_outfit.items) if robust_outfit.items else 0}")
+        if robust_outfit.items:
+        print(f"🔍 DEBUG CONVERSION: First item: {robust_outfit.items[0]}")
                     
                     outfit = {
                         'id': getattr(robust_outfit, 'id', 'unknown'),
@@ -1320,7 +1320,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     }
                     
                     logger.info(f"✅ Successfully converted robust outfit to expected format")
-                    logger.info(f"✅ Outfit has {len((outfit.get('items', []) if outfit else []))} items")
+        logger.info(f"✅ Outfit has {len((outfit.get('items', []) if outfit else []))} items")
                     
                 except Exception as conversion_error:
                     logger.error(f"❌ Failed to convert robust outfit to expected format: {conversion_error}")
@@ -1328,30 +1328,30 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.error(f"❌ Conversion error details: {str(conversion_error)}")
                     raise conversion_error
                 
-                # Ensure outfit was successfully created
-                if outfit is None:
-                    raise Exception("Outfit generation failed - outfit is None")
+        # Ensure outfit was successfully created
+        if outfit is None:
+        raise Exception("Outfit generation failed - outfit is None")
                 
                 # Log generation strategy for monitoring
-                failed_rules = safe_get_metadata(outfit, 'failed_rules', [])
+        failed_rules = safe_get_metadata(outfit, 'failed_rules', [])
                 log_generation_strategy(outfit, user_id, failed_rules=failed_rules)
                 
                 # Verify strategy is set correctly
-                final_strategy = safe_get_metadata(outfit, 'generation_strategy', 'unknown')
+        final_strategy = safe_get_metadata(outfit, 'generation_strategy', 'unknown')
                 logger.info(f"🎯 FINAL STRATEGY: {final_strategy}")
                 print(f"🎯 FINAL STRATEGY: {final_strategy}")
                 # CRITICAL DEBUG: Log outfit metadata before any post-processing
-                logger.info(f"🔍 DEBUG BEFORE POST-PROCESSING: outfit metadata = {(outfit.get('metadata') if outfit else None)}")
+        logger.info(f"🔍 DEBUG BEFORE POST-PROCESSING: outfit metadata = {(outfit.get('metadata') if outfit else None)}")
         # print(f"🔍 DEBUG BEFORE POST-PROCESSING: outfit metadata = {(outfit.get('metadata') if outfit else None)}")
                 
                 if final_strategy == 'fallback_simple':
                     logger.warning(f"⚠️ WARNING: Robust path returned fallback_simple strategy")
                     print(f"🚨 WARNING: Robust path returned fallback_simple strategy - this should be a robust strategy!")
-                logger.info(f"✅ Robust generation successful with {len((outfit.get('items', []) if outfit else []))} items")
+        logger.info(f"✅ Robust generation successful with {len((outfit.get('items', []) if outfit else []))} items")
             
             # Add weather data to outfit for base item validation
-            logger.error(f"🚨 DEBUG: About to add weather data - (req.weather if req else None) = {req.weather}")
-            if (req.weather if req else None):
+        logger.error(f"🚨 DEBUG: About to add weather data - (req.weather if req else None) = {req.weather}")
+        if (req.weather if req else None):
                 try:
                     # Handle both dict and object weather data
                     if isinstance(req.weather, dict):
@@ -1386,10 +1386,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             logger.error(f"🔎 MAIN LOGIC: Rule-based generation FAILED: {rule_exception}")
             raise rule_exception
         if outfit:
-            logger.info(f"✨ Generated outfit: {outfit.get('name', 'Unknown')}")
+        logger.info(f"✨ Generated outfit: {outfit.get('name', 'Unknown')}")
         else:
-            logger.error("❌ Generated outfit is None - this should not happen")
-            raise Exception("🔥 OUTFIT NONE ERROR: Outfit generation failed - outfit is None")
+        logger.error("❌ Generated outfit is None - this should not happen")
+        raise Exception("🔥 OUTFIT NONE ERROR: Outfit generation failed - outfit is None")
         # Outfit generated successfully
         
         # Check if outfit generation was successful
@@ -1397,9 +1397,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         # print(f"🔍 DEBUG FINAL CHECK: Outfit keys: {list(outfit.keys()) if isinstance(outfit, dict) else 'NOT A DICT'}")
         # print(f"🔍 DEBUG FINAL CHECK: Has 'items' key: {'items' in outfit if isinstance(outfit, dict) else 'N/A'}")
         if isinstance(outfit, dict) and 'items' in outfit:
-            print(f"🔍 DEBUG FINAL CHECK: Items value: {outfit['items']}")
-            print(f"🔍 DEBUG FINAL CHECK: Items type: {type(outfit['items'])}")
-            print(f"🔍 DEBUG FINAL CHECK: Items length: {len(outfit['items']) if outfit['items'] else 'None/Empty'}")
+        print(f"🔍 DEBUG FINAL CHECK: Items value: {outfit['items']}")
+        print(f"🔍 DEBUG FINAL CHECK: Items type: {type(outfit['items'])}")
+        print(f"🔍 DEBUG FINAL CHECK: Items length: {len(outfit['items']) if outfit['items'] else 'None/Empty'}")
         
         if not outfit or not outfit.get('items') or len(outfit.get('items', [])) == 0:
             logger.error(f"❌ GENERATION FAILED: No items generated")
@@ -1433,16 +1433,16 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     'condition': getattr(req.weather, 'condition', 'clear'),
                     'precipitation': getattr(req.weather, 'precipitation', 0)
                 }
-                outfit['items'] = attach_weather_context_to_items((outfit.get('items', []) if outfit else []), weather_data)
-                logger.info(f"🌤️ Attached weather context to {len((outfit.get('items', []) if outfit else []))} items")
+        outfit['items'] = attach_weather_context_to_items((outfit.get('items', []) if outfit else []), weather_data)
+        logger.info(f"🌤️ Attached weather context to {len((outfit.get('items', []) if outfit else []))} items")
             except Exception as weather_error:
                 logger.warning(f"⚠️ Weather context attachment failed: {weather_error}")
-                logger.warning(f"⚠️ Item types: {[type(item) for item in (outfit.get('items', []) if outfit else [])]}")
+        logger.warning(f"⚠️ Item types: {[type(item) for item in (outfit.get('items', []) if outfit else [])]}")
                 # Continue without weather context rather than crashing
         
         # ENHANCED: Add weather combination validation
         if (req.weather if req else None):
-            outfit = validate_weather_outfit_combinations(outfit, (req.weather if req else None))
+        outfit = validate_weather_outfit_combinations(outfit, (req.weather if req else None))
         
         logger.info(f"✅ Final outfit: {len((outfit.get('items', []) if outfit else []))} items")
         logger.info(f"🔍 Final item IDs: {[item.get('id', 'no-id') for item in (outfit.get('items', []) if outfit else []) if item]}")
@@ -1456,7 +1456,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         # Ensure metadata exists
         if 'metadata' not in outfit:
-            outfit['metadata'] = None
+        outfit['metadata'] = None
         
         # Log generation strategy for monitoring (WITHOUT changing it)
         failed_rules = safe_get_metadata(outfit, 'failed_rules', [])
@@ -1541,12 +1541,12 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         try:
             # Normalize the type using the validation utility
             from ..utils.validation import normalize_clothing_type
-            normalized_type = normalize_clothing_type((item_dict.get('type', 'other') if item_dict else 'other'))
+        normalized_type = normalize_clothing_type((item_dict.get('type', 'other') if item_dict else 'other'))
             
             # Create a basic ClothingItem from the dict with all required fields
             clothing_item = ClothingItem(
-                id=(item_dict.get('id', '') if item_dict else ''),
-                name=(item_dict.get('name', '') if item_dict else ''),
+        id=(item_dict.get('id', '') if item_dict else ''),
+        name=(item_dict.get('name', '') if item_dict else ''),
                 type=normalized_type,
         color=(item_dict.get('color', 'unknown') if item_dict else 'unknown'),
         imageUrl=(item_dict.get('imageUrl', '') if item_dict else ''),
@@ -2236,7 +2236,7 @@ async def calculate_wardrobe_intelligence_score(items: List[Dict], user_id: str)
             if analytics_data:
                 # 1. Favorite Status Bonus (up to 25 points)
                 # Check both analytics and wardrobe collection for favorite status
-                is_favorite = (analytics_data.get('is_favorite', False) if analytics_data else False)
+        is_favorite = (analytics_data.get('is_favorite', False) if analytics_data else False)
                 
                 # Also check wardrobe collection for favorite status
                 try:
@@ -2251,15 +2251,15 @@ async def calculate_wardrobe_intelligence_score(items: List[Dict], user_id: str)
                 
                 if is_favorite:
                     item_score += 25
-                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +25 favorite bonus")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +25 favorite bonus")
                 else:
                     # Bonus for non-favorited items that perform well in outfits
                     outfit_performance_bonus = min(10, outfit_performance_score)  # Up to 10 bonus points
                     item_score += outfit_performance_bonus
-                    logger.info(f"🔍 DEBUG: Non-favorited item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{outfit_performance_bonus} performance bonus")
+        logger.info(f"🔍 DEBUG: Non-favorited item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{outfit_performance_bonus} performance bonus")
                 
                 # 2. Wear Count Scoring (up to 20 points)
-                wear_count = (analytics_data.get('wear_count', 0) if analytics_data else 0)
+        wear_count = (analytics_data.get('wear_count', 0) if analytics_data else 0)
                 
                 # Fallback to wardrobe collection if no analytics data
                 if wear_count == 0:
@@ -2268,25 +2268,25 @@ async def calculate_wardrobe_intelligence_score(items: List[Dict], user_id: str)
                         wardrobe_doc = wardrobe_ref.get() if wardrobe_ref else None
                         if wardrobe_doc and wardrobe_doc.exists:
                             wardrobe_data = wardrobe_doc.to_dict()
-                            wear_count = (wardrobe_data.get('wearCount', 0) if wardrobe_data else 0)
+        wear_count = (wardrobe_data.get('wearCount', 0) if wardrobe_data else 0)
                     except Exception as e:
                         logger.warning(f"⚠️ Could not get wear count from wardrobe for item {item_id}: {e}")
                 
                 if wear_count == 0:
                     item_score += 20  # Bonus for unworn items
-                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +20 unworn bonus")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +20 unworn bonus")
                 elif wear_count <= 3:
                     item_score += 15  # Good for moderately worn items
-                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +15 moderately worn bonus")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +15 moderately worn bonus")
                 elif wear_count <= 7:
                     item_score += 10  # Acceptable for frequently worn items
-                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +10 frequently worn bonus")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +10 frequently worn bonus")
                 else:
                     item_score += 5   # Minimal points for over-worn items
-                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +5 over-worn bonus")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +5 over-worn bonus")
                 
                 # 3. Recent Wear Penalty (up to -15 points)
-                last_worn = (analytics_data.get('last_worn') if analytics_data else None)
+        last_worn = (analytics_data.get('last_worn') if analytics_data else None)
                 
                 # Fallback to wardrobe collection if no analytics data
                 if not last_worn:
@@ -2295,7 +2295,7 @@ async def calculate_wardrobe_intelligence_score(items: List[Dict], user_id: str)
                         wardrobe_doc = wardrobe_ref.get() if wardrobe_ref else None
                         if wardrobe_doc and wardrobe_doc.exists:
                             wardrobe_data = wardrobe_doc.to_dict()
-                            last_worn = (wardrobe_data.get('lastWorn') if wardrobe_data else None)
+        last_worn = (wardrobe_data.get('lastWorn') if wardrobe_data else None)
                     except Exception as e:
                         logger.warning(f"⚠️ Could not get last worn from wardrobe for item {item_id}: {e}")
                 
@@ -2311,52 +2311,52 @@ async def calculate_wardrobe_intelligence_score(items: List[Dict], user_id: str)
                         
                         if days_since_worn <= 1:
                             item_score -= 15  # Heavy penalty for worn yesterday
-                            logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets -15 penalty (worn yesterday)")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets -15 penalty (worn yesterday)")
                         elif days_since_worn <= 3:
                             item_score -= 10  # Penalty for worn this week
-                            logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets -10 penalty (worn this week)")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets -10 penalty (worn this week)")
                         elif days_since_worn <= 7:
                             item_score -= 5   # Light penalty for worn this month
-                            logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets -5 penalty (worn this month)")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets -5 penalty (worn this month)")
                         else:
                             item_score += 5   # Bonus for items not worn recently
-                            logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +5 bonus (not worn recently)")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +5 bonus (not worn recently)")
                     
                     except Exception as e:
                         logger.warning(f"⚠️ Could not parse last_worn date for item {item_id}: {e}")
                         item_score += 5  # Neutral score if date parsing fails
                 
                 # 4. User Feedback Bonus (up to 15 points)
-                feedback_rating = (analytics_data.get('average_feedback_rating', 0) if analytics_data else 0)
+        feedback_rating = (analytics_data.get('average_feedback_rating', 0) if analytics_data else 0)
                 if feedback_rating >= 4.5:
                     item_score += 15  # Excellent feedback
-                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +15 feedback bonus (rating: {feedback_rating})")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +15 feedback bonus (rating: {feedback_rating})")
                 elif feedback_rating >= 4.0:
                     item_score += 10  # Good feedback
-                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +10 feedback bonus (rating: {feedback_rating})")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +10 feedback bonus (rating: {feedback_rating})")
                 elif feedback_rating >= 3.5:
                     item_score += 5   # Average feedback
-                    logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +5 feedback bonus (rating: {feedback_rating})")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +5 feedback bonus (rating: {feedback_rating})")
                 
                 # 5. Style Preference Match (up to 10 points)
-                style_match = (analytics_data.get('style_preference_score', 0.5) if analytics_data else 0.5)
+        style_match = (analytics_data.get('style_preference_score', 0.5) if analytics_data else 0.5)
                 item_score += style_match * 10
-                logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{style_match * 10:.1f} style preference bonus")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{style_match * 10:.1f} style preference bonus")
                 
                 # 6. Outfit Performance Bonus (up to 20 points) - NEW!
                 outfit_performance_score = await calculate_outfit_performance_score(item_id, current_user_id)
                 item_score += outfit_performance_score
-                logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{outfit_performance_score} outfit performance bonus")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{outfit_performance_score} outfit performance bonus")
                 
                 # 7. Wardrobe Diversity Bonus (up to 5 points) - NEW!
                 diversity_bonus = await calculate_wardrobe_diversity_bonus(item_id, current_user_id)
                 item_score += diversity_bonus
-                logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{diversity_bonus} diversity bonus")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets +{diversity_bonus} diversity bonus")
                 
             else:
                 # No analytics data - neutral score
                 item_score = 50
-                logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets neutral score (no analytics data)")
+        logger.info(f"🔍 DEBUG: Item {(item.get('name', 'Unknown') if item else 'Unknown')} gets neutral score (no analytics data)")
             
         except Exception as e:
             logger.error(f"❌ Error calculating wardrobe intelligence for item {item_id}: {e}")
@@ -2393,17 +2393,17 @@ async def calculate_outfit_performance_score(item_id: str, user_id: str) -> floa
         
         for outfit_doc in outfits_docs:
             outfit_data = outfit_doc.to_dict()
-            outfit_items = (outfit_data.get('items', []) if outfit_data else [])
+        outfit_items = (outfit_data.get('items', []) if outfit_data else [])
             
             # Check if this item is in this outfit
-            item_in_outfit = any((item.get('id') if item else None) == item_id for item in outfit_items)
+        item_in_outfit = any((item.get('id') if item else None) == item_id for item in outfit_items)
             if not item_in_outfit:
                 continue
             
             outfit_count += 1
             
             # 1. Outfit Rating Bonus (up to 10 points)
-            outfit_rating = (outfit_data.get('rating', 0) if outfit_data else 0)
+        outfit_rating = (outfit_data.get('rating', 0) if outfit_data else 0)
             if outfit_rating >= 4.5:
                 total_score += 10  # Excellent outfit rating
                 high_rated_outfits += 1
@@ -2426,7 +2426,7 @@ async def calculate_outfit_performance_score(item_id: str, user_id: str) -> floa
                 logger.info(f"🔍 DEBUG: Item in 1-star outfit: +0 points")
             
             # 2. Outfit Wear Count Bonus (up to 5 points)
-            outfit_wear_count = (outfit_data.get('wearCount', 0) if outfit_data else 0)
+        outfit_wear_count = (outfit_data.get('wearCount', 0) if outfit_data else 0)
             if outfit_wear_count >= 5:
                 total_score += 5   # Frequently worn outfit
                 worn_outfits += 1
@@ -2441,8 +2441,8 @@ async def calculate_outfit_performance_score(item_id: str, user_id: str) -> floa
                 logger.info(f"🔍 DEBUG: Item in worn outfit: +1 point")
             
             # 3. Outfit Like/Dislike Bonus (up to 5 points)
-            outfit_liked = (outfit_data.get('isLiked', False) if outfit_data else False)
-            outfit_disliked = (outfit_data.get('isDisliked', False) if outfit_data else False)
+        outfit_liked = (outfit_data.get('isLiked', False) if outfit_data else False)
+        outfit_disliked = (outfit_data.get('isDisliked', False) if outfit_data else False)
             
             if outfit_liked:
                 total_score += 5   # Liked outfit bonus
@@ -2747,10 +2747,10 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
             logger.info(f"✅ Retrieved profile for user {user_id}")
             
             # CRITICAL: Ensure gender is set - if missing or null, default to male
-            if not (profile_data.get('gender') if profile_data else None):
+        if not (profile_data.get('gender') if profile_data else None):
                 profile_data['gender'] = 'male'
                 logger.info(f"🔧 Setting missing gender to 'male' for user {user_id}")
-            
+                
             return profile_data
         else:
             logger.info(f"⚠️ No profile found for user {user_id}, using defaults")
@@ -2862,11 +2862,11 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
 
         # CRITICAL: Add base item FIRST before any filtering
         if (req.baseItemId if req else None):
-            base_item = next((item for item in wardrobe_items if item.get("id") == (req.baseItemId if req else None)), None)
+        base_item = next((item for item in wardrobe_items if item.get("id") == (req.baseItemId if req else None)), None)
             if base_item:
                 logger.info(f"🎯 DEBUG: Adding base item BEFORE filtering: {base_item.get('name', 'Unknown')}")
                 suitable_items.append(base_item)
-                item_scores[(base_item.get('id', 'unknown') if base_item else 'unknown')] = 1000  # Give base item highest score
+        item_scores[(base_item.get('id', 'unknown') if base_item else 'unknown')] = 1000  # Give base item highest score
             else:
                 logger.warning(f"⚠️ DEBUG: Base item {req.baseItemId} not found in wardrobe")
         
@@ -2888,20 +2888,20 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         
         for item in wardrobe_items:
             # Skip base item since it's already been added
-            if (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None):
-                logger.info(f"🎯 DEBUG: Skipping base item in filtering loop: {(item.get('name', 'Unknown') if item else 'Unknown')}")
+        if (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None):
+        logger.info(f"🎯 DEBUG: Skipping base item in filtering loop: {(item.get('name', 'Unknown') if item else 'Unknown')}")
                 continue
                 
         item_style = (item.get('style', '') if item else '') or ''
         item_occasion = (item.get('occasion', '') if item else '') or ''
         item_color = (item.get('color', '') if item else '') or ''
         item_material = (item.get('material', '') if item else '') or ''
-        
-        # Convert to string if it's a list
-        if isinstance(item_style, list):
-            item_style = ' '.join(item_style).lower()
-        else:
-            item_style = str(item_style).lower()
+            
+            # Convert to string if it's a list
+            if isinstance(item_style, list):
+                item_style = ' '.join(item_style).lower()
+            else:
+                item_style = str(item_style).lower()
                 
             if isinstance(item_occasion, list):
                 item_occasion = ' '.join(item_occasion).lower()
@@ -2909,32 +2909,32 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 item_occasion = str(item_occasion).lower()
             
         logger.info(f"🔍 DEBUG: Item {(item.get('name', 'unnamed') if item else 'unnamed')} - style: '{item_style}', occasion: '{item_occasion}', color: '{item_color}'")
-        
-        # ENHANCED: Multi-dimensional style preference scoring
-        item_score = 0
-        is_suitable = False
-        
-        # HARD EXCLUSION FILTER: Prevent truly inappropriate items from entering scoring pool
+            
+            # ENHANCED: Multi-dimensional style preference scoring
+            item_score = 0
+            is_suitable = False
+            
+            # HARD EXCLUSION FILTER: Prevent truly inappropriate items from entering scoring pool
         hard_exclusions = get_hard_style_exclusions(req.style.lower(), item, (req.mood if req else "unknown"))
         # print(f"🔍 EXCLUSION CHECK: {(item.get('name', 'unnamed') if item else 'unnamed')} for {req.style} - result: {hard_exclusions}")
         # print(f"🔍 EXCLUSION LOGIC: hard_exclusions={hard_exclusions}, type={type(hard_exclusions)}, bool={bool(hard_exclusions)}")
         # print(f"🔍 EXCLUSION LOGIC: baseItemId={req.baseItemId}, itemId={((item.get('id') if item else None) if item else None)}, isBaseItem={req.baseItemId and ((item.get('id') if item else None) if item else None) == (req.baseItemId if req else None)}")
-        
-        # Check exclusion condition explicitly
+            
+            # Check exclusion condition explicitly
         is_base_item = (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None)
-        should_exclude = hard_exclusions is not None and not is_base_item
-        
-        print(f"🔍 EXCLUSION DECISION: should_exclude={should_exclude}, is_base_item={is_base_item}")
-        if should_exclude:
+            should_exclude = hard_exclusions is not None and not is_base_item
+            
+            print(f"🔍 EXCLUSION DECISION: should_exclude={should_exclude}, is_base_item={is_base_item}")
+            if should_exclude:
             # print(f"🚫 HARD EXCLUSION: {(item.get('name', 'unnamed') if item else 'unnamed')} excluded from {req.style} - {hard_exclusions}")
             # print(f"🚫 EXECUTING CONTINUE: About to skip {(item.get('name', 'unnamed') if item else 'unnamed')} - this item should NOT appear in final outfit")
-            logger.info(f"🚫 HARD EXCLUSION: {(item.get('name', 'unnamed') if item else 'unnamed')} excluded from {req.style} - {hard_exclusions}")
-            continue
-            print(f"❌ CONTINUE FAILED: This line should NEVER execute if continue worked")
-        elif hard_exclusions:
-            print(f"🛡️ EXCLUSION BYPASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} is base item, allowing despite exclusion")
-        else:
-            print(f"✅ EXCLUSION PASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} has no exclusions for {req.style}")
+logger.info(f"🚫 HARD EXCLUSION: {(item.get('name', 'unnamed') if item else 'unnamed')} excluded from {req.style} - {hard_exclusions}")
+                continue
+                print(f"❌ CONTINUE FAILED: This line should NEVER execute if continue worked")
+            elif hard_exclusions:
+print(f"🛡️ EXCLUSION BYPASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} is base item, allowing despite exclusion")
+            else:
+print(f"✅ EXCLUSION PASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} has no exclusions for {req.style}")
             
             # 1. Core Style Matching (Primary filter - must pass)
             # SOFTEN VALIDATION: Allow base item to pass even if it fails core criteria
@@ -2950,11 +2950,11 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 style_appropriateness_score = calculate_style_appropriateness_score(req.style.lower(), item)
                 item_score += style_appropriateness_score
                 if style_appropriateness_score < 0:
-                    logger.info(f"🎯 STYLE PENALTY: {(item.get('name', 'unnamed') if item else 'unnamed')} gets {style_appropriateness_score} points for {req.style} mismatch")
+logger.info(f"🎯 STYLE PENALTY: {(item.get('name', 'unnamed') if item else 'unnamed')} gets {style_appropriateness_score} points for {req.style} mismatch")
                 
                 # Special handling for base item that failed core criteria
-                if (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None) and not (req.style.lower() in item_style or (req.occasion if req else "unknown").lower() in item_occasion or 'versatile' in item_style):
-                    logger.info(f"🛡️ Allowing base item despite failing criteria: {(item.get('name', 'Unknown') if item else 'Unknown')}")
+if (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None) and not (req.style.lower() in item_style or (req.occasion if req else "unknown").lower() in item_occasion or 'versatile' in item_style):
+logger.info(f"🛡️ Allowing base item despite failing criteria: {(item.get('name', 'Unknown') if item else 'Unknown')}")
                     item_score += 1000  # Give base item highest priority
                 
                 # 2. Style Preference Enhancement (User's stored preferences)
@@ -2969,8 +2969,8 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 # 3. Color Preference Enhancement
                 if user_profile and user_profile.get('colorPalette'):
                     color_palette = user_profile.get('colorPalette', {})
-                    preferred_colors = ((color_palette.get('primary', []) if color_palette else []) if color_palette else []) + color_palette.get('secondary', [])
-                    avoid_colors = (color_palette.get('avoid', []) if color_palette else [])
+preferred_colors = ((color_palette.get('primary', []) if color_palette else []) if color_palette else []) + color_palette.get('secondary', [])
+avoid_colors = (color_palette.get('avoid', []) if color_palette else [])
                     
                     if item_color:
                         item_color_lower = item_color.lower()
@@ -2984,8 +2984,8 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 # 4. Material Preference Enhancement
                 if user_profile and user_profile.get('materialPreferences'):
                     material_prefs = user_profile.get('materialPreferences', {})
-                    preferred_materials = (material_prefs.get('preferred', []) if material_prefs else [])
-                    avoid_materials = (material_prefs.get('avoid', []) if material_prefs else [])
+preferred_materials = (material_prefs.get('preferred', []) if material_prefs else [])
+avoid_materials = (material_prefs.get('avoid', []) if material_prefs else [])
                     
                     if item_material:
                         item_material_lower = item_material.lower()
@@ -3001,20 +3001,20 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                     personality_scores = user_profile.get('stylePersonality', {})
                     
                     # Analyze item characteristics and match with personality
-                    if 'classic' in item_style and (personality_scores.get('classic', 0) if personality_scores else 0) > 0.6:
+if 'classic' in item_style and (personality_scores.get('classic', 0) if personality_scores else 0) > 0.6:
                         item_score += personality_scores['classic'] * 12
                         logger.info(f"🔍 DEBUG: Classic personality match: +{personality_scores['classic'] * 12:.1f} points")
                     
-                    if 'modern' in item_style and (personality_scores.get('modern', 0) if personality_scores else 0) > 0.6:
+if 'modern' in item_style and (personality_scores.get('modern', 0) if personality_scores else 0) > 0.6:
                         item_score += personality_scores['modern'] * 12
                         logger.info(f"🔍 DEBUG: Modern personality match: +{personality_scores['modern'] * 12:.1f} points")
                     
-                    if 'creative' in item_style and (personality_scores.get('creative', 0) if personality_scores else 0) > 0.6:
+if 'creative' in item_style and (personality_scores.get('creative', 0) if personality_scores else 0) > 0.6:
                         item_score += personality_scores['creative'] * 12
                         logger.info(f"🔍 DEBUG: Creative personality match: +{personality_scores['creative'] * 12:.1f} points")
                 
                 # 6. Business/Formal Enhancement (Existing logic enhanced)
-                if (req.occasion if req else "unknown").lower() in ['business', 'formal', 'office']:
+if (req.occasion if req else "unknown").lower() in ['business', 'formal', 'office']:
                     business_colors = ['white', 'black', 'navy', 'gray', 'charcoal', 'beige', 'brown', 'blue', 'cream']
                     if item_color and item_color.lower() in business_colors:
                         item_score += 20  # Bonus for appropriate business colors
@@ -3026,33 +3026,33 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 # 7. Gender-appropriate style validation (Enhanced)
                 if user_profile and user_profile.get('gender'):
                     user_gender = user_profile.get('gender').lower()
-                    item_gender = (item.get('gender', '') if item else '').lower()
+item_gender = (item.get('gender', '') if item else '').lower()
                     
                     # Gender-specific style filtering with scoring
                     # SOFTEN VALIDATION: Allow base item to pass gender filtering
                     if user_gender == 'male':
                         feminine_styles = ['french girl', 'romantic', 'pinup', 'boho', 'cottagecore']
-                        if (req.style if req else "unknown").lower() in feminine_styles and not (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
-                            logger.info(f"🔍 DEBUG: Skipping feminine style '{req.style}' for male user: {(item.get('name', 'unnamed') if item else 'unnamed')}")
+if (req.style if req else "unknown").lower() in feminine_styles and not (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
+logger.info(f"🔍 DEBUG: Skipping feminine style '{req.style}' for male user: {(item.get('name', 'unnamed') if item else 'unnamed')}")
                             continue
-                        elif (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None):
-                            logger.info(f"🛡️ Allowing base item despite feminine style: {(item.get('name', 'Unknown') if item else 'Unknown')}")
+elif (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None):
+logger.info(f"🛡️ Allowing base item despite feminine style: {(item.get('name', 'Unknown') if item else 'Unknown')}")
                     
                     elif user_gender == 'female':
                         masculine_styles = ['techwear', 'grunge', 'streetwear']
-                        if (req.style if req else "unknown").lower() in masculine_styles and not (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
-                            logger.info(f"🔍 DEBUG: Skipping masculine style '{req.style}' for female user: {(item.get('name', 'unnamed') if item else 'unnamed')}")
+if (req.style if req else "unknown").lower() in masculine_styles and not (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
+logger.info(f"🔍 DEBUG: Skipping masculine style '{req.style}' for female user: {(item.get('name', 'unnamed') if item else 'unnamed')}")
                             continue
-                        elif (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None):
-                            logger.info(f"🛡️ Allowing base item despite masculine style: {(item.get('name', 'Unknown') if item else 'Unknown')}")
+elif (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None):
+logger.info(f"🛡️ Allowing base item despite masculine style: {(item.get('name', 'Unknown') if item else 'Unknown')}")
                     
                     # Item gender compatibility with scoring
                     # SOFTEN VALIDATION: Allow base item to pass gender compatibility check
-                    if item_gender and item_gender not in ['unisex', user_gender] and not (req.baseItemId and item.get('id') == (req.baseItemId if req else None)):
+if item_gender and item_gender not in ['unisex', user_gender] and not (req.baseItemId and item.get('id') == (req.baseItemId if req else None)):
                         logger.info(f"🔍 DEBUG: Skipping gender-incompatible item: {item.get('name', 'unnamed')} (item: {item_gender}, user: {user_gender})")
                         continue
-                    elif (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None) and item_gender and item_gender not in ['unisex', user_gender]:
-                        logger.info(f"🛡️ Allowing base item despite gender mismatch: {(item.get('name', 'Unknown') if item else 'Unknown')} (item: {item_gender}, user: {user_gender})")
+elif (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None) and item_gender and item_gender not in ['unisex', user_gender]:
+logger.info(f"🛡️ Allowing base item despite gender mismatch: {(item.get('name', 'Unknown') if item else 'Unknown')} (item: {item_gender}, user: {user_gender})")
                     
                     # Gender preference bonus
                     if item_gender == user_gender:
@@ -3063,26 +3063,26 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                         logger.info(f"🔍 DEBUG: Unisex item: +5 points")
                 
                 # Store item with its score
-                item_id = ((item.get('id', item.get('name', 'unknown') if item else 'unknown') if item else 'unknown'))
+item_id = ((item.get('id', item.get('name', 'unknown') if item else 'unknown') if item else 'unknown'))
                 item_scores[item_id] = item_score
                 suitable_items.append(item)
-                # print(f"✅ SCORED: {(item.get('name', 'unnamed') if item else 'unnamed')} (ID: {item_id}) = {item_score} points")
+# print(f"✅ SCORED: {(item.get('name', 'unnamed') if item else 'unnamed')} (ID: {item_id}) = {item_score} points")
                 # print(f"📊 SUITABLE_ITEMS COUNT: {len(suitable_items)} items now in pool")
-                logger.info(f"🔍 DEBUG: Item {(item.get('name', 'unnamed') if item else 'unnamed')} is suitable with score: {item_score}")
+logger.info(f"🔍 DEBUG: Item {(item.get('name', 'unnamed') if item else 'unnamed')} is suitable with score: {item_score}")
             else:
-                # print(f"❌ REJECTED: {(item.get('name', 'unnamed') if item else 'unnamed')} failed core style/occasion criteria")
-                logger.info(f"🔍 DEBUG: Item {(item.get('name', 'unnamed') if item else 'unnamed')} failed core style/occasion criteria")
+# print(f"❌ REJECTED: {(item.get('name', 'unnamed') if item else 'unnamed')} failed core style/occasion criteria")
+logger.info(f"🔍 DEBUG: Item {(item.get('name', 'unnamed') if item else 'unnamed')} failed core style/occasion criteria")
         
         # DEBUG: After scoring loop
         debug_scores("after_scoring_loop", suitable_items)
         print(f"🎯 Final item_scores: {item_scores}")
         # ENHANCED: Sort items by preference score for better selection
         if suitable_items and item_scores:
-            suitable_items.sort(key=lambda item: (item_scores.get(((item.get('id', item.get('name', 'unknown') if item else 'unknown') if item else 'unknown') if item_scores else 'unknown')), 0), reverse=True)
+        suitable_items.sort(key=lambda item: (item_scores.get(((item.get('id', item.get('name', 'unknown') if item else 'unknown') if item else 'unknown') if item_scores else 'unknown')), 0), reverse=True)
             logger.info(f"🔍 DEBUG: Sorted {len(suitable_items)} suitable items by preference score")
             for item in suitable_items[:5]:  # Log top 5 scores
-                score = (item_scores.get(((item.get('id', item.get('name', 'unknown') if item else 'unknown') if item else 'unknown') if item_scores else 'unknown')), 0)
-                logger.info(f"🔍 DEBUG: Top item: {(item.get('name', 'unnamed') if item else 'unnamed')} - Score: {score}")
+        score = (item_scores.get(((item.get('id', item.get('name', 'unknown') if item else 'unknown') if item else 'unknown') if item_scores else 'unknown')), 0)
+        logger.info(f"🔍 DEBUG: Top item: {(item.get('name', 'unnamed') if item else 'unnamed')} - Score: {score}")
         
         logger.info(f"🔍 DEBUG: Found {len(suitable_items)} suitable items")
         
@@ -3099,11 +3099,11 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 if item not in suitable_items:
                     # Apply same exclusion filter to additional items
                     hard_exclusions = get_hard_style_exclusions(req.style.lower(), item)
-                    if not hard_exclusions or (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
+        if not hard_exclusions or (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
                         additional_items.append(item)
                         # print(f"➕ ADDITIONAL: {(item.get('name', 'unnamed') if item else 'unnamed')} passes exclusion filter")
                     else:
-                        print(f"🚫 ADDITIONAL EXCLUDED: {(item.get('name', 'unnamed') if item else 'unnamed')} - {hard_exclusions}")
+print(f"🚫 ADDITIONAL EXCLUDED: {(item.get('name', 'unnamed') if item else 'unnamed')} - {hard_exclusions}")
             
             random.shuffle(additional_items)
             suitable_items.extend(additional_items[:10])
@@ -3119,11 +3119,11 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             emergency_items = []
             for item in wardrobe_items:
                 hard_exclusions = get_hard_style_exclusions(req.style.lower(), item)
-                if not hard_exclusions or (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
+        if not hard_exclusions or (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
                     emergency_items.append(item)
                     # print(f"🆘 EMERGENCY: {(item.get('name', 'unnamed') if item else 'unnamed')} passes exclusion for emergency use")
                 else:
-                    print(f"🚫 EMERGENCY EXCLUDED: {(item.get('name', 'unnamed') if item else 'unnamed')} - {hard_exclusions}")
+print(f"🚫 EMERGENCY EXCLUDED: {(item.get('name', 'unnamed') if item else 'unnamed')} - {hard_exclusions}")
             
             suitable_items = emergency_items[:4]  # Take first 4 exclusion-filtered items
             logger.warning(f"⚠️ DEBUG: Using {len(suitable_items)} emergency items (exclusion-filtered)")
@@ -3152,7 +3152,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         # Find base item object if baseItemId is provided
         base_item_obj = None
         if (req.baseItemId if req else None):
-            base_item_obj = next((item for item in wardrobe_items if item.get("id") == (req.baseItemId if req else None)), None)
+        base_item_obj = next((item for item in wardrobe_items if item.get("id") == (req.baseItemId if req else None)), None)
             if base_item_obj:
                 logger.info(f"🎯 DEBUG: Found base item object for validation: {base_item_obj.get('name', 'Unknown')}")
             else:
@@ -3160,10 +3160,10 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         
         # Debug: Check if base item is in suitable_items
         if (req.baseItemId if req else None):
-            base_item_in_suitable = any((item.get('id') if item else None) == (req.baseItemId if req else None) for item in suitable_items)
+        base_item_in_suitable = any((item.get('id') if item else None) == (req.baseItemId if req else None) for item in suitable_items)
             logger.info(f"🎯 DEBUG: Base item in suitable_items: {base_item_in_suitable}")
             if base_item_in_suitable:
-                base_item_position = next(i for i, item in enumerate(suitable_items) if item.get('id') == (req.baseItemId if req else None))
+        base_item_position = next(i for i, item in enumerate(suitable_items) if item.get('id') == (req.baseItemId if req else None))
                 logger.info(f"🎯 DEBUG: Base item found in suitable_items at position: {base_item_position}")
                 logger.info(f"🎯 DEBUG: Base item details: {suitable_items[base_item_position].get('name', 'Unknown')}")
             else:
@@ -3175,7 +3175,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         # Count categorized items for debug
         categorized_counts = {}
         for item in suitable_items:
-            item_type = (item.get('type', '') if item else '').lower()
+        item_type = (item.get('type', '') if item else '').lower()
             category = get_item_category(item_type)
         categorized_counts[category] = (categorized_counts.get(category, 0) if categorized_counts else 0) + 1
         
@@ -3184,8 +3184,8 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
 
         # Validate and ensure complete outfit composition
         try:
-            # print(f"🔍 VALIDATION: About to validate outfit composition with {len(suitable_items)} items...")
-            validated_items = await validate_outfit_composition(suitable_items, (req.occasion if req else "unknown"), base_item_obj, (req.style if req else "unknown"))
+        # print(f"🔍 VALIDATION: About to validate outfit composition with {len(suitable_items)} items...")
+        validated_items = await validate_outfit_composition(suitable_items, (req.occasion if req else "unknown"), base_item_obj, (req.style if req else "unknown"))
         # print(f"✅ VALIDATION: Successfully validated outfit, got {len(validated_items)} items")
         except Exception as validation_error:
             print(f"❌ VALIDATION FAILED: {validation_error}")
@@ -3200,7 +3200,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             
             try:
                 # Force create a basic outfit from suitable items
-                validated_items = _force_minimum_outfit(suitable_items, (req.occasion if req else "unknown"), (req.style if req else "unknown"))
+        validated_items = _force_minimum_outfit(suitable_items, (req.occasion if req else "unknown"), (req.style if req else "unknown"))
                 logger.info(f"🔧 SAFETY CHECK: Created minimum outfit with {len(validated_items)} items")
             except Exception as force_error:
                 logger.error(f"❌ SAFETY CHECK FAILED: {force_error}")
@@ -3215,16 +3215,16 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         
         # Debug: Check if base item is in final validated items
         if (req.baseItemId if req else None):
-            base_item_in_final = any((item.get('id') if item else None) == (req.baseItemId if req else None) for item in validated_items)
+        base_item_in_final = any((item.get('id') if item else None) == (req.baseItemId if req else None) for item in validated_items)
             logger.info(f"🎯 DEBUG: Base item in final validated_items: {base_item_in_final}")
             if base_item_in_final:
-                base_item_position = next(i for i, item in enumerate(validated_items) if item.get('id') == (req.baseItemId if req else None))
+        base_item_position = next(i for i, item in enumerate(validated_items) if item.get('id') == (req.baseItemId if req else None))
                 logger.info(f"🎯 DEBUG: Base item found in final outfit at position: {base_item_position}")
                 logger.info(f"🎯 DEBUG: Final outfit base item: {validated_items[base_item_position].get('name', 'Unknown')}")
             else:
                 logger.error(f"❌ DEBUG: Base item NOT in final validated_items - validation failed!")
-            logger.error(f"❌ DEBUG: Final outfit items: {[(item.get('name', 'Unknown') if item else 'Unknown') for item in validated_items]}")
-            logger.error(f"❌ DEBUG: Final outfit item IDs: {[(item.get('id') if item else None) for item in validated_items]}")
+        logger.error(f"❌ DEBUG: Final outfit items: {[(item.get('name', 'Unknown') if item else 'Unknown') for item in validated_items]}")
+        logger.error(f"❌ DEBUG: Final outfit item IDs: {[(item.get('id') if item else None) for item in validated_items]}")
         
         # Apply layering validation rules
         layering_validation = await validate_layering_rules(validated_items, (req.occasion if req else "unknown"))
@@ -3247,7 +3247,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         outfit_items = []
         for item in validated_items:
             # Convert Firebase Storage gs:// URLs to https:// URLs
-            raw_image_url = (((item.get('imageUrl', '') if item else '') if item else '') if item else '') or item.get('image_url', '') or item.get('image', '')
+        raw_image_url = (((item.get('imageUrl', '') if item else '') if item else '') if item else '') or item.get('image_url', '') or item.get('image', '')
             if raw_image_url and raw_image_url.startswith('gs://'):
                 # Convert gs://bucket-name/path to https://firebasestorage.googleapis.com/v0/b/bucket-name/o/path
                 parts = raw_image_url.replace('gs://', '').split('/', 1)
@@ -3347,25 +3347,25 @@ def _pick_any_item_safe(wardrobe: List[Dict[str, Any]], category: str, occasion:
     if 'athletic' in occasion_lower or 'gym' in occasion_lower or 'workout' in occasion_lower:
         # For athletic occasions, prefer athletic items
         if category == 'shoes':
-            candidates = [item for item in candidates if any(athletic_term in (item.get('name', '') if item else '').lower() for athletic_term in ['sneaker', 'athletic', 'sport', 'gym', 'workout'])]
+        candidates = [item for item in candidates if any(athletic_term in (item.get('name', '') if item else '').lower() for athletic_term in ['sneaker', 'athletic', 'sport', 'gym', 'workout'])]
         elif category == 'tops':
-            candidates = [item for item in candidates if any(athletic_term in (item.get('name', '') if item else '').lower() for athletic_term in ['athletic', 'sport', 'gym', 'workout', 'jersey', 'tank'])]
+        candidates = [item for item in candidates if any(athletic_term in (item.get('name', '') if item else '').lower() for athletic_term in ['athletic', 'sport', 'gym', 'workout', 'jersey', 'tank'])]
         elif category == 'bottoms':
-            candidates = [item for item in candidates if any(athletic_term in (item.get('name', '') if item else '').lower() for athletic_term in ['athletic', 'sport', 'gym', 'workout', 'shorts', 'joggers'])]
+        candidates = [item for item in candidates if any(athletic_term in (item.get('name', '') if item else '').lower() for athletic_term in ['athletic', 'sport', 'gym', 'workout', 'shorts', 'joggers'])]
         elif category == 'outerwear':
             # Exclude formal jackets for athletic occasions
-            candidates = [item for item in candidates if not any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['blazer', 'suit', 'dress', 'formal'])]
+        candidates = [item for item in candidates if not any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['blazer', 'suit', 'dress', 'formal'])]
     
     elif 'business' in occasion_lower or 'formal' in occasion_lower or 'interview' in occasion_lower:
         # For formal occasions, prefer formal items
         if category == 'shoes':
-            candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['dress shoe', 'oxford', 'loafer', 'derby', 'wingtip', 'brogue'])]
+        candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['dress shoe', 'oxford', 'loafer', 'derby', 'wingtip', 'brogue'])]
         elif category == 'tops':
-            candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['dress shirt', 'button down', 'button-up', 'blazer', 'suit jacket'])]
+        candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['dress shirt', 'button down', 'button-up', 'blazer', 'suit jacket'])]
         elif category == 'bottoms':
-            candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['dress pant', 'suit pant', 'trouser', 'slack', 'formal pant'])]
+        candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['dress pant', 'suit pant', 'trouser', 'slack', 'formal pant'])]
         elif category == 'outerwear':
-            candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['blazer', 'suit jacket', 'sport coat'])]
+        candidates = [item for item in candidates if any(formal_term in (item.get('name', '') if item else '').lower() for formal_term in ['blazer', 'suit jacket', 'sport coat'])]
     
     # If no candidates after filtering, fall back to any item in wardrobe
     if not candidates:
@@ -3563,9 +3563,9 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         if (req.weather if req else None) and wardrobe_items:
             # Handle both dict and object weather data
             if isinstance(req.weather, dict):
-                temp = req.weather.get('temperature', 70) if req.weather else 70
-                condition = req.weather.get('condition', 'clear') if req.weather else 'clear'
-                precipitation = req.weather.get('precipitation', 0) if req.weather else 0
+        temp = req.weather.get('temperature', 70) if req.weather else 70
+        condition = req.weather.get('condition', 'clear') if req.weather else 'clear'
+        precipitation = req.weather.get('precipitation', 0) if req.weather else 0
             else:
                 temp = getattr(req.weather, 'temperature', 70)
                 condition = getattr(req.weather, 'condition', 'clear')
@@ -3599,7 +3599,7 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         temperature = 70.0
         if (req.weather if req else None):
             if isinstance(req.weather, dict):
-                temperature = req.weather.get('temperature', 70.0) if req.weather else 70.0
+        temperature = req.weather.get('temperature', 70.0) if req.weather else 70.0
             else:
                 temperature = getattr(req.weather, 'temperature', 70.0)
         
@@ -3686,14 +3686,14 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
             # Check if any outerwear would create inappropriate combinations with selected bottoms
             validated_outerwear = []
             for outerwear_item in style_appropriate_outerwear:
-                outerwear_type = (outerwear_item.get('type', '') if outerwear_item else '').lower()
-                outerwear_name = (outerwear_item.get('name', '') if outerwear_item else '').lower()
+        outerwear_type = (outerwear_item.get('type', '') if outerwear_item else '').lower()
+        outerwear_name = (outerwear_item.get('name', '') if outerwear_item else '').lower()
                 
                 # Check if this outerwear would conflict with selected bottoms
                 is_inappropriate = False
                 for selected_item in selected_items:
-                    selected_type = (selected_item.get('type', '') if selected_item else '').lower()
-                    selected_name = (selected_item.get('name', '') if selected_item else '').lower()
+        selected_type = (selected_item.get('type', '') if selected_item else '').lower()
+        selected_name = (selected_item.get('name', '') if selected_item else '').lower()
                     
                     # Blazer + Shorts prevention
                     if ('blazer' in outerwear_type or 'blazer' in outerwear_name) and ('shorts' in selected_type or 'shorts' in selected_name):
@@ -3710,13 +3710,13 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
                 if not is_inappropriate:
                     validated_outerwear.append(outerwear_item)
                 else:
-                    logger.info(f"✅ FALLBACK VALIDATION: Filtered out inappropriate outerwear: {(outerwear_item.get('name', 'Unknown') if outerwear_item else 'Unknown')}")
+        logger.info(f"✅ FALLBACK VALIDATION: Filtered out inappropriate outerwear: {(outerwear_item.get('name', 'Unknown') if outerwear_item else 'Unknown')}")
             
             style_appropriate_outerwear = validated_outerwear
         
         if style_appropriate_outerwear:
             # Use priority-based selection for outerwear too
-            selected_outerwear = _select_priority_item(style_appropriate_outerwear, (req.occasion if req else "unknown"), (req.style if req else "unknown"), 'outerwear')
+        selected_outerwear = _select_priority_item(style_appropriate_outerwear, (req.occasion if req else "unknown"), (req.style if req else "unknown"), 'outerwear')
             selected_items.append(selected_outerwear)
         logger.info(f"Added priority outerwear: {(selected_outerwear.get('name', 'Unknown') if selected_outerwear else 'Unknown')} for {req.style} style")
         
@@ -3796,7 +3796,7 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         requirements = occasion_requirements[occasion_lower]
         logger.error(f"🚨 STRESS TEST v1.0: FALLBACK VALIDATION START - Calling validate_outfit_completeness")
         try:
-            missing_required = validate_outfit_completeness(selected_items, requirements, (req.occasion if req else "unknown"))
+        missing_required = validate_outfit_completeness(selected_items, requirements, (req.occasion if req else "unknown"))
             logger.error(f"🚨 STRESS TEST v1.0: FALLBACK VALIDATION SUCCESS - {len(missing_required)} missing items")
         except Exception as e:
             logger.error(f"🚨 STRESS TEST v1.0: FALLBACK VALIDATION ERROR - {type(e).__name__}: {str(e)}")
@@ -3893,7 +3893,7 @@ def generate_weather_aware_fallback_reasoning(req: OutfitRequest, selected_items
         if (req.weather if req else None):
             # Handle both dict and object weather data
             if isinstance(req.weather, dict):
-                temp = req.weather.get('temperature', 70) if req.weather else 70
+        temp = req.weather.get('temperature', 70) if req.weather else 70
             else:
                 temp = getattr(req.weather, 'temperature', 70)
             sentences.append(f"Each item has been chosen to ensure comfort in {temp}°F conditions while maintaining your desired {req.style} style.")
@@ -3909,8 +3909,8 @@ def generate_weather_aware_fallback_reasoning(req: OutfitRequest, selected_items
         if (req.weather if req else None):
             # Handle both dict and object weather data
             if isinstance(req.weather, dict):
-                temp = req.weather.get('temperature', 70) if req.weather else 70
-                condition = req.weather.get('condition', 'clear') if req.weather else 'clear'
+        temp = req.weather.get('temperature', 70) if req.weather else 70
+        condition = req.weather.get('condition', 'clear') if req.weather else 'clear'
             else:
                 temp = getattr(req.weather, 'temperature', 70)
                 condition = getattr(req.weather, 'condition', 'clear')
@@ -3993,8 +3993,8 @@ def validate_weather_outfit_combinations(outfit: Dict[str, Any], weather, mode: 
             # Remove items in reverse order to maintain indices
             for i in sorted(items_to_remove, reverse=True):
                 removed_item = items.pop(i)
-                logger.info(f"🗑️ Removed inappropriate item: {(removed_item.get('name', 'Unknown') if removed_item else 'Unknown')}")
-                outfit['items'] = items
+        logger.info(f"🗑️ Removed inappropriate item: {(removed_item.get('name', 'Unknown') if removed_item else 'Unknown')}")
+            outfit['items'] = items
         
         # Add warnings to reasoning if any found
         if outfit_warnings:
@@ -4166,7 +4166,7 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_c
             if isinstance(item, dict):
                 # Fix imageUrl even for existing items
                 item_copy = item.copy()
-                raw_url = (((item_copy.get('imageUrl', '') if item_copy else '') if item_copy else '') if item_copy else '') or item_copy.get('image_url', '') or item_copy.get('image', '')
+        raw_url = (((item_copy.get('imageUrl', '') if item_copy else '') if item_copy else '') if item_copy else '') or item_copy.get('image_url', '') or item_copy.get('image', '')
                 item_copy['imageUrl'] = convert_firebase_url(raw_url)
                 resolved_items.append(item_copy)
             else:
@@ -4184,14 +4184,14 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_c
         if isinstance(item, dict):
             # Item is already a complete object - fix imageUrl
             item_copy = item.copy()
-            raw_url = (((item_copy.get('imageUrl', '') if item_copy else '') if item_copy else '') if item_copy else '') or item_copy.get('image_url', '') or item_copy.get('image', '')
+        raw_url = (((item_copy.get('imageUrl', '') if item_copy else '') if item_copy else '') if item_copy else '') or item_copy.get('image_url', '') or item_copy.get('image', '')
             item_copy['imageUrl'] = convert_firebase_url(raw_url)
             resolved_items.append(item_copy)
         elif isinstance(item, str):
             if wardrobe_cache and item in wardrobe_cache:
                 # Use cached item - fix imageUrl
                 cached_item = wardrobe_cache[item].copy()
-                raw_url = (((cached_item.get('imageUrl', '') if cached_item else '') if cached_item else '') if cached_item else '') or cached_item.get('image_url', '') or cached_item.get('image', '')
+        raw_url = (((cached_item.get('imageUrl', '') if cached_item else '') if cached_item else '') if cached_item else '') or cached_item.get('image_url', '') or cached_item.get('image', '')
                 cached_item['imageUrl'] = convert_firebase_url(raw_url)
                 resolved_items.append(cached_item)
             else:
@@ -4217,7 +4217,7 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_c
                 item_data = doc.to_dict()
                 item_data['id'] = doc.id
                 # Fix imageUrl for fetched items
-                raw_url = (((item_data.get('imageUrl', '') if item_data else '') if item_data else '') if item_data else '') or item_data.get('image_url', '') or item_data.get('image', '')
+        raw_url = (((item_data.get('imageUrl', '') if item_data else '') if item_data else '') if item_data else '') or item_data.get('image_url', '') or item_data.get('image', '')
                 item_data['imageUrl'] = convert_firebase_url(raw_url)
                 user_wardrobe[doc.id] = item_data
             
@@ -4333,8 +4333,8 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
                 outfit_data['createdAt'] = normalize_created_at(raw_created_at)
                 
                 outfits.append(outfit_data)
-                logger.info(f"🔍 DEBUG: Found outfit: {((outfit_data.get('name', 'unnamed') if outfit_data else 'unnamed') if outfit_data else 'unnamed')} (ID: {doc.id}, Created: {outfit_data.get('createdAt', 'Unknown')})")
-                logger.info(f"🔍 DEBUG: Outfit {doc.id} wearCount: {((outfit_data.get('wearCount', 'NOT_FOUND') if outfit_data else 'NOT_FOUND') if outfit_data else 'NOT_FOUND')}, lastWorn: {outfit_data.get('lastWorn', 'NOT_FOUND')}")
+        logger.info(f"🔍 DEBUG: Found outfit: {((outfit_data.get('name', 'unnamed') if outfit_data else 'unnamed') if outfit_data else 'unnamed')} (ID: {doc.id}, Created: {outfit_data.get('createdAt', 'Unknown')})")
+        logger.info(f"🔍 DEBUG: Outfit {doc.id} wearCount: {((outfit_data.get('wearCount', 'NOT_FOUND') if outfit_data else 'NOT_FOUND') if outfit_data else 'NOT_FOUND')}, lastWorn: {outfit_data.get('lastWorn', 'NOT_FOUND')}")
                 logger.info(f"🔍 DEBUG: Outfit {doc.id} all fields: {list(outfit_data.keys())}")
             except Exception as e:
                 logger.error(f"🔥 Failed to process outfit {doc.id}: {e}", exc_info=True)
@@ -4378,7 +4378,7 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
                 try:
                     outfit_data['items'] = await resolve_item_ids_to_objects(outfit_data['items'], user_id, wardrobe_cache)
                 except Exception as e:
-                    logger.error(f"🔥 Failed to resolve items for outfit {(outfit_data.get('id') if outfit_data else None)}: {e}")
+        logger.error(f"🔥 Failed to resolve items for outfit {(outfit_data.get('id') if outfit_data else None)}: {e}")
                     outfit_data['items'] = []  # Set empty items instead of crashing
         else:
             logger.info(f"✅ DEBUG: Firestore returned {len(outfits)} pre-sorted outfits")
@@ -4482,8 +4482,8 @@ async def outfit_save_test():
             
             # Verify by reading back
             logger.info("🔥 Testing outfit read...")
-        verification_doc = doc_ref.get() if doc_ref else None if doc_ref else None
-            if verification_doc.exists:
+            verification_doc = doc_ref.get() if doc_ref else None
+            if verification_doc and verification_doc.exists:
                 test_results["outfit_read_test"] = "success"
                 test_results["read_data"] = verification_doc.to_dict()
                 logger.info("✅ Outfit read test successful")
@@ -5693,10 +5693,10 @@ async def generate_outfit(
         
         # Only run generation if cache miss
         if not outfit:
-            for attempt in range(max_attempts):
-                generation_attempts += 1
-                try:
-                    logger.info(f"🔄 Generation attempt {generation_attempts}/{max_attempts}")
+        for attempt in range(max_attempts):
+            generation_attempts += 1
+            try:
+                logger.info(f"🔄 Generation attempt {generation_attempts}/{max_attempts}")
         print(f"🔍 DEBUG RETRY LOOP: Starting attempt {generation_attempts}")
         print(f"🔍 DEBUG RETRY LOOP: req = {req}")
         print(f"🔍 DEBUG RETRY LOOP: current_user_id = {current_user_id}")
@@ -5946,7 +5946,7 @@ async def generate_outfit(
             "generated_at": datetime.utcnow().isoformat(),
             **outfit
         }
-        
+
         # Ensure metadata exists and is a dict (not None) - preserve from outfit if it exists
         if 'metadata' not in outfit_record or outfit_record.get('metadata') is None:
             outfit_record['metadata'] = {}
@@ -7036,8 +7036,8 @@ async def generate_intelligent_reasoning(items: List[Dict], req: OutfitRequest, 
         if (req.weather if req else None):
             # Handle both dict and object weather data
             if isinstance(req.weather, dict):
-                temp = req.weather.get('temperature', 70) if req.weather else 70
-                condition = req.weather.get('condition', 'clear') if req.weather else 'clear'
+        temp = req.weather.get('temperature', 70) if req.weather else 70
+        condition = req.weather.get('condition', 'clear') if req.weather else 'clear'
             else:
                 temp = getattr(req.weather, 'temperature', 70)
                 condition = getattr(req.weather, 'condition', 'clear')
@@ -7417,7 +7417,7 @@ def _apply_final_outfit_validation(outfit: Dict[str, Any]) -> Dict[str, Any]:
         # Remove excess items (keep first 6)
         outfit['items'] = final_items[:6]
     
-    return outfit
+    return outfit 
 
 # Admin cache management endpoints
 async def check_admin_user(
