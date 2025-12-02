@@ -1126,9 +1126,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 wardrobe_items = clothing_items
             
             # DEBUG: Check clothing_items for None values
-        # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items length = {len(clothing_items)}")
-        # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items type = {type(clothing_items)}")
-        for i, item in enumerate(clothing_items):
+            # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items length = {len(clothing_items)}")
+            # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items type = {type(clothing_items)}")
+            for i, item in enumerate(clothing_items):
             pass
             pass
             pass
