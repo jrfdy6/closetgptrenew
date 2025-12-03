@@ -8241,55 +8241,94 @@ class RobustOutfitGenerationService:
     # ═══════════════════════════════════════════════════════════════════════════
     
     def _generate_learning_insight_message(self, context, item_scores, diversity_scores, favorited_count):
-        """Generate a Spotify-style learning insight message for the user"""
+        """Generate a Spotify-style learning insight message for the user - SMART version with real data"""
         try:
             # Count how many items have high diversity scores (fresh picks)
             fresh_picks = sum(1 for score in diversity_scores.values() if score > 1.1)
             
-            # Count favorited items in the outfit
-            favorites_in_outfit = favorited_count if favorited_count > 0 else 0
+            # Count favorited items actually in item_scores (real data)
+            favorites_in_outfit = sum(1 for scores in item_scores.values() 
+                                     if scores.get('user_feedback_score', 0) > 0.7)
             
-            # Generate personalized message
-            if fresh_picks > 0 and favorites_in_outfit > 0:
-                return f"We noticed you love {context.style.lower()} style! This outfit mixes {favorites_in_outfit} of your favorites with {fresh_picks} fresh picks to keep things exciting."
-            elif fresh_picks > 0:
-                return f"Based on your {context.occasion.lower()} history, we're introducing {fresh_picks} new items you haven't worn recently. Your feedback helps us learn!"
-            elif favorites_in_outfit > 0:
-                return f"This outfit features items you've loved before! We're using your ratings to understand your unique {context.style.lower()} preferences."
+            # Get actual user stats from context
+            total_outfits = safe_get(context.user_profile, 'total_outfits_rated', 0) if context.user_profile else 0
+            
+            # SMART MESSAGING based on user experience level
+            if total_outfits == 0:
+                # New user - encourage them to rate
+                if fresh_picks > 0:
+                    return f"Welcome! This {context.style} outfit is designed for {context.occasion}. Rate it to help us learn your unique taste! ✨"
+                else:
+                    return f"Your first {context.occasion} outfit! We've selected pieces that work well together. Rate it to train your personal AI stylist! 🎨"
+            
+            elif total_outfits < 5:
+                # Learning phase - show we're adapting
+                if favorites_in_outfit > 0:
+                    return f"Learning your style! Based on your {total_outfits} ratings, this includes {favorites_in_outfit} items similar to what you've liked before. 📊"
+                else:
+                    return f"Exploring your taste! After {total_outfits} ratings, we're trying new {context.style} combinations to understand your preferences better. 🔍"
+            
             else:
-                return f"Your ratings help us learn your style! We've analyzed your {context.occasion.lower()} preferences to create this personalized outfit."
+                # Experienced user - show sophistication
+                if fresh_picks > 0 and favorites_in_outfit > 0:
+                    return f"Personalized mix! From {total_outfits} outfits we learned you love {context.style} - mixing {favorites_in_outfit} proven favorites with {fresh_picks} fresh pieces. 🎯"
+                elif fresh_picks > 0:
+                    return f"Keeping it fresh! Based on {total_outfits} ratings, introducing {fresh_picks} items you haven't worn recently for {context.occasion}. 🔄"
+                elif favorites_in_outfit > 0:
+                    return f"Your favorites! After {total_outfits} ratings, we know these {favorites_in_outfit} pieces match your {context.style} preferences perfectly. ⭐"
+                else:
+                    return f"AI-optimized! Using insights from {total_outfits} ratings to create the perfect {context.style} look for {context.occasion}. 🤖"
+                    
         except Exception as e:
             logger.warning(f"Failed to generate learning insight: {e}")
-            return "Your ratings and feedback train our AI to create outfits you'll love. Keep sharing your thoughts!"
+            return f"Personalized outfit for {context.occasion} - Rate it to improve future suggestions! 💡"
     
     def _get_item_selection_reason(self, item, item_score_data, diversity_score):
-        """Generate a reason why this specific item was selected"""
+        """Generate a reason why this specific item was selected - REAL DATA version"""
         try:
-            # High diversity score = fresh pick
+            # Get actual scores
+            user_feedback_score = item_score_data.get('user_feedback_score', 0.5)
+            weather_score = item_score_data.get('weather_score', 0.5)
+            style_score = item_score_data.get('style_profile_score', 0.5)
+            body_score = item_score_data.get('body_type_score', 0.5)
+            composite_score = item_score_data.get('composite_score', 0)
+            
+            # PRIORITY 1: High diversity score = fresh pick (most interesting to user)
             if diversity_score > 1.15:
                 days_since_worn = int((diversity_score - 1.0) * 30)  # Rough estimate
-                return f"Fresh pick - you haven't worn this in ~{days_since_worn} days"
+                return f"Fresh choice! Haven't worn in ~{days_since_worn} days - time to give it another chance! 🔄"
             
-            # High user feedback score = favorite
-            user_feedback_score = item_score_data.get('user_feedback_score', 0.5)
+            # PRIORITY 2: High user feedback score = proven favorite
             if user_feedback_score > 0.7:
-                return "You've loved this in past outfits (avg 4.2★)"
+                # More specific based on score
+                if user_feedback_score > 0.85:
+                    return "One of your top-rated pieces from past outfits! ⭐"
+                else:
+                    return "You've rated this positively before - reliable choice! 👍"
             
-            # High weather score = perfect for conditions
-            weather_score = item_score_data.get('weather_score', 0.5)
-            if weather_score > 0.8:
-                return "Perfect fit for today's weather conditions"
+            # PRIORITY 3: Perfect weather match
+            if weather_score > 0.85:
+                return "Ideal for today's temperature and conditions! 🌤️"
             
-            # High style score = matches preferences
-            style_score = item_score_data.get('style_profile_score', 0.5)
-            if style_score > 0.7:
-                return f"Matches your {item.color.lower()} color preferences"
+            # PRIORITY 4: Style/body type match
+            if style_score > 0.8:
+                color_name = safe_get(item, 'color', 'this color')
+                return f"{color_name} matches your style preferences! 🎨"
             
-            # Default
-            return "Selected for optimal outfit harmony"
+            if body_score > 0.8:
+                fit = safe_get(item.metadata, 'visualAttributes.fit', 'This fit') if hasattr(item, 'metadata') else 'This fit'
+                return f"{fit} fit works great for your profile! 👔"
+            
+            # PRIORITY 5: High composite score (general AI confidence)
+            if composite_score > 6.5:
+                return "Top-scored item across all our AI dimensions! 🤖"
+            
+            # Default - be honest
+            return "Balanced choice for this outfit's overall harmony 🎯"
+            
         except Exception as e:
             logger.warning(f"Failed to get item reason: {e}")
-            return "AI-selected for you"
+            return "Selected by AI stylist 🤖"
     
     def _generate_diversity_message(self, diversity_result, session_tracker, session_id):
         """Generate a message about outfit diversity and freshness"""
