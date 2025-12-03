@@ -1347,18 +1347,19 @@ class RobustOutfitGenerationService:
         # ═══════════════════════════════════════════════════════════
         
         # Check if user is in "favorites mode" (has many favorited items in wardrobe)
+        # PERFORMANCE FIX: Use wardrobe already in context instead of Firebase query
         favorites_mode = False
-        if context.user_profile:
+        if context.user_profile and context.wardrobe:
             try:
-                from src.config.firebase import db
-                wardrobe_ref = db.collection('wardrobe').where('userId', '==', context.user_id)
-                wardrobe_docs = list(wardrobe_ref.stream())
-                favorited_count = sum(1 for doc in wardrobe_docs if doc.to_dict().get('isFavorite', False))
+                # Count favorited items from context.wardrobe (no Firebase query needed!)
+                favorited_count = sum(1 for item in context.wardrobe if getattr(item, 'isFavorite', False) or getattr(item, 'favorite_score', 0) > 0.7)
                 
                 # If 30%+ of wardrobe is favorited, enable favorites mode
-                if len(wardrobe_docs) > 0 and (favorited_count / len(wardrobe_docs)) >= 0.3:
+                if len(context.wardrobe) > 0 and (favorited_count / len(context.wardrobe)) >= 0.3:
                     favorites_mode = True
-                    logger.info(f"⭐ FAVORITES MODE ACTIVATED: {favorited_count}/{len(wardrobe_docs)} items favorited ({favorited_count/len(wardrobe_docs)*100:.0f}%)")
+                    logger.info(f"⭐ FAVORITES MODE ACTIVATED: {favorited_count}/{len(context.wardrobe)} items favorited ({favorited_count/len(context.wardrobe)*100:.0f}%)")
+                else:
+                    logger.info(f"📊 Favorites check: {favorited_count}/{len(context.wardrobe)} favorited ({favorited_count/len(context.wardrobe)*100:.0f}% - need 30% for favorites mode)")
             except Exception as e:
                 logger.warning(f"⚠️ Could not check favorites mode: {e}")
         
@@ -6399,16 +6400,15 @@ class RobustOutfitGenerationService:
                         
                         item_wear_history[item_id].append(wear_time)
             
-            # Get favorited items from wardrobe
-            wardrobe_ref = db.collection('wardrobe').where('userId', '==', user_id)
-            wardrobe_docs = wardrobe_ref.stream()
+            # Get favorited items from wardrobe (PERFORMANCE FIX: use context.wardrobe instead of Firebase query)
+            # Use wardrobe items already in context - much faster!
+            for item in item_scores.values():
+                clothing_item = item['item']
+                item_id = safe_item_access(clothing_item, 'id')
+                if item_id and (getattr(clothing_item, 'isFavorite', False) or getattr(clothing_item, 'favorite_score', 0) > 0.7):
+                    favorited_items.add(item_id)
             
-            for wardrobe_doc in wardrobe_docs:
-                item_data = wardrobe_doc.to_dict()
-                if safe_get(item_data, 'isFavorite') or safe_get(item_data, 'favorite_score', 0) > 0.7:
-                    favorited_items.add(safe_get(item_data, 'id'))
-            
-            logger.info(f"📊 Feedback data loaded: {len(outfit_ratings)} rated items, {len(favorited_items)} favorites")
+            logger.info(f"📊 Feedback data loaded: {len(outfit_ratings)} rated items, {len(favorited_items)} favorites (from {len(item_scores)} wardrobe items)")
             
         except Exception as e:
             logger.warning(f"⚠️ Failed to load user feedback data: {e}")
@@ -6568,12 +6568,20 @@ class RobustOutfitGenerationService:
         # SELECT OUTFIT COMPOSITION STRATEGY
         # ═══════════════════════════════════════════════════════════════════════
         
-        # Get user's outfit count for rotation
+        # Get user's outfit count for rotation (PERFORMANCE FIX: use cached value or skip)
+        # This query was causing 2-3 second delays - not critical for strategy selection
         user_outfit_count = 0
         try:
-            from ..config.firebase import db
-            outfits_ref = db.collection('outfits').where('userId', '==', context.user_id)
-            user_outfit_count = len(list(outfits_ref.stream()))
+            # Skip expensive Firebase query during generation - use context data if available
+            # Strategy selection can work with count=0 (defaults to standard strategy)
+            if hasattr(context, 'user_outfit_count') and context.user_outfit_count is not None:
+                user_outfit_count = context.user_outfit_count
+                logger.info(f"📊 Using cached outfit count: {user_outfit_count}")
+            else:
+                # Use wardrobe size as a proxy for user experience level
+                # Large wardrobe = experienced user, can handle advanced strategies
+                user_outfit_count = min(len(context.wardrobe) // 3, 20)  # Rough estimate
+                logger.info(f"📊 Estimated outfit count from wardrobe size: {user_outfit_count}")
         except Exception as e:
             logger.warning(f"⚠️ Could not get outfit count for strategy rotation: {e}")
             user_outfit_count = 0
