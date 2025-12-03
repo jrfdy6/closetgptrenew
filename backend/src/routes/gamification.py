@@ -83,30 +83,44 @@ async def get_gamification_profile(
 ) -> Dict[str, Any]:
     """
     Get user's complete gamification profile
+    Auto-initializes fields if missing
     
     Returns:
         XP, level, badges, AI Fit Score, active challenges
     """
     try:
+        from ..config.firebase import db
+        from google.cloud.firestore_v1 import SERVER_TIMESTAMP
+        
+        # First, ensure user has gamification fields (merge update won't overwrite existing)
+        user_ref = db.collection('users').document(current_user.id)
+        user_ref.set({
+            'xp': 0,
+            'level': 1,
+            'ai_fit_score': 0.0,
+            'badges': [],
+            'current_challenges': {},
+            'spending_ranges': {
+                "annual_total": "unknown",
+                "shoes": "unknown",
+                "jackets": "unknown",
+                "pants": "unknown",
+                "tops": "unknown",
+                "dresses": "unknown",
+                "activewear": "unknown",
+                "accessories": "unknown"
+            },
+            'updatedAt': SERVER_TIMESTAMP
+        }, merge=True)
+        
+        logger.info(f"Ensured gamification fields for user {current_user.id}")
+        
+        # Now get the state
         state = await gamification_service.get_user_gamification_state(current_user.id)
         
         if not state:
-            # Try to initialize if not found
-            from ..config.firebase import db
-            user_ref = db.collection('users').document(current_user.id)
-            user_ref.update({
-                'xp': 0,
-                'level': 1,
-                'ai_fit_score': 0.0,
-                'badges': [],
-                'current_challenges': {}
-            }, merge=True)
-            
-            # Retry getting state
-            state = await gamification_service.get_user_gamification_state(current_user.id)
-            
-            if not state:
-                raise HTTPException(status_code=404, detail="Gamification state not found")
+            logger.error(f"Failed to get state after initialization for user {current_user.id}")
+            raise HTTPException(status_code=500, detail="Failed to initialize gamification state")
         
         return {
             "success": True,
@@ -117,7 +131,7 @@ async def get_gamification_profile(
         raise
     except Exception as e:
         logger.error(f"Error getting gamification profile: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to get gamification profile")
+        raise HTTPException(status_code=500, detail=f"Failed to get gamification profile: {str(e)}")
 
 
 @router.get("/stats")
