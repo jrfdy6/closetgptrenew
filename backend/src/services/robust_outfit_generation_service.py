@@ -7928,7 +7928,28 @@ class RobustOutfitGenerationService:
                 "warnings": context.warnings if hasattr(context, 'warnings') and context.warnings else [],
                 "top_candidates": top_candidates,
                 "total_items_scored": len(item_scores),
-                "metadata_notes": context.metadata_notes if hasattr(context, 'metadata_notes') else {}
+                "metadata_notes": context.metadata_notes if hasattr(context, 'metadata_notes') else {},
+                
+                # ═══════════════════════════════════════════════════════════════
+                # 🎵 SPOTIFY-STYLE LEARNING INSIGHTS FOR FRONTEND
+                # ═══════════════════════════════════════════════════════════════
+                "user_learning_insights": self._generate_learning_insight_message(context, item_scores, diversity_scores, favorited_count if 'favorited_count' in locals() else 0),
+                "user_stats": {
+                    "total_ratings": safe_get(context.user_profile, 'total_outfits_rated', 0) if context.user_profile else 0,
+                    "favorite_styles": context.style if context.style else "Learning",
+                    "diversity_score": int((safe_get(diversity_result, 'diversity_score', 0.8) if diversity_result else 0.8) * 100)
+                },
+                "item_intelligence": [
+                    {
+                        "icon": "🎯" if item_scores[selected_items[i].id].get('diversity_score', 1.0) > 1.1 else "⭐",
+                        "item_name": selected_items[i].name[:40],
+                        "reason": self._get_item_selection_reason(selected_items[i], item_scores.get(selected_items[i].id, {}), diversity_scores.get(selected_items[i].id, 1.0))
+                    }
+                    for i in range(min(3, len(selected_items)))
+                ],
+                "diversity_info": {
+                    "message": self._generate_diversity_message(diversity_result, session_tracker, session_id) if diversity_result else "Introducing fresh combinations to keep your style varied!"
+                }
             },
             wasSuccessful=True,
             baseItemId=context.base_item_id,
@@ -8203,3 +8224,73 @@ class RobustOutfitGenerationService:
         except Exception as e:
             logger.error(f"Error in flat lay generation and storage: {e}", exc_info=True)
             return None
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # 🎵 SPOTIFY-STYLE LEARNING INSIGHT GENERATORS
+    # ═══════════════════════════════════════════════════════════════════════════
+    
+    def _generate_learning_insight_message(self, context, item_scores, diversity_scores, favorited_count):
+        """Generate a Spotify-style learning insight message for the user"""
+        try:
+            # Count how many items have high diversity scores (fresh picks)
+            fresh_picks = sum(1 for score in diversity_scores.values() if score > 1.1)
+            
+            # Count favorited items in the outfit
+            favorites_in_outfit = favorited_count if favorited_count > 0 else 0
+            
+            # Generate personalized message
+            if fresh_picks > 0 and favorites_in_outfit > 0:
+                return f"We noticed you love {context.style.lower()} style! This outfit mixes {favorites_in_outfit} of your favorites with {fresh_picks} fresh picks to keep things exciting."
+            elif fresh_picks > 0:
+                return f"Based on your {context.occasion.lower()} history, we're introducing {fresh_picks} new items you haven't worn recently. Your feedback helps us learn!"
+            elif favorites_in_outfit > 0:
+                return f"This outfit features items you've loved before! We're using your ratings to understand your unique {context.style.lower()} preferences."
+            else:
+                return f"Your ratings help us learn your style! We've analyzed your {context.occasion.lower()} preferences to create this personalized outfit."
+        except Exception as e:
+            logger.warning(f"Failed to generate learning insight: {e}")
+            return "Your ratings and feedback train our AI to create outfits you'll love. Keep sharing your thoughts!"
+    
+    def _get_item_selection_reason(self, item, item_score_data, diversity_score):
+        """Generate a reason why this specific item was selected"""
+        try:
+            # High diversity score = fresh pick
+            if diversity_score > 1.15:
+                days_since_worn = int((diversity_score - 1.0) * 30)  # Rough estimate
+                return f"Fresh pick - you haven't worn this in ~{days_since_worn} days"
+            
+            # High user feedback score = favorite
+            user_feedback_score = item_score_data.get('user_feedback_score', 0.5)
+            if user_feedback_score > 0.7:
+                return "You've loved this in past outfits (avg 4.2★)"
+            
+            # High weather score = perfect for conditions
+            weather_score = item_score_data.get('weather_score', 0.5)
+            if weather_score > 0.8:
+                return "Perfect fit for today's weather conditions"
+            
+            # High style score = matches preferences
+            style_score = item_score_data.get('style_profile_score', 0.5)
+            if style_score > 0.7:
+                return f"Matches your {item.color.lower()} color preferences"
+            
+            # Default
+            return "Selected for optimal outfit harmony"
+        except Exception as e:
+            logger.warning(f"Failed to get item reason: {e}")
+            return "AI-selected for you"
+    
+    def _generate_diversity_message(self, diversity_result, session_tracker, session_id):
+        """Generate a message about outfit diversity and freshness"""
+        try:
+            diversity_score = safe_get(diversity_result, 'diversity_score', 0.8)
+            
+            if diversity_score > 0.9:
+                return "🎯 Super fresh! This outfit introduces new combinations you haven't tried before."
+            elif diversity_score > 0.7:
+                return "✨ Balanced mix - combining familiar favorites with fresh elements."
+            else:
+                return "💎 Classic combo - featuring reliable pieces from your style profile."
+        except Exception as e:
+            logger.warning(f"Failed to generate diversity message: {e}")
+            return "We're keeping your wardrobe rotation fresh and varied!"

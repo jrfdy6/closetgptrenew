@@ -514,11 +514,116 @@ export default function OutfitResultsDisplay({
             </div>
           )}
 
-          {/* Rating Section */}
+          {/* 🎵 LEARNING INSIGHTS SECTION - Spotify-Style */}
+          {outfit.metadata && (
+            <div className="border-t pt-6 space-y-4">
+              {/* AI Learning Header */}
+              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
+                <div className="flex items-start gap-3">
+                  <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-1">
+                      🎵 Based on your preferences...
+                    </h4>
+                    <p className="text-sm text-purple-800 dark:text-purple-200 leading-relaxed">
+                      {outfit.metadata.user_learning_insights || 
+                        `We've analyzed your style history to create this personalized outfit. Your ratings help us learn your unique taste!`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Learning Stats Bar */}
+                {outfit.metadata.user_stats && (
+                  <div className="mt-3 pt-3 border-t border-purple-200/50 dark:border-purple-700/50">
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div>
+                        <div className="text-xl font-bold text-purple-900 dark:text-purple-100">
+                          {outfit.metadata.user_stats.total_ratings || 0}
+                        </div>
+                        <div className="text-xs text-purple-700 dark:text-purple-300">
+                          Outfits Rated
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xl font-bold text-purple-900 dark:text-purple-100">
+                          {outfit.metadata.user_stats.favorite_styles || 'Learning'}
+                        </div>
+                        <div className="text-xs text-purple-700 dark:text-purple-300">
+                          Top Style
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xl font-bold text-purple-900 dark:text-purple-100">
+                          {outfit.metadata.user_stats.diversity_score ? `${outfit.metadata.user_stats.diversity_score}%` : 'Fresh'}
+                        </div>
+                        <div className="text-xs text-purple-700 dark:text-purple-300">
+                          Variety
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Item-Level Intelligence Cards */}
+              {outfit.metadata.item_intelligence && outfit.metadata.item_intelligence.length > 0 && (
+                <div className="space-y-2">
+                  <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    <Target className="h-4 w-4" />
+                    Why We Picked These Items
+                  </h5>
+                  <div className="space-y-2">
+                    {outfit.metadata.item_intelligence.slice(0, 3).map((insight: any, idx: number) => (
+                      <div 
+                        key={idx}
+                        className="bg-gradient-to-r from-amber-50/50 to-orange-50/50 dark:from-amber-900/10 dark:to-orange-900/10 rounded-lg p-3 border border-amber-200/50 dark:border-amber-800/50"
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className="text-lg">{insight.icon || '✨'}</div>
+                          <div className="flex-1">
+                            <div className="font-medium text-sm text-gray-900 dark:text-white">
+                              {insight.item_name}
+                            </div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                              {insight.reason}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Diversity & Freshness Indicator */}
+              {outfit.metadata.diversity_info && (
+                <div className="bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 rounded-lg p-3 border border-teal-200 dark:border-teal-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <RefreshCw className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+                    <span className="text-sm font-semibold text-teal-900 dark:text-teal-100">
+                      Fresh Picks 🎯
+                    </span>
+                  </div>
+                  <p className="text-xs text-teal-800 dark:text-teal-200">
+                    {outfit.metadata.diversity_info.message || 
+                      `We're introducing new combinations to keep your style fresh and diverse!`}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Rating Section with Enhanced Context */}
           <div className="border-t pt-6">
-            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Rate This Outfit</h4>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-semibold text-gray-900 dark:text-white">Rate This Outfit</h4>
+              <Badge variant="outline" className="text-xs">
+                <Star className="h-3 w-3 mr-1" />
+                Powers Your AI
+              </Badge>
+            </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Click the stars to rate this outfit. Your feedback helps improve future suggestions!
+              Your feedback trains our AI to understand your unique style preferences better!
             </p>
             
             {/* Star Rating */}
@@ -584,7 +689,7 @@ export default function OutfitResultsDisplay({
             {/* Feedback */}
             <div className="mb-4">
               <Textarea
-                placeholder="Share your thoughts about this outfit..."
+                placeholder="Share your thoughts about this outfit... (e.g., 'Love the color combo!' or 'Too formal for weekend')"
                 value={rating.feedback}
                 onChange={(e) => onFeedbackChange(e.target.value)}
                 rows={3}
@@ -595,16 +700,20 @@ export default function OutfitResultsDisplay({
 
             {/* Status Messages */}
             {rating.rating > 0 && !ratingSubmitted && (
-              <div className="text-xs text-amber-600 dark:text-amber-400 text-center mb-4">
-                ✓ Rating will be automatically submitted
+              <div className="text-xs text-amber-600 dark:text-amber-400 text-center mb-4 flex items-center justify-center gap-2">
+                <Sparkles className="h-3 w-3" />
+                ✓ Rating will be automatically submitted and improve your AI
               </div>
             )}
 
             {ratingSubmitted && (
-              <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg mb-4">
-                <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
-                  ✓ Rating submitted! This helps improve future suggestions.
-                </p>
+              <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg mb-4">
+                <div className="flex items-center justify-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  <p className="text-sm text-green-700 dark:text-green-300 font-medium">
+                    Thanks! Your AI is learning your style preferences 🎉
+                  </p>
+                </div>
               </div>
             )}
 
