@@ -17,6 +17,66 @@ router = APIRouter(prefix="/gamification", tags=["gamification"])
 logger = logging.getLogger(__name__)
 
 
+@router.post("/initialize")
+async def initialize_gamification(
+    current_user: UserProfile = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Initialize gamification fields for current user
+    Call this once to set up gamification for existing users
+    """
+    try:
+        from ..config.firebase import db
+        
+        user_ref = db.collection('users').document(current_user.id)
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_data = user_doc.to_dict()
+        
+        # Add gamification fields if missing
+        updates = {}
+        if 'xp' not in user_data:
+            updates['xp'] = 0
+        if 'level' not in user_data:
+            updates['level'] = 1
+        if 'ai_fit_score' not in user_data:
+            updates['ai_fit_score'] = 0.0
+        if 'badges' not in user_data:
+            updates['badges'] = []
+        if 'current_challenges' not in user_data:
+            updates['current_challenges'] = {}
+        if 'spending_ranges' not in user_data:
+            updates['spending_ranges'] = {
+                "annual_total": "unknown",
+                "shoes": "unknown",
+                "jackets": "unknown",
+                "pants": "unknown",
+                "tops": "unknown",
+                "dresses": "unknown",
+                "activewear": "unknown",
+                "accessories": "unknown"
+            }
+        
+        if updates:
+            user_ref.update(updates)
+            logger.info(f"✅ Initialized gamification for user {current_user.id}")
+        
+        return {
+            "success": True,
+            "message": "Gamification initialized",
+            "fields_added": list(updates.keys())
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error initializing gamification: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to initialize gamification")
+
+
 @router.get("/profile")
 async def get_gamification_profile(
     current_user: UserProfile = Depends(get_current_user)
@@ -31,7 +91,22 @@ async def get_gamification_profile(
         state = await gamification_service.get_user_gamification_state(current_user.id)
         
         if not state:
-            raise HTTPException(status_code=404, detail="Gamification state not found")
+            # Try to initialize if not found
+            from ..config.firebase import db
+            user_ref = db.collection('users').document(current_user.id)
+            user_ref.update({
+                'xp': 0,
+                'level': 1,
+                'ai_fit_score': 0.0,
+                'badges': [],
+                'current_challenges': {}
+            }, merge=True)
+            
+            # Retry getting state
+            state = await gamification_service.get_user_gamification_state(current_user.id)
+            
+            if not state:
+                raise HTTPException(status_code=404, detail="Gamification state not found")
         
         return {
             "success": True,
