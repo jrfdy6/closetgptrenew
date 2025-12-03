@@ -360,7 +360,7 @@ export default function OutfitGenerationPage() {
       console.log('🔍 Fetching profile for user:', user.uid);
       try {
         const profileToken = await user.getIdToken();
-        const response = await fetch('/api/user/profile', {
+        const response = await fetch('/api/auth/profile', {
           headers: {
             'Authorization': `Bearer ${profileToken}`,
           },

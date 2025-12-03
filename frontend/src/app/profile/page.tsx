@@ -210,8 +210,8 @@ export default function ProfilePage() {
         console.log('🔍 DEBUG: Client - Could not decode token:', tokenError);
       }
       
-      console.log('🔍 DEBUG: Making fetch request to /api/user/profile');
-      const response = await fetch('/api/user/profile', {
+      console.log('🔍 DEBUG: Making fetch request to /api/auth/profile');
+      const response = await fetch('/api/auth/profile', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -266,8 +266,8 @@ export default function ProfilePage() {
 
       const token = await user.getIdToken();
       
-      const response = await fetch('/api/user/profile', {
-        method: 'POST',
+      const response = await fetch('/api/auth/profile', {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
