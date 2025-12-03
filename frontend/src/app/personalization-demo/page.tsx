@@ -168,7 +168,7 @@ export default function PersonalizationDemoPage() {
 
       // Fetch the user's complete profile data for advanced validation
       console.log('🔍 [Demo] Fetching user profile data...');
-      const profileResponse = await fetch('/api/auth/profile', {
+      const profileResponse = await fetch('/api/user/profile', {
         headers: {
           'Authorization': `Bearer ${authToken}`,
         },
