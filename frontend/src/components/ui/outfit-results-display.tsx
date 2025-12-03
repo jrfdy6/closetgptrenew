@@ -515,7 +515,17 @@ export default function OutfitResultsDisplay({
           )}
 
           {/* 🎵 LEARNING INSIGHTS SECTION - Spotify-Style */}
-          {outfit.metadata && (
+          {(() => {
+            // Debug logging
+            console.log('🔍 OUTFIT METADATA CHECK:', {
+              hasMetadata: !!outfit.metadata,
+              hasUserLearning: !!outfit.metadata?.user_learning_insights,
+              hasUserStats: !!outfit.metadata?.user_stats,
+              hasItemIntel: !!outfit.metadata?.item_intelligence,
+              metadataKeys: outfit.metadata ? Object.keys(outfit.metadata) : []
+            });
+            return outfit.metadata && (outfit.metadata.user_learning_insights || outfit.metadata.user_stats || outfit.metadata.item_intelligence);
+          })() && (
             <div className="border-t pt-6 space-y-4">
               {/* AI Learning Header */}
               <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
