@@ -7933,7 +7933,14 @@ class RobustOutfitGenerationService:
                 # ═══════════════════════════════════════════════════════════════
                 # 🎵 SPOTIFY-STYLE LEARNING INSIGHTS FOR FRONTEND
                 # ═══════════════════════════════════════════════════════════════
-                "user_learning_insights": self._generate_learning_insight_message(context, item_scores, diversity_scores, favorited_count if 'favorited_count' in locals() else 0),
+                # Extract diversity scores from item_scores (stored per-item during scoring)
+                "extracted_diversity_scores": {item_id: scores.get('diversity_score', 1.0) for item_id, scores in item_scores.items()},
+                "user_learning_insights": self._generate_learning_insight_message(
+                    context, 
+                    item_scores, 
+                    {item_id: scores.get('diversity_score', 1.0) for item_id, scores in item_scores.items()},
+                    0  # favorited_count - will be computed from item_scores
+                ),
                 "user_stats": {
                     "total_ratings": safe_get(context.user_profile, 'total_outfits_rated', 0) if context.user_profile else 0,
                     "favorite_styles": context.style if context.style else "Learning",
@@ -7941,9 +7948,13 @@ class RobustOutfitGenerationService:
                 },
                 "item_intelligence": [
                     {
-                        "icon": "🎯" if item_scores[selected_items[i].id].get('diversity_score', 1.0) > 1.1 else "⭐",
+                        "icon": "🎯" if item_scores.get(selected_items[i].id, {}).get('diversity_score', 1.0) > 1.1 else "⭐",
                         "item_name": selected_items[i].name[:40],
-                        "reason": self._get_item_selection_reason(selected_items[i], item_scores.get(selected_items[i].id, {}), diversity_scores.get(selected_items[i].id, 1.0))
+                        "reason": self._get_item_selection_reason(
+                            selected_items[i], 
+                            item_scores.get(selected_items[i].id, {}), 
+                            item_scores.get(selected_items[i].id, {}).get('diversity_score', 1.0)
+                        )
                     }
                     for i in range(min(3, len(selected_items)))
                 ],
