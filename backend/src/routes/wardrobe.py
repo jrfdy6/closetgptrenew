@@ -5,6 +5,20 @@ import uuid
 import time
 from datetime import datetime
 import logging
+import traceback
+
+# Import production monitoring
+try:
+    from ..services.production_monitoring_service import (
+        monitoring_service,
+        OperationType,
+        UserJourneyStep
+    )
+    MONITORING_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"⚠️ Production monitoring import failed: {e}")
+    MONITORING_AVAILABLE = False
+    monitoring_service = None
 
 # Set up basic logging
 logger = logging.getLogger(__name__)
@@ -438,6 +452,7 @@ async def add_wardrobe_item(
     - season: str or List[str]
     - imageUrl: str (optional)
     """
+    start_time = time.time()
     try:
         # Validate required fields
         required_fields = ['name', 'type', 'color']
@@ -559,6 +574,31 @@ async def add_wardrobe_item(
         
         logger.info(f"Wardrobe item added: {item_id} for user {current_user.id}")
         
+        # 🚀 PRODUCTION MONITORING: Track successful wardrobe add
+        if MONITORING_AVAILABLE and monitoring_service:
+            try:
+                duration_ms = (time.time() - start_time) * 1000
+                await monitoring_service.track_operation(
+                    operation=OperationType.WARDROBE_ADD,
+                    user_id=current_user.id,
+                    status="success",
+                    duration_ms=duration_ms,
+                    context={
+                        "item_type": item_data["type"],
+                        "has_image": bool(item_data.get("imageUrl")),
+                        "has_ai_analysis": bool(item_data.get("analysis"))
+                    }
+                )
+                
+                # Track first item added milestone
+                await monitoring_service.track_user_journey(
+                    user_id=current_user.id,
+                    step=UserJourneyStep.FIRST_ITEM_ADDED,
+                    metadata={"item_type": item_data["type"]}
+                )
+            except Exception as monitoring_error:
+                logger.warning(f"Production monitoring failed: {monitoring_error}")
+        
         return {
             "success": True,
             "message": "Wardrobe item added successfully",
@@ -566,9 +606,41 @@ async def add_wardrobe_item(
         }
         
     except HTTPException:
+        # Track HTTP exceptions
+        if MONITORING_AVAILABLE and monitoring_service:
+            try:
+                duration_ms = (time.time() - start_time) * 1000
+                await monitoring_service.track_operation(
+                    operation=OperationType.WARDROBE_ADD,
+                    user_id=current_user.id if current_user else 'unknown',
+                    status="failure",
+                    duration_ms=duration_ms,
+                    error="HTTP Exception",
+                    error_type="HTTPException"
+                )
+            except:
+                pass
         raise
     except Exception as e:
         logger.error(f"Error adding wardrobe item: {e}")
+        
+        # 🚀 PRODUCTION MONITORING: Track failure
+        if MONITORING_AVAILABLE and monitoring_service:
+            try:
+                duration_ms = (time.time() - start_time) * 1000
+                await monitoring_service.track_operation(
+                    operation=OperationType.WARDROBE_ADD,
+                    user_id=current_user.id if current_user else 'unknown',
+                    status="failure",
+                    duration_ms=duration_ms,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    stack_trace=traceback.format_exc(),
+                    context={"item_type": item_data.get("type") if item_data else "unknown"}
+                )
+            except Exception as monitoring_error:
+                logger.warning(f"Production monitoring failed during error handling: {monitoring_error}")
+        
         raise HTTPException(status_code=500, detail=f"Error adding wardrobe item: {str(e)}")
 
 @router.get("/test", include_in_schema=False)

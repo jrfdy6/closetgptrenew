@@ -38,6 +38,14 @@ from .validation import (
 )
 from .scoring import calculate_outfit_score
 
+# Import monitoring service
+from ...services.production_monitoring_service import (
+    monitoring_service,
+    OperationType,
+    UserJourneyStep,
+    ServiceLayer
+)
+
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["outfits"])
 security = HTTPBearer()
@@ -1299,6 +1307,42 @@ async def generate_outfit(
         
         # Performance monitoring
         generation_time = time.time() - start_time
+        
+        # 🚀 PRODUCTION MONITORING: Track successful generation
+        try:
+            wardrobe_size = len(req.resolved_wardrobe) if req else 0
+            await monitoring_service.track_operation(
+                operation=OperationType.OUTFIT_GENERATION,
+                user_id=current_user_id,
+                status="success",
+                duration_ms=generation_time * 1000,
+                context={
+                    "occasion": req.occasion if req else "unknown",
+                    "style": req.style if req else "unknown",
+                    "mood": req.mood if req else "unknown",
+                    "wardrobe_size": wardrobe_size,
+                    "generation_attempts": generation_attempts,
+                    "cache_hit": cache_hit,
+                    "strategy": safe_get_metadata(clean_outfit_record, 'generation_strategy', 'unknown')
+                }
+            )
+            
+            # Track cache operation
+            await monitoring_service.track_cache_operation(
+                cache_key="outfit_generation",
+                hit=cache_hit,
+                operation="outfit_generation"
+            )
+            
+            # Track first outfit generation milestone
+            if not cache_hit:
+                await monitoring_service.track_user_journey(
+                    user_id=current_user_id,
+                    step=UserJourneyStep.FIRST_OUTFIT_GENERATED,
+                    metadata={"occasion": req.occasion if req else "unknown"}
+                )
+        except Exception as monitoring_error:
+            logger.warning(f"Production monitoring failed: {monitoring_error}")
         logger.info(f"⏱️ Generation completed in {generation_time:.2f} seconds")
         logger.info(f"📊 Generation attempts: {generation_attempts}, Cache hit: {cache_hit}")
         
@@ -1355,6 +1399,23 @@ async def generate_outfit(
         return OutfitResponse(**outfit_record)
     
     except HTTPException:
+        # Track HTTP exceptions (likely auth or validation failures)
+        try:
+            duration_ms = (time.time() - start_time) * 1000 if 'start_time' in locals() else 0
+            await monitoring_service.track_operation(
+                operation=OperationType.OUTFIT_GENERATION,
+                user_id=current_user_id if 'current_user_id' in locals() else 'unknown',
+                status="failure",
+                duration_ms=duration_ms,
+                error="HTTP Exception",
+                error_type="HTTPException",
+                context={
+                    "occasion": req.occasion if 'req' in locals() and req else "unknown",
+                    "wardrobe_size": len(req.resolved_wardrobe) if 'req' in locals() and req else 0
+                }
+            )
+        except:
+            pass  # Don't let monitoring errors break error handling
         raise
     except Exception as e:
         import traceback
@@ -1365,6 +1426,29 @@ async def generate_outfit(
         }
         logger.error("🔥 ENDPOINT CRASH", extra=error_details, exc_info=True)
         print(f"🔥 ENDPOINT CRASH: {error_details}")
+        
+        # 🚀 PRODUCTION MONITORING: Track failure
+        try:
+            duration_ms = (time.time() - start_time) * 1000 if 'start_time' in locals() else 0
+            await monitoring_service.track_operation(
+                operation=OperationType.OUTFIT_GENERATION,
+                user_id=current_user_id if 'current_user_id' in locals() else 'unknown',
+                status="failure",
+                duration_ms=duration_ms,
+                error=error_details['error_message'],
+                error_type=error_details['error_type'],
+                stack_trace=error_details['full_traceback'],
+                context={
+                    "occasion": req.occasion if 'req' in locals() and req else "unknown",
+                    "style": req.style if 'req' in locals() and req else "unknown",
+                    "mood": req.mood if 'req' in locals() and req else "unknown",
+                    "wardrobe_size": len(req.resolved_wardrobe) if 'req' in locals() and req else 0,
+                    "generation_attempts": generation_attempts if 'generation_attempts' in locals() else 0
+                }
+            )
+        except Exception as monitoring_error:
+            logger.warning(f"Production monitoring failed during error handling: {monitoring_error}")
+        
         raise HTTPException(
             status_code=500,
             detail=f"🔥 ENDPOINT CRASH: {error_details['error_type']}: {error_details['error_message']}"

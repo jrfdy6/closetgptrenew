@@ -213,6 +213,7 @@ ROUTERS = [
     # ("src.routes.performance", "/performance"),      # Performance monitoring router - FIXED PREFIX
     # ("src.routes.monitoring", "/monitoring"),       # System monitoring router - FIXED PREFIX
     # ("src.routes.public_diagnostics", "/public_diagnostics"), # Public health diagnostics - FIXED PREFIX
+    ("src.routes.production_monitoring", "/api/monitoring"),  # NEW: Production monitoring dashboard
 ]
 
 def include_router_safe(module_name: str, prefix: str):
