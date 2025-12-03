@@ -517,7 +517,62 @@ export default function WardrobeInsightsHub({
           </TabsContent>
         </Tabs>
       </CardContent>
+      
+      {/* Gamification Section */}
+      <div className="mt-8 space-y-6">
+        <div className="px-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-600" />
+            Your Progress
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Track your wardrobe optimization journey
+          </p>
+        </div>
+        
+        <div className="px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Import components dynamically to avoid SSR issues */}
+            <GamificationSummaryCardWrapper />
+            <CPWCardWrapper />
+            <AIFitScoreCardWrapper />
+          </div>
+        </div>
+
+        {/* Challenges Section */}
+        <div className="px-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <Target className="w-5 h-5 text-blue-600" />
+            Weekly Challenges
+          </h3>
+          <ChallengeListWrapper />
+        </div>
+      </div>
     </Card>
   );
 }
+
+// Wrapper components to handle dynamic imports
+import dynamic from 'next/dynamic';
+import { Target } from 'lucide-react';
+
+const GamificationSummaryCardWrapper = dynamic(
+  () => import('@/components/gamification/GamificationSummaryCard'),
+  { ssr: false, loading: () => <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" /> }
+);
+
+const CPWCardWrapper = dynamic(
+  () => import('@/components/gamification/CPWCard'),
+  { ssr: false, loading: () => <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" /> }
+);
+
+const AIFitScoreCardWrapper = dynamic(
+  () => import('@/components/gamification/AIFitScoreCard'),
+  { ssr: false, loading: () => <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" /> }
+);
+
+const ChallengeListWrapper = dynamic(
+  () => import('@/components/gamification/ChallengeList'),
+  { ssr: false, loading: () => <div className="h-48 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" /> }
+);
 

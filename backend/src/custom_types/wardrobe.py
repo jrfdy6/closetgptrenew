@@ -489,6 +489,10 @@ class ClothingItem(BaseModel):
     seasonal_score: Optional[float] = 1.0  # Add seasonal_score field for testing
     quality_score: Optional[float] = 0.5  # Add quality_score field for validation
     pairability_score: Optional[float] = 0.5  # Add pairability_score field for validation
+    
+    # Gamification fields
+    cpw: Optional[float] = None  # Cost per wear - calculated field
+    target_wears: int = 30  # Target wears for 30-wears challenge
 
     @field_validator('style', mode='before')
     def convert_style_to_list(cls, v, info):

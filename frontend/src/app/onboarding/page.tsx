@@ -231,6 +231,56 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     category: "measurements"
   },
   {
+    id: "annual_clothing_spend",
+    question: "What's your approximate annual clothing budget?",
+    options: [
+      "Under $500",
+      "$500-$1,000",
+      "$1,000-$2,500",
+      "$2,500-$5,000",
+      "$5,000-$10,000",
+      "$10,000+",
+      "Not sure — estimate for me based on my wardrobe"
+    ],
+    category: "measurements"
+  },
+  {
+    id: "category_spend_tops",
+    question: "How much do you typically spend on tops per year?",
+    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
+    category: "measurements"
+  },
+  {
+    id: "category_spend_pants",
+    question: "How much do you typically spend on pants per year?",
+    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
+    category: "measurements"
+  },
+  {
+    id: "category_spend_shoes",
+    question: "How much do you typically spend on shoes per year?",
+    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
+    category: "measurements"
+  },
+  {
+    id: "category_spend_jackets",
+    question: "How much do you typically spend on jackets per year?",
+    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
+    category: "measurements"
+  },
+  {
+    id: "category_spend_dresses",
+    question: "How much do you typically spend on dresses per year?",
+    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
+    category: "measurements"
+  },
+  {
+    id: "category_spend_accessories",
+    question: "How much do you typically spend on accessories per year?",
+    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
+    category: "measurements"
+  },
+  {
     id: "weight",
     question: "What is your weight range? (Optional - helps with fit recommendations)",
     options: ["Under 100 lbs", "100-120 lbs", "121-140 lbs", "141-160 lbs", "161-180 lbs", "181-200 lbs", "201-250 lbs", "251-300 lbs", "Over 300 lbs", "Prefer not to specify"],
@@ -1194,13 +1244,26 @@ function OnboardingContent() {
 
     try {
       const token = await user.getIdToken();
+      
+      // Extract spending ranges from answers
+      const spending_ranges = {
+        annual_total: answers.find(a => a.question_id === "annual_clothing_spend")?.selected_option || "unknown",
+        tops: answers.find(a => a.question_id === "category_spend_tops")?.selected_option || "unknown",
+        pants: answers.find(a => a.question_id === "category_spend_pants")?.selected_option || "unknown",
+        shoes: answers.find(a => a.question_id === "category_spend_shoes")?.selected_option || "unknown",
+        jackets: answers.find(a => a.question_id === "category_spend_jackets")?.selected_option || "unknown",
+        dresses: answers.find(a => a.question_id === "category_spend_dresses")?.selected_option || "unknown",
+        accessories: answers.find(a => a.question_id === "category_spend_accessories")?.selected_option || "unknown"
+      };
+      
       const submissionData = {
           userId: user.uid,
           token: token,
           answers: answers,
           colorAnalysis: colorAnalysis,
           stylePreferences: stylePreferences,
-          colorPreferences: colorPreferences
+          colorPreferences: colorPreferences,
+          spending_ranges: spending_ranges
       };
 
       console.log('🔍 [Quiz Frontend] Submitting quiz data:', {

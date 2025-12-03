@@ -409,6 +409,60 @@ async def mark_outfit_as_worn(
             logger.error(f"❌ Firestore error details: {str(firestore_error)}")
             raise HTTPException(status_code=500, detail="Failed to save outfit history entry")
         
+        # ============== GAMIFICATION INTEGRATION ==============
+        # Award XP for logging outfit
+        xp_result = {}
+        completed_challenges = []
+        milestone_results = []
+        
+        try:
+            from ..services.gamification_service import gamification_service
+            from ..services.challenge_service import challenge_service
+            from ..services.cpw_service import cpw_service
+            
+            # 1. Award XP for outfit logging
+            xp_result = await gamification_service.award_xp(
+                user_id=current_user.id,
+                amount=10,
+                reason="outfit_logged",
+                metadata={"outfit_id": outfit_id, "occasion": occasion}
+            )
+            logger.info(f"✅ Awarded 10 XP for outfit log: {xp_result}")
+            
+            # 2. Check for challenge progress
+            completed_challenges = await challenge_service.check_challenge_progress(
+                user_id=current_user.id,
+                outfit_data={"items": item_ids, "date": date_timestamp}
+            )
+            if completed_challenges:
+                logger.info(f"🎉 Completed challenges: {completed_challenges}")
+            
+            # 3. Check for 30-wears milestones on each worn item
+            for item_id in item_ids:
+                item_ref = db.collection('wardrobe').document(item_id)
+                item_doc = item_ref.get()
+                if item_doc.exists:
+                    item_data = item_doc.to_dict()
+                    new_wear_count = item_data.get('wearCount', 0)
+                    
+                    milestone_result = await challenge_service.check_30_wears_milestones(
+                        user_id=current_user.id,
+                        item_id=item_id,
+                        new_wear_count=new_wear_count
+                    )
+                    if milestone_result:
+                        milestone_results.append(milestone_result)
+                        logger.info(f"🏆 Milestone reached for item {item_id}: {milestone_result}")
+            
+            # 4. Recalculate CPW for items that were worn
+            cpw_results = await cpw_service.recalculate_items_cpw(current_user.id, item_ids)
+            logger.info(f"✅ Recalculated CPW for {len(cpw_results)} items")
+            
+        except Exception as gamification_error:
+            # Don't fail the whole request if gamification fails
+            logger.error(f"Gamification error (non-critical): {gamification_error}", exc_info=True)
+        # ====================================================
+        
         # Update user_stats for dashboard counter
         try:
             from google.cloud.firestore import Increment, SERVER_TIMESTAMP
@@ -425,6 +479,55 @@ async def mark_outfit_as_worn(
         except Exception as stats_error:
             logger.warning(f"⚠️ Stats update failed: {stats_error}")
             # Don't fail the whole request if stats update fails
+        
+        # ============== GAMIFICATION INTEGRATION ==============
+        # Award XP and track challenges
+        xp_result = {}
+        completed_challenges = []
+        milestone_results = []
+        
+        try:
+            from ..services.gamification_service import gamification_service
+            from ..services.challenge_service import challenge_service
+            from ..services.cpw_service import cpw_service
+            
+            # 1. Award XP for outfit logging
+            xp_result = await gamification_service.award_xp(
+                user_id=current_user.id,
+                amount=10,
+                reason="outfit_logged",
+                metadata={"outfit_id": outfit_id, "occasion": occasion}
+            )
+            logger.info(f"✅ Awarded 10 XP for outfit log")
+            
+            # 2. Check for challenge progress
+            completed_challenges = await challenge_service.check_challenge_progress(
+                user_id=current_user.id,
+                outfit_data={"items": item_ids, "date": date_timestamp}
+            )
+            if completed_challenges:
+                logger.info(f"🎉 Completed challenges: {completed_challenges}")
+            
+            # 3. Check for 30-wears milestones
+            for item_id in item_ids:
+                item_ref = db.collection('wardrobe').document(item_id)
+                item_doc = item_ref.get()
+                if item_doc.exists:
+                    new_wear_count = item_doc.to_dict().get('wearCount', 0)
+                    milestone_result = await challenge_service.check_30_wears_milestones(
+                        user_id=current_user.id,
+                        item_id=item_id,
+                        new_wear_count=new_wear_count
+                    )
+                    if milestone_result:
+                        milestone_results.append(milestone_result)
+            
+            # 4. Recalculate CPW for worn items
+            await cpw_service.recalculate_items_cpw(current_user.id, item_ids)
+            
+        except Exception as gamification_error:
+            logger.error(f"Gamification error (non-critical): {gamification_error}", exc_info=True)
+        # ====================================================
         
         # Log analytics event (simplified to avoid serialization issues)
         try:
@@ -452,7 +555,11 @@ async def mark_outfit_as_worn(
         return {
             "success": True,
             "message": "Outfit marked as worn successfully",
-            "entryId": str(doc_id)  # Ensure doc_id is serializable
+            "entryId": str(doc_id),  # Ensure doc_id is serializable
+            "xp_earned": xp_result.get('xp_awarded', 10) if xp_result else 10,
+            "level_up": xp_result.get('level_up', False) if xp_result else False,
+            "challenges_completed": completed_challenges,
+            "milestones_reached": milestone_results
         }
         
     except HTTPException:

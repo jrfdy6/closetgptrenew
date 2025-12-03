@@ -37,6 +37,12 @@ import { useAutoWeather } from '@/hooks/useWeather';
 import UsageIndicator from '@/components/UsageIndicator';
 import PremiumTeaser from '@/components/PremiumTeaser';
 
+// Dynamic import for gamification components
+const ShuffleButtonWrapper = dynamic(
+  () => import('@/components/gamification/ShuffleButton'),
+  { ssr: false }
+);
+
 type WardrobeCategory = "top" | "bottom" | "shoe" | "accessory" | "jacket";
 
 const CATEGORY_CONFIG: Array<{ id: WardrobeCategory; keywords: string[] }> = [
@@ -394,6 +400,7 @@ export default function Dashboard() {
                 <Sparkles className="w-5 h-5 mr-2" />
                 Generate today&apos;s fit
               </Button>
+              <ShuffleButtonWrapper />
               <Button
                 variant="outline"
                 asChild

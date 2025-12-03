@@ -52,6 +52,9 @@ class OutfitFeedbackResponse(BaseModel):
     success: bool
     message: str
     feedback_id: Optional[str] = None
+    xp_earned: Optional[int] = None
+    ai_fit_score: Optional[float] = None
+    level_up: Optional[bool] = False
 
 async def get_current_user(request: Request):
     """Extract user from Firebase token"""
@@ -207,14 +210,52 @@ async def submit_outfit_feedback(
         )
         logger.info(f"Feedback processing complete: {learning_result}")
         
+        # ============== TRIPLE REWARD LOOP ==============
+        # 1. Award XP (short-term reward)
+        xp_result = {}
+        new_ai_fit_score = None
+        try:
+            from ..services.gamification_service import gamification_service
+            from ..services.ai_fit_score_service import ai_fit_score_service
+            
+            xp_result = await gamification_service.award_xp(
+                user_id=user_id,
+                amount=5,  # Base XP for feedback
+                reason="outfit_feedback",
+                metadata={"outfit_id": feedback.outfit_id, "rating": feedback.rating}
+            )
+            logger.info(f"✅ Awarded 5 XP for feedback: {xp_result}")
+            
+            # 2. Update AI Fit Score (medium-term reward)
+            new_ai_fit_score = await ai_fit_score_service.update_score_from_feedback(
+                user_id=user_id,
+                feedback_data={
+                    "outfit_id": feedback.outfit_id,
+                    "feedback_type": feedback.feedback_type.value,
+                    "rating": feedback.rating
+                }
+            )
+            logger.info(f"✅ Updated AI Fit Score: {new_ai_fit_score}")
+            
+        except Exception as gamification_error:
+            # Don't fail the whole request if gamification fails
+            logger.error(f"Gamification error (non-critical): {gamification_error}", exc_info=True)
+        
+        # 3. Existing: User preferences updated (long-term reward)
+        # Already handled by feedback_processing_service above
+        # ================================================
+        
         logger.info(f"=== FEEDBACK SUBMISSION SUCCESS ===")
         logger.info(f"Feedback submitted successfully: {feedback_ref.id}")
         
-        # Return personalized confirmation message
+        # Return personalized confirmation message with gamification data
         return OutfitFeedbackResponse(
             success=True,
-            message=learning_result.get("message", "Feedback submitted successfully"),
-            feedback_id=feedback_ref.id
+            message=learning_result.get("message", "Thanks! The AI learned from your input."),
+            feedback_id=feedback_ref.id,
+            xp_earned=5 if xp_result else 0,
+            ai_fit_score=new_ai_fit_score,
+            level_up=xp_result.get('level_up', False) if xp_result else False
         )
         
     except HTTPException as he:

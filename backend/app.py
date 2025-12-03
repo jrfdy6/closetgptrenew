@@ -214,6 +214,9 @@ ROUTERS = [
     # ("src.routes.monitoring", "/monitoring"),       # System monitoring router - FIXED PREFIX
     # ("src.routes.public_diagnostics", "/public_diagnostics"), # Public health diagnostics - FIXED PREFIX
     ("src.routes.production_monitoring", "/api/monitoring"),  # NEW: Production monitoring dashboard
+    ("src.routes.gamification", "/api"),  # Gamification system - XP, levels, badges
+    ("src.routes.challenges", "/api"),  # Challenge management
+    ("src.routes.shuffle", "/api"),  # Shuffle/Dress Me feature
 ]
 
 def include_router_safe(module_name: str, prefix: str):

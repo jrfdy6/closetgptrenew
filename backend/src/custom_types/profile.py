@@ -104,6 +104,25 @@ class UserProfile(BaseModel):
     # Budget preference
     budget: Optional[str] = None
     
+    # Gamification fields
+    xp: Optional[int] = 0
+    level: Optional[int] = 1
+    ai_fit_score: Optional[float] = 0.0
+    badges: List[str] = Field(default_factory=list)
+    current_challenges: Dict[str, Any] = Field(default_factory=dict)
+    
+    # Spending data for CPW calculations
+    spending_ranges: Optional[Dict[str, str]] = Field(default_factory=lambda: {
+        "annual_total": "unknown",
+        "shoes": "unknown",
+        "jackets": "unknown", 
+        "pants": "unknown",
+        "tops": "unknown",
+        "dresses": "unknown",
+        "activewear": "unknown",
+        "accessories": "unknown"
+    })
+    
     # Timestamps
     createdAt: int
     updatedAt: int
@@ -229,6 +248,36 @@ class UserProfile(BaseModel):
                 return int(dt.timestamp() * 1000)
             except:
                 return v
+        return v
+
+    @field_validator('badges', mode='before')
+    def validate_badges(cls, v, info):
+        """Validate badges list."""
+        if v is None:
+            return []
+        return v
+
+    @field_validator('current_challenges', mode='before')
+    def validate_current_challenges(cls, v, info):
+        """Validate current challenges dict."""
+        if v is None:
+            return {}
+        return v
+
+    @field_validator('spending_ranges', mode='before')
+    def validate_spending_ranges(cls, v, info):
+        """Validate spending ranges dict."""
+        if v is None:
+            return {
+                "annual_total": "unknown",
+                "shoes": "unknown",
+                "jackets": "unknown", 
+                "pants": "unknown",
+                "tops": "unknown",
+                "dresses": "unknown",
+                "activewear": "unknown",
+                "accessories": "unknown"
+            }
         return v
 
 # Export types for use in other backend modules
