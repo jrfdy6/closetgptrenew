@@ -53,7 +53,7 @@ export class RobustApiClient {
   private constructor(config: Partial<ApiClientConfig> = {}) {
     this.config = {
       baseUrl: config.baseUrl || '/api',
-      timeout: config.timeout || 30000,
+      timeout: config.timeout || 60000, // Increased from 30s to 60s for large wardrobes (145 items)
       maxRetries: config.maxRetries || 3,
       retryDelay: config.retryDelay || 1000,
       enableCircuitBreaker: config.enableCircuitBreaker !== false,
