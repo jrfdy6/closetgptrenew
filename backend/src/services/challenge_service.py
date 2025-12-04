@@ -454,7 +454,7 @@ class ChallengeService:
         try:
             # Milestones: 10, 25, 50 items
             milestones = [
-                {"count": 10, "xp": 50, "badge": None, "message": "First 10 items!"},
+                {"count": 10, "xp": 50, "badge": BadgeType.STARTER_CLOSET.value, "message": "First 10 items!"},
                 {"count": 25, "xp": 100, "badge": None, "message": "25 items cataloged!"},
                 {"count": 50, "xp": 200, "badge": BadgeType.CLOSET_CATALOGER.value, "message": "50 items - Closet Cataloger!"}
             ]
