@@ -37,11 +37,7 @@ import { useAutoWeather } from '@/hooks/useWeather';
 import UsageIndicator from '@/components/UsageIndicator';
 import PremiumTeaser from '@/components/PremiumTeaser';
 
-// Dynamic import for gamification components
-const ShuffleButtonWrapper = dynamic(
-  () => import('@/components/gamification/ShuffleButton'),
-  { ssr: false }
-);
+// Gamification components removed - shuffle moved to outfit generation page
 
 type WardrobeCategory = "top" | "bottom" | "shoe" | "accessory" | "jacket";
 
@@ -393,15 +389,14 @@ export default function Dashboard() {
               Your look today is ready when you are.
             </p>
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
-              <Button
-                onClick={() => setShowOutfitGenerator(true)}
-                className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/25 hover:from-[#FFB84C] hover:to-[#FF7700] transition-transform duration-200 sm:hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <Sparkles className="w-5 h-5 mr-2" />
-                Generate today&apos;s fit
-              </Button>
-              <ShuffleButtonWrapper />
-              <Button
+            <Button
+              onClick={() => setShowOutfitGenerator(true)}
+              className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/25 hover:from-[#FFB84C] hover:to-[#FF7700] transition-transform duration-200 sm:hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Sparkles className="w-5 h-5 mr-2" />
+              Generate today&apos;s fit
+            </Button>
+            <Button
                 variant="outline"
                 asChild
                 className="px-6 py-3 rounded-2xl border-[#F5F0E8]/70 dark:border-[#3D2F24]/80 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] transition-colors duration-200"

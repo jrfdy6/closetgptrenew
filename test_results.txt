@@ -1,0 +1,529 @@
+==========================================
+ COMPREHENSIVE PRODUCTION TEST SUITE
+==========================================
+
+[0;34m╔════════════════════════════════════════╗[0m
+[0;34m║  SECTION 1: GAMIFICATION CORE TESTS   ║[0m
+[0;34m╚════════════════════════════════════════╝[0m
+
+[1;33mTest 1.1: Get Gamification Profile[0m
+{
+    "success": true,
+    "data": {
+        "user_id": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+        "xp": 0,
+        "level": 1,
+        "level_info": {
+            "level": 1,
+            "tier": "Novice",
+            "current_xp": 0,
+            "xp_for_next_level": 250,
+            "progress_percentage": 0.0
+        },
+        "ai_fit_score": 0.0,
+        "badges": [],
+        "active_challenges": [],
+        "completed_challenges_count": 0
+    }
+}
+[0;31m❌ FAIL[0m
+
+[1;33mTest 1.2: Get Gamification Stats (Dashboard Data)[0m
+{
+    "success": true,
+    "data": {
+        "xp": 0,
+        "level": {
+            "level": 1,
+            "tier": "Novice",
+            "current_xp": 0,
+            "xp_for_next_level": 250,
+            "progress_percentage": 0.0
+        },
+        "ai_fit_score": {
+            "total_score": 85.3,
+            "components": {
+                "feedback": {
+                    "score": 40,
+                    "max": 40,
+                    "count": 92
+                },
+                "consistency": {
+                    "score": 15.382222222222222,
+                    "max": 30,
+                    "percentage": 51.3
+                },
+                "confidence": {
+                    "score": 29.890349297803386,
+                    "max": 30,
+                    "percentage": 99.6
+                }
+            },
+            "explanations": [
+                "Excellent feedback history - the AI knows your style well",
+                "You have clear style preferences",
+                "The AI has high confidence in its recommendations"
+            ],
+            "next_milestone": null
+        },
+        "cpw": {
+            "average": 51.47,
+            "trend": {
+[0;32m✅ PASS[0m
+
+[1;33mTest 1.3: Get User Badges[0m
+{
+    "success": true,
+    "data": {
+        "badges": [],
+        "count": 0,
+        "newly_unlocked": [
+            "starter_closet",
+            "closet_cataloger",
+            "style_contributor"
+        ]
+    }
+}
+[0;31m❌ FAIL[0m
+
+[1;33mTest 1.4: Get AI Fit Score Details[0m
+{
+    "success": true,
+    "data": {
+        "total_score": 85.3,
+        "components": {
+            "feedback": {
+                "score": 40,
+                "max": 40,
+                "count": 92
+            },
+            "consistency": {
+                "score": 15.382222222222222,
+                "max": 30,
+                "percentage": 51.3
+            },
+            "confidence": {
+                "score": 29.890349297803386,
+                "max": 30,
+                "percentage": 99.6
+            }
+        },
+        "explanations": [
+            "Excellent feedback history - the AI knows your style well",
+            "You have clear style preferences",
+            "The AI has high confidence in its recommendations"
+        ],
+        "next_milestone": null
+    }
+}
+[0;32m✅ PASS[0m
+
+[1;33mTest 1.5: Get CPW Summary[0m
+{
+    "success": true,
+    "data": {
+        "average_cpw": 51.47,
+        "trend_30_days": {
+            "current_cpw": null,
+            "previous_cpw": null,
+            "change_percentage": 0,
+            "trend": "error"
+        },
+        "trend_7_days": {
+            "current_cpw": null,
+            "previous_cpw": null,
+            "change_percentage": 0,
+            "trend": "error"
+        }
+    }
+}
+[0;31m❌ FAIL[0m
+
+[1;33mTest 1.6: Get Global Wardrobe Score (V2)[0m
+{
+    "success": true,
+    "data": {
+        "total_gws": 37.1,
+        "components": {
+            "utilization": {
+                "score": 0.0,
+                "max": 40,
+                "percentage": 0,
+                "label": "Wardrobe Usage"
+            },
+            "cpw_improvement": {
+                "score": 15.0,
+                "max": 30,
+                "percentage": 50.0,
+                "change": 0,
+                "label": "Value Optimization"
+            },
+            "ai_fit": {
+                "score": 17.1,
+                "max": 20,
+                "raw_score": 85.3,
+                "label": "AI Understanding"
+            },
+            "revived_items": {
+                "score": 5.0,
+                "max": 10,
+                "percentage": 50.0,
+                "label": "Item Revival"
+            }
+        },
+        "insights": [
+            "Good start! Keep logging outfits to improve your score.",
+            "Try wearing different items to increase your utilization score."
+        ]
+    }
+}
+[0;31m❌ FAIL[0m
+
+[1;33mTest 1.7: Get Wardrobe Utilization (V2)[0m
+{
+    "success": true,
+    "data": {
+        "utilization_percentage": 0,
+        "items_worn": 0,
+        "total_items": 0,
+        "dormant_items": 0,
+        "period_days": 30,
+        "error": "'>=' not supported between instances of 'DatetimeWithNanoseconds' and 'float'"
+    }
+}
+[0;31m❌ FAIL[0m
+
+[0;34m╔════════════════════════════════════════╗[0m
+[0;34m║   SECTION 2: CHALLENGES SYSTEM TESTS  ║[0m
+[0;34m╚════════════════════════════════════════╝[0m
+
+[1;33mTest 2.1: Get Challenge Catalog[0m
+{
+    "success": true,
+    "data": {
+        "challenges": [
+            {
+                "challenge_id": "forgotten_gems_weekly",
+                "title": "Hidden Gem Hunter",
+                "description": "Wear 2 items you haven't worn in 60+ days",
+                "type": "forgotten_gems",
+                "rewards": {
+                    "xp": 75,
+                    "badge": "hidden_gem_hunter"
+                },
+                "cadence": "weekly",
+                "featured": true,
+                "icon": "Sparkles"
+            },
+            {
+                "challenge_id": "30_wears_challenge",
+                "title": "30 Wears Challenge",
+                "description": "Wear any item 30 times to unlock sustainable style badge",
+                "type": "30_wears",
+                "rewards": {
+                    "xp": 100,
+                    "badge": "sustainable_style_bronze"
+                },
+                "cadence": "always",
+                "featured": false,
+                "icon": "Target"
+            },
+            {
+                "challenge_id": "color_harmony",
+                "title": "Color Harmony Week",
+                "description": "Create 3 outfits using complementary colors",
+                "type": "color_palette",
+                "rewards": {
+                    "xp": 120,
+                    "badge": "color_master"
+                },
+                "cadence": "weekly",
+                "featured": true,
+                "icon": "Palette"
+            },
+            {
+                "challenge_id": "cold_start_quest",
+                "title": "Closet Cataloger",
+                "description": "Upload your first 50 items to your wardrobe",
+                "type": "cold_start",
+                "rewards": {
+                    "xp": 200,
+                    "badge": "closet_cataloger"
+                },
+                "cadence": "always",
+                "featured": false,
+                "icon": "Upload"
+            }
+        ],
+        "count": 4
+    }
+}
+[0;31m❌ FAIL[0m
+
+[1;33mTest 2.2: Get Available Challenges[0m
+{
+    "success": true,
+    "data": {
+        "challenges": [],
+        "count": 0
+    }
+}
+[0;31m❌ FAIL[0m
+
+[1;33mTest 2.3: Get Active Challenges[0m
+{
+    "success": true,
+    "data": {
+        "challenges": [],
+        "count": 0
+    }
+}
+[0;31m❌ FAIL[0m
+
+[1;33mTest 2.4: Get Challenge History[0m
+{
+    "success": true,
+    "data": {
+        "challenges": [],
+        "count": 0
+    }
+}
+[0;31m❌ FAIL[0m
+
+[0;34m╔════════════════════════════════════════╗[0m
+[0;34m║ SECTION 3: OUTFIT GENERATION & XP     ║[0m
+[0;34m╚════════════════════════════════════════╝[0m
+
+[1;33mTest 3.1: Get User Wardrobe[0m
+Wardrobe items: 145
+[0;32m✅ User has 145 items in wardrobe[0m
+[0;32m✅ PASS[0m
+
+[1;33mTest 3.2: Generate Outfit[0m
+{
+    "detail": [
+        {
+            "type": "missing",
+            "loc": [
+                "body",
+                "style"
+            ],
+            "msg": "Field required",
+            "input": {
+                "occasion": "casual",
+                "weather": {
+                    "temperature": 70,
+                    "conditions": "clear"
+                }
+            },
+            "url": "https://errors.pydantic.dev/2.5/v/missing"
+        },
+        {
+            "type": "missing",
+            "loc": [
+                "body",
+                "mood"
+            ],
+            "msg": "Field required",
+            "input": {
+                "occasion": "casual",
+                "weather": {
+                    "temperature": 70,
+                    "conditions": "clear"
+[1;33m⚠️  Outfit generation returned no ID (may need more items)[0m
+[0;31m❌ FAIL[0m
+
+[1;33mTest 3.3: Get Outfit History Stats[0m
+{
+    "success": false,
+    "data": {
+        "total_outfits": 1500,
+        "outfits_this_week": 0,
+        "totalThisWeek": 0,
+        "days_queried": 7,
+        "recent_outfits": [],
+        "wardrobe_total": 155,
+        "wardrobe_favorites": 0,
+        "date_range": {
+            "start": "2025-11-26T23:38:21.176541+00:00",
+            "end": "2025-12-03T23:38:21.176558+00:00"
+        }
+    },
+    "error": "Stats service failed: 'UserStatsService' object has no attribute 'get_user_stats'",
+    "message": "Using fallback stats",
+    "total_outfits": 1500,
+    "outfits_this_week": 0,
+    "totalThisWeek": 0
+}
+[0;31m❌ FAIL[0m
+
+[0;34m╔════════════════════════════════════════╗[0m
+[0;34m║   SECTION 4: SHUFFLE FEATURE TESTS    ║[0m
+[0;34m╚════════════════════════════════════════╝[0m
+
+[1;33mTest 4.1: Quick Shuffle (Awards +2 XP)[0m
+{
+    "detail": "Quick shuffle failed"
+}
+[1;33m⚠️  Shuffle may require wardrobe items[0m
+[0;31m❌ FAIL[0m
+
+[0;34m╔════════════════════════════════════════╗[0m
+[0;34m║   SECTION 5: USER PROFILE & AUTH      ║[0m
+[0;34m╚════════════════════════════════════════╝[0m
+
+[1;33mTest 5.1: Get User Profile[0m
+{
+    "user_id": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+    "email": "jfeezie@gmail.com",
+    "name": "john",
+    "avatar_url": null,
+    "created_at": 1764370326,
+    "updated_at": 1764370326,
+    "preferences": {
+        "preferredBrands": [],
+        "budget": [
+            "mid-range"
+        ],
+        "occasions": [
+            "Mix of everything"
+        ],
+        "colors": [
+            "black",
+            "red",
+            "gray",
+            "white",
+            "brown",
+            "green",
+            "cream",
+            "olive",
+            "beige",
+            "navy",
+            "burgundy",
+            "camel",
+            "blue",
+            "terracotta"
+        ],
+        "formality": [
+            "casual"
+        ],
+        "style": [
+            "Street Style",
+            "Cottagecore",
+            "Minimalist",
+            "Old Money",
+            "Urban Street",
+[0;32m✅ PASS[0m
+
+[1;33mTest 5.2: Check User Has Spending Ranges[0m
+[0;32m✅ User has spending_ranges field[0m
+{
+  "pants": "unknown",
+  "activewear": "unknown",
+  "annual_total": "unknown",
+  "dresses": "unknown",
+  "accessories": "unknown",
+  "tops": "unknown",
+  "jackets": "unknown",
+  "shoes": "unknown"
+}
+[0;32m✅ PASS[0m
+
+[0;34m╔════════════════════════════════════════╗[0m
+[0;34m║    SECTION 6: WARDROBE INSIGHTS        ║[0m
+[0;34m╚════════════════════════════════════════╝[0m
+
+[1;33mTest 6.1: Get Forgotten Gems[0m
+{
+    "success": true,
+    "data": {
+        "forgottenItems": [
+            {
+                "id": "2520n276g7hjmby6boum",
+                "name": "A Solid, Ribbed Belt",
+                "type": "accessory",
+                "imageUrl": "https://storage.googleapis.com/closetgptrenew.firebasestorage.app/items/2520n276g7hjmby6boum/original.png",
+                "color": "Gray",
+                "style": [
+                    "Classic",
+                    "Urban",
+                    "Minimalist",
+                    "Casual",
+                    "Streetwear",
+                    "Techwear"
+                ],
+                "lastWorn": null,
+                "daysSinceWorn": 999,
+                "usageCount": 0,
+                "favoriteScore": 0.0,
+                "suggestedOutfits": [],
+                "declutterReason": null,
+                "rediscoveryPotential": 80.0
+            },
+            {
+                "id": "blpqxjfomtimby5ixu6",
+                "name": "A Slim, Long, Solid, Smooth Dress Shirt By Stafford",
+                "type": "shirt",
+[0;32m✅ PASS[0m
+
+[1;33mTest 6.2: Get Wardrobe Stats[0m
+{
+    "success": true,
+    "data": {
+        "total_items": 142,
+        "item_types": {},
+        "colors": {},
+        "styles": {},
+        "seasons": {},
+        "brands": {},
+        "price_range": {
+            "min": 0,
+            "max": 0,
+            "avg": 0
+        }
+    },
+    "message": "Wardrobe statistics retrieved successfully"
+}
+[0;31m❌ FAIL[0m
+
+[0;34m╔════════════════════════════════════════╗[0m
+[0;34m║   SECTION 7: ONBOARDING QUIZ CHECK    ║[0m
+[0;34m╚════════════════════════════════════════╝[0m
+
+[1;33mTest 7.1: Verify Onboarding Page Exists[0m
+[0;31m❌ Onboarding page not found[0m
+[0;31m❌ FAIL[0m
+
+[1;33mTest 7.2: Verify Spending Questions Exist in Code[0m
+[0;32m✅ Spending questions found in onboarding code[0m
+Questions found:
+"annual_clothing_spend"
+"annual_clothing_spend")?.selected_option || "unknown"
+[0;32m✅ PASS[0m
+
+
+==========================================
+ TEST SUMMARY
+==========================================
+[0;32mPassed: 7[0m
+[0;31mFailed: 14[0m
+Total: 21
+
+[0;31m❌ NEEDS WORK! Multiple features failing (33% pass rate)[0m
+
+==========================================
+ KEY FINDINGS
+==========================================
+
+✅ Gamification Core: Profile, XP, Levels, Badges
+✅ Challenges System: Catalog, Available, Active, History
+✅ Outfit Generation: Integration with gamification
+✅ Shuffle Feature: Random outfit with XP bonus
+✅ Wardrobe Insights: Forgotten gems, stats
+✅ User Profile: Auth, spending ranges
+
+📝 For failed tests, check:
+   - Railway logs for backend errors
+   - Browser console for frontend errors
+   - Firestore data structure
+

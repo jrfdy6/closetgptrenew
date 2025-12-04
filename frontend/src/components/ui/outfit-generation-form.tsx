@@ -20,10 +20,12 @@ import {
   Smile,
   Cloud,
   AlertCircle,
-  Sun
+  Sun,
+  Shuffle
 } from 'lucide-react';
 import { useAutoWeather } from '@/hooks/useWeather';
 import { formatWeatherForDisplay } from '@/lib/weather';
+import { motion } from 'framer-motion';
 
 interface OutfitGenerationFormProps {
   formData: {
@@ -44,6 +46,7 @@ interface OutfitGenerationFormProps {
   baseItem?: any;
   onRemoveBaseItem?: () => void;
   freshWeatherData?: any; // Fresh weather data for UI display
+  userGender?: string; // For gender-aware style shuffling
 }
 
 export default function OutfitGenerationForm({
@@ -58,7 +61,8 @@ export default function OutfitGenerationForm({
   weatherOptions,
   baseItem,
   onRemoveBaseItem,
-  freshWeatherData
+  freshWeatherData,
+  userGender
 }: OutfitGenerationFormProps) {
   const [activeStep, setActiveStep] = useState(0);
   const { weather, loading: weatherLoading, fetchWeatherByLocation, error: weatherError } = useAutoWeather();
@@ -74,6 +78,46 @@ export default function OutfitGenerationForm({
   ];
 
   const isFormValid = formData.occasion && formData.style && formData.mood;
+  
+  // Shuffle function - auto-fills form with random gender-appropriate values
+  const handleShuffle = () => {
+    // Filter styles based on gender
+    const getGenderAppropriateStyles = (): string[] => {
+      const gender = (userGender || 'male').toLowerCase();
+      
+      // Gender-specific filtering
+      const obviouslyFeminineStyles = ['Coastal Grandmother', 'French Girl', 'Pinup', 'Clean Girl'];
+      const obviouslyMasculineStyles = ['Techwear'];
+      
+      if (gender === 'male') {
+        // Males: All styles except 4 feminine ones = 32 styles
+        return styles.filter(style => !obviouslyFeminineStyles.includes(style));
+      } else if (gender === 'female') {
+        // Females: All styles except 1 masculine one = 35 styles
+        return styles.filter(style => !obviouslyMasculineStyles.includes(style));
+      } else {
+        // Non-binary / Prefer not to say: ALL 36 styles
+        return styles;
+      }
+    };
+    
+    const availableStyles = getGenderAppropriateStyles();
+    const allMoods = ['Romantic', 'Playful', 'Serene', 'Dynamic', 'Bold', 'Subtle'];
+    
+    // Randomly select style and mood
+    const randomStyle = availableStyles[Math.floor(Math.random() * availableStyles.length)];
+    const randomMood = allMoods[Math.floor(Math.random() * allMoods.length)];
+    
+    // Auto-fill form
+    onFormChange('occasion', 'Casual');
+    onFormChange('style', randomStyle);
+    onFormChange('mood', randomMood);
+    
+    // Trigger generation after a brief delay to let state update
+    setTimeout(() => {
+      onGenerate();
+    }, 100);
+  };
 
   const handleStepClick = (stepIndex: number) => {
     if (stepIndex <= activeStep) {
@@ -394,36 +438,82 @@ export default function OutfitGenerationForm({
             </div>
           )}
 
-          {/* Generate Button */}
-          <Button 
-            onClick={onGenerate} 
-            disabled={generating || wardrobeLoading || !isFormValid}
-            className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl"
-            size="lg"
-          >
-            {generating ? (
-              <>
-                <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 mr-2 animate-spin" />
-                <span className="truncate">Creating Your Outfit...</span>
-              </>
-            ) : wardrobeLoading ? (
-              <>
-                <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 mr-2 animate-spin" />
-                <span className="truncate">Loading Wardrobe...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
-                <span>Generate My Outfit</span>
-              </>
-            )}
-          </Button>
+          {/* Generate Buttons Section */}
+          <div className="space-y-3">
+            {/* Primary Generate Button */}
+            <Button 
+              onClick={onGenerate} 
+              disabled={generating || wardrobeLoading || !isFormValid}
+              className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+              size="lg"
+            >
+              {generating ? (
+                <>
+                  <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 mr-2 animate-spin" />
+                  <span className="truncate">Creating Your Outfit...</span>
+                </>
+              ) : wardrobeLoading ? (
+                <>
+                  <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 mr-2 animate-spin" />
+                  <span className="truncate">Loading Wardrobe...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
+                  <span>Generate My Outfit</span>
+                </>
+              )}
+            </Button>
 
-          {!isFormValid && (
-            <p className="text-xs sm:text-sm text-amber-600 dark:text-amber-400 text-center px-2">
-              Please fill in all required fields to generate your outfit
-            </p>
-          )}
+            {/* Shuffle Button - Auto-fills and generates */}
+            <motion.div
+              whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.01 }}
+            >
+              <Button 
+                onClick={handleShuffle} 
+                disabled={generating || wardrobeLoading}
+                variant="outline"
+                className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold border-2 border-amber-500/50 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all duration-200 relative overflow-hidden group"
+                size="lg"
+              >
+                <motion.div
+                  animate={generating ? { rotate: 360 } : {}}
+                  transition={{
+                    duration: 1,
+                    repeat: generating ? Infinity : 0,
+                    ease: "linear"
+                  }}
+                >
+                  <Shuffle className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
+                </motion.div>
+                <span>Surprise Me! (Shuffle)</span>
+                <Sparkles className="h-4 w-4 ml-2 text-amber-500 group-hover:text-amber-600" />
+                
+                {/* Shimmer effect */}
+                {!generating && (
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-400/20 to-transparent"
+                    animate={{
+                      x: ['-100%', '200%']
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "linear",
+                      repeatDelay: 1.5
+                    }}
+                  />
+                )}
+              </Button>
+            </motion.div>
+
+            {!isFormValid && (
+              <p className="text-xs sm:text-sm text-amber-600 dark:text-amber-400 text-center px-2">
+                {generating ? "Generating your outfit..." : "Fill in fields above or click 'Surprise Me!' to auto-generate"}
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

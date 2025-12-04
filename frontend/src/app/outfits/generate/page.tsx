@@ -1267,6 +1267,7 @@ export default function OutfitGenerationPage() {
             weatherOptions={weatherOptions}
             baseItem={baseItem}
             freshWeatherData={freshWeatherData}
+            userGender={userProfile?.gender}
             onRemoveBaseItem={() => {
               setBaseItem(null);
               const url = new URL(window.location.href);
