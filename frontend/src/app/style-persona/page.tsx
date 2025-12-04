@@ -583,33 +583,35 @@ export default function StylePersonaPage() {
       <div className="max-w-6xl mx-auto px-4 py-12">
         {/* Hero Section with Glass Effect */}
         <div className="glass-float rounded-3xl overflow-hidden mb-8 glass-shadow-strong">
-          {/* Hero Image with Minimal Bottom-Left Text */}
-          <div className="relative h-[600px] overflow-hidden rounded-t-3xl">
+          {/* Hero Image Container - Only Name Overlay */}
+          <div className="relative h-[500px] overflow-hidden rounded-t-3xl">
             <img 
               src={getHeroImageForPersona(persona.id, profile?.gender)}
               alt={`${persona.name} style example`}
-              className="w-full h-full object-cover object-center"
+              className="w-full h-full object-cover object-top"
               onError={(e) => {
                 console.error('❌ [Persona Page] Hero image failed to load:', e.currentTarget.src);
                 e.currentTarget.src = '/images/placeholder.jpg';
               }}
             />
-            {/* Subtle bottom gradient for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+            {/* Subtle bottom gradient for name readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
             
-            {/* Minimal Overlay - Bottom Left Corner Only */}
-            <div className="absolute bottom-0 left-0 p-8">
-              <div className="text-sm font-medium text-gray-300 mb-2 tracking-wider">YOU ARE</div>
-              <h1 className="text-4xl md:text-5xl font-serif font-bold text-white leading-tight drop-shadow-lg">
+            {/* Only Persona Name Overlay - Bottom */}
+            <div className="absolute bottom-0 left-0 right-0 p-8 text-center">
+              <h1 className="text-5xl md:text-6xl font-serif font-bold text-white leading-tight drop-shadow-2xl">
                 {persona.name}
               </h1>
             </div>
           </div>
+        </div>
 
-          {/* Content Section - BELOW Image */}
-          <div className="p-8 bg-[#2C2119] dark:bg-[#2C2119]">
-            {/* Tagline and Traits */}
+        {/* Separate Container - All Other Content */}
+        <div className="max-w-6xl mx-auto px-4 -mt-2">
+          <div className="bg-[#2C2119] dark:bg-[#2C2119] rounded-3xl p-8 shadow-2xl">
+            {/* YOU ARE + Tagline and Traits */}
             <div className="text-center max-w-4xl mx-auto mb-8">
+              <div className="text-sm font-medium text-gray-400 mb-3 tracking-wider">YOU ARE</div>
               <p className="text-xl text-gray-300 mb-6 leading-relaxed font-light">
                 {persona.tagline}
               </p>
