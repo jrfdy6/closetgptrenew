@@ -290,6 +290,13 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     category: "sizes",
     gender: "male"
   },
+  {
+    id: "shoe_size",
+    question: "What is your shoe size?",
+    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12", "13+", "Prefer not to say"],
+    category: "sizes"
+    // No gender filter - shows for Non-binary and Prefer not to say
+  },
   // Spending questions - after all size questions
   {
     id: "category_spend_tops",
@@ -635,6 +642,11 @@ function OnboardingContent() {
       }
       if (question.id === 'shoe_size_male' && currentGender && currentGender !== 'Male') {
         console.log('❌ [Filter] Filtering out shoe_size_male for non-male');
+        return false;
+      }
+      // Generic shoe_size (for non-binary / prefer not to say)
+      if (question.id === 'shoe_size' && currentGender && (currentGender === 'Male' || currentGender === 'Female')) {
+        console.log('❌ [Filter] Filtering out generic shoe_size for binary gender users');
         return false;
       }
       
