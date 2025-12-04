@@ -1488,7 +1488,6 @@ function OnboardingContent() {
                   min="0"
                   max="100"
                   defaultValue={currentAnswer?.selected_option ? parseInt(currentAnswer.selected_option.split('_')[2]) : 50}
-                  value={currentAnswer?.selected_option ? parseInt(currentAnswer.selected_option.split('_')[2]) : 50}
                   className="w-full h-8 rounded-lg appearance-none cursor-pointer"
                   style={{
                     background: 'linear-gradient(to right, #FEF3C7, #FDE68A, #FCD34D, #F59E0B, #D97706, #B45309, #92400E, #78350F, #451A03, #1F2937)'
@@ -1496,8 +1495,23 @@ function OnboardingContent() {
                   onChange={(e) => {
                     const value = parseInt(e.target.value);
                     const skinTone = `skin_tone_${value}`;
-                    // Auto-answer on change (use bottom Next button to advance)
-                    handleAnswer(question.id, skinTone);
+                    // Update state ONLY - don't advance question
+                    setAnswers(prev => {
+                      const existing = prev.find(a => a.question_id === question.id);
+                      if (existing) {
+                        return prev.map(a => 
+                          a.question_id === question.id 
+                            ? { ...a, selected_option: skinTone }
+                            : a
+                        );
+                      } else {
+                        return [...prev, {
+                          question_id: question.id,
+                          selected_option: skinTone,
+                          question_text: question.question
+                        }];
+                      }
+                    });
                   }}
                 />
                 <div className="text-center">
