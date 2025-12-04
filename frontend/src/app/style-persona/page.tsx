@@ -583,7 +583,7 @@ export default function StylePersonaPage() {
       <div className="max-w-6xl mx-auto px-4 py-12">
         {/* Hero Section with Glass Effect */}
         <div className="glass-float rounded-3xl overflow-hidden mb-8 glass-shadow-strong">
-          {/* Hero Image Only - Text Moved Below */}
+          {/* Hero Image with Minimal Bottom-Left Text */}
           <div className="relative h-[500px] overflow-hidden rounded-t-3xl">
             <img 
               src={getHeroImageForPersona(persona.id, profile?.gender)}
@@ -594,16 +594,22 @@ export default function StylePersonaPage() {
                 e.currentTarget.src = '/images/placeholder.jpg';
               }}
             />
+            {/* Subtle bottom gradient for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+            
+            {/* Minimal Overlay - Bottom Left Corner Only */}
+            <div className="absolute bottom-0 left-0 p-8">
+              <div className="text-sm font-medium text-gray-300 mb-2 tracking-wider">YOU ARE</div>
+              <h1 className="text-4xl md:text-5xl font-serif font-bold text-white leading-tight">
+                {persona.name}
+              </h1>
+            </div>
           </div>
 
           {/* Content Section - BELOW Image */}
           <div className="p-8 bg-[#2C2119] dark:bg-[#2C2119]">
-            {/* Persona Title and Tagline */}
+            {/* Tagline and Traits */}
             <div className="text-center max-w-4xl mx-auto mb-8">
-              <div className="text-sm font-medium text-gray-400 mb-3 tracking-wider">YOU ARE</div>
-              <h1 className="text-5xl md:text-6xl font-serif font-bold mb-4 leading-tight text-white">
-                {persona.name}
-              </h1>
               <p className="text-xl text-gray-300 mb-6 leading-relaxed font-light">
                 {persona.tagline}
               </p>
