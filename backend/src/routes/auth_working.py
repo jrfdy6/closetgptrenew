@@ -173,11 +173,19 @@ async def update_user_profile(
         logger.info(f"🔍 DEBUG: measurements in profile_data: {'measurements' in profile_data}, value: {profile_data.get('measurements')}")
         logger.info(f"🔍 DEBUG: stylePreferences in profile_data: {'stylePreferences' in profile_data}, value: {profile_data.get('stylePreferences')}")
         
+        # Get existing user data to preserve created_at
+        existing_user_doc = user_ref.get()
+        existing_created_at = None
+        if existing_user_doc.exists:
+            existing_data = existing_user_doc.to_dict()
+            existing_created_at = existing_data.get('created_at') or existing_data.get('createdAt')
+        
         update_data = {
             'name': (profile_data.get('name') if profile_data else None),
             'email': (profile_data.get('email') if profile_data else None),
-            'created_at': final_created_at,  # Use frontend timestamp if available
-            'updated_at': final_updated_at  # Use frontend timestamp if available
+            # NEVER overwrite created_at if it already exists
+            'created_at': existing_created_at or final_created_at,
+            'updated_at': final_updated_at  # Always update this
         }
         
         # Add all the detailed profile fields if they exist

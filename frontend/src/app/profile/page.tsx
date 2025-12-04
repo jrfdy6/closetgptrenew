@@ -683,6 +683,10 @@ export default function ProfilePage() {
               <span className="text-sm font-semibold text-[#4CAF50] dark:text-[#79E2A6]">Complete</span>
             </div>
             <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Plan</span>
+              <span className="text-sm font-semibold text-[#FFB84C]">Free</span>
+            </div>
+            <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Member since</span>
               <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
                 {(() => {
