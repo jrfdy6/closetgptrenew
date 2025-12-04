@@ -1183,6 +1183,11 @@ export default function OutfitGenerationPage() {
         } : null);
         console.log('✅ Rating submitted successfully');
         console.log('🔄 [Generate] Rating submitted - outfit should now be available in outfits list');
+        
+        // ✅ Trigger gamification stats refresh for AI Fit Score update
+        window.dispatchEvent(new CustomEvent('outfitRated', { 
+          detail: { outfitId, rating: outfitRating.rating }
+        }));
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('❌ Rating submission failed:', errorData);

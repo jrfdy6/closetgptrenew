@@ -135,6 +135,20 @@ export function useGamificationStats() {
     fetchStats();
   }, [fetchStats]);
 
+  // Listen for outfit rated events to refresh stats
+  useEffect(() => {
+    const handleOutfitRated = () => {
+      console.log('🔄 Gamification stats: Outfit rated, refreshing stats...');
+      fetchStats();
+    };
+
+    window.addEventListener('outfitRated', handleOutfitRated);
+    
+    return () => {
+      window.removeEventListener('outfitRated', handleOutfitRated);
+    };
+  }, [fetchStats]);
+
   return {
     stats,
     loading,
