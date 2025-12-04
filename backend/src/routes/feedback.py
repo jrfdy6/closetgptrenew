@@ -94,7 +94,7 @@ async def submit_outfit_feedback(
     Submit feedback for an outfit
     """
     logger.info(f"=== FEEDBACK SUBMISSION START ===")
-    logger.info(f"Received feedback request: outfit_id={feedback.outfit_id}, rating={feedback.rating}, comment_length={len(feedback.comment) if feedback.comment else 0}")
+    logger.info(f"Received feedback request: outfit_id={feedback.outfit_id}, feedback_type={feedback.feedback_type}, rating={feedback.rating}")
     logger.info(f"Current user: {current_user}")
     
     try:
@@ -141,16 +141,16 @@ async def submit_outfit_feedback(
                 "user_email": (current_user.get("email") if current_user else None),
                 "user_preferences": (current_user.get("preferences", {}) if current_user else {}),
                 "feedback_timestamp": datetime.utcnow().isoformat(),
-                "session_data": feedback.(context_data.get("session_data", {}) if context_data else {}) if feedback.context_data else {}
+                "session_data": feedback.context_data.get("session_data", {}) if feedback.context_data else {}
             },
             "analytics_data": {
                 "feedback_timestamp": datetime.utcnow().isoformat(),
                 "feedback_category": "outfit_rating",
                 "data_source": "user_feedback",
                 "metadata": {
-                    "user_agent": feedback.(context_data.get("user_agent") if context_data else None) if feedback.context_data else None,
-                    "platform": feedback.(context_data.get("platform") if context_data else None) if feedback.context_data else None,
-                    "location": feedback.(context_data.get("location") if context_data else None) if feedback.context_data else None
+                    "user_agent": feedback.context_data.get("user_agent") if feedback.context_data else None,
+                    "platform": feedback.context_data.get("platform") if feedback.context_data else None,
+                    "location": feedback.context_data.get("location") if feedback.context_data else None
                 }
             }
         }
