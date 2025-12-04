@@ -464,13 +464,25 @@ export default function StylePersonaPage() {
     const ranked = Object.entries(personaScores)
       .sort(([, a], [, b]) => b - a);
 
-    const [topPersona, topScore] = ranked[0];
+    const [topPersona, topScore] = ranked[0] || ['modernist', 0];
 
-    if (topScore > 0) {
-      return STYLE_PERSONAS[topPersona as keyof typeof STYLE_PERSONAS];
+    if (topScore > 0 && topPersona && STYLE_PERSONAS[topPersona as keyof typeof STYLE_PERSONAS]) {
+      const selectedPersona = STYLE_PERSONAS[topPersona as keyof typeof STYLE_PERSONAS];
+      // Add gender-specific celebrity examples
+      const genderSpecificExamples = getGenderSpecificCelebrities(selectedPersona.id, profile?.gender);
+      return {
+        ...selectedPersona,
+        examples: genderSpecificExamples
+      };
     }
 
-    return STYLE_PERSONAS.strategist; // Default fallback
+    // Default fallback to modernist with gender-specific examples
+    const fallbackPersona = STYLE_PERSONAS.modernist;
+    const genderSpecificExamples = getGenderSpecificCelebrities(fallbackPersona.id, profile?.gender);
+    return {
+      ...fallbackPersona,
+      examples: genderSpecificExamples
+    };
   };
 
   const generateStyleFingerprint = () => {
