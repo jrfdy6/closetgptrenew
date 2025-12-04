@@ -584,23 +584,23 @@ export default function StylePersonaPage() {
         {/* Hero Section with Glass Effect */}
         <div className="glass-float rounded-3xl overflow-hidden mb-8 glass-shadow-strong">
           {/* Hero Image with Minimal Bottom-Left Text */}
-          <div className="relative h-[500px] overflow-hidden rounded-t-3xl">
+          <div className="relative h-[600px] overflow-hidden rounded-t-3xl">
             <img 
               src={getHeroImageForPersona(persona.id, profile?.gender)}
               alt={`${persona.name} style example`}
-              className="w-full h-full object-cover object-top"
+              className="w-full h-full object-cover object-center"
               onError={(e) => {
                 console.error('❌ [Persona Page] Hero image failed to load:', e.currentTarget.src);
                 e.currentTarget.src = '/images/placeholder.jpg';
               }}
             />
             {/* Subtle bottom gradient for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
             
             {/* Minimal Overlay - Bottom Left Corner Only */}
             <div className="absolute bottom-0 left-0 p-8">
               <div className="text-sm font-medium text-gray-300 mb-2 tracking-wider">YOU ARE</div>
-              <h1 className="text-4xl md:text-5xl font-serif font-bold text-white leading-tight">
+              <h1 className="text-4xl md:text-5xl font-serif font-bold text-white leading-tight drop-shadow-lg">
                 {persona.name}
               </h1>
             </div>
