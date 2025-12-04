@@ -63,19 +63,15 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
-  // Removed rewrites - using environment variables instead
-  // async rewrites() {
-  //   return [
-  //     {
-  //       source: '/api/outfit/:path*',
-  //       destination: 'https://easyoutfitapp-production.up.railway.app/api/outfit/:path*',
-  //     },
-  //     {
-  //       source: '/api/outfits/:path*',
-  //       destination: 'https://easyoutfitapp-production.up.railway.app/api/outfits/:path*',
-  //     },
-  //   ];
-  // },
+  // Proxy all API calls to Railway backend
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'https://closetgptrenew-production.up.railway.app/api/:path*',
+      },
+    ];
+  },
   async headers() {
     return [
       {
