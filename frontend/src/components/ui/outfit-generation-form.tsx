@@ -112,18 +112,20 @@ export default function OutfitGenerationForm({
     
     console.log(`🎲 Shuffled to: ${randomStyle} / ${randomMood}`);
     
-    // Auto-fill form
+    // ✅ FIX: Update all form fields in batched calls
     onFormChange('occasion', 'Casual');
     onFormChange('style', randomStyle);
     onFormChange('mood', randomMood);
     
     console.log('🎲 Form updated, triggering generation...');
     
-    // Trigger generation after a brief delay to let state update
-    setTimeout(() => {
-      console.log('🎲 Calling onGenerate()');
-      onGenerate();
-    }, 300);
+    // ✅ FIX: Use requestAnimationFrame + longer delay to ensure all React state updates complete
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        console.log('🎲 Calling onGenerate() - form should be fully updated');
+        onGenerate();
+      }, 500);
+    });
   };
 
   const handleStepClick = (stepIndex: number) => {
