@@ -164,6 +164,8 @@ ROUTERS = [
     ("src.routes.debug_stats", "/api"),  # Debug stats router for Railway-proof debugging
     ("src.routes.health", "/health"),     # Health monitoring router
     ("src.routes.forgotten_gems", "/api/wardrobe-insights"),  # Forgotten gems router - mounted at /api/wardrobe-insights to avoid conflict
+    ("src.routes.gamification", "/api"),  # Gamification router for XP, levels, badges
+    ("src.routes.challenges", "/api"),   # Challenges router for gamification challenges
     # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
     # ("simple_outfit", ""),               # Ultra-simple outfit router
     # ("test_outfit_router", ""),          # Test outfit router at root level
