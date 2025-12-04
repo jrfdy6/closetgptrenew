@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { getLinkedProviders, hasPasswordLinked, linkEmailPassword } from '@/lib/auth';
 import { Lock, CheckCircle, XCircle } from 'lucide-react';
 import SpendingRangesCard from '@/components/SpendingRangesCard';
+import { subscriptionService, Subscription } from '@/lib/services/subscriptionService';
 
 console.log('🔍 DEBUG: Profile page file loaded');
 
@@ -148,6 +149,7 @@ export default function ProfilePage() {
   const [isLinkingPassword, setIsLinkingPassword] = useState(false);
   const [linkPasswordEmail, setLinkPasswordEmail] = useState('');
   const [linkPasswordPassword, setLinkPasswordPassword] = useState('');
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [linkPasswordError, setLinkPasswordError] = useState<string | null>(null);
   const [linkPasswordSuccess, setLinkPasswordSuccess] = useState(false);
 
@@ -251,6 +253,22 @@ export default function ProfilePage() {
       
       setProfile(profileData);
       setFormData(profileData);
+      
+      // Fetch subscription info
+      try {
+        const subData = await subscriptionService.getCurrentSubscription(user);
+        setSubscription(subData);
+        console.log('✅ Subscription data loaded:', subData);
+      } catch (subError) {
+        console.warn('Could not load subscription:', subError);
+        // Set default free tier if fetch fails
+        setSubscription({
+          role: 'tier1',
+          status: 'active',
+          flatlays_remaining: 1,
+          trial_used: false
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch profile');
     } finally {
@@ -684,8 +702,21 @@ export default function ProfilePage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Plan</span>
-              <span className="text-sm font-semibold text-[#FFB84C]">Free</span>
+              <span className="text-sm font-semibold text-[#FFB84C]">
+                {subscription?.role === 'tier1' && 'Free'}
+                {subscription?.role === 'tier2' && 'Pro'}
+                {subscription?.role === 'tier3' && 'Premium'}
+                {!subscription && 'Free'}
+              </span>
             </div>
+            {subscription?.is_trialing && subscription?.days_remaining_in_trial !== undefined && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Free Trial</span>
+                <span className="text-sm font-semibold text-[#4CAF50] dark:text-[#79E2A6]">
+                  {subscription.days_remaining_in_trial} days remaining
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Member since</span>
               <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
