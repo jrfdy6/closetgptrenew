@@ -1402,15 +1402,19 @@ function OnboardingContent() {
         </div>
         
         {question.type === "visual" && question.images ? (
-          <div className="space-y-4">
+          <div className="space-y-2 sm:space-y-4">
             {(question.id === "body_type_female" || question.id === "body_type_male" || question.id === "body_type_nonbinary") && (
-              <BodyPositiveMessage variant="profile" className="mb-4" />
+              <BodyPositiveMessage variant="profile" className="mb-2 sm:mb-4" />
             )}
-            <div className="space-y-3 max-w-2xl mx-auto">
+            <div className={`max-w-2xl mx-auto ${
+              question.options.length >= 6 
+                ? 'grid grid-cols-2 gap-2 sm:gap-3' 
+                : 'space-y-2 sm:space-y-3'
+            }`}>
               {question.options.map((option) => (
                 <button
                   key={option}
-                  className={`w-full py-5 px-6 rounded-full text-lg font-medium transition-all duration-300 ${
+                  className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-sm sm:text-base font-medium transition-all duration-300 ${
                     currentAnswer?.selected_option === option
                       ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-lg"
                       : "bg-white text-gray-900 border border-gray-300 hover:border-gray-400 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:border-gray-500"
@@ -1420,16 +1424,16 @@ function OnboardingContent() {
                   }}
                 >
                   <div className="text-center">
-                    <div className="font-semibold">{option}</div>
+                    <div className="font-semibold truncate">{option}</div>
                   </div>
                 </button>
               ))}
             </div>
           </div>
         ) : question.type === "visual_yesno" && question.images ? (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
-              <div className="aspect-[4/5] relative mb-4">
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+              <div className="aspect-[3/4] sm:aspect-[4/5] relative mb-3 sm:mb-4 max-h-[40vh] sm:max-h-[50vh]">
                 <img
                   src={question.images[0]}
                   alt={question.style_name}
@@ -1440,18 +1444,18 @@ function OnboardingContent() {
                   }}
                 />
               </div>
-              <div className="text-center mb-6">
-                <h3 className="heading-sm text-gray-900 dark:text-[#F8F5F1] mb-2">
+              <div className="text-center mb-4 sm:mb-6">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-[#F8F5F1] mb-1 sm:mb-2">
                   {question.style_name}
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                   {question.colors?.join(", ").replace(/\b\w/g, l => l.toUpperCase())}
                 </p>
               </div>
-              <div className="flex gap-4 justify-center">
+              <div className="flex gap-3 sm:gap-4 justify-center">
                 <Button
                   variant={currentAnswer?.selected_option === "Yes" ? "default" : "outline"}
-                  className="flex-1 h-12 text-lg"
+                  className="flex-1 h-10 sm:h-12 text-base sm:text-lg"
                   onClick={() => {
                     handleAnswer(question.id, "Yes");
                   }}
@@ -1460,7 +1464,7 @@ function OnboardingContent() {
                 </Button>
                 <Button
                   variant={currentAnswer?.selected_option === "No" ? "default" : "outline"}
-                  className="flex-1 h-12 text-lg"
+                  className="flex-1 h-10 sm:h-12 text-base sm:text-lg"
                   onClick={() => {
                     handleAnswer(question.id, "No");
                   }}
@@ -1482,7 +1486,8 @@ function OnboardingContent() {
                   type="range"
                   min="0"
                   max="100"
-                  defaultValue="50"
+                  defaultValue={currentAnswer?.selected_option ? parseInt(currentAnswer.selected_option.split('_')[2]) : 50}
+                  value={currentAnswer?.selected_option ? parseInt(currentAnswer.selected_option.split('_')[2]) : 50}
                   className="w-full h-8 rounded-lg appearance-none cursor-pointer"
                   style={{
                     background: 'linear-gradient(to right, #FEF3C7, #FDE68A, #FCD34D, #F59E0B, #D97706, #B45309, #92400E, #78350F, #451A03, #1F2937)'
@@ -1490,7 +1495,23 @@ function OnboardingContent() {
                   onChange={(e) => {
                     const value = parseInt(e.target.value);
                     const skinTone = `skin_tone_${value}`;
-                    handleAnswer(question.id, skinTone);
+                    // Update state but DON'T advance - let user play with slider
+                    setAnswers(prev => {
+                      const existing = prev.find(a => a.question_id === question.id);
+                      if (existing) {
+                        return prev.map(a => 
+                          a.question_id === question.id 
+                            ? { ...a, selected_option: skinTone }
+                            : a
+                        );
+                      } else {
+                        return [...prev, {
+                          question_id: question.id,
+                          selected_option: skinTone,
+                          question_text: question.question
+                        }];
+                      }
+                    });
                   }}
                 />
                 <div className="text-center">
@@ -1511,13 +1532,29 @@ function OnboardingContent() {
                 </div>
               </div>
             </div>
+            {/* Next button for skin tone */}
+            <Button
+              onClick={() => {
+                if (currentAnswer?.selected_option) {
+                  handleAnswer(question.id, currentAnswer.selected_option);
+                }
+              }}
+              disabled={!currentAnswer?.selected_option}
+              className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 disabled:opacity-50"
+            >
+              Next
+            </Button>
           </div>
         ) : (
-        <div className="space-y-3 max-w-2xl mx-auto">
+        <div className={`max-w-2xl mx-auto ${
+          question.options.length >= 6 
+            ? 'grid grid-cols-2 gap-2 sm:gap-3' 
+            : 'space-y-2 sm:space-y-3'
+        }`}>
           {question.options.map((option) => (
             <button
               key={option}
-              className={`w-full py-5 px-6 rounded-full text-lg font-medium transition-all duration-300 ${
+              className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-sm sm:text-base font-medium transition-all duration-300 ${
                 currentAnswer?.selected_option === option
                   ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-lg"
                   : "bg-white text-gray-900 border border-gray-300 hover:border-gray-400 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:border-gray-500"
@@ -1527,7 +1564,7 @@ function OnboardingContent() {
               }}
             >
               <div className="text-center">
-                <div className="font-semibold mb-1">{option}</div>
+                <div className="font-semibold">{option}</div>
               </div>
             </button>
           ))}
@@ -1985,7 +2022,7 @@ function OnboardingContent() {
             {questionContent}
           </div>
 
-          <div className="sticky bottom-0 -mx-4 mt-4 pt-4 bg-white/85 dark:bg-[#1A1510]/90 backdrop-blur-xl border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+          <div className="sticky bottom-0 -mx-4 mt-4 pt-4 bg-gradient-to-t from-amber-50 to-transparent dark:from-amber-950 dark:to-transparent backdrop-blur-sm">
             <div className="px-4 pb-3 sm:pb-0 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
               <button
                 onClick={handlePrevious}
