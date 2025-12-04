@@ -594,12 +594,13 @@ export default function StylePersonaPage() {
                 e.currentTarget.src = '/images/placeholder.jpg';
               }}
             />
-            {/* Subtle bottom gradient for name readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+            {/* Subtle gradient for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/30"></div>
             
-            {/* Only Persona Name Overlay - Bottom Center */}
-            <div className="absolute bottom-0 left-0 right-0 p-8 text-center">
-              <h1 className="text-5xl md:text-6xl font-serif font-bold text-white leading-tight drop-shadow-2xl">
+            {/* Persona Name Overlay - Top Right, 25% Down */}
+            <div className="absolute top-[25%] right-0 p-8 text-right">
+              <div className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2 tracking-wider">YOU ARE</div>
+              <h1 className="text-5xl md:text-6xl font-serif font-bold text-gray-900 dark:text-gray-100 leading-tight drop-shadow-2xl">
                 {persona.name}
               </h1>
             </div>
