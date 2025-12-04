@@ -205,27 +205,54 @@ export default function GuidedUploadWizard({
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Value Props */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-lg p-4 text-center border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60">
-              <Sparkles className="h-8 w-8 mx-auto mb-2 text-[#FF9400] dark:text-[#FFB84C]" />
-              <h3 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1">AI-Powered Analysis</h3>
-              <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
-                Automatic categorization & style detection
-              </p>
+          {/* Photo Best Practices */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Camera className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              📸 Best Practices for Quality Photos
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300">
+                  <strong>Use hangers</strong> - Hang items on a door or clothing rack
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300">
+                  <strong>Good lighting</strong> - Natural light works best, avoid shadows
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300">
+                  <strong>Flat, not folded</strong> - Lay items flat or hang them fully extended
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300">
+                  <strong>Plain background</strong> - White wall or door preferred
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300">
+                  <strong>Full item visible</strong> - Capture the entire garment in frame
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300">
+                  <strong>No blurry photos</strong> - Hold steady for clear, sharp shots
+                </span>
+              </div>
             </div>
-            <div className="bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-lg p-4 text-center border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60">
-              <TrendingUp className="h-8 w-8 mx-auto mb-2 text-[#FF9400] dark:text-[#FFB84C]" />
-              <h3 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1">Smart Suggestions</h3>
-              <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
-                Get outfit ideas instantly
-              </p>
-            </div>
-            <div className="bg-gradient-to-br from-[#FFE08F]/40 to-[#FFB84C]/35 dark:from-[#FFD27F]/25 dark:to-[#FFB84C]/20 rounded-lg p-4 text-center border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60">
-              <CheckCircle className="h-8 w-8 mx-auto mb-2 text-[#FF9400] dark:text-[#FFB84C]" />
-              <h3 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1">Quick & Easy</h3>
-              <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
-                Background removal included
+            <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
+              <p className="text-xs text-blue-700 dark:text-blue-300 italic flex items-center gap-1">
+                <Sparkles className="w-4 h-4" />
+                Better photos = more accurate AI analysis & recommendations!
               </p>
             </div>
           </div>
