@@ -253,51 +253,51 @@ class TVEService:
                 logger.error(f"Item {item_id} not found")
                 return False
             
-        item_data = item_doc.to_dict()
-        item_type = item_data.get('type', 'other')
-        
-        # ✅ CRITICAL FIX: Preserve existing TVE before recalculation
-        existing_tve = item_data.get('current_tve', 0.0)
-        
-        # Get user's spending ranges
-        user_ref = self.db.collection('users').document(user_id)
-        user_doc = user_ref.get()
-        
-        if not user_doc.exists:
-            logger.error(f"User {user_id} not found")
-            return False
-        
-        user_data = user_doc.to_dict()
-        spending_ranges = user_data.get('spending_ranges', {})
-        
-        # Calculate estimated item cost (C)
-        estimated_cost = self.estimate_item_cost(item_type, spending_ranges)
-        
-        # Get category
-        item_type_lower = item_type.lower().replace(" ", "_")
-        category = CATEGORY_TO_SPENDING_KEY.get(item_type_lower, "tops")
-        
-        # Calculate dynamic CPW target (V_W)
-        value_per_wear = await self.calculate_dynamic_cpw_target(user_id, category)
-        
-        if value_per_wear is None:
-            logger.warning(f"Could not calculate value_per_wear for item {item_id}")
-            value_per_wear = 5.0  # Default fallback
-        
-        # Calculate target wears (T = C / V_W)
-        target_wears = round(estimated_cost / value_per_wear) if value_per_wear > 0 else 20
-        
-        # Update item with TVE fields
-        item_ref.update({
-            'estimated_cost': estimated_cost,
-            'value_per_wear': value_per_wear,
-            'target_wears': target_wears,
-            'current_tve': existing_tve  # ✅ FIX: Preserve accumulated value
-        })
-        
-        logger.info(f"✅ Initialized TVE fields for item {item_id}: "
-                   f"C=${estimated_cost}, V_W=${value_per_wear}, T={target_wears}, "
-                   f"TVE preserved: ${existing_tve}")
+            item_data = item_doc.to_dict()
+            item_type = item_data.get('type', 'other')
+            
+            # ✅ CRITICAL FIX: Preserve existing TVE before recalculation
+            existing_tve = item_data.get('current_tve', 0.0)
+            
+            # Get user's spending ranges
+            user_ref = self.db.collection('users').document(user_id)
+            user_doc = user_ref.get()
+            
+            if not user_doc.exists:
+                logger.error(f"User {user_id} not found")
+                return False
+            
+            user_data = user_doc.to_dict()
+            spending_ranges = user_data.get('spending_ranges', {})
+            
+            # Calculate estimated item cost (C)
+            estimated_cost = self.estimate_item_cost(item_type, spending_ranges)
+            
+            # Get category
+            item_type_lower = item_type.lower().replace(" ", "_")
+            category = CATEGORY_TO_SPENDING_KEY.get(item_type_lower, "tops")
+            
+            # Calculate dynamic CPW target (V_W)
+            value_per_wear = await self.calculate_dynamic_cpw_target(user_id, category)
+            
+            if value_per_wear is None:
+                logger.warning(f"Could not calculate value_per_wear for item {item_id}")
+                value_per_wear = 5.0  # Default fallback
+            
+            # Calculate target wears (T = C / V_W)
+            target_wears = round(estimated_cost / value_per_wear) if value_per_wear > 0 else 20
+            
+            # Update item with TVE fields
+            item_ref.update({
+                'estimated_cost': estimated_cost,
+                'value_per_wear': value_per_wear,
+                'target_wears': target_wears,
+                'current_tve': existing_tve  # ✅ FIX: Preserve accumulated value
+            })
+            
+            logger.info(f"✅ Initialized TVE fields for item {item_id}: "
+                       f"C=${estimated_cost}, V_W=${value_per_wear}, T={target_wears}, "
+                       f"TVE preserved: ${existing_tve}")
             
             return True
             
