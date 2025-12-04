@@ -418,7 +418,7 @@ async def mark_outfit_as_worn(
         try:
             from ..services.gamification_service import gamification_service
             from ..services.challenge_service import challenge_service
-            from ..services.cpw_service import cpw_service
+            from ..services.tve_service import tve_service, CATEGORY_TO_SPENDING_KEY
             
             # 1. Award XP for outfit logging
             xp_result = await gamification_service.award_xp(
@@ -454,9 +454,48 @@ async def mark_outfit_as_worn(
                         milestone_results.append(milestone_result)
                         logger.info(f"🏆 Milestone reached for item {item_id}: {milestone_result}")
             
-            # 4. Recalculate CPW for items that were worn
-            cpw_results = await cpw_service.recalculate_items_cpw(current_user.id, item_ids)
-            logger.info(f"✅ Recalculated CPW for {len(cpw_results)} items")
+            # 4. Increment TVE for each worn item (Event-Triggered Hybrid Approach)
+            total_tve_increment = 0
+            for item_id in item_ids:
+                item_ref = db.collection('wardrobe').document(item_id)
+                item_doc = item_ref.get()
+                
+                if item_doc.exists:
+                    item_data = item_doc.to_dict()
+                    
+                    # Get value_per_wear for this item
+                    value_per_wear = item_data.get('value_per_wear', 0)
+                    
+                    # If value_per_wear not set, initialize TVE fields for this item
+                    if value_per_wear == 0 or value_per_wear is None:
+                        logger.info(f"⚠️ Item {item_id} missing TVE fields, initializing...")
+                        await tve_service.initialize_item_tve_fields(current_user.id, item_id)
+                        # Re-fetch to get the initialized value
+                        item_doc = item_ref.get()
+                        if item_doc.exists:
+                            item_data = item_doc.to_dict()
+                            value_per_wear = item_data.get('value_per_wear', 5.0)
+                    
+                    # Increment item's TVE
+                    if value_per_wear > 0:
+                        success = await tve_service.increment_item_tve(item_id, value_per_wear)
+                        if success:
+                            total_tve_increment += value_per_wear
+                            
+                            # Get category for user cache update
+                            item_type = item_data.get('type', '').lower().replace(" ", "_")
+                            category = CATEGORY_TO_SPENDING_KEY.get(item_type, "tops")
+                            logger.info(f"✅ Incremented TVE for item {item_id} by ${value_per_wear:.2f} ({category})")
+                        else:
+                            logger.warning(f"⚠️ Failed to increment TVE for item {item_id}")
+            
+            # 5. Update user's cached TVE totals (aggregate update)
+            if total_tve_increment > 0:
+                # Note: We're updating the total but need to track per-category
+                # For simplicity, we'll recalculate category totals from items
+                # In a production system, you'd maintain category counters
+                logger.info(f"✅ Total TVE increment for outfit: ${total_tve_increment:.2f}")
+                logger.info("💡 User TVE cache will be updated on next stats fetch")
             
         except Exception as gamification_error:
             # Don't fail the whole request if gamification fails
@@ -1194,6 +1233,46 @@ async def mark_today_suggestion_as_worn(
                 # Commit the batch update
                 batch.commit()
                 logger.info(f"✅ Updated wear counts for {len(outfit_items)} items in suggestion {suggestion_id}")
+                
+                # Increment TVE for each worn item
+                try:
+                    from ..services.tve_service import tve_service, CATEGORY_TO_SPENDING_KEY
+                    
+                    total_tve_increment = 0
+                    for item in outfit_items:
+                        if isinstance(item, dict) and 'id' in item:
+                            item_id = item['id']
+                            item_ref = wardrobe_ref.document(item_id)
+                            item_doc = item_ref.get()
+                            
+                            if item_doc.exists:
+                                item_data = item_doc.to_dict()
+                                value_per_wear = item_data.get('value_per_wear', 0)
+                                
+                                # Initialize TVE fields if missing
+                                if value_per_wear == 0 or value_per_wear is None:
+                                    logger.info(f"⚠️ Item {item_id} missing TVE fields, initializing...")
+                                    await tve_service.initialize_item_tve_fields(current_user.id, item_id)
+                                    # Re-fetch
+                                    item_doc = item_ref.get()
+                                    if item_doc.exists:
+                                        item_data = item_doc.to_dict()
+                                        value_per_wear = item_data.get('value_per_wear', 5.0)
+                                
+                                # Increment TVE
+                                if value_per_wear > 0:
+                                    success = await tve_service.increment_item_tve(item_id, value_per_wear)
+                                    if success:
+                                        total_tve_increment += value_per_wear
+                                        logger.info(f"✅ Incremented TVE for item {item_id} by ${value_per_wear:.2f}")
+                    
+                    if total_tve_increment > 0:
+                        logger.info(f"✅ Total TVE increment for suggestion: ${total_tve_increment:.2f}")
+                        
+                except Exception as tve_error:
+                    logger.warning(f"⚠️ Failed to update TVE: {tve_error}")
+                    # Don't fail the whole request if TVE update fails
+                    
             except Exception as item_error:
                 logger.warning(f"⚠️ Failed to update wardrobe item wear counts: {item_error}")
                 # Don't fail the whole request if item updates fail

@@ -119,12 +119,12 @@ Check deployment: https://easyoutfitapp.vercel.app
 5. Log outfit with second item
 6. **Verify:** "+75 XP! Badge unlocked!"
 
-#### Test 4: CPW Display
+#### Test 4: TVE Display
 1. Go to dashboard
 2. Scroll to "Your Progress" section
-3. **Verify:** CPW card shows average
+3. **Verify:** TVE card shows total value extracted
 4. Log a few outfits
-5. **Verify:** CPW decreases, trend shows green
+5. **Verify:** TVE increases, progress bar grows
 
 #### Test 5: Shuffle
 1. Click "Dress Me" button on dashboard
@@ -143,9 +143,9 @@ Check deployment: https://easyoutfitapp.vercel.app
 **Problem:** Gamification service import failed  
 **Fix:** Check Railway logs for import errors, restart backend
 
-### CPW shows "null"
-**Problem:** User missing spending_ranges  
-**Fix:** Have user update in settings or re-onboard
+### TVE shows "0"
+**Problem:** User missing spending_ranges or TVE not initialized  
+**Fix:** Have user update in settings or call `/gamification/initialize-tve` endpoint
 
 ### Challenges not loading
 **Problem:** user_challenges collection doesn't exist  
@@ -158,9 +158,10 @@ Check deployment: https://easyoutfitapp.vercel.app
 System is working if:
 - ✅ Spending questions appear in onboarding
 - ✅ XP notifications show on feedback
-- ✅ Dashboard shows 3 gamification cards
-- ✅ `/challenges` page loads with challenges
+- ✅ Dashboard shows 3 gamification cards (Level/XP, TVE, AI Fit Score)
+- ✅ `/challenges` page loads with challenges and progress cards
 - ✅ Shuffle button generates outfits
+- ✅ TVE increments when outfits are logged
 - ✅ No errors in Railway or Vercel logs
 
 ---

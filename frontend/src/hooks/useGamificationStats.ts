@@ -32,12 +32,25 @@ export interface AIFitScoreExplanation {
   } | null;
 }
 
-export interface CPWTrend {
-  current_cpw: number | null;
-  previous_cpw: number | null;
-  change_percentage: number;
-  trend: string;
-  period_days: number;
+export interface TVEStats {
+  total_tve: number;
+  total_wardrobe_cost: number;
+  percent_recouped: number;
+  annual_potential_range: {
+    low: number;
+    high: number;
+  };
+  tve_by_category: {
+    [category: string]: {
+      tve: number;
+      cost: number;
+      percent: number;
+    };
+  };
+  lowest_progress_category: {
+    category: string;
+    percent: number;
+  } | null;
 }
 
 export interface Challenge {
@@ -60,10 +73,7 @@ export interface GamificationStats {
   xp: number;
   level: LevelInfo;
   ai_fit_score: AIFitScoreExplanation;
-  cpw: {
-    average: number | null;
-    trend: CPWTrend;
-  };
+  tve: TVEStats;
   badges: string[];
   active_challenges: Challenge[];
   active_challenges_count: number;

@@ -534,7 +534,7 @@ export default function WardrobeInsightsHub({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Import components dynamically to avoid SSR issues */}
             <GamificationSummaryCardWrapper />
-            <CPWCardWrapper />
+            <TVECardWrapper />
             <AIFitScoreCardWrapper />
           </div>
         </div>
@@ -561,8 +561,8 @@ const GamificationSummaryCardWrapper = dynamic(
   { ssr: false, loading: () => <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" /> }
 );
 
-const CPWCardWrapper = dynamic(
-  () => import('@/components/gamification/CPWCard'),
+const TVECardWrapper = dynamic(
+  () => import('@/components/gamification/TVECard'),
   { ssr: false, loading: () => <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" /> }
 );
 

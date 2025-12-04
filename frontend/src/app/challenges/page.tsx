@@ -9,6 +9,23 @@ import BadgeDisplay from '@/components/gamification/BadgeDisplay';
 import { useAuthContext } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import dynamic from 'next/dynamic';
+
+// Dynamically import gamification components to avoid SSR issues
+const GamificationSummaryCard = dynamic(
+  () => import('@/components/gamification/GamificationSummaryCard'),
+  { ssr: false, loading: () => <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" /> }
+);
+
+const TVECard = dynamic(
+  () => import('@/components/gamification/TVECard'),
+  { ssr: false, loading: () => <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" /> }
+);
+
+const AIFitScoreCard = dynamic(
+  () => import('@/components/gamification/AIFitScoreCard'),
+  { ssr: false, loading: () => <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" /> }
+);
 
 export default function ChallengesPage() {
   const { user, loading } = useAuthContext();
@@ -64,53 +81,33 @@ export default function ChallengesPage() {
           </p>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Target className="w-4 h-4 text-blue-600" />
-                This Week's Focus
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                Complete featured challenges for bonus rewards!
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-600" />
-                Weekly Rewards
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                Earn up to 500 XP and exclusive badges this week
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-green-600" />
-                Your Progress
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                Track your achievements and level up faster
-              </p>
-            </CardContent>
-          </Card>
+        {/* Progress Tracking Section */}
+        <div className="mb-8 space-y-6">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-1">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              Your Progress
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Track your wardrobe optimization journey
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <GamificationSummaryCard />
+            <TVECard />
+            <AIFitScoreCard />
+          </div>
         </div>
 
         {/* Challenge List */}
-        <ChallengeList />
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+            <Target className="w-5 h-5 text-blue-600" />
+            Weekly Challenges
+          </h2>
+          <ChallengeList />
+        </div>
 
         {/* Badge Showcase */}
         <div className="mt-12">

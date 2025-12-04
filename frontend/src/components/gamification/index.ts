@@ -13,6 +13,7 @@ export { default as BadgeUnlockModal } from './BadgeUnlockModal';
 // Dashboard Cards
 export { default as GamificationSummaryCard } from './GamificationSummaryCard';
 export { default as CPWCard } from './CPWCard';
+export { default as TVECard } from './TVECard';
 export { default as AIFitScoreCard } from './AIFitScoreCard';
 export { default as UtilizationCard } from './UtilizationCard';
 export { default as GWSCard } from './GWSCard';

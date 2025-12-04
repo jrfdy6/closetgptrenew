@@ -11,7 +11,7 @@ from ..auth.auth_service import get_current_user
 from ..custom_types.profile import UserProfile
 from ..services.gamification_service import gamification_service
 from ..services.ai_fit_score_service import ai_fit_score_service
-from ..services.cpw_service import cpw_service
+from ..services.tve_service import tve_service
 
 router = APIRouter(prefix="/gamification", tags=["gamification"])
 logger = logging.getLogger(__name__)
@@ -144,7 +144,7 @@ async def get_gamification_stats(
     Returns comprehensive dashboard data including:
     - XP and level info
     - AI Fit Score with breakdown
-    - CPW average and trend
+    - TVE (Total Value Extracted) stats
     - Active challenges
     """
     try:
@@ -154,9 +154,8 @@ async def get_gamification_stats(
         # Get AI Fit Score explanation
         ai_fit_explanation = await ai_fit_score_service.get_score_explanation(current_user.id)
         
-        # Get CPW stats
-        cpw_average = await cpw_service.calculate_wardrobe_average_cpw(current_user.id)
-        cpw_trend = await cpw_service.calculate_cpw_trend(current_user.id, days=30)
+        # Get TVE stats
+        tve_stats = await tve_service.calculate_wardrobe_tve(current_user.id)
         
         # Get active challenges
         from ..services.challenge_service import challenge_service
@@ -168,10 +167,7 @@ async def get_gamification_stats(
                 "xp": current_user.xp or 0,
                 "level": level_info.dict(),
                 "ai_fit_score": ai_fit_explanation,
-                "cpw": {
-                    "average": cpw_average,
-                    "trend": cpw_trend
-                },
+                "tve": tve_stats,
                 "badges": current_user.badges or [],
                 "active_challenges": active_challenges,
                 "active_challenges_count": len(active_challenges)
@@ -271,50 +267,54 @@ async def get_ai_fit_score_details(
         raise HTTPException(status_code=500, detail="Failed to get AI Fit Score")
 
 
-@router.get("/cpw-summary")
-async def get_cpw_summary(
+@router.get("/tve-summary")
+async def get_tve_summary(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
-    Get CPW summary and trends
+    Get TVE (Total Value Extracted) summary with breakdown
     """
     try:
-        average_cpw = await cpw_service.calculate_wardrobe_average_cpw(current_user.id)
-        trend_30d = await cpw_service.calculate_cpw_trend(current_user.id, days=30)
-        trend_7d = await cpw_service.calculate_cpw_trend(current_user.id, days=7)
+        tve_stats = await tve_service.calculate_wardrobe_tve(current_user.id)
         
         return {
             "success": True,
-            "data": {
-                "average_cpw": average_cpw,
-                "trend_30_days": trend_30d,
-                "trend_7_days": trend_7d
-            }
+            "data": tve_stats
         }
         
     except Exception as e:
-        logger.error(f"Error getting CPW summary: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to get CPW summary")
+        logger.error(f"Error getting TVE summary: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to get TVE summary")
 
 
-@router.post("/recalculate-cpw")
-async def recalculate_user_cpw(
+@router.post("/initialize-tve")
+async def initialize_tve_for_user(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
-    Recalculate CPW for all user's items
+    Initialize TVE fields for all user's wardrobe items
     """
     try:
-        count = await cpw_service.recalculate_all_cpw_for_user(current_user.id)
+        from ..config.firebase import db
+        
+        # Get all user's items
+        wardrobe_ref = db.collection('wardrobe').where('userId', '==', current_user.id)
+        items = list(wardrobe_ref.stream())
+        
+        count = 0
+        for doc in items:
+            success = await tve_service.initialize_item_tve_fields(current_user.id, doc.id)
+            if success:
+                count += 1
         
         return {
             "success": True,
-            "message": f"Recalculated CPW for {count} items"
+            "message": f"Initialized TVE for {count} items"
         }
         
     except Exception as e:
-        logger.error(f"Error recalculating CPW: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to recalculate CPW")
+        logger.error(f"Error initializing TVE: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to initialize TVE")
 
 
 @router.post("/cold-start-check")

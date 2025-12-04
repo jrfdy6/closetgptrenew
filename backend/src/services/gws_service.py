@@ -1,6 +1,6 @@
 """
 Global Wardrobe Score (GWS) Service
-Calculates composite score from utilization, CPW, AI Fit Score, and revived items
+Calculates composite score from utilization, TVE Progress, AI Fit Score, and revived items
 """
 
 import logging
@@ -8,7 +8,7 @@ from typing import Dict, Optional, Any, List
 from datetime import datetime, timedelta
 from ..config.firebase import db
 from .utilization_service import utilization_service
-from .cpw_service import cpw_service
+from .tve_service import tve_service
 from .ai_fit_score_service import ai_fit_score_service
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ class GWSService:
         Calculate Global Wardrobe Score (0-100)
         
         Formula:
-        GWS = 0.4 * utilization_pct + 0.3 * cpw_improvement_pct + 
+        GWS = 0.4 * utilization_pct + 0.3 * tve_progress_pct + 
               0.2 * ai_fit_score_normalized + 0.1 * revived_items_score
         
         Args:
@@ -42,13 +42,17 @@ class GWSService:
             utilization_pct = utilization_data.get('utilization_percentage', 0)
             utilization_component = (utilization_pct / 100) * 40
             
-            # Component 2: CPW Improvement (30 points max)
-            cpw_trend = await cpw_service.calculate_cpw_trend(user_id, days=30)
-            cpw_change = cpw_trend.get('change_percentage', 0)
+            # Component 2: TVE Progress (30 points max)
+            tve_stats = await tve_service.calculate_wardrobe_tve(user_id)
+            total_tve = tve_stats.get('total_tve', 0)
+            total_wardrobe_cost = tve_stats.get('total_wardrobe_cost', 0)
             
-            # Normalize CPW change to 0-1 (max improvement is -20%, max decline is +20%)
-            cpw_normalized = max(0, min(1, (-cpw_change + 20) / 40))
-            cpw_component = cpw_normalized * 30
+            if total_wardrobe_cost > 0:
+                # Calculate ratio of value extracted to total investment (capped at 1.0)
+                tve_progress_ratio = min(1.0, total_tve / total_wardrobe_cost)
+                tve_component = tve_progress_ratio * 30
+            else:
+                tve_component = 0
             
             # Component 3: AI Fit Score normalized (20 points max)
             ai_fit_score = await ai_fit_score_service.calculate_ai_fit_score(user_id)
@@ -59,7 +63,7 @@ class GWSService:
             revived_component = revived_score * 10
             
             # Calculate total GWS
-            gws = utilization_component + cpw_component + ai_fit_component + revived_component
+            gws = utilization_component + tve_component + ai_fit_component + revived_component
             gws = round(gws, 1)
             
             # Update user profile with GWS
@@ -71,7 +75,7 @@ class GWSService:
             
             logger.info(f"GWS for user {user_id}: {gws} "
                        f"(util: {utilization_component:.1f}, "
-                       f"cpw: {cpw_component:.1f}, "
+                       f"tve: {tve_component:.1f}, "
                        f"ai: {ai_fit_component:.1f}, "
                        f"revived: {revived_component:.1f})")
             
@@ -91,7 +95,7 @@ class GWSService:
         try:
             # Get all components
             utilization_data = await utilization_service.calculate_utilization_percentage(user_id, days=30)
-            cpw_trend = await cpw_service.calculate_cpw_trend(user_id, days=30)
+            tve_stats = await tve_service.calculate_wardrobe_tve(user_id)
             ai_fit_score = await ai_fit_score_service.calculate_ai_fit_score(user_id)
             revived_score = await self._calculate_revived_items_score(user_id)
             
@@ -99,14 +103,21 @@ class GWSService:
             utilization_pct = utilization_data.get('utilization_percentage', 0)
             utilization_component = (utilization_pct / 100) * 40
             
-            cpw_change = cpw_trend.get('change_percentage', 0)
-            cpw_normalized = max(0, min(1, (-cpw_change + 20) / 40))
-            cpw_component = cpw_normalized * 30
+            # TVE Progress component
+            total_tve = tve_stats.get('total_tve', 0)
+            total_wardrobe_cost = tve_stats.get('total_wardrobe_cost', 0)
+            
+            if total_wardrobe_cost > 0:
+                tve_progress_ratio = min(1.0, total_tve / total_wardrobe_cost)
+                tve_component = tve_progress_ratio * 30
+            else:
+                tve_progress_ratio = 0
+                tve_component = 0
             
             ai_fit_component = (ai_fit_score / 100) * 20
             revived_component = revived_score * 10
             
-            total_gws = utilization_component + cpw_component + ai_fit_component + revived_component
+            total_gws = utilization_component + tve_component + ai_fit_component + revived_component
             
             return {
                 "total_gws": round(total_gws, 1),
@@ -117,12 +128,13 @@ class GWSService:
                         "percentage": utilization_pct,
                         "label": "Wardrobe Usage"
                     },
-                    "cpw_improvement": {
-                        "score": round(cpw_component, 1),
+                    "tve_progress": {
+                        "score": round(tve_component, 1),
                         "max": 30,
-                        "percentage": round(cpw_normalized * 100, 1),
-                        "change": cpw_change,
-                        "label": "Value Optimization"
+                        "percentage": round(tve_progress_ratio * 100, 1),
+                        "total_tve": total_tve,
+                        "total_wardrobe_cost": total_wardrobe_cost,
+                        "label": "Value Extraction"
                     },
                     "ai_fit": {
                         "score": round(ai_fit_component, 1),
@@ -139,7 +151,7 @@ class GWSService:
                 },
                 "insights": self._generate_gws_insights(total_gws, {
                     "utilization": utilization_pct,
-                    "cpw_change": cpw_change,
+                    "tve_progress": tve_progress_ratio * 100,
                     "ai_fit": ai_fit_score,
                     "revived": revived_score
                 })
@@ -215,8 +227,8 @@ class GWSService:
         if components.get('utilization', 0) < 40:
             insights.append("Try wearing different items to increase your utilization score.")
         
-        if components.get('cpw_change', 0) > 5:
-            insights.append("Log more outfits to reduce your cost-per-wear.")
+        if components.get('tve_progress', 0) < 30:
+            insights.append("Log more outfits to extract more value from your wardrobe!")
         
         if components.get('ai_fit', 0) < 50:
             insights.append("Rate more outfits to help the AI learn your style.")

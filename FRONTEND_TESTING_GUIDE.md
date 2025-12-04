@@ -41,8 +41,8 @@ Before you begin:
    - Shows AI Fit Score
    - Shows active challenges count
 
-2. ✅ **CPW Card** (Cost Per Wear)
-   - Shows average CPW (e.g., "$51.47")
+2. ✅ **TVE Card** (Total Value Extracted)
+   - Shows total value extracted (e.g., "$245.50")
    - Shows trend (↓ or ↑ with percentage)
    - Small line chart if available
 
@@ -444,31 +444,34 @@ Before you begin:
 
 ---
 
-## 💎 **SECTION 7: CPW (COST PER WEAR)**
+## 💎 **SECTION 7: TVE (TOTAL VALUE EXTRACTED)**
 
-### Test 7.1: CPW Card Display
-**Location:** Dashboard → CPW Card
+### Test 7.1: TVE Card Display
+**Location:** Dashboard → TVE Card
 
 **Check:**
-- ✅ Average CPW shown (e.g., "$51.47")
-- ✅ Trend indicator (↓ 5% or ↑ 3%)
-- ✅ Green if decreasing, red if increasing
-- ✅ Tooltip explains what CPW means
+- ✅ Total value extracted shown (e.g., "$245.50")
+- ✅ Progress bar showing % of investment recouped
+- ✅ Annual potential range displayed ($X - $Y based on 30-50% utilization)
+- ✅ Lowest progress category highlighted (e.g., "Jackets - 15% extracted")
+- ✅ Tooltip explains what TVE means
+- ✅ Green color scheme representing value growth
 
 ---
 
-### Test 7.2: CPW Updates When Wearing Items
+### Test 7.2: TVE Increases When Wearing Items
 **Action:**
-1. Note current CPW
+1. Note current TVE (e.g., "$245.50")
 2. Log 3-5 outfits as worn
-3. Wait 30 seconds (for backend calculation)
+3. Wait a few seconds for updates
 4. Refresh dashboard
-5. Check CPW again
+5. Check TVE again
 
 **Verify:**
-- ✅ CPW decreased (each wear lowers cost-per-wear)
-- ✅ Trend shows downward arrow
-- ✅ Percentage change shown
+- ✅ TVE increased (each wear adds value)
+- ✅ Progress bar % increased
+- ✅ Amount shows new total (e.g., "$263.25")
+- ✅ If TVE ≥ 100%, see "Bonus Value" celebration message
 
 ---
 
