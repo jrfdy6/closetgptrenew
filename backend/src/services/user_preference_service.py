@@ -162,7 +162,8 @@ class UserPreferenceService:
             
             # Track color combinations that work
             if len(outfit_colors) >= 2:
-                color_combo = tuple(sorted(outfit_colors[:3]))
+                # ✅ FIX: Convert tuple to string to avoid nested arrays
+                color_combo = ','.join(sorted(outfit_colors[:3]))
                 updates['color_combinations_liked'] = self._add_to_preference_list(
                     prefs.get('color_combinations_liked', []),
                     [color_combo],
@@ -206,7 +207,8 @@ class UserPreferenceService:
             
             # Track avoided color combinations
             if len(outfit_colors) >= 2:
-                color_combo = tuple(sorted(outfit_colors[:3]))
+                # ✅ FIX: Convert tuple to string to avoid nested arrays
+                color_combo = ','.join(sorted(outfit_colors[:3]))
                 updates['color_combinations_avoided'] = self._add_to_preference_list(
                     prefs.get('color_combinations_avoided', []),
                     [color_combo],
