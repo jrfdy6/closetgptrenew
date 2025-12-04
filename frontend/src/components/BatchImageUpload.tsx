@@ -25,6 +25,7 @@ interface BatchImageUploadProps {
   onUploadComplete?: (items: any[]) => void;
   onError?: (message: string) => void;
   userId: string;
+  quickMode?: boolean; // When true, uploads are async (don't wait for analysis)
 }
 
 interface UploadItem {
@@ -520,7 +521,7 @@ const checkForDuplicates = async (file: File, existingItems: any[], user: any): 
   }
 };
 
-export default function BatchImageUpload({ onUploadComplete, onError, userId }: BatchImageUploadProps) {
+export default function BatchImageUpload({ onUploadComplete, onError, userId, quickMode = false }: BatchImageUploadProps) {
   const { toast } = useToast();
   const { user } = useFirebase();
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
@@ -706,32 +707,92 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
           const imageUrl = await uploadImageToFirebaseStorage(item.file, user.uid, user);
           console.log(`✅ Uploaded to storage: ${imageUrl}`);
 
-          // 2️⃣ Send URL to backend for analysis
+          // 2️⃣ Trigger backend analysis
           const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
           const payload = { image: { url: imageUrl } };
           
           console.log("POSTing to backend:", backendUrl + "/analyze-image");
           console.log("Payload:", JSON.stringify(payload));
           
-          const response = await fetch(`${backendUrl}/analyze-image`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${await user.getIdToken()}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
-          });
+          if (quickMode) {
+            // QUICK MODE: Fire-and-forget - trigger analysis but don't wait
+            console.log(`🚀 Quick mode: Triggering async analysis for item ${i + 1}`);
+            
+            fetch(`${backendUrl}/analyze-image`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${await user.getIdToken()}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(payload),
+            }).then(response => {
+              if (response.ok) {
+                console.log(`✅ Background analysis started for item ${i + 1}`);
+              } else {
+                console.warn(`⚠️ Background analysis may have failed for item ${i + 1}`);
+              }
+            }).catch(err => {
+              console.warn(`⚠️ Background analysis error for item ${i + 1}:`, err);
+            });
+            
+            // Create minimal item record - mark as pending for worker
+            const result = { analysis: null }; // Will be processed by background worker
+            console.log(`✅ Item ${i + 1} queued for background analysis`);
+          } else {
+            // NORMAL MODE: Wait for full analysis (blocking)
+            const response = await fetch(`${backendUrl}/analyze-image`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${await user.getIdToken()}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(payload),
+            });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Upload failed');
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Upload failed');
+            }
+
+            var result = await response.json();
+            console.log(`✅ Item ${i + 1} analyzed successfully:`, result);
           }
 
-          const result = await response.json();
-          console.log(`✅ Item ${i + 1} analyzed successfully:`, result);
-
-          if (result.analysis) {
-            // Create a proper clothing item from the analysis result
+          if (quickMode) {
+            // QUICK MODE: Create minimal item, skip full metadata
+            console.log(`🚀 Quick mode: Creating minimal item ${i + 1} for background processing`);
+            
+            // Generate hash for the uploaded item
+            const { imageHash, metadata } = await generateImageHashAndMetadata(item.file, user);
+            
+            const minimalItem = {
+              id: `item-${Date.now()}-${i}`,
+              name: item.file.name.replace(/\.[^/.]+$/, ""), // Filename without extension
+              type: 'unknown',
+              color: 'unknown',
+              imageUrl: imageUrl,
+              userId: user.uid,
+              createdAt: new Date().toISOString(),
+              processing_status: 'pending', // Mark for background worker
+              imageHash: imageHash,
+              metadata: metadata,
+              fileSize: item.file.size,
+              backgroundRemoved: false,
+              favorite: false,
+              wearCount: 0,
+            };
+            
+            successfulItems.push(minimalItem);
+            
+            // Update UI
+            setUploadItems(prev => prev.map(prevItem => 
+              prevItem.id === item.id 
+                ? { ...prevItem, status: 'success' }
+                : prevItem
+            ));
+            
+          } else if (result.analysis) {
+            // NORMAL MODE: Create a proper clothing item from the analysis result
             console.log('🔍 DEBUG: AI Analysis result:', result.analysis);
             console.log('🔍 DEBUG: Analysis fields:', {
               name: result.analysis.name,
@@ -906,10 +967,20 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
         const duplicateCount = uploadItems.filter(item => item.isDuplicate).length;
         const totalProcessed = successfulItems.length + duplicateCount;
         
-        toast({
-          title: "Batch upload completed! ✨",
-          description: `Successfully uploaded ${successfulItems.length} items with AI analysis${duplicateCount > 0 ? ` (${duplicateCount} duplicates skipped)` : ''}`,
-        });
+        if (quickMode) {
+          // Quick mode: Show background processing message
+          toast({
+            title: "Analyzing your items in background... ✨",
+            description: `${successfulItems.length} items uploaded! AI is analyzing them now while you continue.`,
+            duration: 3000,
+          });
+        } else {
+          // Normal mode: Show completion message
+          toast({
+            title: "Batch upload completed! ✨",
+            description: `Successfully uploaded ${successfulItems.length} items with AI analysis${duplicateCount > 0 ? ` (${duplicateCount} duplicates skipped)` : ''}`,
+          });
+        }
 
         if (onUploadComplete) {
           onUploadComplete(successfulItems);
