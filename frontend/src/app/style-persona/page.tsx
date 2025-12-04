@@ -584,7 +584,7 @@ export default function StylePersonaPage() {
         {/* Hero Section with Glass Effect */}
         <div className="glass-float rounded-3xl overflow-hidden mb-8 glass-shadow-strong">
           {/* Hero Image Container - Only Name Overlay */}
-          <div className="relative h-[500px] overflow-hidden rounded-t-3xl">
+          <div className="relative h-screen overflow-hidden rounded-t-3xl">
             <img 
               src={getHeroImageForPersona(persona.id, profile?.gender)}
               alt={`${persona.name} style example`}
