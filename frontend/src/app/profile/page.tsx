@@ -13,6 +13,7 @@ import ClientOnlyNav from '@/components/ClientOnlyNav';
 import { useRouter } from 'next/navigation';
 import { getLinkedProviders, hasPasswordLinked, linkEmailPassword } from '@/lib/auth';
 import { Lock, CheckCircle, XCircle } from 'lucide-react';
+import SpendingRangesCard from '@/components/SpendingRangesCard';
 
 console.log('🔍 DEBUG: Profile page file loaded');
 
@@ -664,6 +665,9 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Spending Ranges */}
+        <SpendingRangesCard />
 
         {/* Account Status */}
         <Card className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-3xl shadow-lg">
