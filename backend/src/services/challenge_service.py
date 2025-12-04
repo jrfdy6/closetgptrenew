@@ -347,19 +347,27 @@ class ChallengeService:
     async def get_available_challenges(self, user_id: str) -> List[Dict[str, Any]]:
         """Get challenges available to start"""
         try:
+            logger.info(f"Getting available challenges for user {user_id}")
+            logger.info(f"CHALLENGE_CATALOG has {len(CHALLENGE_CATALOG)} challenges")
+            
             # Get user's active challenge IDs
             active_challenges = await self.get_active_challenges(user_id)
             active_ids = [c.get('challenge_id') for c in active_challenges]
+            logger.info(f"User has {len(active_ids)} active challenges: {active_ids}")
             
             # Get featured challenges
             available = []
             for challenge_id, challenge_def in CHALLENGE_CATALOG.items():
+                logger.info(f"Checking challenge {challenge_id}: featured={challenge_def.featured}, cadence={challenge_def.cadence}")
+                
                 # Skip if already active
                 if challenge_id in active_ids:
+                    logger.info(f"  -> Skipping {challenge_id}: already active")
                     continue
                 
                 # Only show featured or always-available challenges
                 if challenge_def.featured or challenge_def.cadence == "always":
+                    logger.info(f"  -> Adding {challenge_id} to available list")
                     available.append({
                         "challenge_id": challenge_id,
                         "title": challenge_def.title,
@@ -369,7 +377,10 @@ class ChallengeService:
                         "icon": challenge_def.icon,
                         "featured": challenge_def.featured
                     })
+                else:
+                    logger.info(f"  -> Skipping {challenge_id}: not featured and not always available")
             
+            logger.info(f"Returning {len(available)} available challenges")
             return available
             
         except Exception as e:
