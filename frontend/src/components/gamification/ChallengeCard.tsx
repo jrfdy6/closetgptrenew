@@ -10,7 +10,8 @@ import {
   Trophy, 
   Calendar,
   CheckCircle,
-  Clock
+  Clock,
+  Award
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Challenge } from '@/hooks/useGamificationStats';
