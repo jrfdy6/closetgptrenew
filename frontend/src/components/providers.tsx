@@ -3,6 +3,7 @@
 import { ThemeProvider } from 'next-themes'
 import { FirebaseProvider } from '@/lib/firebase-context'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { XPNotificationProvider } from '@/contexts/XPNotificationContext'
 
 // Suppress harmless Cross-Origin-Opener-Policy warnings from Firebase OAuth popup
 // This runs early to catch errors before Firebase loads
@@ -42,7 +43,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <FirebaseProvider>
       <AuthProvider>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
+          <XPNotificationProvider>
+            {children}
+          </XPNotificationProvider>
         </ThemeProvider>
       </AuthProvider>
     </FirebaseProvider>

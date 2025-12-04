@@ -1184,6 +1184,18 @@ export default function OutfitGenerationPage() {
         console.log('✅ Rating submitted successfully');
         console.log('🔄 [Generate] Rating submitted - outfit should now be available in outfits list');
         
+        // ✅ Show XP notification if XP was awarded
+        if (result.xp_earned && result.xp_earned > 0) {
+          window.dispatchEvent(new CustomEvent('xpAwarded', {
+            detail: {
+              xp: result.xp_earned,
+              reason: 'Outfit rated',
+              level_up: result.level_up || false,
+              new_level: result.new_level
+            }
+          }));
+        }
+        
         // ✅ Trigger gamification stats refresh for AI Fit Score update
         window.dispatchEvent(new CustomEvent('outfitRated', { 
           detail: { outfitId, rating: outfitRating.rating }

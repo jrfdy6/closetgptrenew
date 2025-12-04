@@ -431,6 +431,18 @@ export function SmartWeatherOutfitGenerator({
       if (response.ok) {
         console.log('✅ Outfit marked as worn:', result);
         
+        // ✅ Show XP notification if XP was awarded
+        if (result.xp_earned && result.xp_earned > 0) {
+          window.dispatchEvent(new CustomEvent('xpAwarded', {
+            detail: {
+              xp: result.xp_earned,
+              reason: 'Outfit worn',
+              level_up: result.level_up || false,
+              new_level: result.new_level
+            }
+          }));
+        }
+        
         // Update local state
         const updatedOutfit = { ...generatedOutfit, isWorn: true };
         setGeneratedOutfit(updatedOutfit);

@@ -243,6 +243,18 @@ export function useOutfits(): UseOutfitsReturn {
       const result = await response.json();
       console.log(`✅ [useOutfits] Successfully marked outfit as worn via API:`, result);
       
+      // ✅ Show XP notification if XP was awarded
+      if (result.xp_earned && result.xp_earned > 0) {
+        window.dispatchEvent(new CustomEvent('xpAwarded', {
+          detail: {
+            xp: result.xp_earned,
+            reason: 'Outfit logged',
+            level_up: result.level_up || false,
+            new_level: result.new_level
+          }
+        }));
+      }
+      
       // Update local state
       setOutfits(prev => prev.map(o => 
         o.id === id ? { ...o, wearCount: (o.wearCount || 0) + 1, lastWorn: new Date() as any } : o
