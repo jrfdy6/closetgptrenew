@@ -594,13 +594,18 @@ export default function StylePersonaPage() {
                 e.currentTarget.src = '/images/placeholder.jpg';
               }}
             />
-            {/* Subtle gradient for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/30"></div>
+            {/* Subtle gradient for depth */}
+            <div className="absolute inset-0 bg-gradient-to-br from-black/10 via-transparent to-black/20"></div>
             
-            {/* Persona Name Overlay - Top Right, 25% Down */}
-            <div className="absolute top-[25%] right-0 p-8 text-right">
-              <div className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2 tracking-wider">YOU ARE</div>
-              <h1 className="text-5xl md:text-6xl font-serif font-bold text-gray-900 dark:text-gray-100 leading-tight drop-shadow-2xl">
+            {/* Persona Name Overlay - Top Right (12.5% down, 12.5% from right) */}
+            <div className="absolute top-[12.5%] right-[12.5%] p-6 text-right">
+              <div className="text-sm font-medium bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent mb-2 tracking-wider drop-shadow-[0_2px_4px_rgba(255,148,0,0.3)]">
+                YOU ARE
+              </div>
+              <h1 className="text-5xl md:text-6xl font-serif font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent leading-tight"
+                  style={{
+                    filter: 'drop-shadow(0 4px 6px rgba(255, 148, 0, 0.4)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
+                  }}>
                 {persona.name}
               </h1>
             </div>
