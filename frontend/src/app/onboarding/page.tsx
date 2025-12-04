@@ -253,6 +253,45 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     category: "measurements"
   },
   {
+    id: "weight",
+    question: "What is your weight range? (Optional - helps with fit recommendations)",
+    options: ["Under 100 lbs", "100-120 lbs", "121-140 lbs", "141-160 lbs", "161-180 lbs", "181-200 lbs", "201-250 lbs", "251-300 lbs", "Over 300 lbs", "Prefer not to specify"],
+    category: "measurements"
+  },
+  {
+    id: "top_size",
+    question: "What is your top size?",
+    options: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL+", "Prefer not to say"],
+    category: "sizes"
+  },
+  {
+    id: "bottom_size",
+    question: "What is your bottom size?",
+    options: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL+", "Prefer not to say"],
+    category: "sizes"
+  },
+  {
+    id: "cup_size",
+    question: "What is your cup size? (Optional)",
+    options: ["AA", "A", "B", "C", "D", "DD", "DDD+", "Prefer not to say"],
+    category: "sizes"
+  },
+  {
+    id: "shoe_size_female",
+    question: "What is your shoe size?",
+    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12+", "Prefer not to say"],
+    category: "sizes",
+    gender: "female"
+  },
+  {
+    id: "shoe_size_male",
+    question: "What is your shoe size?",
+    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12", "13+", "Prefer not to say"],
+    category: "sizes",
+    gender: "male"
+  },
+  // Spending questions - after all size questions
+  {
     id: "category_spend_tops",
     question: "How much do you typically spend on tops per year?",
     options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
@@ -299,44 +338,6 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     question: "How much do you typically spend on swimwear per year?",
     options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
     category: "measurements"
-  },
-  {
-    id: "weight",
-    question: "What is your weight range? (Optional - helps with fit recommendations)",
-    options: ["Under 100 lbs", "100-120 lbs", "121-140 lbs", "141-160 lbs", "161-180 lbs", "181-200 lbs", "201-250 lbs", "251-300 lbs", "Over 300 lbs", "Prefer not to specify"],
-    category: "measurements"
-  },
-  {
-    id: "top_size",
-    question: "What is your top size?",
-    options: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL+", "Prefer not to say"],
-    category: "sizes"
-  },
-  {
-    id: "bottom_size",
-    question: "What is your bottom size?",
-    options: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL+", "Prefer not to say"],
-    category: "sizes"
-  },
-  {
-    id: "cup_size",
-    question: "What is your cup size? (Optional)",
-    options: ["AA", "A", "B", "C", "D", "DD", "DDD+", "Prefer not to say"],
-    category: "sizes"
-  },
-  {
-    id: "shoe_size_female",
-    question: "What is your shoe size?",
-    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12+", "Prefer not to say"],
-    category: "sizes",
-    gender: "female"
-  },
-  {
-    id: "shoe_size_male",
-    question: "What is your shoe size?",
-    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12", "13+", "Prefer not to say"],
-    category: "sizes",
-    gender: "male"
   },
   // Female style questions - using different numbered images for color variety
   {
@@ -1431,31 +1432,31 @@ function OnboardingContent() {
             </div>
           </div>
         ) : question.type === "visual_yesno" && question.images ? (
-          <div className="space-y-4">
-            <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
-              <div className="aspect-[3/4] sm:aspect-[4/5] relative mb-3 sm:mb-4 max-h-[40vh] sm:max-h-[50vh]">
+          <div className="max-w-lg mx-auto">
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+              <div className="relative mb-3 flex items-center justify-center" style={{ height: 'clamp(200px, 35vh, 400px)' }}>
                 <img
                   src={question.images[0]}
                   alt={question.style_name}
-                  className="w-full h-full object-cover rounded-lg"
+                  className="max-w-full max-h-full object-contain rounded-lg"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.src = "/placeholder.png";
                   }}
                 />
               </div>
-              <div className="text-center mb-4 sm:mb-6">
-                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-[#F8F5F1] mb-1 sm:mb-2">
+              <div className="text-center mb-3">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-[#F8F5F1] mb-1">
                   {question.style_name}
                 </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
                   {question.colors?.join(", ").replace(/\b\w/g, l => l.toUpperCase())}
                 </p>
               </div>
-              <div className="flex gap-3 sm:gap-4 justify-center">
+              <div className="flex gap-3 justify-center">
                 <Button
                   variant={currentAnswer?.selected_option === "Yes" ? "default" : "outline"}
-                  className="flex-1 h-10 sm:h-12 text-base sm:text-lg"
+                  className="flex-1 h-11 text-base font-medium"
                   onClick={() => {
                     handleAnswer(question.id, "Yes");
                   }}
@@ -1464,7 +1465,7 @@ function OnboardingContent() {
                 </Button>
                 <Button
                   variant={currentAnswer?.selected_option === "No" ? "default" : "outline"}
-                  className="flex-1 h-10 sm:h-12 text-base sm:text-lg"
+                  className="flex-1 h-11 text-base font-medium"
                   onClick={() => {
                     handleAnswer(question.id, "No");
                   }}
@@ -1495,23 +1496,8 @@ function OnboardingContent() {
                   onChange={(e) => {
                     const value = parseInt(e.target.value);
                     const skinTone = `skin_tone_${value}`;
-                    // Update state but DON'T advance - let user play with slider
-                    setAnswers(prev => {
-                      const existing = prev.find(a => a.question_id === question.id);
-                      if (existing) {
-                        return prev.map(a => 
-                          a.question_id === question.id 
-                            ? { ...a, selected_option: skinTone }
-                            : a
-                        );
-                      } else {
-                        return [...prev, {
-                          question_id: question.id,
-                          selected_option: skinTone,
-                          question_text: question.question
-                        }];
-                      }
-                    });
+                    // Auto-answer on change (use bottom Next button to advance)
+                    handleAnswer(question.id, skinTone);
                   }}
                 />
                 <div className="text-center">
@@ -1532,18 +1518,6 @@ function OnboardingContent() {
                 </div>
               </div>
             </div>
-            {/* Next button for skin tone */}
-            <Button
-              onClick={() => {
-                if (currentAnswer?.selected_option) {
-                  handleAnswer(question.id, currentAnswer.selected_option);
-                }
-              }}
-              disabled={!currentAnswer?.selected_option}
-              className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 disabled:opacity-50"
-            >
-              Next
-            </Button>
           </div>
         ) : (
         <div className={`max-w-2xl mx-auto ${
