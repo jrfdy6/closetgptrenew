@@ -595,6 +595,35 @@ function OnboardingContent() {
     }
   }, [user, authLoading, isGuestFlow, modeResolved, router]);
 
+  // Check if user has already completed onboarding
+  useEffect(() => {
+    if (!user || authLoading) return;
+
+    const checkOnboardingStatus = async () => {
+      try {
+        const { db } = await import('@/lib/firebase/config');
+        const { doc, getDoc } = await import('firebase/firestore');
+        
+        const userRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userRef);
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const isOnboardingComplete = userData.onboarding_completed || userData.onboardingCompleted;
+          
+          if (isOnboardingComplete) {
+            console.log('✅ User already completed onboarding, redirecting to dashboard');
+            router.push('/dashboard');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking onboarding status:', error);
+      }
+    };
+
+    checkOnboardingStatus();
+  }, [user, authLoading, router]);
+
   // Filter questions based on gender
   const getFilteredQuestions = (genderOverride?: string): QuizQuestion[] => {
     const currentGender = genderOverride || userGender;
