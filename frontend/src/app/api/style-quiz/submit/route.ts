@@ -204,7 +204,7 @@ function mapQuizAnswersToProfile(
       : Array.from(
           new Set(
             [
-              determinedPersona.name,
+              // Don't include persona name in stylePreferences - it goes in stylePersona.name
               ...(Object.keys(stylePersonality || {}) || []),
             ]
               .map((value) => value.toString())
