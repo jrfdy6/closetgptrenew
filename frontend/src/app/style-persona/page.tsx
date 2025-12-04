@@ -583,7 +583,7 @@ export default function StylePersonaPage() {
       <div className="max-w-6xl mx-auto px-4 py-12">
         {/* Hero Section with Glass Effect */}
         <div className="glass-float rounded-3xl overflow-hidden mb-8 glass-shadow-strong">
-          {/* Hero Image - No Text Overlay */}
+          {/* Hero Image Only - Text Moved Below */}
           <div className="relative h-[500px] overflow-hidden rounded-t-3xl">
             <img 
               src={getHeroImageForPersona(persona.id, profile?.gender)}
