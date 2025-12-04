@@ -44,8 +44,8 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
   {
     id: 'tier2',
     name: 'Pro',
-    price: '$9.99',
-    pricePerMonth: 9.99,
+    price: '$7.00',
+    pricePerMonth: 7.00,
     features: [
       'Everything in Free',
       'Unlimited outfit generation',
@@ -61,8 +61,8 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
   {
     id: 'tier3',
     name: 'Premium',
-    price: '$29.99',
-    pricePerMonth: 29.99,
+    price: '$11.00',
+    pricePerMonth: 11.00,
     features: [
       'Everything in Pro',
       '30 flat lays per week',

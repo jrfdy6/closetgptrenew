@@ -104,7 +104,7 @@ export default function UpgradePage() {
       id: 'tier2',
       name: 'Pro',
       description: 'Upgrade for weekly outfit visuals, priority processing, and deeper personalization.',
-      price: '$9.99',
+      price: '$7.00',
       cadence: 'per month',
       highlight: 'Style enthusiasts',
       perks: [
@@ -122,7 +122,7 @@ export default function UpgradePage() {
       id: 'tier3',
       name: 'Premium',
       description: 'For creators and teams who want premium visuals on demand and concierge support.',
-      price: '$29.99',
+      price: '$11.00',
       cadence: 'per month',
       highlight: 'Creators & stylists',
       perks: [
