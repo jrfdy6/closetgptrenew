@@ -583,7 +583,7 @@ export default function StylePersonaPage() {
       <div className="max-w-6xl mx-auto px-4 py-12">
         {/* Hero Section with Glass Effect */}
         <div className="glass-float rounded-3xl overflow-hidden mb-8 glass-shadow-strong">
-          {/* Hero Image Container - Only Name Overlay */}
+          {/* Hero Image with Name Overlay */}
           <div className="relative h-screen overflow-hidden rounded-t-3xl">
             <img 
               src={getHeroImageForPersona(persona.id, profile?.gender)}
@@ -597,18 +597,16 @@ export default function StylePersonaPage() {
             {/* Subtle bottom gradient for name readability */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
             
-            {/* Only Persona Name Overlay - Bottom */}
+            {/* Only Persona Name Overlay - Bottom Center */}
             <div className="absolute bottom-0 left-0 right-0 p-8 text-center">
               <h1 className="text-5xl md:text-6xl font-serif font-bold text-white leading-tight drop-shadow-2xl">
                 {persona.name}
               </h1>
             </div>
           </div>
-        </div>
 
-        {/* Separate Container - All Other Content */}
-        <div className="max-w-6xl mx-auto px-4 -mt-2">
-          <div className="bg-[#2C2119] dark:bg-[#2C2119] rounded-3xl p-8 shadow-2xl">
+          {/* Rest of Content - Same Container, Below Image */}
+          <div className="p-8 bg-[#2C2119] dark:bg-[#2C2119]">
             {/* YOU ARE + Tagline and Traits */}
             <div className="text-center max-w-4xl mx-auto mb-8">
               <div className="text-sm font-medium text-gray-400 mb-3 tracking-wider">YOU ARE</div>
