@@ -111,16 +111,16 @@ class UserProfile(BaseModel):
     badges: List[str] = Field(default_factory=list)
     current_challenges: Dict[str, Any] = Field(default_factory=dict)
     
-    # Spending data for CPW calculations
+    # Spending data for CPW calculations (8 categories)
     spending_ranges: Optional[Dict[str, str]] = Field(default_factory=lambda: {
-        "annual_total": "unknown",
-        "shoes": "unknown",
-        "jackets": "unknown", 
-        "pants": "unknown",
         "tops": "unknown",
+        "pants": "unknown",
+        "shoes": "unknown",
+        "jackets": "unknown",
         "dresses": "unknown",
-        "activewear": "unknown",
-        "accessories": "unknown"
+        "accessories": "unknown",
+        "undergarments": "unknown",
+        "swimwear": "unknown"
     })
     
     # Timestamps
@@ -269,14 +269,14 @@ class UserProfile(BaseModel):
         """Validate spending ranges dict."""
         if v is None:
             return {
-                "annual_total": "unknown",
-                "shoes": "unknown",
-                "jackets": "unknown", 
-                "pants": "unknown",
                 "tops": "unknown",
+                "pants": "unknown",
+                "shoes": "unknown",
+                "jackets": "unknown",
                 "dresses": "unknown",
-                "activewear": "unknown",
-                "accessories": "unknown"
+                "accessories": "unknown",
+                "undergarments": "unknown",
+                "swimwear": "unknown"
             }
         return v
 

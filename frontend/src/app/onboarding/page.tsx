@@ -218,6 +218,28 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     gender: "male"
   },
   {
+    id: "body_type_nonbinary",
+    question: "Which body shape best describes you? (All bodies are beautiful!)",
+    options: ["Round/Apple", "Athletic", "Rectangle", "Inverted Triangle", "Pear", "Hourglass", "Oval", "Plus Size", "Petite", "Tall", "Slim", "Muscular"],
+    category: "measurements",
+    type: "visual",
+    images: [
+      "/images/body-types/apple.png",
+      "/images/body-types/athletic.png",
+      "/images/body-types/rectangular.png",
+      "/images/body-types/inverted.png",
+      "/images/body-types/pear.png",
+      "/images/body-types/hourglass.png",
+      "/images/body-types/curvy.png",
+      "/images/body-types/curvy.png",
+      "/images/body-types/athletic.png",
+      "/images/body-types/athletic.png",
+      "/images/body-types/athletic.png",
+      "/images/body-types/athletic.png"
+    ],
+    gender: "nonbinary"
+  },
+  {
     id: "skin_tone",
     question: "Select your skin tone using the slider below",
     options: ["skin_tone_slider"],
@@ -228,20 +250,6 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     id: "height",
     question: "What is your height?",
     options: ["Under 5'0\"", "5'0\" - 5'3\"", "5'4\" - 5'7\"", "5'8\" - 5'11\"", "6'0\" - 6'3\"", "Over 6'3\""],
-    category: "measurements"
-  },
-  {
-    id: "annual_clothing_spend",
-    question: "What's your approximate annual clothing budget?",
-    options: [
-      "Under $500",
-      "$500-$1,000",
-      "$1,000-$2,500",
-      "$2,500-$5,000",
-      "$5,000-$10,000",
-      "$10,000+",
-      "Not sure — estimate for me based on my wardrobe"
-    ],
     category: "measurements"
   },
   {
@@ -277,6 +285,18 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
   {
     id: "category_spend_accessories",
     question: "How much do you typically spend on accessories per year?",
+    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
+    category: "measurements"
+  },
+  {
+    id: "category_spend_undergarments",
+    question: "How much do you typically spend on undergarments per year?",
+    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
+    category: "measurements"
+  },
+  {
+    id: "category_spend_swimwear",
+    question: "How much do you typically spend on swimwear per year?",
     options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
     category: "measurements"
   },
@@ -597,6 +617,10 @@ function OnboardingContent() {
         console.log('❌ [Filter] Filtering out body_type_male for non-male');
         return false;
       }
+      if (question.id === 'body_type_nonbinary' && currentGender && (currentGender === 'Female' || currentGender === 'Male')) {
+        console.log('❌ [Filter] Filtering out body_type_nonbinary for binary gender');
+        return false;
+      }
       
       // Show gender-specific shoe size questions
       if (question.id === 'shoe_size_female' && currentGender && currentGender !== 'Female') {
@@ -831,7 +855,7 @@ function OnboardingContent() {
     }
 
     // Body type scoring
-    const bodyType = userAnswers.body_type_female || userAnswers.body_type_male;
+    const bodyType = userAnswers.body_type_female || userAnswers.body_type_male || userAnswers.body_type_nonbinary;
     if (bodyType === 'Rectangle' || bodyType === 'Athletic') {
       personaScores.architect += 1;
       personaScores.strategist += 1;
@@ -1245,15 +1269,16 @@ function OnboardingContent() {
     try {
       const token = await user.getIdToken();
       
-      // Extract spending ranges from answers
+      // Extract spending ranges from answers (8 categories)
       const spending_ranges = {
-        annual_total: answers.find(a => a.question_id === "annual_clothing_spend")?.selected_option || "unknown",
         tops: answers.find(a => a.question_id === "category_spend_tops")?.selected_option || "unknown",
         pants: answers.find(a => a.question_id === "category_spend_pants")?.selected_option || "unknown",
         shoes: answers.find(a => a.question_id === "category_spend_shoes")?.selected_option || "unknown",
         jackets: answers.find(a => a.question_id === "category_spend_jackets")?.selected_option || "unknown",
         dresses: answers.find(a => a.question_id === "category_spend_dresses")?.selected_option || "unknown",
-        accessories: answers.find(a => a.question_id === "category_spend_accessories")?.selected_option || "unknown"
+        accessories: answers.find(a => a.question_id === "category_spend_accessories")?.selected_option || "unknown",
+        undergarments: answers.find(a => a.question_id === "category_spend_undergarments")?.selected_option || "unknown",
+        swimwear: answers.find(a => a.question_id === "category_spend_swimwear")?.selected_option || "unknown"
       };
       
       const submissionData = {
@@ -1321,7 +1346,7 @@ function OnboardingContent() {
         quizResults: {
           aesthetic_scores: { "classic": 0.6, "sophisticated": 0.4 },
           color_season: userAnswers.skin_tone || "warm_spring",
-          body_type: userAnswers.body_type_female || userAnswers.body_type_male || "rectangle",
+          body_type: userAnswers.body_type_female || userAnswers.body_type_male || userAnswers.body_type_nonbinary || "rectangle",
           style_preferences: { "classic": 0.7, "minimalist": 0.3 }
         },
         colorAnalysis: fallbackColorAnalysis,
@@ -1378,7 +1403,7 @@ function OnboardingContent() {
         
         {question.type === "visual" && question.images ? (
           <div className="space-y-4">
-            {(question.id === "body_type_female" || question.id === "body_type_male") && (
+            {(question.id === "body_type_female" || question.id === "body_type_male" || question.id === "body_type_nonbinary") && (
               <BodyPositiveMessage variant="profile" className="mb-4" />
             )}
             <div className="space-y-3 max-w-2xl mx-auto">
