@@ -612,6 +612,16 @@ function OnboardingContent() {
     console.log('🔍 [getFilteredQuestions] Called with genderOverride:', genderOverride, 'userGender:', userGender, 'currentGender:', currentGender);
     
     const filtered = QUIZ_QUESTIONS.filter(question => {
+      // GENERIC GENDER FILTER: Check question.gender attribute first
+      if (question.gender === 'female' && currentGender && currentGender !== 'Female') {
+        console.log(`❌ [Filter] Filtering out ${question.id} for non-female (has gender='female')`);
+        return false;
+      }
+      if (question.gender === 'male' && currentGender && currentGender !== 'Male') {
+        console.log(`❌ [Filter] Filtering out ${question.id} for non-male (has gender='male')`);
+        return false;
+      }
+      
       // Show cup size for females, non-binary, and prefer not to say users
       if (question.id === 'cup_size' && currentGender && 
           currentGender !== 'Female' && 
