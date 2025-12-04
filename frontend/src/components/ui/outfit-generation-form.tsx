@@ -81,6 +81,8 @@ export default function OutfitGenerationForm({
   
   // Shuffle function - auto-fills form with random gender-appropriate values
   const handleShuffle = () => {
+    console.log('🎲 Shuffle button clicked!');
+    
     // Filter styles based on gender
     const getGenderAppropriateStyles = (): string[] => {
       const gender = (userGender || 'male').toLowerCase();
@@ -108,15 +110,20 @@ export default function OutfitGenerationForm({
     const randomStyle = availableStyles[Math.floor(Math.random() * availableStyles.length)];
     const randomMood = allMoods[Math.floor(Math.random() * allMoods.length)];
     
+    console.log(`🎲 Shuffled to: ${randomStyle} / ${randomMood}`);
+    
     // Auto-fill form
     onFormChange('occasion', 'Casual');
     onFormChange('style', randomStyle);
     onFormChange('mood', randomMood);
     
+    console.log('🎲 Form updated, triggering generation...');
+    
     // Trigger generation after a brief delay to let state update
     setTimeout(() => {
+      console.log('🎲 Calling onGenerate()');
       onGenerate();
-    }, 100);
+    }, 300);
   };
 
   const handleStepClick = (stepIndex: number) => {
