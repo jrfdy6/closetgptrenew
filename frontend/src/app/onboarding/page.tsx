@@ -595,34 +595,9 @@ function OnboardingContent() {
     }
   }, [user, authLoading, isGuestFlow, modeResolved, router]);
 
-  // Check if user has already completed onboarding
-  useEffect(() => {
-    if (!user || authLoading) return;
-
-    const checkOnboardingStatus = async () => {
-      try {
-        const { db } = await import('@/lib/firebase/config');
-        const { doc, getDoc } = await import('firebase/firestore');
-        
-        const userRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userRef);
-        
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          const isOnboardingComplete = userData.onboarding_completed || userData.onboardingCompleted;
-          
-          if (isOnboardingComplete) {
-            console.log('✅ User already completed onboarding, redirecting to dashboard');
-            router.push('/dashboard');
-          }
-        }
-      } catch (error) {
-        console.error('Error checking onboarding status:', error);
-      }
-    };
-
-    checkOnboardingStatus();
-  }, [user, authLoading, router]);
+  // NOTE: Removed auto-redirect for completed users
+  // Users should be able to retake the style quiz anytime
+  // Upload phase will be skipped if they already have items
 
   // Filter questions based on gender
   const getFilteredQuestions = (genderOverride?: string): QuizQuestion[] => {
@@ -1355,8 +1330,34 @@ function OnboardingContent() {
           }, {} as Record<string, string>)
         });
         
-        // Start upload phase after successful submission
-        console.log('🎯 [Quiz] Successfully submitted, starting upload phase');
+        // Check if user already has items in wardrobe
+        // If yes, skip upload phase (they're retaking the quiz)
+        console.log('🎯 [Quiz] Checking if user has existing wardrobe items...');
+        try {
+          const wardrobeCheckToken = await user.getIdToken();
+          const wardrobeResponse = await fetch('/api/wardrobe/', {
+            headers: {
+              'Authorization': `Bearer ${wardrobeCheckToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (wardrobeResponse.ok) {
+            const wardrobeData = await wardrobeResponse.json();
+            const itemCount = wardrobeData.items?.length || 0;
+            
+            if (itemCount >= 5) {
+              console.log(`✅ User has ${itemCount} items, skipping upload phase`);
+              router.push('/style-persona?from=quiz');
+              return;
+            }
+          }
+        } catch (wardrobeError) {
+          console.warn('Could not check wardrobe, proceeding to upload:', wardrobeError);
+        }
+        
+        // Start upload phase for new users or users with < 5 items
+        console.log('🎯 [Quiz] Starting upload phase for new/incomplete wardrobe');
         setUploadPhase(true);
       } else {
         throw new Error('Failed to submit quiz');
@@ -1384,8 +1385,31 @@ function OnboardingContent() {
         userAnswers: userAnswers
       });
       
-      // Start upload phase even on fallback
-      console.log('🎯 [Quiz] Using fallback data, starting upload phase');
+      // Check if user has items before starting upload phase (even on fallback)
+      console.log('🎯 [Quiz] Using fallback data, checking wardrobe...');
+      try {
+        const wardrobeCheckToken = await user.getIdToken();
+        const wardrobeResponse = await fetch('/api/wardrobe/', {
+          headers: {
+            'Authorization': `Bearer ${wardrobeCheckToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (wardrobeResponse.ok) {
+          const wardrobeData = await wardrobeResponse.json();
+          const itemCount = wardrobeData.items?.length || 0;
+          
+          if (itemCount >= 5) {
+            console.log(`✅ User has ${itemCount} items, skipping upload phase`);
+            router.push('/style-persona?from=quiz');
+            return;
+          }
+        }
+      } catch (wardrobeError) {
+        console.warn('Could not check wardrobe:', wardrobeError);
+      }
+      
       setUploadPhase(true);
     } finally {
       setIsLoading(false);
