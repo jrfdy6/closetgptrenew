@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from fastapi import Request, HTTPException
 
-# Force Railway deploy - stealth mode with serializer fix v2 - Nov 6 2025
+# Force Railway deploy - Dec 3 2025 - Spending ranges update (8 categories)
 # Configure logging to see what's happening during startup
 # Use environment variable for log level (default INFO in dev, WARNING in prod)
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
