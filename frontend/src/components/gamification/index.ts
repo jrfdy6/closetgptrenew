@@ -23,7 +23,6 @@ export { default as ChallengeCard } from './ChallengeCard';
 export { default as ChallengeList } from './ChallengeList';
 
 // Interactive Components
-export { default as ShuffleButton } from './ShuffleButton';
 export { default as ThirtyWearsProgress } from './ThirtyWearsProgress';
 export { default as BadgeDisplay } from './BadgeDisplay';
 
