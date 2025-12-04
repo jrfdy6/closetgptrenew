@@ -536,6 +536,34 @@ export default function StylePersonaPage() {
   const persona = determineStylePersona();
   const styleFingerprint = generateStyleFingerprint();
 
+  // Safety check: If no persona determined, default to modernist
+  if (!persona || !persona.id) {
+    console.error('⚠️ No persona determined, using modernist as fallback');
+    const fallbackPersona = STYLE_PERSONAS['modernist'];
+    
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+        <Navigation />
+        <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              Welcome to {fallbackPersona.name}!
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              We've set your default persona. Retake the quiz to get a personalized style persona.
+            </p>
+            <button
+              onClick={() => router.push('/onboarding')}
+              className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-white px-6 py-3 rounded-full font-semibold"
+            >
+              Retake Style Quiz
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
       <Navigation />
