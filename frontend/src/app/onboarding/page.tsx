@@ -319,7 +319,8 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     id: "category_spend_dresses",
     question: "How much do you typically spend on dresses per year?",
     options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
-    category: "measurements"
+    category: "measurements",
+    gender: "female"  // Only show for female and non-binary users
   },
   {
     id: "category_spend_accessories",
