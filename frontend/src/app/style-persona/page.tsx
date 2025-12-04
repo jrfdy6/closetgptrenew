@@ -543,8 +543,8 @@ export default function StylePersonaPage() {
       <div className="max-w-6xl mx-auto px-4 py-12">
         {/* Hero Section with Glass Effect */}
         <div className="glass-float rounded-3xl overflow-hidden mb-8 glass-shadow-strong">
-          {/* Hero Image */}
-          <div className="relative h-[600px] overflow-hidden">
+          {/* Hero Image - No Text Overlay */}
+          <div className="relative h-[500px] overflow-hidden rounded-t-3xl">
             <img 
               src={getHeroImageForPersona(persona.id, profile?.gender)}
               alt={`${persona.name} style example`}
@@ -554,46 +554,45 @@ export default function StylePersonaPage() {
                 e.currentTarget.src = '/images/placeholder.jpg';
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/60"></div>
-            
-            {/* Hero Content - Left Side */}
-            <div className="absolute inset-0 flex items-center">
-              <div className="max-w-2xl p-8 text-white">
-                <div className="text-sm font-medium text-gray-300 mb-3 tracking-wider">YOU ARE</div>
-                <h1 className="text-6xl md:text-7xl font-serif font-bold mb-6 leading-tight">
-                  {persona.name}
-                </h1>
-                <p className="text-2xl text-gray-100 mb-8 leading-relaxed font-light">
-                  {persona.tagline}
-                </p>
-                
-                {/* Style Traits - Inline with hero */}
-                <div className="flex flex-wrap gap-3">
-                  {persona.traits.map((trait, index) => (
-                    <span 
-                      key={index}
-                      className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-medium border border-white/30"
-                    >
-                      {trait}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
 
-          {/* Content Section */}
-          <div className="p-8">
-            {/* Description */}
-            <div className="text-center max-w-4xl mx-auto">
-              <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed mb-8">
-                {persona.description}
+          {/* Content Section - BELOW Image */}
+          <div className="p-8 bg-[#2C2119] dark:bg-[#2C2119]">
+            {/* Persona Title and Tagline */}
+            <div className="text-center max-w-4xl mx-auto mb-8">
+              <div className="text-sm font-medium text-gray-400 mb-3 tracking-wider">YOU ARE</div>
+              <h1 className="text-5xl md:text-6xl font-serif font-bold mb-4 leading-tight text-white">
+                {persona.name}
+              </h1>
+              <p className="text-xl text-gray-300 mb-6 leading-relaxed font-light">
+                {persona.tagline}
               </p>
               
-              {/* Style Mission with Glass Effect */}
-              <div className="glass-inner rounded-2xl p-8 glass-transition hover:bg-white/30 dark:hover:bg-gray-900/30">
-                <h3 className="text-2xl font-serif font-semibold text-gray-900 dark:text-white mb-4">Your Style Mission</h3>
-                <p className="text-lg text-gray-600 dark:text-gray-400 italic leading-relaxed">
+              {/* Style Traits */}
+              <div className="flex flex-wrap gap-3 justify-center mb-8">
+                {persona.traits.map((trait, index) => (
+                  <span 
+                    key={index}
+                    className="px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-full text-sm font-medium border border-white/20"
+                  >
+                    {trait}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="text-center max-w-4xl mx-auto mb-8">
+              <p className="text-lg text-gray-300 leading-relaxed">
+                {persona.description}
+              </p>
+            </div>
+            
+            {/* Style Mission */}
+            <div className="max-w-3xl mx-auto">
+              <div className="bg-[#1A1510] rounded-2xl p-8 border border-[#3D2F24]">
+                <h3 className="text-2xl font-serif font-semibold text-white mb-4">Your Style Mission</h3>
+                <p className="text-lg text-gray-400 italic leading-relaxed">
                   {persona.styleMission}
                 </p>
               </div>

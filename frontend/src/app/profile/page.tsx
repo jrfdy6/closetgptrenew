@@ -548,8 +548,8 @@ export default function ProfilePage() {
                   </SelectContent>
                 </Select>
               ) : (
-                <p className="text-sm text-muted-foreground capitalize">
-                  {profile.stylePersona?.name || profile.stylePreferences?.[0] || 'Not specified'}
+                <p className="text-sm text-muted-foreground">
+                  {profile.stylePersona?.name || 'Not specified'}
                 </p>
               )}
             </div>
