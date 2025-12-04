@@ -68,12 +68,46 @@ export default function GuidedUploadWizard({
   const suggestions = PERSONA_SUGGESTIONS[stylePersona] || PERSONA_SUGGESTIONS.default;
   const progressPercentage = (uploadedCount / targetCount) * 100;
 
-  const handleUploadComplete = (items: any[]) => {
+  const handleUploadComplete = async (items: any[]) => {
     const newCount = uploadedCount + items.length;
     setUploadedCount(newCount);
 
     if (newCount >= targetCount) {
       setIsComplete(true);
+      
+      // Trigger Cold Start Quest check for badge unlocks
+      try {
+        // Get Firebase user for auth token
+        const { auth } = await import('@/lib/firebase/config');
+        const { getAuth } = await import('firebase/auth');
+        const firebaseAuth = getAuth(auth);
+        const currentUser = firebaseAuth.currentUser;
+        
+        if (currentUser) {
+          const token = await currentUser.getIdToken();
+          
+          // Call the cold-start-check endpoint to unlock badges
+          const response = await fetch('/api/gamification/cold-start-check', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            console.log('✅ Cold Start Quest checked:', result);
+            
+            if (result.milestone_reached) {
+              console.log('🏆 Badge unlocked!', result.data);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not check Cold Start Quest:', error);
+      }
+      
       setTimeout(() => {
         onComplete(newCount);
       }, 2000);
