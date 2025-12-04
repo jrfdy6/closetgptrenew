@@ -228,6 +228,9 @@ async def update_user_profile(
         if 'spending_ranges' in profile_data:
             update_data['spending_ranges'] = profile_data['spending_ranges']
             logger.info(f"✅ DEBUG: Added spending_ranges to update_data: {profile_data['spending_ranges']}")
+            
+            # Trigger TVE recalculation when spending ranges change
+            spending_ranges_changed = True
         if 'height' in profile_data:
             update_data['height'] = profile_data['height']
         if 'weight' in profile_data:
@@ -242,6 +245,27 @@ async def update_user_profile(
         logger.info(f"🔍 DEBUG: Updated profile data: user_id={current_user.id}, fields_updated={len(update_data.keys()) if update_data else 0}")
         logger.info(f"🔍 DEBUG: Fields in update_data: {list(update_data.keys())}")
         logger.info(f"🔍 DEBUG: Has measurements: {'measurements' in update_data}, Has stylePreferences: {'stylePreferences' in update_data}")
+        
+        # Recalculate TVE if spending ranges changed
+        if 'spending_ranges' in profile_data:
+            try:
+                from ..services.tve_service import tve_service
+                logger.info(f"💰 Spending ranges updated - recalculating TVE for all items...")
+                
+                # Get all user's items
+                wardrobe_ref = db.collection('wardrobe').where('userId', '==', current_user.id)
+                items = list(wardrobe_ref.stream())
+                
+                recalculated_count = 0
+                for doc in items:
+                    success = await tve_service.initialize_item_tve_fields(current_user.id, doc.id)
+                    if success:
+                        recalculated_count += 1
+                
+                logger.info(f"✅ Recalculated TVE for {recalculated_count} items after spending ranges update")
+            except Exception as tve_error:
+                logger.warning(f"⚠️ Failed to recalculate TVE after spending update: {tve_error}")
+                # Don't fail the profile update if TVE recalculation fails
         
         # Return the updated profile data
         return update_data
