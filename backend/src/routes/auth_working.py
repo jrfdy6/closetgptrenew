@@ -217,6 +217,9 @@ async def update_user_profile(
             update_data['avatar_url'] = profile_data['avatar_url']
         if 'stylePersona' in profile_data:
             update_data['stylePersona'] = profile_data['stylePersona']
+        if 'spending_ranges' in profile_data:
+            update_data['spending_ranges'] = profile_data['spending_ranges']
+            logger.info(f"✅ DEBUG: Added spending_ranges to update_data: {profile_data['spending_ranges']}")
         if 'height' in profile_data:
             update_data['height'] = profile_data['height']
         if 'weight' in profile_data:
