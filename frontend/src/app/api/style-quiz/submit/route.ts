@@ -70,7 +70,8 @@ export async function POST(req: NextRequest) {
       submission.colorPreferences || [],
       userName,
       userEmail,
-      userId
+      userId,
+      submission.spending_ranges || null
     );
 
     console.log('🔍 [Quiz Submit] Profile update data:', JSON.stringify(profileUpdate, null, 2));
@@ -173,7 +174,8 @@ function mapQuizAnswersToProfile(
   colorPreferences: string[],
   userName: string = 'Quiz User',
   userEmail: string = 'quiz@example.com',
-  userId: string = 'quiz-user'
+  userId: string = 'quiz-user',
+  spendingRanges: Record<string, string> | null = null
 ) {
   // Calculate style personality scores based on preferences
   const stylePersonality = calculateStylePersonality(stylePreferences, userAnswers);
@@ -263,6 +265,17 @@ function mapQuizAnswersToProfile(
       styleMission: determinedPersona.styleMission,
       traits: determinedPersona.traits,
       examples: determinedPersona.examples
+    },
+    // Add spending ranges if provided
+    spending_ranges: spendingRanges || {
+      shoes: "unknown",
+      jackets: "unknown",
+      pants: "unknown",
+      tops: "unknown",
+      dresses: "unknown",
+      accessories: "unknown",
+      undergarments: "unknown",
+      swimwear: "unknown"
     },
     createdAt: Math.floor(Date.now() / 1000), // Unix timestamp like backend
     updatedAt: Math.floor(Date.now() / 1000), // Unix timestamp like backend
