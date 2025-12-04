@@ -616,9 +616,46 @@ export default function ProfilePage() {
               </div>
               <div className="space-y-2">
                 <Label>Skin Tone</Label>
-                <p className="text-sm text-muted-foreground capitalize">
-                  {profile.measurements?.skinTone || 'Not specified'}
-                </p>
+                {profile.measurements?.skinTone ? (
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 shadow-sm"
+                      style={{ 
+                        backgroundColor: (() => {
+                          // Convert skin_tone_XX to RGB color
+                          const match = profile.measurements.skinTone.match(/skin_tone_(\d+)/);
+                          if (!match) return '#C4A07A'; // Default skin tone
+                          
+                          const value = parseInt(match[1]);
+                          // Map 0-100 to skin tone range (light to dark)
+                          // Light: rgb(255, 228, 196) to Dark: rgb(78, 53, 36)
+                          const lightR = 255, lightG = 228, lightB = 196;
+                          const darkR = 78, darkG = 53, darkB = 36;
+                          
+                          const ratio = value / 100;
+                          const r = Math.round(lightR - (lightR - darkR) * ratio);
+                          const g = Math.round(lightG - (lightG - darkG) * ratio);
+                          const b = Math.round(lightB - (lightB - darkB) * ratio);
+                          
+                          return `rgb(${r}, ${g}, ${b})`;
+                        })()
+                      }}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {(() => {
+                        const match = profile.measurements.skinTone.match(/skin_tone_(\d+)/);
+                        if (!match) return 'Not specified';
+                        const value = parseInt(match[1]);
+                        if (value < 25) return 'Fair';
+                        if (value < 50) return 'Light';
+                        if (value < 75) return 'Medium';
+                        return 'Deep';
+                      })()}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Not specified</p>
+                )}
               </div>
             </div>
             

@@ -227,11 +227,11 @@ function mapQuizAnswersToProfile(
     measurements: {
       height: parseHeight(userAnswers.height),
       weight: parseWeight(userAnswers.weight),
-      bodyType: userAnswers.body_type_female || userAnswers.body_type_male || '',
+      bodyType: userAnswers.body_type_female || userAnswers.body_type_male || userAnswers.body_type_nonbinary || '',
       skinTone: userAnswers.skin_tone || null,
       topSize: userAnswers.top_size || '',
       bottomSize: userAnswers.bottom_size || '',
-      shoeSize: userAnswers.shoe_size || '',
+      shoeSize: userAnswers.shoe_size_male || userAnswers.shoe_size_female || userAnswers.shoe_size || '',
       braSize: userAnswers.cup_size || ''
     },
     // Also store the raw range values for display
