@@ -15,6 +15,27 @@ router = APIRouter(prefix="/challenges", tags=["challenges"])
 logger = logging.getLogger(__name__)
 
 
+@router.get("/debug-catalog")
+async def debug_challenge_catalog():
+    """Debug endpoint to check CHALLENGE_CATALOG"""
+    from ..custom_types.gamification import CHALLENGE_CATALOG
+    
+    catalog_info = []
+    for cid, challenge in CHALLENGE_CATALOG.items():
+        catalog_info.append({
+            "id": cid,
+            "title": challenge.title,
+            "featured": challenge.featured,
+            "cadence": challenge.cadence
+        })
+    
+    return {
+        "success": True,
+        "catalog_size": len(CHALLENGE_CATALOG),
+        "challenges": catalog_info
+    }
+
+
 @router.get("/available")
 async def get_available_challenges(
     current_user: UserProfile = Depends(get_current_user)
