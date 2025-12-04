@@ -257,43 +257,6 @@ export default function GuidedUploadWizard({
             </div>
           </div>
 
-          {/* Personalized Suggestions */}
-          <div className="bg-white/85 dark:bg-[#2C2119]/85 rounded-lg p-6 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60">
-            <h3 className="text-lg font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-4 flex items-center">
-              <Sparkles className="h-5 w-5 mr-2 text-[#FF9400] dark:text-[#FFB84C]" />
-              Recommended Items for You
-            </h3>
-            <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-4">
-              Based on your style profile, we recommend starting with:
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {suggestions.map((suggestion, index) => {
-                const Icon = suggestion.icon;
-                return (
-                  <div key={index} className="flex items-start space-x-3 p-3 bg-[#F5F0E8]/30 dark:bg-[#3D2F24]/30 rounded-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60">
-                    <div className="flex-shrink-0">
-                      <Icon className="h-6 w-6 text-[#FF9400] dark:text-[#FFB84C]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
-                          {suggestion.category}
-                        </p>
-                        <Badge variant="secondary" className="bg-[#FFB84C]/20 dark:bg-[#FF9400]/20 text-[#FF9400] dark:text-[#FFB84C]">{suggestion.count}</Badge>
-                      </div>
-                      <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] mb-1">
-                        {suggestion.description}
-                      </p>
-                      <p className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
-                        e.g., {suggestion.examples.join(", ")}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Call to Action */}
           <div className="text-center space-y-4">
             <Button
