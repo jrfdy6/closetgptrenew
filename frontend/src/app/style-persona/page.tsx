@@ -599,12 +599,15 @@ export default function StylePersonaPage() {
             
             {/* Persona Name Overlay - Top Right (12.5% down, 12.5% from right) */}
             <div className="absolute top-[12.5%] right-[12.5%] p-6 text-right">
-              <div className="text-sm font-medium bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent mb-2 tracking-wider drop-shadow-[0_2px_4px_rgba(255,148,0,0.3)]">
+              <div className="text-xl font-medium text-white mb-3 tracking-wider"
+                   style={{
+                     textShadow: '0 2px 8px rgba(255,184,76,0.6), 0 4px 12px rgba(255,148,0,0.4), 0 1px 3px rgba(0,0,0,0.3)'
+                   }}>
                 YOU ARE
               </div>
-              <h1 className="text-5xl md:text-6xl font-serif font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent leading-tight"
+              <h1 className="text-7xl md:text-8xl font-serif font-bold text-white leading-tight"
                   style={{
-                    filter: 'drop-shadow(0 4px 6px rgba(255, 148, 0, 0.4)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
+                    textShadow: '0 4px 12px rgba(255,184,76,0.7), 0 6px 16px rgba(255,148,0,0.5), 0 2px 6px rgba(0,0,0,0.4)'
                   }}>
                 {persona.name}
               </h1>
