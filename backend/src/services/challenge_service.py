@@ -368,11 +368,16 @@ class ChallengeService:
                 # Only show featured or always-available challenges
                 if challenge_def.featured or challenge_def.cadence == "always":
                     logger.info(f"  -> Adding {challenge_id} to available list")
+                    # Handle type - could be enum or string
+                    challenge_type = challenge_def.type
+                    if hasattr(challenge_type, 'value'):
+                        challenge_type = challenge_type.value
+                    
                     available.append({
                         "challenge_id": challenge_id,
                         "title": challenge_def.title,
                         "description": challenge_def.description,
-                        "type": challenge_def.type.value,
+                        "type": challenge_type,
                         "rewards": challenge_def.rewards,
                         "icon": challenge_def.icon,
                         "featured": challenge_def.featured
