@@ -146,7 +146,9 @@ export default function GuidedUploadWizard({
             userId={userId}
             onUploadComplete={handleUploadComplete}
             onError={(message) => console.error(message)}
-            quickMode={true}
+            quickMode={false}
+            requireStaging={true}
+            requiredCount={targetCount}
           />
         </div>
       </div>

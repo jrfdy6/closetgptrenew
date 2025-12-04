@@ -26,6 +26,8 @@ interface BatchImageUploadProps {
   onError?: (message: string) => void;
   userId: string;
   quickMode?: boolean; // When true, uploads are async (don't wait for analysis)
+  requireStaging?: boolean; // When true, user must stage all items before analysis starts
+  requiredCount?: number; // Number of items required before allowing analysis (used with requireStaging)
 }
 
 interface UploadItem {
@@ -521,7 +523,14 @@ const checkForDuplicates = async (file: File, existingItems: any[], user: any): 
   }
 };
 
-export default function BatchImageUpload({ onUploadComplete, onError, userId, quickMode = false }: BatchImageUploadProps) {
+export default function BatchImageUpload({ 
+  onUploadComplete, 
+  onError, 
+  userId, 
+  quickMode = false,
+  requireStaging = false,
+  requiredCount = 5
+}: BatchImageUploadProps) {
   const { toast } = useToast();
   const { user } = useFirebase();
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
@@ -1117,18 +1126,27 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId, qu
                 </Button>
                 <Button
                   onClick={startBatchUpload}
-                  disabled={isUploading || uploadItems.length === 0}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  disabled={
+                    isUploading || 
+                    uploadItems.length === 0 || 
+                    (requireStaging && uploadItems.length < requiredCount)
+                  }
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50"
                 >
                   {isUploading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Uploading with AI...
+                      Analyzing item {Math.round(overallProgress / (100 / uploadItems.length))} of {uploadItems.length}...
+                    </>
+                  ) : requireStaging && uploadItems.length < requiredCount ? (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Select {requiredCount} items to begin ({uploadItems.length}/{requiredCount})
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4 mr-2" />
-                      Upload All with AI ({uploadItems.length})
+                      Upload & Analyze All ({uploadItems.length} {uploadItems.length === 1 ? 'item' : 'items'})
                     </>
                   )}
                 </Button>
