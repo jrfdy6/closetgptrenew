@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from fastapi import Request, HTTPException
 
-# Force Railway deploy - Dec 4 2025 - Mount gamification routers (CRITICAL FIX)
+# Force Railway deploy - Dec 5 2025 - TVE Framework + Gamification Fixes (DEPLOY NOW)
 # Configure logging to see what's happening during startup
 # Use environment variable for log level (default INFO in dev, WARNING in prod)
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
