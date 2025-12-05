@@ -409,7 +409,9 @@ export default function WardrobeInsightsHub({
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-600 dark:text-gray-400">Progress</span>
-                            <span className="font-medium">{Math.round((currentCount / requiredCount) * 100)}%</span>
+                            <span className="font-medium">{requiredCount && requiredCount > 0 
+                              ? `${Math.round((currentCount / requiredCount) * 100)}%` 
+                              : '0%'}</span>
                           </div>
                           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div 
@@ -418,7 +420,9 @@ export default function WardrobeInsightsHub({
                                   ? 'bg-gradient-to-r from-yellow-500 to-orange-500' 
                                   : 'bg-gradient-to-r from-blue-500 to-indigo-500'
                               }`}
-                              style={{ width: `${Math.min((currentCount / requiredCount) * 100, 100)}%` }}
+                              style={{ width: `${requiredCount && requiredCount > 0 
+                                ? Math.min((currentCount / requiredCount) * 100, 100) 
+                                : 0}%` }}
                             />
                           </div>
                         </div>
@@ -487,12 +491,16 @@ export default function WardrobeInsightsHub({
                             <div className="space-y-2">
                               <div className="flex justify-between text-sm">
                                 <span>Progress</span>
-                                <span>{Math.round((gap.currentCount / gap.recommendedCount) * 100)}%</span>
+                                <span>{gap.recommendedCount && gap.recommendedCount > 0 
+                                  ? `${Math.round((gap.currentCount / gap.recommendedCount) * 100)}%` 
+                                  : '0%'}</span>
                               </div>
                               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                 <div 
                                   className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-300"
-                                  style={{ width: `${Math.min((gap.currentCount / gap.recommendedCount) * 100, 100)}%` }}
+                                  style={{ width: `${gap.recommendedCount && gap.recommendedCount > 0 
+                                    ? Math.min((gap.currentCount / gap.recommendedCount) * 100, 100) 
+                                    : 0}%` }}
                                 />
                               </div>
                             </div>

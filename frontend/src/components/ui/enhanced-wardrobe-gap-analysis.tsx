@@ -305,12 +305,16 @@ export default function EnhancedWardrobeGapAnalysis({
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm text-[#57534E] dark:text-[#C4BCB4]">
                             <span>Progress</span>
-                            <span>{Math.round((gap.currentCount / gap.recommendedCount) * 100)}%</span>
+                            <span>{gap.recommendedCount && gap.recommendedCount > 0 
+                              ? `${Math.round((gap.currentCount / gap.recommendedCount) * 100)}%` 
+                              : '0%'}</span>
                           </div>
                           <div className="w-full bg-[#E7DDCF] dark:bg-[#3D2F24] rounded-full h-2">
                             <div 
                               className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${Math.min((gap.currentCount / gap.recommendedCount) * 100, 100)}%` }}
+                              style={{ width: `${gap.recommendedCount && gap.recommendedCount > 0 
+                                ? Math.min((gap.currentCount / gap.recommendedCount) * 100, 100) 
+                                : 0}%` }}
                             />
                           </div>
                         </div>
