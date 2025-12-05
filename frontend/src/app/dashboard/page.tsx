@@ -416,7 +416,7 @@ export default function Dashboard() {
 
 
         {/* Modern Stats Cards - Mobile First Grid */}
-        <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8`}>
+        <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8`}>
 
           {/* Style Goals Card */}
           <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
