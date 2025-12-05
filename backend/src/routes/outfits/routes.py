@@ -553,6 +553,40 @@ async def mark_outfit_as_worn(
         except Exception as pref_error:
             logger.warning(f"⚠️ Failed to update preferences from wear: {pref_error}")
             # Don't fail the whole request if preference update fails
+        
+        # ✅ Award XP for wearing outfit
+        xp_result = {"xp_earned": 0, "level_up": False, "new_level": None}
+        try:
+            from ...services.gamification_service import gamification_service
+            xp_result = await gamification_service.award_xp(
+                user_id=current_user.id,
+                amount=10,
+                reason="outfit_worn"
+            )
+            logger.info(f"🎮 Awarded {xp_result.get('xp_awarded', 0)} XP for wearing outfit")
+        except Exception as xp_error:
+            logger.warning(f"⚠️ Failed to award XP: {xp_error}")
+            # Don't fail the request if XP award fails
+        
+        # ✅ Increment TVE for each item in outfit
+        try:
+            from ...services.tve_service import tve_service
+            items = outfit_data.get('items', [])
+            for item in items:
+                item_id = item.get('id') if isinstance(item, dict) else str(item)
+                if item_id:
+                    # Get item data to find value_per_wear
+                    item_ref = db.collection('wardrobe').document(item_id)
+                    item_doc = item_ref.get()
+                    if item_doc.exists:
+                        item_data = item_doc.to_dict()
+                        value_per_wear = item_data.get('value_per_wear', 0.0)
+                        if value_per_wear > 0:
+                            await tve_service.increment_item_tve(item_id, value_per_wear)
+            logger.info(f"✅ Updated TVE for {len(items)} items")
+        except Exception as tve_error:
+            logger.warning(f"⚠️ Failed to update TVE: {tve_error}")
+            # Don't fail the request if TVE update fails
 
         try:
             debug_ref = db.collection('debug_stats_updates').document()
@@ -605,7 +639,10 @@ async def mark_outfit_as_worn(
             "success": True,
             "message": "Outfit marked as worn",
             "outfit_id": outfit_id,
-            "wear_count": current_wear_count + 1
+            "wear_count": current_wear_count + 1,
+            "xp_earned": xp_result.get('xp_awarded', 0),
+            "level_up": xp_result.get('level_up', False),
+            "new_level": xp_result.get('level', None)
         }
 
     except Exception as e:
