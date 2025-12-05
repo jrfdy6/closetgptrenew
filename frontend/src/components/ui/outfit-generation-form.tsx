@@ -37,6 +37,7 @@ interface OutfitGenerationFormProps {
   };
   onFormChange: (field: string, value: string) => void;
   onGenerate: () => void;
+  onShuffleAndGenerate?: (shuffledData: { occasion: string; style: string; mood: string }) => void;
   generating: boolean;
   wardrobeLoading: boolean;
   occasions: string[];
@@ -53,6 +54,7 @@ export default function OutfitGenerationForm({
   formData,
   onFormChange,
   onGenerate,
+  onShuffleAndGenerate,
   generating,
   wardrobeLoading,
   occasions,
@@ -112,14 +114,26 @@ export default function OutfitGenerationForm({
     
     console.log(`🎲 Shuffled to: ${randomStyle} / ${randomMood}`);
     
-    // ✅ FIX: Update all form fields in batched calls
+    const shuffledData = {
+      occasion: 'Casual',
+      style: randomStyle,
+      mood: randomMood
+    };
+    
+    // ✅ FIX: If parent provides shuffle handler, use it (bypasses state delay)
+    if (onShuffleAndGenerate) {
+      console.log('🎲 Using direct shuffle handler with values:', shuffledData);
+      onShuffleAndGenerate(shuffledData);
+      return;
+    }
+    
+    // Fallback: Update form fields and trigger generation
     onFormChange('occasion', 'Casual');
     onFormChange('style', randomStyle);
     onFormChange('mood', randomMood);
     
     console.log('🎲 Form updated, triggering generation...');
     
-    // ✅ FIX: Use requestAnimationFrame + longer delay to ensure all React state updates complete
     requestAnimationFrame(() => {
       setTimeout(() => {
         console.log('🎲 Calling onGenerate() - form should be fully updated');

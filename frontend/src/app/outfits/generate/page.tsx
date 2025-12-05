@@ -413,6 +413,72 @@ export default function OutfitGenerationPage() {
     }));
   };
 
+  // ✅ Direct shuffle handler - bypasses state update delay
+  const handleShuffleAndGenerate = async (shuffledData: { occasion: string; style: string; mood: string }) => {
+    console.log('🎲 [Direct Shuffle] Starting with values:', shuffledData);
+    
+    // Update state for UI
+    setFormData(prev => ({
+      ...prev,
+      ...shuffledData
+    }));
+    
+    // Generate immediately using shuffled values (don't wait for state)
+    if (!user) {
+      setError('Please sign in to generate outfits');
+      return;
+    }
+
+    try {
+      setGenerating(true);
+      setShowRevealAnimation(true);
+      setError(null);
+      
+      const authToken = await user.getIdToken();
+      
+      // Build request with shuffled values directly
+      const requestData = {
+        occasion: shuffledData.occasion,
+        style: shuffledData.style,
+        mood: shuffledData.mood,
+        weather: freshWeatherData || weather,
+        wardrobe: wardrobeItems,
+        user_profile: userProfile,
+        baseItemId: baseItem?.id
+      };
+      
+      const { convertToPydanticShape, validateConvertedData } = await import('@/lib/outfitDataConverter');
+      const { generateOutfit } = await import('@/lib/robustApiClient');
+      
+      const convertedData = convertToPydanticShape(requestData);
+      
+      if (!validateConvertedData(convertedData)) {
+        throw new Error('Data validation failed');
+      }
+      
+      const response = await generateOutfit({ ...convertedData, generation_mode: 'robust' }, authToken);
+      
+      const enrichedData = {
+        ...response.data,
+        id: `outfit_${Date.now()}`,
+        metadata: {
+          ...response.data.metadata,
+          flat_lay_status: 'awaiting_consent',
+        }
+      };
+      
+      setGeneratedOutfit(enrichedData);
+      setShowRevealAnimation(false);
+      
+      console.log('✅ [Direct Shuffle] Success!');
+      
+    } catch (err) {
+      console.error('❌ [Direct Shuffle] Failed:', err);
+      setError(err instanceof Error ? err.message : 'Failed to generate outfit');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const handleGenerateOutfit = async () => {
     if (!user) {
@@ -1276,6 +1342,7 @@ export default function OutfitGenerationPage() {
             formData={formData}
             onFormChange={(field, value) => handleInputChange(field, value)}
             onGenerate={handleGenerateOutfit}
+            onShuffleAndGenerate={handleShuffleAndGenerate}
             generating={generating}
             wardrobeLoading={wardrobeLoading}
             occasions={occasions}
