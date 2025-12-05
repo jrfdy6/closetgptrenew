@@ -259,6 +259,7 @@ export default function OutfitGenerationPage() {
     weather: '',
     description: ''
   });
+  const shuffleOverrideRef = useRef<{ occasion: string; style: string; mood: string } | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<GeneratedOutfit | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -413,71 +414,23 @@ export default function OutfitGenerationPage() {
     }));
   };
 
-  // ✅ Direct shuffle handler - bypasses state update delay
-  const handleShuffleAndGenerate = async (shuffledData: { occasion: string; style: string; mood: string }) => {
-    console.log('🎲 [Direct Shuffle] Starting with values:', shuffledData);
+  // ✅ Direct shuffle handler - uses ref to bypass state delay
+  const handleShuffleAndGenerate = (shuffledData: { occasion: string; style: string; mood: string }) => {
+    console.log('🎲 [Direct Shuffle] Received shuffled values:', shuffledData);
     
-    // Update state for UI
+    // Store in ref for immediate access
+    shuffleOverrideRef.current = shuffledData;
+    
+    // Update state for UI display
     setFormData(prev => ({
       ...prev,
       ...shuffledData
     }));
     
-    // Generate immediately using shuffled values (don't wait for state)
-    if (!user) {
-      setError('Please sign in to generate outfits');
-      return;
-    }
-
-    try {
-      setGenerating(true);
-      setShowRevealAnimation(true);
-      setError(null);
-      
-      const authToken = await user.getIdToken();
-      
-      // Build request with shuffled values directly
-      const requestData = {
-        occasion: shuffledData.occasion,
-        style: shuffledData.style,
-        mood: shuffledData.mood,
-        weather: freshWeatherData || weather,
-        wardrobe: wardrobeItems,
-        user_profile: userProfile,
-        baseItemId: baseItem?.id
-      };
-      
-      const { convertToPydanticShape, validateConvertedData } = await import('@/lib/outfitDataConverter');
-      const { generateOutfit } = await import('@/lib/robustApiClient');
-      
-      const convertedData = convertToPydanticShape(requestData);
-      
-      if (!validateConvertedData(convertedData)) {
-        throw new Error('Data validation failed');
-      }
-      
-      const response = await generateOutfit({ ...convertedData, generation_mode: 'robust' }, authToken);
-      
-      const enrichedData = {
-        ...response.data,
-        id: `outfit_${Date.now()}`,
-        metadata: {
-          ...response.data.metadata,
-          flat_lay_status: 'awaiting_consent',
-        }
-      };
-      
-      setGeneratedOutfit(enrichedData);
-      setShowRevealAnimation(false);
-      
-      console.log('✅ [Direct Shuffle] Success!');
-      
-    } catch (err) {
-      console.error('❌ [Direct Shuffle] Failed:', err);
-      setError(err instanceof Error ? err.message : 'Failed to generate outfit');
-    } finally {
-      setGenerating(false);
-    }
+    console.log('🎲 [Direct Shuffle] Stored in ref, triggering generation...');
+    
+    // Call generation immediately - it will use ref values
+    handleGenerateOutfit();
   };
 
   const handleGenerateOutfit = async () => {
@@ -486,7 +439,16 @@ export default function OutfitGenerationPage() {
       return;
     }
 
-    if (!formData.occasion || !formData.style || !formData.mood) {
+    // ✅ Use shuffle override if available (for one-click shuffle)
+    const activeFormData = shuffleOverrideRef.current || formData;
+    
+    // Clear shuffle override after use
+    if (shuffleOverrideRef.current) {
+      console.log('🎲 Using shuffle override values:', shuffleOverrideRef.current);
+      shuffleOverrideRef.current = null;
+    }
+
+    if (!activeFormData.occasion || !activeFormData.style || !activeFormData.mood) {
       setError('Please fill in all required fields');
       return;
     }
@@ -615,9 +577,9 @@ export default function OutfitGenerationPage() {
 
       // Prepare request data with all required fields
       const requestData = {
-        occasion: formData.occasion,
-        style: formData.style,
-        mood: formData.mood,
+        occasion: activeFormData.occasion,
+        style: activeFormData.style,
+        mood: activeFormData.mood,
         weather: weatherData,
         wardrobe: Array.isArray(wardrobeItems) ? wardrobeItems : (wardrobeItems as any)?.items || [],
         user_profile: {
