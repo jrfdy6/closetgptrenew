@@ -725,7 +725,7 @@ async def rate_outfit(
             feedback_text=rating_request.feedback
         )
         
-        logger.info(f"✨ Updated user preferences: {len(learning_result['learning_messages'])} insights generated")
+        logger.info(f"✨ Updated user preferences: {len(learning_result.get('messages', learning_result.get('learning_messages', [])))} insights generated")
         
         # Return response with learning confirmation
         return OutfitRatingResponse(

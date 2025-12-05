@@ -237,7 +237,7 @@ class UserPreferenceService:
             del self._cache[user_id]
         
         return {
-            'learning_messages': learning_messages,
+            'messages': learning_messages,  # ✅ FIX: Changed from 'learning_messages' to match Pydantic model
             'total_feedback_count': updates['total_feedback_count'],
             'personalization_level': updates['personalization_level'],
             'confidence_level': updates['confidence_level'],
@@ -316,7 +316,7 @@ class UserPreferenceService:
             del self._cache[user_id]
         
         return {
-            'learning_messages': learning_messages,
+            'messages': learning_messages,  # ✅ FIX: Match Pydantic model field name
             'wear_count_total': updates['wear_count_total'],
             'frequently_worn_items': len(updates['frequently_worn_items'])
         }
