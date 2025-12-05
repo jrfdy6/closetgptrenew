@@ -133,6 +133,9 @@ class OutfitRatingResponse(BaseModel):
     status: str
     message: str
     learning: Optional[LearningConfirmation] = None
+    xp_earned: Optional[int] = None
+    level_up: Optional[bool] = None
+    new_level: Optional[int] = None
 
 class OutfitResponse(BaseModel):
     """Response model for outfits."""
@@ -727,11 +730,23 @@ async def rate_outfit(
         
         logger.info(f"✨ Updated user preferences: {len(learning_result.get('messages', learning_result.get('learning_messages', [])))} insights generated")
         
-        # Return response with learning confirmation
+        # ✅ Award XP for rating outfit
+        from ...services.gamification_service import gamification_service
+        xp_result = await gamification_service.award_xp(
+            user_id=current_user_id,
+            xp_amount=5,
+            reason="outfit_rated"
+        )
+        logger.info(f"🎮 Awarded {xp_result['xp_earned']} XP for rating outfit")
+        
+        # Return response with learning confirmation and XP
         return OutfitRatingResponse(
             status="success",
             message="Rating submitted and preferences updated",
-            learning=LearningConfirmation(**learning_result)
+            learning=LearningConfirmation(**learning_result),
+            xp_earned=xp_result.get('xp_earned', 0),
+            level_up=xp_result.get('level_up', False),
+            new_level=xp_result.get('new_level')
         )
         
     except HTTPException:
