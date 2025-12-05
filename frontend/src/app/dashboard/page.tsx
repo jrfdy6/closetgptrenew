@@ -33,7 +33,6 @@ import { dashboardService, DashboardData, TopItem } from "@/lib/services/dashboa
 import WardrobeInsightsHub from '@/components/ui/wardrobe-insights-hub';
 import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerator";
 import { useAutoWeather } from '@/hooks/useWeather';
-import UsageIndicator from '@/components/UsageIndicator';
 import PremiumTeaser from '@/components/PremiumTeaser';
 import { useGamificationStats } from '@/hooks/useGamificationStats';
 
@@ -427,8 +426,6 @@ export default function Dashboard() {
 
         {/* Modern Stats Cards - Mobile First Grid */}
         <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8`}>
-          {/* Usage Indicator - Compact */}
-          <UsageIndicator compact={true} className="col-span-full" />
 
           {/* Style Goals Card */}
           <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
@@ -534,8 +531,7 @@ export default function Dashboard() {
         </div>
 
           {/* Usage Indicator - Full */}
-        <div className="mb-6 sm:mb-8">
-          <UsageIndicator className="mb-8" />
+          <div className="mb-6 sm:mb-8">
 
           {/* Premium Teaser */}
           <PremiumTeaser 
