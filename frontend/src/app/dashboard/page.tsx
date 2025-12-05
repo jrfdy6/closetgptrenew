@@ -404,25 +404,16 @@ export default function Dashboard() {
             </Button>
             <Button
                 variant="outline"
-                asChild
+                onClick={() => setShowBatchUpload(true)}
                 className="px-6 py-3 rounded-2xl border-[#F5F0E8]/70 dark:border-[#3D2F24]/80 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] transition-colors duration-200"
               >
-                <Link href="/outfits?view=favorites">View saved looks</Link>
+                <Upload className="w-5 h-5 mr-2" />
+                Add items with AI
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Quick Actions - Better mobile buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6 sm:mb-8">
-          <Button 
-            onClick={() => setShowBatchUpload(true)}
-            className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 min-h-[44px] rounded-2xl font-semibold shadow-lg shadow-amber-500/20 hover:from-[#FFB84C] hover:to-[#FF7700] transition-transform duration-200 sm:hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Upload className="w-5 h-5 mr-2" />
-            Add items with AI
-          </Button>
-        </div>
 
         {/* Modern Stats Cards - Mobile First Grid */}
         <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8`}>
