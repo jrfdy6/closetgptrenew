@@ -737,16 +737,16 @@ async def rate_outfit(
             amount=5,
             reason="outfit_rated"
         )
-        logger.info(f"🎮 Awarded {xp_result['xp_earned']} XP for rating outfit")
+        logger.info(f"🎮 Awarded {xp_result['xp_awarded']} XP for rating outfit")
         
         # Return response with learning confirmation and XP
         return OutfitRatingResponse(
             status="success",
             message="Rating submitted and preferences updated",
             learning=LearningConfirmation(**learning_result),
-            xp_earned=xp_result.get('xp_earned', 0),
+            xp_earned=xp_result.get('xp_awarded', 0),  # ✅ FIX: Changed from xp_earned to xp_awarded
             level_up=xp_result.get('level_up', False),
-            new_level=xp_result.get('new_level')
+            new_level=xp_result.get('level', None)  # ✅ FIX: Changed from new_level to level
         )
         
     except HTTPException:
