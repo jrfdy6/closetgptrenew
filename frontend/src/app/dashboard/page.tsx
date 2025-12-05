@@ -97,7 +97,6 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [markingAsWorn, setMarkingAsWorn] = useState(false);
   const [showBatchUpload, setShowBatchUpload] = useState(false);
-  const [showOutfitGenerator, setShowOutfitGenerator] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const { user, loading } = useAuthContext();
   
@@ -390,7 +389,12 @@ export default function Dashboard() {
             </p>
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
             <Button
-              onClick={() => setShowOutfitGenerator(true)}
+              onClick={() => {
+                const element = document.getElementById('smart-weather-outfit');
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
               className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/25 hover:from-[#FFB84C] hover:to-[#FF7700] transition-transform duration-200 sm:hover:scale-[1.02] active:scale-[0.98]"
             >
               <Sparkles className="w-5 h-5 mr-2" />
@@ -516,68 +520,13 @@ export default function Dashboard() {
         </div>
 
         {/* Smart Weather Outfit Generator */}
-        {isMobile ? (
-          <div className="mb-6 space-y-3">
-            {showOutfitGenerator ? (
-              <Card className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/90 dark:bg-[#1A1510]/90 backdrop-blur-xl rounded-2xl sm:rounded-3xl">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <div>
-                    <CardTitle className="text-xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
-                      Smart weather outfit
-                    </CardTitle>
-                    <CardDescription className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
-                      Personalized to today&apos;s forecast
-                    </CardDescription>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={() => setShowOutfitGenerator(false)}>
-                    <X className="w-4 h-4" />
-                  </Button>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <SmartWeatherOutfitGenerator 
-                    noCard={true}
-                    onOutfitGenerated={(outfit) => {
-                      console.log('🎯 Smart weather outfit generated:', outfit);
-                    }}
-                  />
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-2xl sm:rounded-3xl">
-                <CardContent className="p-5 space-y-4 text-center">
-                  <div className="flex justify-center">
-                    <div className="w-14 h-14 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/25 rounded-2xl flex items-center justify-center">
-                      <Sparkles className="w-6 h-6 text-[#FF9400] dark:text-[#FFB84C]" />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <h2 className="text-lg font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
-                      Weather-perfect looks
-                    </h2>
-                    <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
-                      Generate an outfit tuned to your current forecast with a single tap.
-                    </p>
-                  </div>
-                  <Button
-                    className="w-full bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white rounded-2xl font-semibold shadow-lg shadow-amber-500/25 hover:from-[#FFB84C] hover:to-[#FF7700]"
-                    onClick={() => setShowOutfitGenerator(true)}
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Launch smart generator
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        ) : (
-          <div className="mb-12">
-            <SmartWeatherOutfitGenerator 
-              onOutfitGenerated={(outfit) => {
-                console.log('🎯 Smart weather outfit generated:', outfit);
-              }}
-            />
-          </div>
-        )}
+        <div id="smart-weather-outfit" className="mb-6 sm:mb-12">
+          <SmartWeatherOutfitGenerator 
+            onOutfitGenerated={(outfit) => {
+              console.log('🎯 Smart weather outfit generated:', outfit);
+            }}
+          />
+        </div>
 
         {/* Backend Status Message */}
         {dashboardData && dashboardData.totalItems === 0 && (
