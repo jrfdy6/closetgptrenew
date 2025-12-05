@@ -486,6 +486,51 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+
+          {/* Total Items Card */}
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
+            <div className="flex flex-col space-y-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-xl flex items-center justify-center shadow-inner">
+                <Shirt className="h-5 w-5 sm:h-6 sm:w-6 text-[#FF9400] dark:text-[#FFB84C]" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">Total items</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
+                  {dashboardData?.totalItems || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Favorites Card */}
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
+            <div className="flex flex-col space-y-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFB84C]/30 to-[#FF6F61]/35 dark:from-[#FF9400]/20 dark:to-[#FF6F61]/25 rounded-xl flex items-center justify-center shadow-inner">
+                <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-[#FF6F61] dark:text-[#FFB4A2]" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">Favorites</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#FF6F61] to-[#FFB84C] bg-clip-text text-transparent">
+                  {dashboardData?.favorites || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* This Week Card */}
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 hover:shadow-xl transition-transform duration-200 hover:scale-[1.02] bg-white/85 dark:bg-[#2C2119]/85">
+            <div className="flex flex-col space-y-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 dark:from-[#FF9400]/25 dark:to-[#FF7700]/25 rounded-xl flex items-center justify-center shadow-inner">
+                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-[#FF9400] dark:text-[#FFB84C]" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">This week</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#FF9400] to-[#FFB84C] bg-clip-text text-transparent">
+                  {dashboardData?.outfitsThisWeek || 0}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
           {/* Usage Indicator - Full */}
