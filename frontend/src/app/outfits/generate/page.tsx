@@ -984,6 +984,19 @@ export default function OutfitGenerationPage() {
       const result = await response.json();
       console.log(`✅ [Generate] Successfully marked outfit as worn via API:`, result);
       
+      // ✅ Show XP notification if XP was awarded
+      if (result.xp_earned && result.xp_earned > 0) {
+        console.log('✅ XP awarded from wearing outfit:', result.xp_earned, 'Dispatching xpAwarded event...');
+        window.dispatchEvent(new CustomEvent('xpAwarded', {
+          detail: {
+            xp: result.xp_earned,
+            reason: 'Outfit worn',
+            level_up: result.level_up || false,
+            new_level: result.new_level
+          }
+        }));
+      }
+      
       // Dispatch event to notify dashboard of outfit being marked as worn
       const event = new CustomEvent('outfitMarkedAsWorn', {
         detail: {
@@ -1214,6 +1227,7 @@ export default function OutfitGenerationPage() {
         
         // ✅ Show XP notification if XP was awarded
         if (result.xp_earned && result.xp_earned > 0) {
+          console.log('✅ XP awarded from rating:', result.xp_earned, 'Dispatching xpAwarded event...');
           window.dispatchEvent(new CustomEvent('xpAwarded', {
             detail: {
               xp: result.xp_earned,

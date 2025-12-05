@@ -20,8 +20,14 @@ const XPNotificationContext = createContext<XPNotificationContextType | undefine
 export function XPNotificationProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<XPNotification[]>([]);
 
+  useEffect(() => {
+    console.log('🔔 XPNotificationProvider mounted');
+    return () => console.log('🔔 XPNotificationProvider unmounted');
+  }, []);
+
   const showNotification = useCallback((xp: number, reason: string, levelUp?: boolean, newLevel?: number) => {
     const id = `xp-${Date.now()}-${Math.random()}`;
+    console.log(`🔔 Showing XP notification: +${xp} XP (${reason})`, { levelUp, newLevel });
     
     setNotifications(prev => [
       ...prev,
@@ -40,14 +46,19 @@ export function XPNotificationProvider({ children }: { children: React.ReactNode
 
   // Listen for XP award events from various sources
   useEffect(() => {
+    console.log('🔔 XPNotificationProvider: Setting up xpAwarded event listener');
+    
     const handleXPAwarded = (event: CustomEvent) => {
+      console.log('🔔 XPNotificationProvider: Received xpAwarded event', event.detail);
       const { xp, reason, level_up, new_level } = event.detail;
       showNotification(xp, reason, level_up, new_level);
     };
 
     window.addEventListener('xpAwarded', handleXPAwarded as EventListener);
+    console.log('🔔 XPNotificationProvider: Event listener added');
     
     return () => {
+      console.log('🔔 XPNotificationProvider: Removing event listener');
       window.removeEventListener('xpAwarded', handleXPAwarded as EventListener);
     };
   }, [showNotification]);
