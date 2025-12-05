@@ -734,7 +734,7 @@ async def rate_outfit(
         from ...services.gamification_service import gamification_service
         xp_result = await gamification_service.award_xp(
             user_id=current_user_id,
-            xp_amount=5,
+            amount=5,
             reason="outfit_rated"
         )
         logger.info(f"🎮 Awarded {xp_result['xp_earned']} XP for rating outfit")
