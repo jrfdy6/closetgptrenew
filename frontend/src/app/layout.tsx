@@ -6,6 +6,8 @@ import { Providers } from "@/components/providers";
 import ToastContainer from "@/components/Toast";
 import { Toaster } from "@/components/ui/toaster";
 
+// Force Vercel rebuild - XP notifications URGENT - Dec 5 2025
+
 // Body/UI font - Clean, neutral, readable
 const inter = Inter({ 
   subsets: ["latin"],
