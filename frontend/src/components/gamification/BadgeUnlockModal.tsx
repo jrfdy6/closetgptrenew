@@ -3,7 +3,17 @@
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Award } from 'lucide-react';
+import { 
+  Award, 
+  Archive, 
+  Gem, 
+  Trophy, 
+  Medal, 
+  Palette, 
+  Cloud, 
+  Star, 
+  Brain 
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface BadgeUnlockModalProps {
