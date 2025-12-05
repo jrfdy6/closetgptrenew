@@ -126,7 +126,8 @@ class OutfitService {
     });
   }
 
-  async markOutfitAsWorn(id: string, token: string): Promise<Outfit> {
+  async markOutfitAsWorn(id: string, token: string): Promise<any> {
+    // Returns: { success, message, outfit_id, wear_count, xp_earned, level_up, new_level }
     return this.makeRequest(`/outfits/${id}/worn`, {
       method: 'POST',
       headers: {
