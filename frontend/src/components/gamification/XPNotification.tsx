@@ -43,89 +43,47 @@ export default function XPNotification({
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ opacity: 0, y: -50, x: 50 }}
-          animate={{ opacity: 1, y: 0, x: 0 }}
-          exit={{ opacity: 0, x: 100 }}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 20 }}
           transition={{
-            type: "spring",
-            stiffness: 300,
-            damping: 25
+            duration: 0.25,
+            ease: "easeOut"
           }}
-          className="fixed top-4 right-4 z-50 pointer-events-auto"
+          className={`fixed top-4 right-4 z-50 pointer-events-auto min-w-[240px] max-w-[320px]
+            rounded-xl p-3 shadow-lg ${
+              levelUp
+                ? 'bg-gradient-to-r from-[#FFB84C] to-[#FF9400] border-none'
+                : 'bg-[#2C2119] border border-[#3D2F24]'
+            }`}
         >
-          <div className={`rounded-lg shadow-lg p-4 min-w-[280px] ${
-            levelUp 
-              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' 
-              : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
-          }`}>
-            <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
+            {levelUp ? (
+              <Award className="w-5 h-5 text-white" />
+            ) : (
+              <Sparkles className="w-5 h-5 text-[#FFB84C]" />
+            )}
+            
+            <div className="flex-1">
               {levelUp ? (
-                <motion.div
-                  animate={{
-                    scale: [1, 1.2, 1],
-                    rotate: [0, 10, -10, 0]
-                  }}
-                  transition={{
-                    duration: 0.5,
-                    repeat: 2
-                  }}
-                >
-                  <Award className="w-6 h-6" />
-                </motion.div>
+                <>
+                  <div className="text-sm font-medium text-white">
+                    Level Up!
+                  </div>
+                  <div className="text-xs text-white/90 mt-0.5">
+                    You're now Level {newLevel}!
+                  </div>
+                </>
               ) : (
-                <motion.div
-                  animate={{
-                    rotate: [0, 360],
-                    scale: [1, 1.1, 1]
-                  }}
-                  transition={{
-                    duration: 0.6,
-                    ease: "easeInOut"
-                  }}
-                >
-                  <Sparkles className="w-6 h-6 text-amber-500" />
-                </motion.div>
+                <>
+                  <div className="text-sm font-medium bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
+                    +{xp} XP
+                  </div>
+                  <div className="text-xs text-[#C4BCB4] mt-0.5">
+                    {reason}
+                  </div>
+                </>
               )}
-              
-              <div className="flex-1">
-                {levelUp ? (
-                  <>
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.2 }}
-                      className="font-bold text-lg"
-                    >
-                      Level Up! 🎉
-                    </motion.div>
-                    <div className="text-sm opacity-90">
-                      You're now Level {newLevel}!
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                      <motion.span
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ 
-                          type: "spring",
-                          stiffness: 500,
-                          damping: 15,
-                          delay: 0.1
-                        }}
-                        className="text-amber-600 dark:text-amber-400 font-bold"
-                      >
-                        +{xp} XP
-                      </motion.span>
-                      <TrendingUp className="w-4 h-4 text-green-500" />
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-                      {reason}
-                    </div>
-                  </>
-                )}
-              </div>
             </div>
           </div>
         </motion.div>
@@ -153,17 +111,16 @@ export function XPNotificationStack({ notifications, onDismiss }: XPNotification
         {notifications.map((notification, index) => (
           <motion.div
             key={notification.id}
-            initial={{ opacity: 0, y: -50, x: 50 }}
+            initial={{ opacity: 0, x: 20 }}
             animate={{ 
               opacity: 1, 
               y: index * 80, // Stack notifications
               x: 0 
             }}
-            exit={{ opacity: 0, x: 100 }}
+            exit={{ opacity: 0, x: 20 }}
             transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 25
+              duration: 0.25,
+              ease: "easeOut"
             }}
           >
             <XPNotification

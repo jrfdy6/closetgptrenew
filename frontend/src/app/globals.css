@@ -22,6 +22,10 @@
     animation: breathe 2s ease-in-out infinite;
   }
   
+  .animate-shimmer {
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  
   .animate-float-in-right {
     animation: float-in-right 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
   }
@@ -182,6 +186,21 @@
   }
   50% {
     transform: scale(1.05);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    box-shadow: 0 0 10px rgba(255, 180, 76, 0.3);
+    opacity: 0.5;
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 180, 76, 0.6);
+    opacity: 1;
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(255, 180, 76, 0.3);
+    opacity: 0.5;
   }
 }
 

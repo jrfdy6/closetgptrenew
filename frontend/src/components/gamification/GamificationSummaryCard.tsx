@@ -54,65 +54,59 @@ export default function GamificationSummaryCard() {
   const progressPercentage = level?.progress_percentage || 0;
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+    <Card className="bg-[#2C2119] border border-[#3D2F24]">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-[#F8F5F1]">
+          <Sparkles className="w-5 h-5 text-[#FFB84C]" />
           Your Progress
         </CardTitle>
-        <CardDescription>
-          Level {level?.level || 1} {level?.tier || 'Novice'}
-        </CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
         <div className="space-y-6">
+          {/* Level Indicator - Typography-based */}
+          <div className="text-center">
+            <h3 className="text-xl font-display font-semibold
+              bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
+              Level {level?.level || 1}
+            </h3>
+            <p className="text-sm text-[#C4BCB4] uppercase tracking-wider mt-1">
+              {level?.tier || 'Novice'}
+            </p>
+          </div>
+
           {/* XP Progress */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className="text-sm font-medium text-[#C4BCB4]">
                 Experience Points
               </span>
-              <span className="text-sm font-bold text-purple-600 dark:text-purple-400">
+              <span className="text-sm font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
                 {xp} XP
               </span>
             </div>
-            <div className="relative">
-              <Progress value={progressPercentage} className="h-3" />
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent"
-                animate={{
-                  x: ['-100%', '200%']
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
-                style={{ mixBlendMode: 'overlay' }}
-              />
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <Progress value={progressPercentage} className="h-1" />
+            <p className="text-xs text-[#8A827A] mt-1">
               {level?.xp_for_next_level - xp} XP until Level {(level?.level || 1) + 1}
             </p>
           </div>
 
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-              <Award className="w-4 h-4 text-amber-500" />
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#3D2F24]">
+              <Award className="w-4 h-4 text-[#FFB84C]" />
               <div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">Badges</div>
-                <div className="text-lg font-bold text-gray-900 dark:text-white">
+                <div className="text-xs text-[#C4BCB4]">Badges</div>
+                <div className="text-lg font-bold text-[#F8F5F1]">
                   {badges?.length || 0}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-              <Target className="w-4 h-4 text-blue-500" />
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#3D2F24]">
+              <Target className="w-4 h-4 text-[#FFB84C]" />
               <div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">Active</div>
-                <div className="text-lg font-bold text-gray-900 dark:text-white">
+                <div className="text-xs text-[#C4BCB4]">Active</div>
+                <div className="text-lg font-bold text-[#F8F5F1]">
                   {active_challenges_count || 0}
                 </div>
               </div>
@@ -121,7 +115,7 @@ export default function GamificationSummaryCard() {
 
           {/* CTA */}
           <Link href="/challenges">
-            <Button variant="outline" className="w-full" size="sm">
+            <Button variant="outline" className="w-full border-[#3D2F24] text-[#F8F5F1] hover:bg-[#3D2F24]" size="sm">
               <Target className="w-4 h-4 mr-2" />
               View All Challenges
             </Button>

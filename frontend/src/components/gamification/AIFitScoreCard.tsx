@@ -72,15 +72,15 @@ export default function AIFitScoreCard() {
   };
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
-        <CardTitle className="flex items-center gap-2">
-          <Brain className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+    <Card className="bg-[#2C2119] border border-[#3D2F24]">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-[#F8F5F1]">
+          <Brain className="w-5 h-5 text-[#FFB84C]" />
           AI Fit Score
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                <Info className="w-4 h-4 text-gray-400" />
+                <Info className="w-4 h-4 text-[#8A827A]" />
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs text-sm">
@@ -91,40 +91,45 @@ export default function AIFitScoreCard() {
             </Tooltip>
           </TooltipProvider>
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-[#C4BCB4]">
           {getScoreLabel(score)}
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
         <div className="flex flex-col items-center space-y-4">
           {/* Circular Progress */}
-          <div className="relative w-24 h-24">
-            <svg className="w-24 h-24 transform -rotate-90">
+          <div className="relative w-32 h-32">
+            <svg className="w-32 h-32 transform -rotate-90">
               {/* Background circle */}
               <circle
-                cx="48"
-                cy="48"
-                r="40"
+                cx="64"
+                cy="64"
+                r="56"
                 stroke="currentColor"
                 strokeWidth="8"
                 fill="none"
-                className="text-gray-200 dark:text-gray-700"
+                className="text-[#3D2F24]"
               />
-              {/* Progress circle */}
+              {/* Progress circle - Amber gradient */}
+              <defs>
+                <linearGradient id="amber-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#FFB84C" />
+                  <stop offset="100%" stopColor="#FF9400" />
+                </linearGradient>
+              </defs>
               <motion.circle
-                cx="48"
-                cy="48"
-                r="40"
-                stroke="currentColor"
+                cx="64"
+                cy="64"
+                r="56"
+                stroke="url(#amber-gradient)"
                 strokeWidth="8"
                 fill="none"
                 strokeLinecap="round"
-                className={getScoreColor(score)}
-                initial={{ strokeDashoffset: 251.2 }}
-                animate={{ strokeDashoffset: 251.2 - (251.2 * score) / 100 }}
-                transition={{ duration: 1, ease: "easeInOut" }}
+                initial={{ strokeDashoffset: 351.86 }}
+                animate={{ strokeDashoffset: 351.86 - (351.86 * score) / 100 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
                 style={{
-                  strokeDasharray: 251.2
+                  strokeDasharray: 351.86
                 }}
               />
             </svg>
@@ -133,7 +138,8 @@ export default function AIFitScoreCard() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.3, type: "spring" }}
-                className={`text-2xl font-bold ${getScoreColor(score)}`}
+                className="text-2xl font-display font-semibold
+                  bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent"
               >
                 {Math.round(score)}
               </motion.div>
@@ -148,9 +154,9 @@ export default function AIFitScoreCard() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 + index * 0.1 }}
-                className="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-1"
+                className="text-xs text-[#C4BCB4] flex items-start gap-1"
               >
-                <Star className="w-3 h-3 mt-0.5 flex-shrink-0 text-amber-500" />
+                <Star className="w-3 h-3 mt-0.5 flex-shrink-0 text-[#FFB84C]" />
                 <span>{explanation}</span>
               </motion.div>
             ))}
@@ -162,25 +168,25 @@ export default function AIFitScoreCard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="w-full pt-4 border-t border-gray-200 dark:border-gray-700"
+              className="w-full pt-4 border-t border-[#3D2F24]"
             >
-              <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <div className="text-xs font-medium text-[#F8F5F1] mb-1">
                 Next Milestone
               </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">
+              <div className="text-xs text-[#C4BCB4]">
                 {nextMilestone.message}
               </div>
-              <div className="mt-2 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="mt-2 h-1 bg-[#3D2F24] rounded-full overflow-hidden">
                 <motion.div
-                  className="h-full bg-blue-600"
+                  className="h-full bg-gradient-to-r from-[#FFB84C] to-[#FF9400]"
                   initial={{ width: 0 }}
                   animate={{ 
                     width: `${(nextMilestone.current / nextMilestone.target) * 100}%` 
                   }}
-                  transition={{ duration: 0.8, delay: 0.7 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
                 />
               </div>
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-[#8A827A] mt-1">
                 {nextMilestone.current} / {nextMilestone.target}
               </div>
             </motion.div>
