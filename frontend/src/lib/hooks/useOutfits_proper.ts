@@ -533,7 +533,20 @@ export function useOutfits(): UseOutfitsReturn {
       console.log(`👕 [useOutfits] Marking outfit ${id} as worn`);
       
       const token = await user.getIdToken();
-      await OutfitService.markOutfitAsWorn(id, token);
+      const result = await OutfitService.markOutfitAsWorn(id, token);
+      
+      // ✅ Show XP notification if XP was awarded
+      if (result && result.xp_earned && result.xp_earned > 0) {
+        console.log('✅ XP awarded from wearing outfit (grid):', result.xp_earned, 'Dispatching xpAwarded event...');
+        window.dispatchEvent(new CustomEvent('xpAwarded', {
+          detail: {
+            xp: result.xp_earned,
+            reason: 'Outfit worn',
+            level_up: result.level_up || false,
+            new_level: result.new_level
+          }
+        }));
+      }
       
       // Update local state
       setOutfits(prev => prev.map(o => {
