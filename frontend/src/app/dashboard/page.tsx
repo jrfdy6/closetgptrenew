@@ -535,6 +535,7 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent className="pt-0">
                   <SmartWeatherOutfitGenerator 
+                    noCard={true}
                     onOutfitGenerated={(outfit) => {
                       console.log('🎯 Smart weather outfit generated:', outfit);
                     }}

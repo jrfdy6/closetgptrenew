@@ -30,6 +30,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 interface SmartWeatherOutfitGeneratorProps {
   className?: string;
   onOutfitGenerated?: (outfit: any) => void;
+  noCard?: boolean; // If true, render without outer Card wrapper (for embedding in other cards)
 }
 
 interface GeneratedOutfit {
@@ -59,7 +60,8 @@ interface GeneratedOutfit {
 
 export function SmartWeatherOutfitGenerator({ 
   className, 
-  onOutfitGenerated 
+  onOutfitGenerated,
+  noCard = false
 }: SmartWeatherOutfitGeneratorProps) {
   const { user } = useAuthContext();
   const { weather, loading: weatherLoading, fetchWeatherByLocation, error: weatherError, isStale: weatherIsStale } = useAutoWeather();
@@ -698,25 +700,8 @@ export function SmartWeatherOutfitGenerator({
     return <Cloud className="h-6 w-6 text-[#FF9400]" />;
   };
 
-  return (
-    <Card className={`card-surface backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 hover:shadow-xl transition-all duration-300 bg-white/85 dark:bg-[#2C2119]/85 ${className}`}>
-      <CardHeader className="pb-4">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-xl flex items-center justify-center shadow-inner">
-            <Sparkles className="h-6 w-6 text-[#FF9400] dark:text-[#FFB84C]" />
-          </div>
-          <div className="flex-1">
-            <CardTitle className="text-xl sm:text-2xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
-              Smart Weather Outfit
-            </CardTitle>
-            <CardDescription className="text-sm text-[#57534E] dark:text-[#C4BCB4] mt-1">
-              Personalized recommendations for today&apos;s forecast
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
+  const content = (
+    <div className={`space-y-6 ${noCard ? '' : ''}`}>
         {/* Weather Display - Compact & Modern */}
         {weatherLoading && !weather ? (
           <div className="flex items-center justify-center py-12">
@@ -1032,6 +1017,32 @@ export function SmartWeatherOutfitGenerator({
             </div>
           )}
         </div>
+    </div>
+  );
+
+  if (noCard) {
+    return <div className={className}>{content}</div>;
+  }
+
+  return (
+    <Card className={`card-surface backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 hover:shadow-xl transition-all duration-300 bg-white/85 dark:bg-[#2C2119]/85 ${className}`}>
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-12 h-12 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-xl flex items-center justify-center shadow-inner">
+            <Sparkles className="h-6 w-6 text-[#FF9400] dark:text-[#FFB84C]" />
+          </div>
+          <div className="flex-1">
+            <CardTitle className="text-xl sm:text-2xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
+              Smart Weather Outfit
+            </CardTitle>
+            <CardDescription className="text-sm text-[#57534E] dark:text-[#C4BCB4] mt-1">
+              Personalized recommendations for today&apos;s forecast
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {content}
       </CardContent>
     </Card>
   );
