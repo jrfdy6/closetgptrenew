@@ -403,37 +403,72 @@ class DashboardService {
       
       // On mobile, skip API route entirely to avoid Vercel function timeout
       // Vercel functions have strict timeouts (10s on Hobby, 60s on Pro)
-      // Direct backend call is more reliable on mobile
+      // Direct backend call is more reliable on mobile, but may still timeout on slow networks
       if (isMobile) {
         console.log('📱 DEBUG: Mobile detected - using direct backend call to avoid Vercel timeout');
-        const directTimeout = 45000; // 45s for mobile
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-          console.warn('⏱️ DEBUG: Direct backend call timing out...');
-          controller.abort();
-        }, directTimeout);
+        console.log('📱 DEBUG: Backend URL:', `${backendUrl}/api/wardrobe/`);
         
-        try {
-          const directResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            signal: controller.signal,
-          });
+        // Try with shorter timeout first, then retry with longer timeout if needed
+        const firstAttemptTimeout = 20000; // 20s first attempt
+        const secondAttemptTimeout = 60000; // 60s second attempt
+        
+        let lastError: Error | null = null;
+        
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const timeout = attempt === 0 ? firstAttemptTimeout : secondAttemptTimeout;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => {
+            console.warn(`⏱️ DEBUG: Direct backend call attempt ${attempt + 1} timing out after ${timeout}ms...`);
+            controller.abort();
+          }, timeout);
           
-          clearTimeout(timeoutId);
-          
-          if (directResponse.ok) {
-            response = await directResponse.json();
-            console.log('✅ DEBUG: Direct backend call succeeded on mobile');
-          } else {
-            throw new Error(`Direct backend returned ${directResponse.status}`);
+          try {
+            console.log(`📱 DEBUG: Attempt ${attempt + 1}/2 - Fetching from backend (timeout: ${timeout}ms)...`);
+            const startTime = Date.now();
+            
+            const directResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              signal: controller.signal,
+            });
+            
+            const duration = Date.now() - startTime;
+            clearTimeout(timeoutId);
+            
+            console.log(`📱 DEBUG: Attempt ${attempt + 1} completed in ${duration}ms, status: ${directResponse.status}`);
+            
+            if (directResponse.ok) {
+              response = await directResponse.json();
+              console.log(`✅ DEBUG: Direct backend call succeeded on mobile (attempt ${attempt + 1}, ${duration}ms)`);
+              break; // Success, exit retry loop
+            } else {
+              const errorText = await directResponse.text().catch(() => 'Unable to read error');
+              throw new Error(`Direct backend returned ${directResponse.status}: ${errorText.substring(0, 100)}`);
+            }
+          } catch (error) {
+            clearTimeout(timeoutId);
+            lastError = error as Error;
+            console.error(`❌ DEBUG: Attempt ${attempt + 1} failed:`, error instanceof Error ? error.message : String(error));
+            
+            // If it's an abort error and we have another attempt, continue
+            if (error instanceof Error && error.name === 'AbortError' && attempt < 1) {
+              console.log(`⏳ DEBUG: Attempt ${attempt + 1} timed out, retrying with longer timeout...`);
+              continue;
+            }
+            
+            // If last attempt or non-abort error, throw
+            if (attempt === 1 || (error instanceof Error && error.name !== 'AbortError')) {
+              throw error;
+            }
           }
-        } catch (error) {
-          clearTimeout(timeoutId);
-          throw error;
+        }
+        
+        // If we get here without response, throw the last error
+        if (!response) {
+          throw lastError || new Error('All mobile backend attempts failed');
         }
       } else {
         // On desktop, use API route (has retry logic and caching)
