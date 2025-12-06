@@ -378,7 +378,9 @@ class TVEService:
                     "percent_recouped": 0,
                     "annual_potential_range": {"low": 0, "high": 0},
                     "tve_by_category": {},
-                    "lowest_progress_category": None
+                    "lowest_progress_category": None,
+                    "items_initialized": 0,
+                    "items_recalculated": 0
                 }
             
             total_tve = 0
