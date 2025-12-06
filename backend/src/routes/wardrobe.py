@@ -753,12 +753,16 @@ async def get_wardrobe_items_with_slash(
         # OPTIMIZED: Use Firestore query instead of fetching all items
         # This is 100x faster - only fetches user's items from database
         try:
+            query_start = time.time()
+            logger.info(f"⏱️ WARDROBE: Executing Firestore query... ({time.time() - start_time:.2f}s)")
             # Try userId first (most common field name)
             query = db.collection('wardrobe').where('userId', '==', current_user.id)
             docs = query.stream()
             
+            logger.info(f"⏱️ WARDROBE: Query stream created, converting to list... ({time.time() - start_time:.2f}s)")
             # Fallback: if no results, try other field names (for legacy data)
             items_list = list(docs)
+            logger.info(f"⏱️ WARDROBE: Query complete - found {len(items_list)} items ({time.time() - start_time:.2f}s)")
             if not items_list:
                 # Try alternative field names
                 for field_name in ['uid', 'ownerId', 'user_id']:
