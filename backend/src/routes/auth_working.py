@@ -84,8 +84,13 @@ async def get_user_profile(current_user: UserProfile = Depends(get_current_user)
             
             # Use asyncio timeout to prevent hanging
             try:
+                import time
+                profile_start = time.time()
+                
                 # Firestore get() is synchronous, but we'll wrap it
                 user_doc = db.collection('users').document(current_user.id).get()
+                
+                logger.info(f"⏱️ PROFILE: Firestore get() completed ({time.time() - profile_start:.2f}s)")
                 
                 if not user_doc.exists:
                     logger.info(f"🔍 PROFILE: No Firestore profile found for user: {current_user.id}")
@@ -94,8 +99,16 @@ async def get_user_profile(current_user: UserProfile = Depends(get_current_user)
                 user_data = user_doc.to_dict()
                 if user_data:
                     logger.info(f"🔍 PROFILE: Retrieved Firestore profile for user: {current_user.id}, fields: {len(user_data.keys())}")
+                    
+                    # OPTIMIZED: Exclude large fields that aren't needed for profile
+                    # These fields can be very large and slow down response
+                    excluded_fields = ['metadata', 'analysis', 'wardrobe_items', 'outfits', 'preferences_cache']
+                    filtered_user_data = {k: v for k, v in user_data.items() if k not in excluded_fields}
+                    
                     # Merge Firestore data with basic profile (Firestore takes precedence)
-                    return {**basic_profile, **user_data}
+                    merged_profile = {**basic_profile, **filtered_user_data}
+                    logger.info(f"⏱️ PROFILE: Profile prepared ({time.time() - profile_start:.2f}s)")
+                    return merged_profile
                 else:
                     logger.warning(f"🔍 PROFILE: Firestore profile exists but is empty for user: {current_user.id}")
                     return basic_profile
