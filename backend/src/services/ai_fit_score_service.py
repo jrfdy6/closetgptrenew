@@ -102,9 +102,16 @@ class AIFitScoreService:
             Score from 0 to 1 representing AI confidence
         """
         try:
-            # Get user's outfit history
-            outfits_ref = self.db.collection('outfits').where('user_id', '==', user_id)
+            import time
+            confidence_start = time.time()
+            
+            # OPTIMIZED: Limit to recent 100 outfits instead of fetching all
+            # This prevents timeout on users with thousands of outfits
+            outfits_ref = self.db.collection('outfits')\
+                .where('user_id', '==', user_id)\
+                .limit(100)  # Only analyze recent 100 outfits
             outfits_docs = list(outfits_ref.stream())
+            logger.info(f"⏱️ AI_FIT: Fetched {len(outfits_docs)} outfits for confidence ({time.time() - confidence_start:.2f}s)")
             
             if len(outfits_docs) < 3:
                 # Not enough data
@@ -228,11 +235,34 @@ class AIFitScoreService:
             Dict with score breakdown and explanations
         """
         try:
-            feedback_count = await self.get_feedback_count(user_id)
-            consistency = await self.analyze_preference_consistency(user_id)
-            confidence = await self.get_average_prediction_confidence(user_id)
+            import time
+            explanation_start = time.time()
+            logger.info(f"⏱️ AI_FIT: Starting score explanation for user: {user_id}")
             
-            total_score = await self.calculate_ai_fit_score(user_id)
+            # OPTIMIZED: Calculate components once and reuse them
+            # This avoids duplicate queries (calculate_ai_fit_score was calling them again)
+            feedback_start = time.time()
+            feedback_count = await self.get_feedback_count(user_id)
+            logger.info(f"⏱️ AI_FIT: Feedback count: {feedback_count} ({time.time() - feedback_start:.2f}s)")
+            
+            consistency_start = time.time()
+            consistency = await self.analyze_preference_consistency(user_id)
+            logger.info(f"⏱️ AI_FIT: Consistency: {consistency:.2f} ({time.time() - consistency_start:.2f}s)")
+            
+            confidence_start = time.time()
+            confidence = await self.get_average_prediction_confidence(user_id)
+            logger.info(f"⏱️ AI_FIT: Confidence: {confidence:.2f} ({time.time() - confidence_start:.2f}s)")
+            
+            # Calculate total score using the values we already fetched (no duplicate queries)
+            # Component 1: Feedback count (0-40 points, caps at 50 feedback items)
+            feedback_score = min(40, feedback_count * 0.8)
+            # Component 2: Preference consistency (0-30 points)
+            consistency_score = consistency * 30
+            # Component 3: AI prediction confidence (0-30 points)
+            confidence_score = confidence * 30
+            total_score = feedback_score + consistency_score + confidence_score
+            
+            logger.info(f"⏱️ AI_FIT: Total score calculated: {total_score:.1f} (total: {time.time() - explanation_start:.2f}s)")
             
             # Create explanatory messages
             explanations = []
