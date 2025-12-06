@@ -591,7 +591,7 @@ class DashboardService {
       const maxItemsForStats = isMobile ? 200 : wardrobeItems.length; // Limit to 200 items on mobile for stats
       const itemsForStats = Array.isArray(wardrobeItems) ? wardrobeItems.slice(0, maxItemsForStats) : [];
       
-      if (isMobileDevice && wardrobeItems.length > maxItemsForStats) {
+      if (isMobile && wardrobeItems.length > maxItemsForStats) {
         console.log(`📱 DEBUG: Mobile detected - limiting stats calculation to ${maxItemsForStats} items (out of ${wardrobeItems.length})`);
       }
       
