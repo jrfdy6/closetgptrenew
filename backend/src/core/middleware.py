@@ -38,7 +38,9 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
     
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        logger.info(f"LoggingMiddleware: Received {request.method} {request.url.path}")
+        import time
+        middleware_start = time.time()
+        logger.info(f"🚀 MIDDLEWARE: {request.method} {request.url.path} - Request received ({time.time() - middleware_start:.3f}s)")
         # Generate request ID
         request_id = str(uuid.uuid4())
         request.state.request_id = request_id
