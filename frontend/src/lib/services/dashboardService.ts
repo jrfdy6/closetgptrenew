@@ -385,7 +385,7 @@ class DashboardService {
     } catch (error) {
         console.error('Error fetching user profile:', error);
       if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
-        console.error('⏱️ DEBUG: Profile request timed out after 15 seconds (non-critical, continuing...)');
+        console.error('⏱️ DEBUG: Profile request timed out after 30 seconds (non-critical, continuing...)');
       }
       return { stylePersona: null };
     }

@@ -272,7 +272,7 @@ class FashionTrendsService:
             # 4. Exclude men's specific items
             
             # Check for women's specific keywords
-            for keyword in gender_specific_keywords.get("female", []) if gender_specific_keywords else []):
+            for keyword in (gender_specific_keywords.get("female", []) if gender_specific_keywords else []):
                 if keyword.lower() in trend_lower:
                     # print(f"✅ Gender Filter: '{trend_name}' matches female keyword '{keyword}'")
                     return True
@@ -337,7 +337,7 @@ class FashionTrendsService:
                     return False
             
             # Exclude women's specific keywords
-            for keyword in gender_specific_keywords.get("female", []) if gender_specific_keywords else []):
+            for keyword in (gender_specific_keywords.get("female", []) if gender_specific_keywords else []):
                 if keyword.lower() in trend_lower:
                     # print(f"❌ Gender Filter: '{trend_name}' excluded - matches female keyword '{keyword}'")
                     return False
