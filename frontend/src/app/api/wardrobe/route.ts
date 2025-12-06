@@ -43,32 +43,63 @@ export async function GET(request: Request) {
     console.log('🔍 DEBUG: About to call backend with URL:', fullBackendUrl);
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
     
-    // Add timeout - shorter for mobile, longer for desktop
-    // Check user agent to detect mobile
+    // Add retry logic with exponential backoff for mobile network issues
     const userAgent = request.headers.get('user-agent') || '';
     const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
-    const timeoutMs = isMobile ? 30000 : 60000; // 30s for mobile, 60s for desktop
+    const timeoutMs = isMobile ? 15000 : 30000; // 15s for mobile (shorter, fail fast), 30s for desktop
+    const maxRetries = isMobile ? 2 : 1; // Retry once on mobile
     
-    console.log('🔍 DEBUG: Wardrobe API route - isMobile:', isMobile, 'timeout:', timeoutMs);
+    console.log('🔍 DEBUG: Wardrobe API route - isMobile:', isMobile, 'timeout:', timeoutMs, 'maxRetries:', maxRetries);
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.error(`⏱️ DEBUG: Wardrobe request timed out after ${timeoutMs}ms (${isMobile ? 'mobile' : 'desktop'})`);
-      controller.abort();
-    }, timeoutMs);
+    let lastError: Error | null = null;
+    let response: Response | null = null;
     
-    let response: Response;
-    try {
-      response = await fetch(fullBackendUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': authHeader, // Use ONLY the real auth token
-          'Content-Type': 'application/json',
-        },
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeoutId);
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          console.error(`⏱️ DEBUG: Attempt ${attempt + 1}/${maxRetries + 1} timed out after ${timeoutMs}ms`);
+          controller.abort();
+        }, timeoutMs);
+        
+        try {
+          console.log(`🔍 DEBUG: Attempt ${attempt + 1}/${maxRetries + 1} - Fetching from backend...`);
+          const startTime = Date.now();
+          
+          response = await fetch(fullBackendUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': authHeader,
+              'Content-Type': 'application/json',
+            },
+            signal: controller.signal,
+          });
+          
+          const duration = Date.now() - startTime;
+          console.log(`✅ DEBUG: Attempt ${attempt + 1} succeeded in ${duration}ms`);
+          
+          clearTimeout(timeoutId);
+          break; // Success, exit retry loop
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          throw fetchError;
+        }
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`❌ DEBUG: Attempt ${attempt + 1} failed:`, error instanceof Error ? error.message : String(error));
+        
+        // Don't retry on last attempt
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000; // 1s, 2s
+          console.log(`⏳ DEBUG: Waiting ${delay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    // If all retries failed, throw the last error
+    if (!response) {
+      throw lastError || new Error('All retry attempts failed');
     }
     
     console.log('🔍 DEBUG: Backend response received:', {

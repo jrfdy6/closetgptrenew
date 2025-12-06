@@ -393,10 +393,44 @@ class DashboardService {
       console.log('🔍 DEBUG: User ID:', user.uid);
       console.log('🔍 DEBUG: User email:', user.email);
       
-      // Use simple GET request without custom headers (to avoid CORS issues)
-      const response = await this.makeAuthenticatedRequest('/wardrobe', user, {
-        method: 'GET'
-      });
+      // Try Next.js API route first (has retry logic and caching)
+      // If that fails, fall back to direct backend call
+      let response: any;
+      try {
+        response = await this.makeAuthenticatedRequest('/wardrobe', user, {
+          method: 'GET'
+        });
+        
+        // Check if API route returned an error (timeout, etc.)
+        if (response?.success === false && response?.timeout) {
+          console.warn('⚠️ DEBUG: API route timed out, trying direct backend call as fallback...');
+          throw new Error('API route timeout - trying direct backend');
+        }
+      } catch (apiError) {
+        // Fallback: try direct backend call if API route fails
+        console.warn('⚠️ DEBUG: API route failed, trying direct backend call...');
+        const token = await user.getIdToken();
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+        // Add timeout for direct call (20s - backend responds quickly)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        
+        const directResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        }).finally(() => clearTimeout(timeoutId));
+        
+        if (directResponse.ok) {
+          response = await directResponse.json();
+          console.log('✅ DEBUG: Direct backend call succeeded');
+        } else {
+          throw apiError; // Re-throw original error if direct call also fails
+        }
+      }
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
       console.log('🔍 DEBUG: Wardrobe stats response type:', typeof response);
       console.log('🔍 DEBUG: Wardrobe stats response keys:', Object.keys(response || {}));
