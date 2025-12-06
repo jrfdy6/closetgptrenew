@@ -398,6 +398,9 @@ class DashboardService {
       
       const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
       
+      // Declare response variable that will be used in both paths
+      let response: any;
+      
       // On mobile, skip API route entirely to avoid Vercel function timeout
       // Vercel functions have strict timeouts (10s on Hobby, 60s on Pro)
       // Direct backend call is more reliable on mobile
@@ -423,9 +426,8 @@ class DashboardService {
           clearTimeout(timeoutId);
           
           if (directResponse.ok) {
-            const data = await directResponse.json();
+            response = await directResponse.json();
             console.log('✅ DEBUG: Direct backend call succeeded on mobile');
-            response = data;
           } else {
             throw new Error(`Direct backend returned ${directResponse.status}`);
           }
