@@ -746,7 +746,7 @@ export function SmartWeatherOutfitGenerator({
                   <h5 className="text-xs sm:text-sm font-semibold text-[#57534E] dark:text-[#C4BCB4]">
                     Items ({generatedOutfit.items.length})
                   </h5>
-                  <div className="grid grid-cols-2 sm:grid-cols-2 gap-2 sm:gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
                     {generatedOutfit.items.map((item, index) => (
                       <div 
                         key={index} 
