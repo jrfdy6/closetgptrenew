@@ -372,8 +372,8 @@ class DashboardService {
       } catch (healthError) {
         clearTimeout(healthCheckTimeout);
         // On mobile, health check CORS failures are common - don't block the main request
-        const isMobileDevice = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-        if (isMobileDevice) {
+        const isMobileProfile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+        if (isMobileProfile) {
           console.warn('⚠️ DEBUG: Mobile health check failed (likely CORS) - proceeding with main request anyway');
           // Don't return early on mobile - proceed with profile request
         } else {
@@ -383,8 +383,8 @@ class DashboardService {
       }
       
       // If health check passes, try profile with timeout (longer on mobile for slow networks)
-      const isMobileDevice = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const profileTimeout = isMobileDevice ? 30000 : 15000; // 30s on mobile, 15s on desktop
+      const isMobileProfile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const profileTimeout = isMobileProfile ? 30000 : 15000; // 30s on mobile, 15s on desktop
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), profileTimeout);
       
@@ -427,7 +427,7 @@ class DashboardService {
       const token = await user.getIdToken();
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
       
-      const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
       
       // Declare response variable that will be used in both paths
       let response: any;
@@ -450,8 +450,7 @@ class DashboardService {
       } catch (healthError) {
         clearTimeout(healthCheckTimeout);
         // On mobile, health check CORS failures are common - don't block the main request
-        const isMobileDevice = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-        if (isMobileDevice) {
+        if (isMobile) {
           console.warn('⚠️ DEBUG: Mobile health check failed (likely CORS) - proceeding with main request anyway');
           backendHealthy = true; // Don't block on mobile
         } else {
@@ -483,8 +482,7 @@ class DashboardService {
       console.log(isMobile ? '📱 DEBUG: Mobile - calling backend directly (health check passed)' : '🖥️ DEBUG: Desktop - calling backend directly (health check passed)');
       
       // Direct backend call - longer timeout on mobile for slow networks
-      const isMobileDevice = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const directTimeout = isMobileDevice ? 60000 : 35000; // 60s on mobile, 35s on desktop
+      const directTimeout = isMobile ? 60000 : 35000; // 60s on mobile, 35s on desktop
       const directBackendPromise = (async () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
@@ -564,8 +562,7 @@ class DashboardService {
       }
       
       // OPTIMIZED: Limit items processed on mobile for better performance
-      const isMobileDevice = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const maxItemsForStats = isMobileDevice ? 200 : wardrobeItems.length; // Limit to 200 items on mobile for stats
+      const maxItemsForStats = isMobile ? 200 : wardrobeItems.length; // Limit to 200 items on mobile for stats
       const itemsForStats = Array.isArray(wardrobeItems) ? wardrobeItems.slice(0, maxItemsForStats) : [];
       
       if (isMobileDevice && wardrobeItems.length > maxItemsForStats) {
