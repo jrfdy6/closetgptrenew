@@ -1,0 +1,253 @@
+/* 
+  DARK MODE COLOR PALETTE VARIATIONS
+  ====================================
+  
+  This file contains 4 alternative dark mode color palettes.
+  
+  TO TEST A VARIATION:
+  1. Copy the CSS from one variation below
+  2. Paste it into globals.css, replacing the .dark section (lines 292-335)
+  3. Also update the .dark body background gradient (line 362) with the matching gradient
+  4. Update component-level hardcoded colors (see DARK_MODE_PALETTE_VARIATIONS.md)
+  5. Save and refresh the app in dark mode
+  
+  Each variation preserves:
+  - Amber Primary: #FFB84C (38 92% 63%)
+  - Orange Accent: #FF9400 (33 100% 56%)
+  - Warm Text: #F8F5F1 (30 10% 97%)
+  - Warm Muted Text: #D4CCC0 (30 8% 75%)
+*/
+
+/* ========================================
+   VARIATION 1: DEEP NAVY MIDNIGHT
+   Theme: Sophisticated midnight blue with amber gold accents
+   ======================================== */
+/*
+.dark {
+  --background: 220 30% 8%;            /* #0F1419 - Deep navy */
+  --foreground: 30 10% 97%;            /* #F8F5F1 - Warm light */
+
+  --card: 220 25% 12%;                 /* #1A2330 - Rich navy surface */
+  --card-foreground: 30 10% 97%;
+
+  --popover: 220 25% 12%;
+  --popover-foreground: 30 10% 97%;
+
+  --primary: 38 92% 63%;               /* #FFB84C - Signature amber */
+  --primary-foreground: 220 30% 8%;
+
+  --secondary: 220 20% 18%;            /* #2A3441 - Navy variant */
+  --secondary-foreground: 30 10% 97%;
+
+  --muted: 220 20% 18%;
+  --muted-foreground: 30 8% 75%;      /* #D4CCC0 - Warm muted text */
+
+  --accent: 33 100% 56%;               /* #FF9400 - Orange */
+  --accent-foreground: 220 30% 8%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 220 20% 20%;               /* #2F3A47 - Navy border */
+  --input: 220 20% 18%;
+  --ring: 38 92% 63%;
+  
+  --surface: 220 25% 12%;              /* #1A2330 - Cards */
+  --surface-variant: 220 20% 18%;      /* #2A3441 - Hover/active */
+  
+  --chart-1: 38 92% 63%;
+  --chart-2: 33 100% 56%;
+  --chart-3: 43 100% 60%;
+  --chart-4: 28 80% 50%;
+  --chart-5: 48 85% 65%;
+}
+
+.dark body {
+  background: linear-gradient(135deg, #0F1419 0%, #1A2330 50%, #0F1419 100%);
+}
+*/
+
+/* ========================================
+   VARIATION 2: PURE BLACK LUXURY
+   Theme: Rich true black with amber gold accents - high contrast, modern
+   ======================================== */
+/*
+.dark {
+  --background: 0 0% 5%;               /* #0D0D0D - Almost pure black */
+  --foreground: 30 10% 97%;            /* #F8F5F1 - Warm light */
+
+  --card: 0 0% 10%;                    /* #1A1A1A - Rich charcoal-black */
+  --card-foreground: 30 10% 97%;
+
+  --popover: 0 0% 10%;
+  --popover-foreground: 30 10% 97%;
+
+  --primary: 38 92% 63%;               /* #FFB84C - Signature amber */
+  --primary-foreground: 0 0% 5%;
+
+  --secondary: 0 0% 15%;               /* #262626 - Charcoal variant */
+  --secondary-foreground: 30 10% 97%;
+
+  --muted: 0 0% 15%;
+  --muted-foreground: 30 8% 75%;      /* #D4CCC0 - Warm muted text */
+
+  --accent: 33 100% 56%;               /* #FF9400 - Orange */
+  --accent-foreground: 0 0% 5%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 0 0% 18%;                  /* #2E2E2E - Subtle border */
+  --input: 0 0% 15%;
+  --ring: 38 92% 63%;
+  
+  --surface: 0 0% 10%;                 /* #1A1A1A - Cards */
+  --surface-variant: 0 0% 15%;         /* #262626 - Hover/active */
+  
+  --chart-1: 38 92% 63%;
+  --chart-2: 33 100% 56%;
+  --chart-3: 43 100% 60%;
+  --chart-4: 28 80% 50%;
+  --chart-5: 48 85% 65%;
+}
+
+.dark body {
+  background: linear-gradient(135deg, #0D0D0D 0%, #1A1A1A 50%, #0D0D0D 100%);
+}
+*/
+
+/* ========================================
+   VARIATION 3: DEEP PLUM ELEGANCE
+   Theme: Rich deep purple/plum with amber gold accents - elegant and warm
+   ======================================== */
+/*
+.dark {
+  --background: 280 25% 8%;            /* #1A141D - Deep plum */
+  --foreground: 30 10% 97%;            /* #F8F5F1 - Warm light */
+
+  --card: 280 20% 12%;                 /* #251F2B - Rich plum surface */
+  --card-foreground: 30 10% 97%;
+
+  --popover: 280 20% 12%;
+  --popover-foreground: 30 10% 97%;
+
+  --primary: 38 92% 63%;               /* #FFB84C - Signature amber */
+  --primary-foreground: 280 25% 8%;
+
+  --secondary: 280 15% 18%;            /* #342D3D - Plum variant */
+  --secondary-foreground: 30 10% 97%;
+
+  --muted: 280 15% 18%;
+  --muted-foreground: 30 8% 75%;      /* #D4CCC0 - Warm muted text */
+
+  --accent: 33 100% 56%;               /* #FF9400 - Orange */
+  --accent-foreground: 280 25% 8%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 280 15% 20%;               /* #3A3244 - Plum border */
+  --input: 280 15% 18%;
+  --ring: 38 92% 63%;
+  
+  --surface: 280 20% 12%;              /* #251F2B - Cards */
+  --surface-variant: 280 15% 18%;      /* #342D3D - Hover/active */
+  
+  --chart-1: 38 92% 63%;
+  --chart-2: 33 100% 56%;
+  --chart-3: 43 100% 60%;
+  --chart-4: 28 80% 50%;
+  --chart-5: 48 85% 65%;
+}
+
+.dark body {
+  background: linear-gradient(135deg, #1A141D 0%, #251F2B 50%, #1A141D 100%);
+}
+*/
+
+/* ========================================
+   VARIATION 4: CHARCOAL SLATE MODERN
+   Theme: Clean charcoal slate with amber gold accents - modern and professional
+   ======================================== */
+/*
+.dark {
+  --background: 210 15% 8%;            /* #121618 - Deep charcoal */
+  --foreground: 30 10% 97%;            /* #F8F5F1 - Warm light */
+
+  --card: 210 12% 12%;                 /* #1C2225 - Slate surface */
+  --card-foreground: 30 10% 97%;
+
+  --popover: 210 12% 12%;
+  --popover-foreground: 30 10% 97%;
+
+  --primary: 38 92% 63%;               /* #FFB84C - Signature amber */
+  --primary-foreground: 210 15% 8%;
+
+  --secondary: 210 10% 18%;            /* #2B3236 - Slate variant */
+  --secondary-foreground: 30 10% 97%;
+
+  --muted: 210 10% 18%;
+  --muted-foreground: 30 8% 75%;      /* #D4CCC0 - Warm muted text */
+
+  --accent: 33 100% 56%;               /* #FF9400 - Orange */
+  --accent-foreground: 210 15% 8%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 210 10% 20%;               /* #31383D - Slate border */
+  --input: 210 10% 18%;
+  --ring: 38 92% 63%;
+  
+  --surface: 210 12% 12%;              /* #1C2225 - Cards */
+  --surface-variant: 210 10% 18%;      /* #2B3236 - Hover/active */
+  
+  --chart-1: 38 92% 63%;
+  --chart-2: 33 100% 56%;
+  --chart-3: 43 100% 60%;
+  --chart-4: 28 80% 50%;
+  --chart-5: 48 85% 65%;
+}
+
+.dark body {
+  background: linear-gradient(135deg, #121618 0%, #1C2225 50%, #121618 100%);
+}
+*/
+
+/* ========================================
+   COMPONENT-LEVEL COLOR MAPPINGS
+   ========================================
+   
+   After selecting a variation, update these hardcoded colors in components:
+   
+   Current patterns to find and replace:
+   - dark:bg-[#2C2119] → Use variation's card color
+   - dark:border-[#3D2F24] → Use variation's border color  
+   - dark:hover:bg-[#2C2119] → Use variation's hover color
+   - dark:bg-[#1A1510] → Use variation's background color
+   
+   Variation 1 (Navy) replacements:
+   - dark:bg-[#2C2119] → dark:bg-[#1A2330]
+   - dark:border-[#3D2F24] → dark:border-[#2F3A47]
+   - dark:hover:bg-[#2C2119] → dark:hover:bg-[#2A3441]
+   - dark:bg-[#1A1510] → dark:bg-[#0F1419]
+   
+   Variation 2 (Pure Black) replacements:
+   - dark:bg-[#2C2119] → dark:bg-[#1A1A1A]
+   - dark:border-[#3D2F24] → dark:border-[#2E2E2E]
+   - dark:hover:bg-[#2C2119] → dark:hover:bg-[#262626]
+   - dark:bg-[#1A1510] → dark:bg-[#0D0D0D]
+   
+   Variation 3 (Plum) replacements:
+   - dark:bg-[#2C2119] → dark:bg-[#251F2B]
+   - dark:border-[#3D2F24] → dark:border-[#3A3244]
+   - dark:hover:bg-[#2C2119] → dark:hover:bg-[#342D3D]
+   - dark:bg-[#1A1510] → dark:bg-[#1A141D]
+   
+   Variation 4 (Slate) replacements:
+   - dark:bg-[#2C2119] → dark:bg-[#1C2225]
+   - dark:border-[#3D2F24] → dark:border-[#31383D]
+   - dark:hover:bg-[#2C2119] → dark:hover:bg-[#2B3236]
+   - dark:bg-[#1A1510] → dark:bg-[#121618]
+*/
+
