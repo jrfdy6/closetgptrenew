@@ -235,10 +235,14 @@ class DashboardService {
         }
       };
 
-      // Fetch user profile with persona data - make it non-blocking
+      // Fetch user profile with persona data - make it non-blocking with timeout
       // Profile is optional for dashboard - don't block if backend is slow
-      // Get user profile with proper timeout handling (no early race condition)
-      const userProfile = await this.getUserProfile(user);
+      const userProfile = await fetchWithTimeout(
+        this.getUserProfile(user),
+        15000, // 15s timeout (shorter than the internal 30s timeout)
+        { stylePersona: null }, // Fallback
+        'UserProfile'
+      );
 
       // Fetch wardrobe data first, then use it for top worn items calculation
       // Longer timeout on mobile for slow networks
