@@ -547,7 +547,7 @@ class DashboardService {
       }
       
       // OPTIMIZED: Limit items processed on mobile for better performance
-      const isMobileDevice = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const isMobileDevice = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
       const maxItemsForStats = isMobileDevice ? 200 : wardrobeItems.length; // Limit to 200 items on mobile for stats
       const itemsForStats = Array.isArray(wardrobeItems) ? wardrobeItems.slice(0, maxItemsForStats) : [];
       
@@ -796,7 +796,7 @@ class DashboardService {
       console.log('🔍 DEBUG: Wardrobe items count:', wardrobeItems.length);
       
       // OPTIMIZED: Limit items processed on mobile for better performance
-      const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
       const maxItemsToProcess = isMobile ? 100 : wardrobeItems.length; // Limit to 100 items on mobile
       const itemsToProcess = wardrobeItems.slice(0, maxItemsToProcess);
       
