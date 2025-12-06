@@ -290,41 +290,41 @@
   }
  
   .dark {
-    /* "Silent Luxury" Amber-Tinted Dark Mode */
-    --background: 30 25% 8%;            /* #1A1510 - Amber-tinted dark */
-    --foreground: 30 10% 97%;           /* #F8F5F1 - Warm light neutral */
- 
-    --card: 30 20% 14%;                 /* #2C2119 - Warm dark surface */
+    /* Pure Black Luxury - Rich true black with amber gold accents */
+    --background: 0 0% 5%;               /* #0D0D0D - Almost pure black */
+    --foreground: 30 10% 97%;            /* #F8F5F1 - Warm light */
+
+    --card: 0 0% 10%;                    /* #1A1A1A - Rich charcoal-black */
     --card-foreground: 30 10% 97%;
- 
-    --popover: 30 20% 14%;
+
+    --popover: 0 0% 10%;
     --popover-foreground: 30 10% 97%;
- 
+
     /* Primary: Amber (vibrant on dark) */
-    --primary: 38 92% 63%;              /* #FFB84C - Signature amber */
-    --primary-foreground: 30 25% 8%;
- 
-    /* Secondary: Warm grey surface */
-    --secondary: 30 15% 20%;            /* #3D2F24 - Surface variant */
+    --primary: 38 92% 63%;               /* #FFB84C - Signature amber */
+    --primary-foreground: 0 0% 5%;
+
+    /* Secondary: Darker charcoal */
+    --secondary: 0 0% 15%;               /* #262626 - Charcoal variant */
     --secondary-foreground: 30 10% 97%;
- 
-    --muted: 30 15% 20%;
-    --muted-foreground: 30 8% 70%;      /* #C4BCB4 - Muted text */
- 
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 30 8% 75%;      /* #D4CCC0 - Warm muted text */
+
     /* Accent: Orange (vibrant on dark) */
-    --accent: 33 100% 56%;              /* #FF9400 - Orange */
-    --accent-foreground: 30 25% 8%;
- 
+    --accent: 33 100% 56%;               /* #FF9400 - Orange */
+    --accent-foreground: 0 0% 5%;
+
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
- 
-    --border: 30 15% 20%;
-    --input: 30 15% 20%;
+
+    --border: 0 0% 18%;                  /* #2E2E2E - Subtle border */
+    --input: 0 0% 15%;
     --ring: 38 92% 63%;
     
     /* Surface elevation for cards */
-    --surface: 30 20% 14%;              /* #2C2119 - Cards */
-    --surface-variant: 30 15% 20%;      /* #3D2F24 - Hover/active */
+    --surface: 0 0% 10%;                 /* #1A1A1A - Cards */
+    --surface-variant: 0 0% 15%;         /* #262626 - Hover/active */
     
     /* Chart colors for dark mode */
     --chart-1: 38 92% 63%;
@@ -358,8 +358,8 @@
   }
   
   .dark body {
-    /* "Silent Luxury" Amber-Tinted Dark Mode */
-    background: linear-gradient(135deg, #1A1510 0%, #2C2119 50%, #1A1510 100%);
+    /* Pure Black Luxury */
+    background: linear-gradient(135deg, #0D0D0D 0%, #1A1A1A 50%, #0D0D0D 100%);
   }
   
   /* Enhanced mobile touch targets - WCAG AAA compliance */
@@ -567,11 +567,11 @@
   
   /* Card backgrounds */
   .card-surface {
-    @apply bg-white dark:bg-[#2C2119];
+    @apply bg-white dark:bg-[#1A1A1A];
   }
   
   .card-surface-variant {
-    @apply bg-[#F5F0E8] dark:bg-[#3D2F24];
+    @apply bg-[#F5F0E8] dark:bg-[#262626];
   }
   
   /* Enhanced typography scale */

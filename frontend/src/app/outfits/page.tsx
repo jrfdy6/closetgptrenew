@@ -54,13 +54,13 @@ export default function OutfitsPage({ searchParams }: OutfitsPageProps) {
   } : undefined;
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
+    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D]">
       <Navigation />
       
       {/* Header */}
       <div className="px-4 py-12">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-white/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-lg">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-white/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-lg">
             <div>
               <h1 className="text-4xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-3">My looks</h1>
               <p className="text-[#57534E] dark:text-[#C4BCB4] text-base leading-relaxed max-w-2xl">
