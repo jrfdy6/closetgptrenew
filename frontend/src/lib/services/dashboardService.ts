@@ -243,11 +243,11 @@ class DashboardService {
       const userProfile = await Promise.race([userProfilePromise, userProfileTimeout]) as any;
 
       // Fetch wardrobe data first, then use it for top worn items calculation
-      // Increased timeout to allow for retries and direct backend fallback
-      // API route can take ~31s with retries, direct backend can take up to 45-60s
+      // Reduced timeout since we're failing fast now (15s mobile, 30s desktop for direct calls)
+      // If backend is down, we'll know quickly from health check
       const wardrobeStats = await fetchWithTimeout(
         this.getWardrobeStats(user), 
-        60000, // 60s timeout - allows for API route retries + direct backend fallback
+        45000, // 45s timeout - reduced from 60s since we fail fast now
         { items: [], total_items: 0 }, 
         'WardrobeStats'
       );
@@ -398,6 +398,26 @@ class DashboardService {
       
       // Race between API route and direct backend call - use whichever responds first
       // This is more resilient to network issues
+      const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      
+      // Quick health check first - fail fast if backend is down
+      const healthCheckController = new AbortController();
+      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 5000);
+      const healthCheckPromise = fetch(`${backendUrl}/api/health/simple`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: healthCheckController.signal,
+      })
+        .then(response => {
+          clearTimeout(healthCheckTimeout);
+          return response;
+        })
+        .catch(() => {
+          clearTimeout(healthCheckTimeout);
+          console.warn('⚠️ DEBUG: Backend health check failed - backend may be down');
+          return null; // Don't throw, just indicate backend might be down
+        });
+      
       const apiRoutePromise = this.makeAuthenticatedRequest('/wardrobe', user, {
         method: 'GET'
       }).catch((error) => {
@@ -405,9 +425,8 @@ class DashboardService {
         throw error;
       });
       
-      // Direct backend call with timeout (30s for mobile, 45s for desktop)
-      const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const directTimeout = isMobile ? 30000 : 45000;
+      // Direct backend call with shorter timeout for mobile (fail fast)
+      const directTimeout = isMobile ? 15000 : 30000; // Reduced from 30s/45s to 15s/30s
       const directBackendPromise = (async () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
@@ -440,6 +459,15 @@ class DashboardService {
         }
       })();
       
+      // Wait for health check first (non-blocking, just for info)
+      const healthCheckResult = await healthCheckPromise;
+      if (!healthCheckResult || !healthCheckResult.ok) {
+        console.warn('⚠️ DEBUG: Backend health check indicates backend may be down');
+        console.warn('⚠️ DEBUG: Will still attempt wardrobe fetch, but expecting failure');
+      } else {
+        console.log('✅ DEBUG: Backend health check passed');
+      }
+      
       // Race both promises - use whichever succeeds first
       // Use allSettled to wait for both, then pick the first success
       let response: any;
@@ -460,6 +488,12 @@ class DashboardService {
             .filter(r => r.status === 'rejected')
             .map(r => r.status === 'rejected' ? r.reason : null);
           console.error('❌ DEBUG: Both API route and direct backend failed:', errors);
+          
+          // If health check also failed, backend is likely down
+          if (!healthCheckResult || !healthCheckResult.ok) {
+            throw new Error('Backend appears to be down or unreachable. Please check Railway status.');
+          }
+          
           throw new Error(`Both attempts failed: ${errors.map(e => e?.message || String(e)).join('; ')}`);
         }
         
