@@ -410,7 +410,9 @@ class DashboardService {
     } catch (error) {
         console.error('Error fetching user profile:', error);
       if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
-        console.error('⏱️ DEBUG: Profile request timed out after 10 seconds (non-critical, continuing...)');
+        const isMobileProfile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+        const timeoutSeconds = isMobileProfile ? 30 : 15;
+        console.error(`⏱️ DEBUG: Profile request timed out after ${timeoutSeconds} seconds (non-critical, continuing...)`);
       }
       return { stylePersona: null };
     }
