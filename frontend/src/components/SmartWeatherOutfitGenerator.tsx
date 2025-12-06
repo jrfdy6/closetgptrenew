@@ -1046,7 +1046,7 @@ export function SmartWeatherOutfitGenerator({
   }
 
   return (
-    <Card className={`card-surface backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 hover:shadow-xl transition-all duration-300 bg-white/85 dark:bg-[#1A1A1A]/85 ${className}`}>
+    <Card className={`card-surface backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-300 bg-white/85 dark:bg-[#1A1A1A]/85 ${className}`}>
       <CardContent className="p-3 sm:p-4 lg:p-6">
         {content}
       </CardContent>

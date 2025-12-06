@@ -59,7 +59,7 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
   };
 
   return (
-    <Card className="group bg-white/85 dark:bg-[#0D0D0D]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl hover:shadow-xl transition-transform duration-200 hover:scale-[1.01]">
+    <Card className="group bg-white/85 dark:bg-[#0D0D0D]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl hover:shadow-xl hover:shadow-amber-500/20 transition-transform duration-200 hover:scale-[1.01]">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <CardTitle className="text-lg font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] line-clamp-2">

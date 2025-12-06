@@ -739,15 +739,15 @@
   
   /* Gradient Text Effects */
   .text-gradient-primary {
-    @apply bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[#FFB84C] via-[#FF9400] to-[#FF7700] bg-clip-text text-transparent;
   }
   
   .text-gradient-secondary {
-    @apply bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[#FFCC66] via-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent;
   }
   
   .text-gradient-accent {
-    @apply bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[#FF9400] via-[#FFB84C] to-[#FFCC66] bg-clip-text text-transparent;
   }
   
   /* Loading animations */
@@ -761,7 +761,7 @@
   
   .loading-shimmer::after {
     content: '';
-    @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent;
+    @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-amber-400/40 to-transparent;
     animation: shimmer 1.5s infinite;
   }
   
@@ -818,7 +818,7 @@
   }
   
   .glass-card-hover {
-    @apply glass-card hover:bg-white/60 dark:hover:bg-gray-800/60 hover:shadow-2xl hover:shadow-black/10 hover:scale-[1.02] hover:-translate-y-1;
+    @apply glass-card hover:bg-white/60 dark:hover:bg-gray-800/60 hover:shadow-2xl hover:shadow-amber-500/20 hover:scale-[1.02] hover:-translate-y-1;
   }
   
   .glass-navbar {
@@ -834,7 +834,7 @@
   }
   
   .glass-button {
-    @apply bg-white/30 dark:bg-gray-800/30 backdrop-blur-xl border border-white/40 dark:border-white/20 hover:bg-white/50 dark:hover:bg-gray-800/50 transition-all duration-200;
+    @apply bg-white/30 dark:bg-gray-800/30 backdrop-blur-xl border border-white/40 dark:border-white/20 hover:bg-amber-50/50 dark:hover:bg-amber-900/30 hover:border-amber-300/40 dark:hover:border-amber-700/40 hover:shadow-amber-500/20 transition-all duration-200;
   }
   
   /* Glass gradient variations for fashion app */
@@ -865,7 +865,7 @@
   }
   
   .glass-float-hover {
-    @apply glass-float hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01];
+    @apply glass-float hover:shadow-2xl hover:shadow-amber-500/20 hover:-translate-y-1 hover:scale-[1.01];
   }
   
   /* Glass Transitions */
