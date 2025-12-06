@@ -401,9 +401,10 @@ class DashboardService {
       const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
       
       // Quick health check first - fail fast if backend is down
+      // Use /api/health endpoint (not /api/health/simple which may not exist)
       const healthCheckController = new AbortController();
       const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 5000);
-      const healthCheckPromise = fetch(`${backendUrl}/api/health/simple`, {
+      const healthCheckPromise = fetch(`${backendUrl}/api/health`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         signal: healthCheckController.signal,
