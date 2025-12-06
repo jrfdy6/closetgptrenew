@@ -287,7 +287,8 @@ class WardrobeAnalysisService:
                             fallback_data['userId'] = user_id
                         clothing_item = ClothingItem(**fallback_data)
                         wardrobe.append(clothing_item)
-                        print(f"🔍 DEBUG: ✓ Created fallback item for {doc.id}")
+                        # Reduced logging to avoid Railway rate limits
+                        # print(f"🔍 DEBUG: ✓ Created fallback item for {doc.id}")
                     except Exception as fallback_error:
                         error_msg = f"Fallback {doc.id}: {str(fallback_error)}"
                         print(f"🔍 DEBUG: ✗ Failed to create fallback item for {doc.id}: {fallback_error}")
