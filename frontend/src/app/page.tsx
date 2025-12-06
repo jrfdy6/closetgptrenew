@@ -7,12 +7,12 @@ import { ArrowRight, Sparkles, Star } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] relative overflow-hidden">
+    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D] relative overflow-hidden">
       {/* Modern minimal geometric elements - lighter on mobile */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-35 md:opacity-55">
         <div className="pointer-events-none absolute top-10 md:top-20 left-5 md:left-10 w-24 md:w-32 h-24 md:h-32 bg-[#FFCC66]/25 dark:bg-[#FFB84C]/20 rounded-full blur-3xl"></div>
         <div className="pointer-events-none absolute top-32 md:top-40 right-10 md:right-20 w-20 md:w-24 h-20 md:h-24 bg-[#FFB84C]/20 dark:bg-[#FF9400]/20 rounded-full blur-2xl"></div>
-        <div className="pointer-events-none absolute bottom-20 md:bottom-32 left-1/4 w-16 md:w-20 h-16 md:h-20 bg-[#F5F0E8]/30 dark:bg-[#3D2F24]/50 rounded-full blur-2xl"></div>
+        <div className="pointer-events-none absolute bottom-20 md:bottom-32 left-1/4 w-16 md:w-20 h-16 md:h-20 bg-[#F5F0E8]/30 dark:bg-[#262626]/50 rounded-full blur-2xl"></div>
         <div className="pointer-events-none absolute bottom-10 md:bottom-20 right-1/3 w-20 md:w-28 h-20 md:h-28 bg-[#FF9400]/15 dark:bg-[#FFB84C]/25 rounded-full blur-3xl"></div>
       </div>
       
@@ -33,7 +33,7 @@ export default function Home() {
           </div>
           
           {/* Modern Mobile-First Content Card */}
-          <div className="bg-white/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-3xl md:rounded-[2rem] p-6 sm:p-8 md:p-12 mb-6 sm:mb-8 shadow-2xl shadow-amber-500/10 border border-[#F5F0E8]/40 dark:border-[#3D2F24]/70 animate-fade-in">
+          <div className="bg-white/85 dark:bg-[#1A1A1A]/85 backdrop-blur-xl rounded-3xl md:rounded-[2rem] p-6 sm:p-8 md:p-12 mb-6 sm:mb-8 shadow-2xl shadow-amber-500/10 border border-[#F5F0E8]/40 dark:border-[#2E2E2E]/70 animate-fade-in">
             
             {/* Title - Display font for brand moment */}
             <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent mb-4 sm:mb-5 tracking-tight leading-tight">
@@ -94,7 +94,7 @@ export default function Home() {
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="w-full sm:w-auto bg-white/65 dark:bg-[#2C2119]/65 hover:bg-white/80 dark:hover:bg-[#3D2F24]/80 backdrop-blur-xl border-2 border-[#F5F0E8]/60 dark:border-[#3D2F24]/80 text-amber-900 dark:text-[#FFCC66] hover:text-amber-950 dark:hover:text-[#FFB84C] px-8 sm:px-12 py-5 sm:py-6 rounded-2xl font-semibold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full sm:w-auto bg-white/65 dark:bg-[#1A1A1A]/65 hover:bg-white/80 dark:hover:bg-[#3D2F24]/80 backdrop-blur-xl border-2 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/80 text-amber-900 dark:text-[#FFCC66] hover:text-amber-950 dark:hover:text-[#FFB84C] px-8 sm:px-12 py-5 sm:py-6 rounded-2xl font-semibold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
               >
                 Start the 2-minute style quiz
                 <Sparkles className="ml-2 h-5 w-5" />

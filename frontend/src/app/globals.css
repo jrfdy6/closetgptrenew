@@ -562,7 +562,7 @@
   }
   
   .page-bg-dark {
-    @apply bg-[#1A1510];
+    @apply bg-[#0D0D0D];
   }
   
   /* Card backgrounds */

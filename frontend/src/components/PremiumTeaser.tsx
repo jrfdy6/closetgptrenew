@@ -176,7 +176,7 @@ export default function PremiumTeaser({
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className={`relative bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 ${className}`}
+            className={`relative bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-white p-4 ${className}`}
           >
             <div className="container mx-auto flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -214,7 +214,7 @@ export default function PremiumTeaser({
   // Compact variant
   if (variant === 'compact') {
     return (
-      <Card className={`border-primary/20 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 ${className}`}>
+      <Card className={`border-primary/20 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-[#1A1A1A] dark:to-[#262626] ${className}`}>
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -244,7 +244,7 @@ export default function PremiumTeaser({
           exit={{ opacity: 0, scale: 0.95 }}
           className={className}
         >
-          <Card className="border-primary/20 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 overflow-hidden">
+          <Card className="border-primary/20 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-[#1A1A1A] dark:to-[#262626] overflow-hidden">
             {dismissible && (
               <div className="absolute top-2 right-2 z-10">
                 <Button
@@ -260,7 +260,7 @@ export default function PremiumTeaser({
 
             <CardHeader className="text-center pb-4">
               <div className="flex justify-center mb-4">
-                <div className="rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-4">
+                <div className="rounded-full bg-gradient-to-br from-[#FFB84C] to-[#FF9400] p-4">
                   <Crown className="h-8 w-8 text-white" />
                 </div>
               </div>
@@ -337,7 +337,7 @@ export default function PremiumTeaser({
               <div className="pt-4">
                 <Button
                   onClick={handleUpgrade}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  className="w-full bg-gradient-to-r from-[#FFB84C] to-[#FF9400] hover:from-[#FFB84C] hover:to-[#FF7700]"
                   size="lg"
                 >
                   <Crown className="h-5 w-5 mr-2" />
