@@ -731,20 +731,24 @@ async def get_wardrobe_items_with_slash(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Get all wardrobe items for the current user."""
+    import time
+    start_time = time.time()
+    logger.info(f"🚀 WARDROBE ENDPOINT: Request received for user: {current_user.id}")
+    
     try:
         # Check Firebase initialization status
+        logger.info(f"⏱️ WARDROBE: Checking Firebase initialization... ({time.time() - start_time:.2f}s)")
         from src.config.firebase import firebase_initialized, db
-        # Debug logging removed to reduce Railway rate limiting
-        # Railway redeploy trigger - Firebase credentials updated
+        logger.info(f"⏱️ WARDROBE: Firebase import complete ({time.time() - start_time:.2f}s)")
         
         if not firebase_initialized or db is None:
-            # Firebase not available
+            logger.error(f"❌ WARDROBE: Firebase not initialized")
             raise HTTPException(
                 status_code=500, 
                 detail="Database connection not available. Firebase may not be properly configured."
             )
         
-        logger.info(f"Getting wardrobe items for user: {current_user.id}")
+        logger.info(f"⏱️ WARDROBE: Starting Firestore query for user: {current_user.id} ({time.time() - start_time:.2f}s)")
         
         # OPTIMIZED: Use Firestore query instead of fetching all items
         # This is 100x faster - only fetches user's items from database
