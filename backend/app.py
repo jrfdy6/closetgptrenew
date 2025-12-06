@@ -876,6 +876,9 @@ async def railway_analytics_check():
 @app.get("/api/wardrobe/test")
 async def test_wardrobe_direct():
     """Direct test endpoint to verify wardrobe functionality."""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("🧪 TEST: /api/wardrobe/test endpoint called - NO AUTH REQUIRED")
     return {
         "success": True,
         "message": "Direct wardrobe test endpoint is working - updated",
