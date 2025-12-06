@@ -357,7 +357,7 @@ class DashboardService {
       // Use Next.js API route instead of calling backend directly
       // This gives us caching, retry logic, and better timeout handling
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout (API route has its own retry logic)
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout (API route has its own retry logic)
       
       let response: Response;
       try {
@@ -380,9 +380,9 @@ class DashboardService {
       console.warn('🔍 DEBUG: Profile response not ok:', response.status, response.statusText);
       return { stylePersona: null };
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+        console.error('Error fetching user profile:', error);
       if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
-        console.error('⏱️ DEBUG: Profile request timed out after 10 seconds');
+        console.error('⏱️ DEBUG: Profile request timed out after 15 seconds (non-critical, continuing...)');
       }
       return { stylePersona: null };
     }
@@ -406,9 +406,9 @@ class DashboardService {
       // The CORS fix allows mobile browsers to make cross-origin requests properly
       console.log(isMobile ? '📱 DEBUG: Mobile detected - using API route (CORS fixed)' : '🖥️ DEBUG: Desktop detected - using API route');
       
-      // Quick health check first - fail fast if backend is down
+      // Quick health check first - fail fast if backend is down (non-blocking, informational only)
       const healthCheckController = new AbortController();
-      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 5000);
+      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 3000); // Reduced to 3s for faster fail
       const healthCheckPromise = fetch(`${backendUrl}/api/health`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
@@ -420,7 +420,7 @@ class DashboardService {
         })
         .catch(() => {
           clearTimeout(healthCheckTimeout);
-          console.warn('⚠️ DEBUG: Backend health check failed - backend may be down');
+          // Silently fail - health check is just informational
           return null;
         });
       
@@ -466,13 +466,15 @@ class DashboardService {
       })();
       
       // Wait for health check first (non-blocking, just for info)
-      const healthCheckResult = await healthCheckPromise;
-      if (!healthCheckResult || !healthCheckResult.ok) {
-        console.warn('⚠️ DEBUG: Backend health check indicates backend may be down');
-        console.warn('⚠️ DEBUG: Will still attempt wardrobe fetch, but expecting failure');
-      } else {
-        console.log('✅ DEBUG: Backend health check passed');
-      }
+      // Don't wait for it - just check if it's done, then proceed with wardrobe fetch
+      healthCheckPromise.then(result => {
+        if (result && result.ok) {
+          console.log('✅ DEBUG: Backend health check passed');
+        }
+        // Silently ignore health check failures - they're just informational
+      }).catch(() => {
+        // Silently ignore health check errors
+      });
       
       // Race both promises - use whichever succeeds first
       // Use allSettled to wait for both, then pick the first success
@@ -494,10 +496,7 @@ class DashboardService {
             .map(r => r.status === 'rejected' ? r.reason : null);
           console.error('❌ DEBUG: Both API route and direct backend failed:', errors);
           
-          // If health check also failed, backend is likely down
-          if (!healthCheckResult || !healthCheckResult.ok) {
-            throw new Error('Backend appears to be down or unreachable. Please check Railway status.');
-          }
+          // Health check failure is just informational - don't block on it
           
           throw new Error(`Both attempts failed: ${errors.map(e => e?.message || String(e)).join('; ')}`);
         }
