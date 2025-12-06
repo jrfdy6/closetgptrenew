@@ -532,9 +532,12 @@ class TVEService:
                 "lowest_progress_category": {
                     "category": lowest_category,
                     "percent": round(lowest_percent, 1)
-                } if lowest_category else None
+                } if lowest_category else None,
+                "items_initialized": items_initialized,
+                "items_recalculated": items_recalculated
             }
-            logger.info(f"✅ TVE: Calculation complete (total: {time.time() - tve_calc_start:.2f}s)")
+            logger.info(f"✅ TVE: Calculation complete (total: {time.time() - tve_calc_start:.2f}s, "
+                       f"initialized: {items_initialized}, recalculated: {items_recalculated})")
             return result
             
         except Exception as e:
