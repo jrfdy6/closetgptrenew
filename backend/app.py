@@ -886,19 +886,25 @@ async def test_wardrobe_direct():
 @app.get("/api/wardrobe/")
 async def get_wardrobe(request: Request):
     """Get wardrobe items for authenticated user."""
+    import time
+    route_start = time.time()
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"🚀 DIRECT ROUTE: GET /api/wardrobe/ called ({time.time() - route_start:.3f}s)")
+    
     try:
         # Import auth utils
         from src.utils.auth_utils import extract_uid_from_request
         from firebase_admin import firestore
-        import logging
         
-        logger = logging.getLogger(__name__)
+        logger.info(f"⏱️ DIRECT ROUTE: Imports complete ({time.time() - route_start:.2f}s)")
         
         # 1) Get uid or return explicit 401
+        logger.info(f"⏱️ DIRECT ROUTE: Extracting UID... ({time.time() - route_start:.2f}s)")
         uid = extract_uid_from_request(request)
         
         # 2) Debug: log uid
-        logger.info("get_wardrobe called for uid=%s", uid)
+        logger.info(f"⏱️ DIRECT ROUTE: UID extracted: {uid} ({time.time() - route_start:.2f}s)")
         
         # 3) Run Firestore query using the exact field name (userId)
         db = firestore.client()
