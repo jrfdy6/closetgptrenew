@@ -396,38 +396,74 @@ class DashboardService {
       const token = await user.getIdToken();
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
       
-      // Race between API route and direct backend call - use whichever responds first
-      // This is more resilient to network issues
       const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
       
-      // Quick health check first - fail fast if backend is down
-      // Use /api/health endpoint (not /api/health/simple which may not exist)
-      const healthCheckController = new AbortController();
-      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 5000);
-      const healthCheckPromise = fetch(`${backendUrl}/api/health`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        signal: healthCheckController.signal,
-      })
-        .then(response => {
-          clearTimeout(healthCheckTimeout);
-          return response;
+      // On mobile, skip API route entirely to avoid Vercel function timeout
+      // Vercel functions have strict timeouts (10s on Hobby, 60s on Pro)
+      // Direct backend call is more reliable on mobile
+      if (isMobile) {
+        console.log('📱 DEBUG: Mobile detected - using direct backend call to avoid Vercel timeout');
+        const directTimeout = 45000; // 45s for mobile
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          console.warn('⏱️ DEBUG: Direct backend call timing out...');
+          controller.abort();
+        }, directTimeout);
+        
+        try {
+          const directResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (directResponse.ok) {
+            const data = await directResponse.json();
+            console.log('✅ DEBUG: Direct backend call succeeded on mobile');
+            response = data;
+          } else {
+            throw new Error(`Direct backend returned ${directResponse.status}`);
+          }
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
+        }
+      } else {
+        // On desktop, use API route (has retry logic and caching)
+        console.log('🖥️ DEBUG: Desktop detected - using API route with direct backend fallback');
+        
+        // Quick health check first - fail fast if backend is down
+        const healthCheckController = new AbortController();
+        const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 5000);
+        const healthCheckPromise = fetch(`${backendUrl}/api/health`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          signal: healthCheckController.signal,
         })
-        .catch(() => {
-          clearTimeout(healthCheckTimeout);
-          console.warn('⚠️ DEBUG: Backend health check failed - backend may be down');
-          return null; // Don't throw, just indicate backend might be down
+          .then(response => {
+            clearTimeout(healthCheckTimeout);
+            return response;
+          })
+          .catch(() => {
+            clearTimeout(healthCheckTimeout);
+            console.warn('⚠️ DEBUG: Backend health check failed - backend may be down');
+            return null;
+          });
+        
+        const apiRoutePromise = this.makeAuthenticatedRequest('/wardrobe', user, {
+          method: 'GET'
+        }).catch((error) => {
+          console.warn('⚠️ DEBUG: API route failed:', error);
+          throw error;
         });
-      
-      const apiRoutePromise = this.makeAuthenticatedRequest('/wardrobe', user, {
-        method: 'GET'
-      }).catch((error) => {
-        console.warn('⚠️ DEBUG: API route failed:', error);
-        throw error;
-      });
-      
-      // Direct backend call with timeout - increased for mobile to match API route
-      const directTimeout = isMobile ? 30000 : 45000; // 30s for mobile (matches API route), 45s for desktop
+        
+        // Direct backend call with timeout for desktop
+        const directTimeout = 45000; // 45s for desktop
       const directBackendPromise = (async () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
