@@ -243,11 +243,11 @@ class DashboardService {
       const userProfile = await Promise.race([userProfilePromise, userProfileTimeout]) as any;
 
       // Fetch wardrobe data first, then use it for top worn items calculation
-      // Use shorter timeout - backend responds quickly (Railway logs show <1s response)
-      // If it takes longer, likely a network issue, so fail fast and retry
+      // Increased timeout to allow for retries and direct backend fallback
+      // API route can take ~31s with retries, direct backend can take up to 45-60s
       const wardrobeStats = await fetchWithTimeout(
         this.getWardrobeStats(user), 
-        30000, // 30s timeout - backend responds quickly, longer = network issue
+        60000, // 60s timeout - allows for API route retries + direct backend fallback
         { items: [], total_items: 0 }, 
         'WardrobeStats'
       );
@@ -393,42 +393,96 @@ class DashboardService {
       console.log('🔍 DEBUG: User ID:', user.uid);
       console.log('🔍 DEBUG: User email:', user.email);
       
-      // Try Next.js API route first (has retry logic and caching)
-      // If that fails, fall back to direct backend call
+      const token = await user.getIdToken();
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+      
+      // Race between API route and direct backend call - use whichever responds first
+      // This is more resilient to network issues
+      const apiRoutePromise = this.makeAuthenticatedRequest('/wardrobe', user, {
+        method: 'GET'
+      }).catch((error) => {
+        console.warn('⚠️ DEBUG: API route failed:', error);
+        throw error;
+      });
+      
+      // Direct backend call with timeout (30s for mobile, 45s for desktop)
+      const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const directTimeout = isMobile ? 30000 : 45000;
+      const directBackendPromise = (async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          console.warn('⏱️ DEBUG: Direct backend call timing out...');
+          controller.abort();
+        }, directTimeout);
+        
+        try {
+          const directResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (directResponse.ok) {
+            const data = await directResponse.json();
+            console.log('✅ DEBUG: Direct backend call succeeded');
+            return data;
+          } else {
+            throw new Error(`Direct backend returned ${directResponse.status}`);
+          }
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
+        }
+      })();
+      
+      // Race both promises - use whichever succeeds first
       let response: any;
       try {
-        response = await this.makeAuthenticatedRequest('/wardrobe', user, {
-          method: 'GET'
-        });
+        response = await Promise.race([
+          apiRoutePromise.then(data => ({ source: 'api-route', data })),
+          directBackendPromise.then(data => ({ source: 'direct-backend', data }))
+        ]);
+        
+        console.log(`✅ DEBUG: ${response.source} won the race`);
+        response = response.data;
         
         // Check if API route returned an error (timeout, etc.)
         if (response?.success === false && response?.timeout) {
-          console.warn('⚠️ DEBUG: API route timed out, trying direct backend call as fallback...');
-          throw new Error('API route timeout - trying direct backend');
+          console.warn('⚠️ DEBUG: API route returned timeout error, but we got data from race');
         }
-      } catch (apiError) {
-        // Fallback: try direct backend call if API route fails
-        console.warn('⚠️ DEBUG: API route failed, trying direct backend call...');
-        const token = await user.getIdToken();
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
-        // Add timeout for direct call (20s - backend responds quickly)
+      } catch (raceError) {
+        // If both fail, try direct backend one more time with longer timeout
+        console.warn('⚠️ DEBUG: Both API route and direct backend failed, trying direct backend with extended timeout...');
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const extendedTimeout = isMobile ? 45000 : 60000;
+        const timeoutId = setTimeout(() => controller.abort(), extendedTimeout);
         
-        const directResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          signal: controller.signal,
-        }).finally(() => clearTimeout(timeoutId));
-        
-        if (directResponse.ok) {
-          response = await directResponse.json();
-          console.log('✅ DEBUG: Direct backend call succeeded');
-        } else {
-          throw apiError; // Re-throw original error if direct call also fails
+        try {
+          const lastResortResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (lastResortResponse.ok) {
+            response = await lastResortResponse.json();
+            console.log('✅ DEBUG: Last resort direct backend call succeeded');
+          } else {
+            throw raceError;
+          }
+        } catch (lastError) {
+          clearTimeout(timeoutId);
+          throw raceError;
         }
       }
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
