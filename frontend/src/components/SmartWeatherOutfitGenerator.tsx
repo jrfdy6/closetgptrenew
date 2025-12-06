@@ -704,8 +704,212 @@ export function SmartWeatherOutfitGenerator({
   };
 
   const content = (
-    <div className={`space-y-4 sm:space-y-6 ${noCard ? '' : ''}`}>
-        {/* Weather Display - Compact & Modern */}
+    <div className={`space-y-2 sm:space-y-3 ${noCard ? '' : ''}`}>
+        {/* Today's Outfit Section - Moved to Top */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base sm:text-lg font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
+              Today&apos;s Outfit
+            </h3>
+            <div className="flex items-center gap-1.5 text-xs text-[#57534E] dark:text-[#C4BCB4]">
+              <Calendar className="h-3.5 w-3.5" />
+              <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+            </div>
+          </div>
+
+          {generatedOutfit ? (
+            <div className="card-surface backdrop-blur-xl rounded-2xl p-3 sm:p-4 lg:p-5 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 space-y-2 sm:space-y-3">
+              {/* Outfit Header - More Compact */}
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-inner flex-shrink-0">
+                  <Shirt className="h-6 w-6 sm:h-7 sm:w-7 text-[#FF9400] dark:text-[#FFB84C]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-display font-semibold text-sm sm:text-base text-[#1C1917] dark:text-[#F8F5F1] mb-0.5">
+                    {generatedOutfit.name}
+                  </h4>
+                  <p className="text-xs sm:text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                    Perfect for {generatedOutfit.weather.temperature}°F {generatedOutfit.weather.condition.toLowerCase()}
+                  </p>
+                </div>
+                {generatedOutfit.isWorn && (
+                  <Badge className="bg-[#FFB84C] text-white border-0 flex items-center gap-1.5 flex-shrink-0 text-xs">
+                    <CheckCircle className="h-3 w-3" />
+                    Worn
+                  </Badge>
+                )}
+              </div>
+              
+              {/* Outfit Items Grid - Compact with Prominent Photos */}
+              {generatedOutfit.items && generatedOutfit.items.length > 0 ? (
+                <div className="space-y-2">
+                  <h5 className="text-xs sm:text-sm font-semibold text-[#57534E] dark:text-[#C4BCB4]">
+                    Items ({generatedOutfit.items.length})
+                  </h5>
+                  <div className="grid grid-cols-2 sm:grid-cols-2 gap-2 sm:gap-3">
+                    {generatedOutfit.items.map((item, index) => (
+                      <div 
+                        key={index} 
+                        className="card-surface backdrop-blur-xl rounded-lg sm:rounded-xl p-2 sm:p-3 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70"
+                      >
+                        <div className="space-y-2">
+                          {/* Prominent Photo */}
+                          <div className="w-full aspect-square bg-[#F5F0E8] dark:bg-[#3D2F24] rounded-lg flex items-center justify-center overflow-hidden">
+                            {item.imageUrl || item.image ? (
+                              <img 
+                                src={item.imageUrl || item.image} 
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <Shirt className="h-6 w-6 sm:h-8 sm:w-8 text-[#57534E] dark:text-[#C4BCB4]" />
+                            )}
+                          </div>
+                          {/* Compact Info */}
+                          <div className="space-y-0.5">
+                            <div className="font-medium text-xs text-[#1C1917] dark:text-[#F8F5F1] truncate">
+                              {item.name}
+                            </div>
+                            <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] truncate">
+                              {item.type} • {item.color}
+                            </div>
+                            {item.brand && (
+                              <div className="text-xs text-[#57534E]/70 dark:text-[#C4BCB4]/70 truncate">
+                                {item.brand}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="card-surface backdrop-blur-xl rounded-xl p-4 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+                  <h5 className="text-sm font-semibold text-[#57534E] dark:text-[#C4BCB4] mb-3">
+                    Weather Recommendations
+                  </h5>
+                  <div className="space-y-2">
+                    {recommendations.slice(0, 5).map((rec, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                        <div className="w-1.5 h-1.5 bg-[#FF9400] rounded-full flex-shrink-0"></div>
+                        <span>{rec}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Reasoning/Advisory - Truncated with Read More */}
+              {generatedOutfit.reasoning && (
+                <div className="card-surface backdrop-blur-xl rounded-xl p-2.5 sm:p-3 border border-[#FFB84C]/20 dark:border-[#FF9400]/20 bg-gradient-to-r from-[#FFB84C]/5 to-[#FF9400]/5 dark:from-[#FFB84C]/10 dark:to-[#FF9400]/10">
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-[#FF9400]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h6 className="text-xs sm:text-sm font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1">
+                        Why this outfit?
+                      </h6>
+                      <p className={`text-xs text-[#57534E] dark:text-[#C4BCB4] leading-relaxed ${!isReasoningExpanded ? 'line-clamp-2' : ''}`}>
+                        {generatedOutfit.reasoning}
+                      </p>
+                      {generatedOutfit.reasoning.length > 100 && (
+                        <button
+                          onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}
+                          className="text-xs text-[#FF9400] dark:text-[#FFB84C] mt-1 font-medium hover:underline"
+                        >
+                          {isReasoningExpanded ? 'Read less' : 'Read more'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Action Buttons - Removed Confidence */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 sm:pt-3 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/60">
+                <div className="flex items-center gap-2">
+                  <Button 
+                    onClick={() => {
+                      clearTodaysOutfit();
+                      generateTodaysOutfit();
+                    }}
+                    variant="outline"
+                    size="sm"
+                    disabled={isGeneratingOutfit}
+                    className="border-[#F5F0E8]/70 dark:border-[#3D2F24]/80 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] text-xs sm:text-sm h-8 sm:h-9"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 ${isGeneratingOutfit ? 'animate-spin' : ''}`} />
+                    Regenerate
+                  </Button>
+                  <Button 
+                    onClick={wearTodaysOutfit}
+                    disabled={isWearingOutfit || generatedOutfit.isWorn}
+                    size="sm"
+                    className={`${
+                      generatedOutfit.isWorn 
+                        ? 'bg-[#FFB84C] hover:bg-[#FF9400] text-white' 
+                        : 'bg-gradient-to-r from-[#FFB84C] to-[#FF9400] hover:from-[#FFB84C] hover:to-[#FF7700] text-white shadow-lg shadow-amber-500/25'
+                    } text-xs sm:text-sm h-8 sm:h-9`}
+                  >
+                    {isWearingOutfit ? (
+                      <>
+                        <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 animate-spin" />
+                        Wearing...
+                      </>
+                    ) : generatedOutfit.isWorn ? (
+                      <>
+                        <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5" />
+                        Worn Today
+                      </>
+                    ) : (
+                      <>
+                        <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5" />
+                        Wear This Outfit
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="card-surface backdrop-blur-xl rounded-2xl p-6 sm:p-8 text-center border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+              {outfitError ? (
+                <div className="space-y-3">
+                  <AlertCircle className="h-10 w-10 text-red-500 mx-auto" />
+                  <p className="text-red-600 dark:text-red-400 font-medium">{outfitError}</p>
+                </div>
+              ) : isGeneratingOutfit ? (
+                <div className="space-y-4">
+                  <RefreshCw className="h-12 w-12 text-[#FFB84C] mx-auto animate-spin" />
+                  <div>
+                    <p className="text-[#1C1917] dark:text-[#F8F5F1] font-medium mb-1">Generating your perfect outfit...</p>
+                    <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Analyzing weather and your wardrobe</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-[#FFCC66]/20 to-[#FF9400]/20 dark:from-[#FFB84C]/15 dark:to-[#FF9400]/15 rounded-2xl flex items-center justify-center mx-auto">
+                    <Shirt className="h-8 w-8 text-[#FF9400]" />
+                  </div>
+                  <div>
+                    <p className="text-[#1C1917] dark:text-[#F8F5F1] font-medium mb-1">Preparing today&apos;s outfit</p>
+                    <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Auto-generating based on current weather</p>
+                  </div>
+                </div>
+              )}
+              
+              {!user && (
+                <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-4">
+                  Sign in to get your daily weather outfit
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Weather Display - Compact & Modern - Moved Below Outfit */}
           {weatherLoading && !weather ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
@@ -714,7 +918,7 @@ export function SmartWeatherOutfitGenerator({
             </div>
             </div>
           ) : weather ? (
-          <div className={`card-surface backdrop-blur-xl rounded-2xl p-3 sm:p-5 lg:p-6 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 transition-all ${weatherIsStale ? 'opacity-60' : ''}`}>
+          <div className={`card-surface backdrop-blur-xl rounded-2xl p-2.5 sm:p-4 lg:p-5 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 transition-all ${weatherIsStale ? 'opacity-60' : ''}`}>
             {/* Compact Weather Display - Always Visible */}
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -741,7 +945,7 @@ export function SmartWeatherOutfitGenerator({
             </div>
 
             {/* Expanded Weather Details - Collapsible on Mobile, Always Visible on Desktop */}
-            <div className={`mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/60 space-y-2 ${isWeatherExpanded ? 'block' : 'hidden sm:block'}`}>
+            <div className={`mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/60 space-y-1.5 sm:space-y-2 ${isWeatherExpanded ? 'block' : 'hidden sm:block'}`}>
                 <div className="flex items-center gap-1.5 text-xs sm:text-sm text-[#57534E] dark:text-[#C4BCB4]">
                   <MapPin className="h-3.5 w-3.5 text-[#FF9400]" />
                   <span className="font-medium">{weather.location}</span>
@@ -834,213 +1038,6 @@ export function SmartWeatherOutfitGenerator({
           </div>
         )}
 
-        {/* Today's Outfit Section */}
-        <div className="space-y-3 sm:space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base sm:text-lg font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
-              Today&apos;s Outfit
-            </h3>
-            <div className="flex items-center gap-1.5 text-xs text-[#57534E] dark:text-[#C4BCB4]">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-            </div>
-          </div>
-
-          {generatedOutfit ? (
-            <div className="card-surface backdrop-blur-xl rounded-2xl p-3 sm:p-5 lg:p-6 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 space-y-3 sm:space-y-5">
-              {/* Outfit Header - More Compact */}
-              <div className="flex items-start gap-3">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-inner flex-shrink-0">
-                  <Shirt className="h-6 w-6 sm:h-7 sm:w-7 text-[#FF9400] dark:text-[#FFB84C]" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-display font-semibold text-sm sm:text-base text-[#1C1917] dark:text-[#F8F5F1] mb-0.5">
-                    {generatedOutfit.name}
-                  </h4>
-                  <p className="text-xs sm:text-sm text-[#57534E] dark:text-[#C4BCB4]">
-                    Perfect for {generatedOutfit.weather.temperature}°F {generatedOutfit.weather.condition.toLowerCase()}
-                  </p>
-                </div>
-                {generatedOutfit.isWorn && (
-                  <Badge className="bg-[#FFB84C] text-white border-0 flex items-center gap-1.5 flex-shrink-0 text-xs">
-                    <CheckCircle className="h-3 w-3" />
-                    Worn
-                  </Badge>
-                )}
-              </div>
-              
-              {/* Outfit Items Grid - Compact with Prominent Photos */}
-              {generatedOutfit.items && generatedOutfit.items.length > 0 ? (
-                <div className="space-y-2">
-                  <h5 className="text-xs sm:text-sm font-semibold text-[#57534E] dark:text-[#C4BCB4]">
-                    Items ({generatedOutfit.items.length})
-                  </h5>
-                  <div className="grid grid-cols-2 sm:grid-cols-2 gap-2 sm:gap-3">
-                    {generatedOutfit.items.map((item, index) => (
-                      <div 
-                        key={index} 
-                        className="card-surface backdrop-blur-xl rounded-lg sm:rounded-xl p-2 sm:p-3 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70"
-                      >
-                        <div className="space-y-2">
-                          {/* Prominent Photo */}
-                          <div className="w-full aspect-square bg-[#F5F0E8] dark:bg-[#3D2F24] rounded-lg flex items-center justify-center overflow-hidden">
-                            {item.imageUrl || item.image ? (
-                              <img 
-                                src={item.imageUrl || item.image} 
-                                alt={item.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <Shirt className="h-6 w-6 sm:h-8 sm:w-8 text-[#57534E] dark:text-[#C4BCB4]" />
-                            )}
-                          </div>
-                          {/* Compact Info */}
-                          <div className="space-y-0.5">
-                            <div className="font-medium text-xs text-[#1C1917] dark:text-[#F8F5F1] truncate">
-                              {item.name}
-                            </div>
-                            <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] truncate">
-                              {item.type} • {item.color}
-                            </div>
-                            {item.brand && (
-                              <div className="text-xs text-[#57534E]/70 dark:text-[#C4BCB4]/70 truncate">
-                                {item.brand}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="card-surface backdrop-blur-xl rounded-xl p-4 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
-                  <h5 className="text-sm font-semibold text-[#57534E] dark:text-[#C4BCB4] mb-3">
-                    Weather Recommendations
-                  </h5>
-                    <div className="space-y-2">
-                      {recommendations.slice(0, 5).map((rec, index) => (
-                      <div key={index} className="flex items-center gap-2 text-sm text-[#57534E] dark:text-[#C4BCB4]">
-                        <div className="w-1.5 h-1.5 bg-[#FF9400] rounded-full flex-shrink-0"></div>
-                          <span>{rec}</span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Reasoning/Advisory - Truncated with Read More */}
-              {generatedOutfit.reasoning && (
-                <div className="card-surface backdrop-blur-xl rounded-xl p-3 sm:p-4 border border-[#FFB84C]/20 dark:border-[#FF9400]/20 bg-gradient-to-r from-[#FFB84C]/5 to-[#FF9400]/5 dark:from-[#FFB84C]/10 dark:to-[#FF9400]/10">
-                  <div className="flex items-start gap-2 sm:gap-3">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-[#FF9400]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h6 className="text-xs sm:text-sm font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1">
-                        Why this outfit?
-                      </h6>
-                      <p className={`text-xs text-[#57534E] dark:text-[#C4BCB4] leading-relaxed ${!isReasoningExpanded ? 'line-clamp-2' : ''}`}>
-                        {generatedOutfit.reasoning}
-                      </p>
-                      {generatedOutfit.reasoning.length > 100 && (
-                        <button
-                          onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}
-                          className="text-xs text-[#FF9400] dark:text-[#FFB84C] mt-1 font-medium hover:underline"
-                        >
-                          {isReasoningExpanded ? 'Read less' : 'Read more'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Action Buttons - More Compact */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/60">
-                <div className="flex items-center gap-1.5 text-xs text-[#57534E] dark:text-[#C4BCB4]">
-                  <CheckCircle className="h-3.5 w-3.5 text-[#FF9400]" />
-                  <span>Confidence: {Math.round((generatedOutfit.confidence || 0.9) * 100)}%</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    onClick={() => {
-                      clearTodaysOutfit();
-                      generateTodaysOutfit();
-                    }}
-                    variant="outline"
-                    size="sm"
-                    disabled={isGeneratingOutfit}
-                    className="border-[#F5F0E8]/70 dark:border-[#3D2F24]/80 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] text-xs sm:text-sm h-8 sm:h-9"
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 ${isGeneratingOutfit ? 'animate-spin' : ''}`} />
-                    Regenerate
-                  </Button>
-                  <Button 
-                    onClick={wearTodaysOutfit}
-                    disabled={isWearingOutfit || generatedOutfit.isWorn}
-                    size="sm"
-                    className={`${
-                      generatedOutfit.isWorn 
-                        ? 'bg-[#FFB84C] hover:bg-[#FF9400] text-white' 
-                        : 'bg-gradient-to-r from-[#FFB84C] to-[#FF9400] hover:from-[#FFB84C] hover:to-[#FF7700] text-white shadow-lg shadow-amber-500/25'
-                    } text-xs sm:text-sm h-8 sm:h-9`}
-                  >
-                    {isWearingOutfit ? (
-                      <>
-                        <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 animate-spin" />
-                        Wearing...
-                      </>
-                    ) : generatedOutfit.isWorn ? (
-                      <>
-                        <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5" />
-                        Worn Today
-                      </>
-                    ) : (
-                      <>
-                        <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5" />
-                        Wear This Outfit
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="card-surface backdrop-blur-xl rounded-2xl p-8 sm:p-12 text-center border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
-              {outfitError ? (
-                <div className="space-y-3">
-                  <AlertCircle className="h-10 w-10 text-red-500 mx-auto" />
-                  <p className="text-red-600 dark:text-red-400 font-medium">{outfitError}</p>
-                </div>
-              ) : isGeneratingOutfit ? (
-                <div className="space-y-4">
-                  <RefreshCw className="h-12 w-12 text-[#FFB84C] mx-auto animate-spin" />
-                  <div>
-                    <p className="text-[#1C1917] dark:text-[#F8F5F1] font-medium mb-1">Generating your perfect outfit...</p>
-                    <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Analyzing weather and your wardrobe</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-[#FFCC66]/20 to-[#FF9400]/20 dark:from-[#FFB84C]/15 dark:to-[#FF9400]/15 rounded-2xl flex items-center justify-center mx-auto">
-                    <Shirt className="h-8 w-8 text-[#FF9400]" />
-                  </div>
-                  <div>
-                    <p className="text-[#1C1917] dark:text-[#F8F5F1] font-medium mb-1">Preparing today&apos;s outfit</p>
-                    <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Auto-generating based on current weather</p>
-                  </div>
-                </div>
-              )}
-              
-              {!user && (
-                <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-4">
-                  Sign in to get your daily weather outfit
-                </p>
-              )}
-            </div>
-          )}
-        </div>
     </div>
   );
 
@@ -1050,22 +1047,7 @@ export function SmartWeatherOutfitGenerator({
 
   return (
     <Card className={`card-surface backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 hover:shadow-xl transition-all duration-300 bg-white/85 dark:bg-[#2C2119]/85 ${className}`}>
-      <CardHeader className="pb-2 sm:pb-4">
-        <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-xl flex items-center justify-center shadow-inner">
-            <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-[#FF9400] dark:text-[#FFB84C]" />
-          </div>
-          <div className="flex-1">
-            <CardTitle className="text-lg sm:text-xl lg:text-2xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
-              Smart Weather Outfit
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm text-[#57534E] dark:text-[#C4BCB4] mt-0.5 sm:mt-1">
-              Personalized recommendations for today&apos;s forecast
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4 sm:space-y-6">
+      <CardContent className="p-3 sm:p-4 lg:p-6">
         {content}
       </CardContent>
     </Card>
