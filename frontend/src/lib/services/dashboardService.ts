@@ -401,76 +401,141 @@ class DashboardService {
       // Declare response variable that will be used in both paths
       let response: any;
       
-      // On mobile, skip API route entirely to avoid Vercel function timeout
-      // Vercel functions have strict timeouts (10s on Hobby, 60s on Pro)
-      // Direct backend call is more reliable on mobile, but may still timeout on slow networks
-      if (isMobile) {
-        console.log('📱 DEBUG: Mobile detected - using direct backend call to avoid Vercel timeout');
-        console.log('📱 DEBUG: Backend URL:', `${backendUrl}/api/wardrobe/`);
+      // Now that CORS is fixed, use API route for both mobile and desktop
+      // The CORS fix allows mobile browsers to make cross-origin requests properly
+      console.log(isMobile ? '📱 DEBUG: Mobile detected - using API route (CORS fixed)' : '🖥️ DEBUG: Desktop detected - using API route');
+      
+      // Quick health check first - fail fast if backend is down
+      const healthCheckController = new AbortController();
+      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 5000);
+      const healthCheckPromise = fetch(`${backendUrl}/api/health`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: healthCheckController.signal,
+      })
+        .then(response => {
+          clearTimeout(healthCheckTimeout);
+          return response;
+        })
+        .catch(() => {
+          clearTimeout(healthCheckTimeout);
+          console.warn('⚠️ DEBUG: Backend health check failed - backend may be down');
+          return null;
+        });
+      
+      const apiRoutePromise = this.makeAuthenticatedRequest('/wardrobe', user, {
+        method: 'GET'
+      }).catch((error) => {
+        console.warn('⚠️ DEBUG: API route failed:', error);
+        throw error;
+      });
+      
+      // Direct backend call with timeout as fallback
+      const directTimeout = isMobile ? 30000 : 45000; // 30s for mobile, 45s for desktop
+      const directBackendPromise = (async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          console.warn('⏱️ DEBUG: Direct backend call timing out...');
+          controller.abort();
+        }, directTimeout);
         
-        // Try with shorter timeout first, then retry with longer timeout if needed
-        const firstAttemptTimeout = 20000; // 20s first attempt
-        const secondAttemptTimeout = 60000; // 60s second attempt
-        
-        let lastError: Error | null = null;
-        
-        for (let attempt = 0; attempt < 2; attempt++) {
-          const timeout = attempt === 0 ? firstAttemptTimeout : secondAttemptTimeout;
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => {
-            console.warn(`⏱️ DEBUG: Direct backend call attempt ${attempt + 1} timing out after ${timeout}ms...`);
-            controller.abort();
-          }, timeout);
+        try {
+          const directResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            signal: controller.signal,
+          });
           
-          try {
-            console.log(`📱 DEBUG: Attempt ${attempt + 1}/2 - Fetching from backend (timeout: ${timeout}ms)...`);
-            const startTime = Date.now();
-            
-            const directResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-              signal: controller.signal,
-            });
-            
-            const duration = Date.now() - startTime;
-            clearTimeout(timeoutId);
-            
-            console.log(`📱 DEBUG: Attempt ${attempt + 1} completed in ${duration}ms, status: ${directResponse.status}`);
-            
-            if (directResponse.ok) {
-              response = await directResponse.json();
-              console.log(`✅ DEBUG: Direct backend call succeeded on mobile (attempt ${attempt + 1}, ${duration}ms)`);
-              break; // Success, exit retry loop
-            } else {
-              const errorText = await directResponse.text().catch(() => 'Unable to read error');
-              throw new Error(`Direct backend returned ${directResponse.status}: ${errorText.substring(0, 100)}`);
-            }
-          } catch (error) {
-            clearTimeout(timeoutId);
-            lastError = error as Error;
-            console.error(`❌ DEBUG: Attempt ${attempt + 1} failed:`, error instanceof Error ? error.message : String(error));
-            
-            // If it's an abort error and we have another attempt, continue
-            if (error instanceof Error && error.name === 'AbortError' && attempt < 1) {
-              console.log(`⏳ DEBUG: Attempt ${attempt + 1} timed out, retrying with longer timeout...`);
-              continue;
-            }
-            
-            // If last attempt or non-abort error, throw
-            if (attempt === 1 || (error instanceof Error && error.name !== 'AbortError')) {
-              throw error;
-            }
+          clearTimeout(timeoutId);
+          
+          if (directResponse.ok) {
+            const data = await directResponse.json();
+            console.log('✅ DEBUG: Direct backend call succeeded');
+            return data;
+          } else {
+            throw new Error(`Direct backend returned ${directResponse.status}`);
           }
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
+        }
+      })();
+      
+      // Wait for health check first (non-blocking, just for info)
+      const healthCheckResult = await healthCheckPromise;
+      if (!healthCheckResult || !healthCheckResult.ok) {
+        console.warn('⚠️ DEBUG: Backend health check indicates backend may be down');
+        console.warn('⚠️ DEBUG: Will still attempt wardrobe fetch, but expecting failure');
+      } else {
+        console.log('✅ DEBUG: Backend health check passed');
+      }
+      
+      // Race both promises - use whichever succeeds first
+      // Use allSettled to wait for both, then pick the first success
+      try {
+        const results = await Promise.allSettled([
+          apiRoutePromise.then(data => ({ source: 'api-route', data })),
+          directBackendPromise.then(data => ({ source: 'direct-backend', data }))
+        ]);
+        
+        // Find the first successful result
+        const successResult = results.find(r => r.status === 'fulfilled');
+        if (successResult && successResult.status === 'fulfilled') {
+          response = successResult.value.data;
+          console.log(`✅ DEBUG: ${successResult.value.source} succeeded`);
+        } else {
+          // Both failed - collect errors
+          const errors = results
+            .filter(r => r.status === 'rejected')
+            .map(r => r.status === 'rejected' ? r.reason : null);
+          console.error('❌ DEBUG: Both API route and direct backend failed:', errors);
+          
+          // If health check also failed, backend is likely down
+          if (!healthCheckResult || !healthCheckResult.ok) {
+            throw new Error('Backend appears to be down or unreachable. Please check Railway status.');
+          }
+          
+          throw new Error(`Both attempts failed: ${errors.map(e => e?.message || String(e)).join('; ')}`);
         }
         
-        // If we get here without response, throw the last error
-        if (!response) {
-          throw lastError || new Error('All mobile backend attempts failed');
+        // Check if API route returned an error (timeout, etc.)
+        if (response?.success === false && response?.timeout) {
+          console.warn('⚠️ DEBUG: API route returned timeout error, but we got data from race');
         }
-      } else {
+      } catch (raceError) {
+        // If both fail, try direct backend one more time with longer timeout
+        console.warn('⚠️ DEBUG: Both API route and direct backend failed, trying direct backend with extended timeout...');
+        const controller = new AbortController();
+        const extendedTimeout = isMobile ? 45000 : 60000; // 45s for mobile, 60s for desktop
+        const timeoutId = setTimeout(() => controller.abort(), extendedTimeout);
+        
+        try {
+          const lastResortResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (lastResortResponse.ok) {
+            response = await lastResortResponse.json();
+            console.log('✅ DEBUG: Last resort direct backend call succeeded');
+          } else {
+            throw raceError;
+          }
+        } catch (lastError) {
+          clearTimeout(timeoutId);
+          throw raceError;
+        }
+      }
+      }
         // On desktop, use API route (has retry logic and caching)
         console.log('🖥️ DEBUG: Desktop detected - using API route with direct backend fallback');
         
