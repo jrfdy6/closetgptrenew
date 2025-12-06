@@ -14,10 +14,10 @@ export default function GamificationSummaryCard() {
 
   if (loading) {
     return (
-      <Card>
+      <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
+            <Sparkles className="w-5 h-5 text-[#FFB84C]" />
             Your Progress
           </CardTitle>
         </CardHeader>
@@ -34,15 +34,15 @@ export default function GamificationSummaryCard() {
 
   if (error || !stats) {
     return (
-      <Card>
+      <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
+            <Sparkles className="w-5 h-5 text-[#FFB84C]" />
             Your Progress
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
             Unable to load gamification stats
           </p>
         </CardContent>
@@ -54,9 +54,9 @@ export default function GamificationSummaryCard() {
   const progressPercentage = level?.progress_percentage || 0;
 
   return (
-    <Card className="bg-[#2C2119] border border-[#3D2F24]">
+    <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-[#F8F5F1]">
+        <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
           <Sparkles className="w-5 h-5 text-[#FFB84C]" />
           Your Progress
         </CardTitle>
@@ -69,7 +69,7 @@ export default function GamificationSummaryCard() {
               bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
               Level {level?.level || 1}
             </h3>
-            <p className="text-sm text-[#C4BCB4] uppercase tracking-wider mt-1">
+            <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] uppercase tracking-wider mt-1">
               {level?.tier || 'Novice'}
             </p>
           </div>
@@ -77,7 +77,7 @@ export default function GamificationSummaryCard() {
           {/* XP Progress */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-[#C4BCB4]">
+              <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
                 Experience Points
               </span>
               <span className="text-sm font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
@@ -85,28 +85,28 @@ export default function GamificationSummaryCard() {
               </span>
             </div>
             <Progress value={progressPercentage} className="h-1" />
-            <p className="text-xs text-[#8A827A] mt-1">
+            <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-1">
               {level?.xp_for_next_level - xp} XP until Level {(level?.level || 1) + 1}
             </p>
           </div>
 
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#3D2F24]">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F0E8] dark:bg-[#262626]">
               <Award className="w-4 h-4 text-[#FFB84C]" />
               <div>
-                <div className="text-xs text-[#C4BCB4]">Badges</div>
-                <div className="text-lg font-bold text-[#F8F5F1]">
+                <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">Badges</div>
+                <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
                   {badges?.length || 0}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#3D2F24]">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F0E8] dark:bg-[#262626]">
               <Target className="w-4 h-4 text-[#FFB84C]" />
               <div>
-                <div className="text-xs text-[#C4BCB4]">Active</div>
-                <div className="text-lg font-bold text-[#F8F5F1]">
+                <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">Active</div>
+                <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
                   {active_challenges_count || 0}
                 </div>
               </div>
@@ -115,7 +115,7 @@ export default function GamificationSummaryCard() {
 
           {/* CTA */}
           <Link href="/challenges">
-            <Button variant="outline" className="w-full border-[#3D2F24] text-[#F8F5F1] hover:bg-[#3D2F24]" size="sm">
+            <Button variant="outline" className="w-full border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#262626]" size="sm">
               <Target className="w-4 h-4 mr-2" />
               View All Challenges
             </Button>

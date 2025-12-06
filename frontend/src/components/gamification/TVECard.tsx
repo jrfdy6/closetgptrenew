@@ -18,17 +18,17 @@ export default function TVECard() {
 
   if (loading) {
     return (
-      <Card className="bg-[#2C2119] border border-[#3D2F24]">
+      <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-[#F8F5F1]">
+          <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
             <DollarSign className="w-5 h-5 text-[#FFB84C]" />
             Total Value Unlocked
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="h-12 bg-[#3D2F24] rounded animate-pulse" />
-            <div className="h-4 bg-[#3D2F24] rounded animate-pulse" />
+            <div className="h-12 bg-[#F5F0E8] dark:bg-[#262626] rounded animate-pulse" />
+            <div className="h-4 bg-[#F5F0E8] dark:bg-[#262626] rounded animate-pulse" />
           </div>
         </CardContent>
       </Card>
@@ -37,15 +37,15 @@ export default function TVECard() {
 
   if (error || !stats?.tve) {
     return (
-      <Card className="bg-[#2C2119] border border-[#3D2F24]">
+      <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-[#F8F5F1]">
+          <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
             <DollarSign className="w-5 h-5 text-[#FFB84C]" />
             Total Value Unlocked
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-[#C4BCB4]">
+          <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
             Complete onboarding to see your value unlocked
           </p>
         </CardContent>
@@ -60,15 +60,15 @@ export default function TVECard() {
   const annualPotentialRange = tve.annual_potential_range || { low: 0, high: 0 };
 
   return (
-    <Card className="bg-[#2C2119] border border-[#3D2F24] overflow-hidden">
+    <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 overflow-hidden">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-[#F8F5F1]">
+        <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
           <DollarSign className="w-5 h-5 text-[#FFB84C]" />
           Total Value Extracted
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                <Info className="w-4 h-4 text-[#8A827A]" />
+                <Info className="w-4 h-4 text-[#57534E] dark:text-[#C4BCB4]" />
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs text-sm">
@@ -78,7 +78,7 @@ export default function TVECard() {
             </Tooltip>
           </TooltipProvider>
         </CardTitle>
-        <CardDescription className="text-[#C4BCB4]">
+        <CardDescription className="text-[#57534E] dark:text-[#C4BCB4]">
           Track your wardrobe investment returns
         </CardDescription>
       </CardHeader>
@@ -96,9 +96,9 @@ export default function TVECard() {
               >
                 ${totalTVE.toFixed(2)}
               </motion.div>
-              <span className="text-sm text-[#8A827A]">unlocked</span>
+              <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">unlocked</span>
             </div>
-            <p className="text-xs text-[#C4BCB4]">
+            <p className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
               {percentRecouped.toFixed(1)}% of your ${totalWardrobeCost.toFixed(0)} wardrobe investment
             </p>
           </div>
@@ -106,7 +106,7 @@ export default function TVECard() {
           {/* Progress Bar */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-[#C4BCB4]">
+              <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
                 Investment Recouped
               </span>
               <span className="text-sm font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
@@ -131,15 +131,15 @@ export default function TVECard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="p-4 rounded-lg bg-[#3D2F24] border border-[#3D2F24]"
+            className="p-4 rounded-lg bg-[#F5F0E8] dark:bg-[#262626] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70"
           >
             <div className="flex items-start gap-2 mb-2">
               <TrendingUp className="w-4 h-4 text-[#FFB84C] mt-0.5" />
               <div className="flex-1">
-                <div className="text-sm font-medium text-[#F8F5F1] mb-1">
+                <div className="text-sm font-medium text-[#1C1917] dark:text-[#F8F5F1] mb-1">
                   Annual Potential Value
                 </div>
-                <div className="text-xs text-[#C4BCB4] mb-2">
+                <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] mb-2">
                   By wearing your wardrobe consistently, you can extract:
                 </div>
                 <div className="flex items-center gap-2">
@@ -147,9 +147,9 @@ export default function TVECard() {
                     bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
                     ${annualPotentialRange.low.toFixed(0)} - ${annualPotentialRange.high.toFixed(0)}
                   </span>
-                  <span className="text-xs text-[#8A827A]">this year</span>
+                  <span className="text-xs text-[#57534E] dark:text-[#C4BCB4]">this year</span>
                 </div>
-                <div className="text-xs text-[#8A827A] mt-1">
+                <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-1">
                   Based on 50-75% active rotation
                 </div>
               </div>
