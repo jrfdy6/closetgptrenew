@@ -355,6 +355,23 @@ async def check_cold_start_progress(
         raise HTTPException(status_code=500, detail="Failed to check Cold Start progress")
 
 
+@router.post("/recalculate-tve")
+async def recalculate_tve(
+    current_user: UserProfile = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Recalculate TVE for all user's items using new wear rates.
+    This migration endpoint updates value_per_wear and recalculates current_tve
+    based on wearCount × new_value_per_wear.
+    """
+    try:
+        result = await tve_service.recalculate_user_tve(current_user.id)
+        return result
+    except Exception as e:
+        logger.error(f"Error recalculating TVE: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error recalculating TVE: {str(e)}")
+
+
 @router.get("/gws")
 async def get_global_wardrobe_score(
     current_user: UserProfile = Depends(get_current_user)

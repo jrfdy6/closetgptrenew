@@ -502,6 +502,132 @@ class TVEService:
         except Exception as e:
             logger.error(f"Error updating user TVE cache: {e}", exc_info=True)
             return False
+    
+    async def recalculate_user_tve(
+        self,
+        user_id: str
+    ) -> Dict[str, Any]:
+        """
+        Recalculate TVE for all user's items using new wear rates.
+        This migration function updates value_per_wear and recalculates current_tve
+        based on wearCount × new_value_per_wear.
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            Dict with stats about the recalculation
+        """
+        try:
+            wardrobe_ref = self.db.collection('wardrobe').where('userId', '==', user_id)
+            items = list(wardrobe_ref.stream())
+            
+            if not items:
+                return {
+                    "success": True,
+                    "message": "No items to recalculate",
+                    "items_processed": 0,
+                    "items_updated": 0
+                }
+            
+            stats = {
+                "items_processed": 0,
+                "items_updated": 0,
+                "items_skipped": 0,
+                "errors": 0,
+                "total_tve_before": 0.0,
+                "total_tve_after": 0.0
+            }
+            
+            # Get user's spending ranges
+            user_ref = self.db.collection('users').document(user_id)
+            user_doc = user_ref.get()
+            
+            if not user_doc.exists:
+                logger.error(f"User {user_id} not found")
+                return {
+                    "success": False,
+                    "error": "User not found"
+                }
+            
+            user_data = user_doc.to_dict()
+            spending_ranges = user_data.get('spending_ranges', {})
+            
+            for doc in items:
+                try:
+                    item_data = doc.to_dict()
+                    item_id = doc.id
+                    stats["items_processed"] += 1
+                    
+                    # Get current values
+                    old_tve = item_data.get('current_tve', 0.0)
+                    stats["total_tve_before"] += old_tve
+                    
+                    item_type = item_data.get('type', 'other')
+                    wear_count = item_data.get('wearCount', 0)
+                    
+                    # Calculate new estimated cost
+                    estimated_cost = self.estimate_item_cost(item_type, spending_ranges)
+                    
+                    # Get category
+                    item_type_lower = item_type.lower().replace(" ", "_")
+                    category = CATEGORY_TO_SPENDING_KEY.get(item_type_lower, "tops")
+                    
+                    # Calculate new value_per_wear using updated rates
+                    value_per_wear = await self.calculate_dynamic_cpw_target(user_id, category)
+                    
+                    if value_per_wear is None:
+                        logger.warning(f"Could not calculate value_per_wear for item {item_id}, using default")
+                        value_per_wear = 1.0
+                    
+                    # Calculate new target wears
+                    target_wears = round(estimated_cost / value_per_wear) if value_per_wear > 0 else round(estimated_cost / 0.50)
+                    
+                    # Recalculate current_tve based on wear count and new value_per_wear
+                    new_tve = wear_count * value_per_wear
+                    
+                    # Update item
+                    item_ref = self.db.collection('wardrobe').document(item_id)
+                    item_ref.update({
+                        'estimated_cost': estimated_cost,
+                        'value_per_wear': value_per_wear,
+                        'target_wears': target_wears,
+                        'current_tve': round(new_tve, 2)
+                    })
+                    
+                    stats["total_tve_after"] += new_tve
+                    stats["items_updated"] += 1
+                    
+                    logger.info(f"✅ Recalculated TVE for item {item_id}: "
+                               f"wearCount={wear_count}, old_tve=${old_tve:.2f}, "
+                               f"new_tve=${new_tve:.2f}, value_per_wear=${value_per_wear:.2f}")
+                    
+                except Exception as e:
+                    logger.error(f"Error recalculating TVE for item {doc.id}: {e}", exc_info=True)
+                    stats["errors"] += 1
+            
+            tve_change = stats["total_tve_after"] - stats["total_tve_before"]
+            
+            return {
+                "success": True,
+                "message": f"Recalculated TVE for {stats['items_updated']} items",
+                "stats": {
+                    "items_processed": stats["items_processed"],
+                    "items_updated": stats["items_updated"],
+                    "items_skipped": stats["items_skipped"],
+                    "errors": stats["errors"],
+                    "total_tve_before": round(stats["total_tve_before"], 2),
+                    "total_tve_after": round(stats["total_tve_after"], 2),
+                    "tve_change": round(tve_change, 2)
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error recalculating user TVE: {e}", exc_info=True)
+            return {
+                "success": False,
+                "error": str(e)
+            }
 
 
 # Create singleton instance
