@@ -105,12 +105,23 @@ export function useGamificationStats() {
       setError(null);
       
       const token = await user.getIdToken();
-      const response = await fetch('/api/gamification/stats', {
+      // Call backend directly to avoid Vercel API route timeout (10s limit)
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+      const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const timeout = isMobile ? 30000 : 20000; // 30s on mobile, 20s on desktop
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
+      const response = await fetch(`${backendUrl}/api/gamification/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch gamification stats: ${response.status}`);
@@ -231,20 +242,49 @@ export function useChallenges() {
       
       const token = await user.getIdToken();
       
+      // Call backend directly to avoid Vercel API route timeout
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+      const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const timeout = isMobile ? 30000 : 20000; // 30s on mobile, 20s on desktop
+      
       // Fetch active and available challenges in parallel
       const [activeResponse, availableResponse] = await Promise.all([
-        fetch('/api/challenges/active', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+        (async () => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeout);
+          try {
+            const res = await fetch(`${backendUrl}/api/challenges/active`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            return res;
+          } catch (err) {
+            clearTimeout(timeoutId);
+            throw err;
           }
-        }),
-        fetch('/api/challenges/available', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+        })(),
+        (async () => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeout);
+          try {
+            const res = await fetch(`${backendUrl}/api/challenges/available`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            return res;
+          } catch (err) {
+            clearTimeout(timeoutId);
+            throw err;
           }
-        })
+        })()
       ]);
 
       if (activeResponse.ok && availableResponse.ok) {
