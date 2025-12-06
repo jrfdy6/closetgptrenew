@@ -48,9 +48,9 @@ const BadgeIconMap: Record<string, any> = {
 
 // Rarity border colors (refined for "Sophisticated Gamification")
 const RarityBorderColors: Record<string, string> = {
-  'common': 'border-[#3D2F24]',
-  'rare': 'border-[#3D2F24]',
-  'epic': 'border-[#3D2F24]',
+  'common': 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70',
+  'rare': 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70',
+  'epic': 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70',
   'legendary': 'border-[#FFB84C]',
 };
 
@@ -102,7 +102,7 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
                 stiffness: 200
               }}
             >
-              <Badge className="bg-[#2C2119] border border-[#3D2F24] text-[#F8F5F1] hover:border-[#FFB84C]">
+              <Badge className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#1C1917] dark:text-[#F8F5F1] hover:border-[#FFB84C]">
                 <IconComponent className="w-3 h-3 mr-1 text-[#FFB84C]" />
                 {badge.name}
               </Badge>
@@ -146,16 +146,16 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
                     }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`w-16 h-16 bg-[#2C2119] border ${
+                    className={`w-16 h-16 bg-white dark:bg-[#1A1A1A] border ${
                       badge.rarity === 'legendary' 
                         ? 'border-[#FFB84C] animate-shimmer' 
-                        : 'border-[#3D2F24]'
+                        : 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70'
                     } rounded-2xl
                       flex flex-col items-center justify-center gap-2 transition-all
                       hover:border-[#FFB84C] cursor-pointer`}
                   >
                     <IconComponent className="w-6 h-6 text-[#FFB84C]" />
-                    <span className="text-xs font-medium text-center text-[#F8F5F1]">
+                    <span className="text-xs font-medium text-center text-[#1C1917] dark:text-[#F8F5F1]">
                       {badge.name}
                     </span>
                   </motion.button>
@@ -163,18 +163,18 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-3">
-                      <div className={`p-3 rounded-lg bg-[#2C2119] border ${RarityBorderColors[badge.rarity]}`}>
+                      <div className={`p-3 rounded-lg bg-white dark:bg-[#1A1A1A] border ${RarityBorderColors[badge.rarity]}`}>
                         <IconComponent className="w-6 h-6 text-[#FFB84C]" />
                       </div>
                       {badge.name}
                     </DialogTitle>
                     <DialogDescription className="space-y-2">
-                      <p className="text-[#C4BCB4]">{badge.description}</p>
+                      <p className="text-[#57534E] dark:text-[#C4BCB4]">{badge.description}</p>
                       <div className="flex items-center gap-2 pt-2">
-                        <Badge className="bg-[#2C2119] border border-[#3D2F24] text-[#F8F5F1]">
+                        <Badge className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#1C1917] dark:text-[#F8F5F1]">
                           {badge.rarity.charAt(0).toUpperCase() + badge.rarity.slice(1)}
                         </Badge>
-                        <span className="text-xs text-[#8A827A]">
+                        <span className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
                           {badge.unlock_condition}
                         </span>
                       </div>

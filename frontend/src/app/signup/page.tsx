@@ -157,8 +157,8 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-white/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/80 rounded-3xl shadow-2xl shadow-amber-500/10 backdrop-blur-xl">
+    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D] flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-white/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl shadow-2xl shadow-amber-500/10 backdrop-blur-xl">
         <CardHeader className="text-center space-y-4 pb-8">
           <Link href="/" className="inline-flex items-center text-sm text-[#57534E] hover:text-[#1C1917] dark:text-[#C4BCB4] dark:hover:text-[#F8F5F1] mb-6 font-medium transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />

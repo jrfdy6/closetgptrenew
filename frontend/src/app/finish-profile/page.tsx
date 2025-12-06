@@ -89,7 +89,7 @@ export default function FinishProfilePage() {
               </div>
             </div>
 
-            <div className="bg-white/70 dark:bg-[#2C2119]/80 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl p-6 sm:p-8 space-y-6">
+            <div className="bg-white/70 dark:bg-[#1A1A1A]/80 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl p-6 sm:p-8 space-y-6">
               <div className="space-y-3">
                 <h2 className="text-xl font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
                   Here's what's next

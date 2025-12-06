@@ -48,7 +48,7 @@ export default function BottomNav() {
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200/50 dark:border-[#3D2F24] bg-white/80 dark:bg-[#2C2119]/80 backdrop-blur-2xl"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200/50 dark:border-[#2E2E2E] bg-white/80 dark:bg-[#1A1A1A]/80 backdrop-blur-2xl"
       aria-label="Bottom navigation"
     >
       <div className="max-w-7xl mx-auto">

@@ -410,10 +410,10 @@ export default function OutfitResultsDisplay({
               {outfit.items.map((item, index) => (
                 <div 
                   key={index} 
-                  className="group relative bg-white/85 dark:bg-[#1A1510]/85 rounded-2xl p-4 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 hover:shadow-xl transition-all duration-200"
+                  className="group relative bg-white/85 dark:bg-[#0D0D0D]/85 rounded-2xl p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 hover:shadow-xl transition-all duration-200"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-16 h-16 bg-[#F5F0E8] dark:bg-[#2C2119] border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-xl overflow-hidden flex-shrink-0">
+                    <div className="w-16 h-16 bg-[#F5F0E8] dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-xl overflow-hidden flex-shrink-0">
                       {item.imageUrl ? (
                         <img 
                           src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl} 
@@ -500,7 +500,7 @@ export default function OutfitResultsDisplay({
                 {Object.entries(outfit.score_breakdown).map(([key, value]) => {
                   if (key === 'total_score' || key === 'grade' || key === 'score_interpretation') return null;
                   return (
-                    <div key={key} className="flex justify-between items-center text-sm py-2 px-3 bg-[#F5F0E8]/70 dark:bg-[#2C2119]/80 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-xl">
+                    <div key={key} className="flex justify-between items-center text-sm py-2 px-3 bg-[#F5F0E8]/70 dark:bg-[#1A1A1A]/80 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-xl">
                       <span className="capitalize text-gray-700 dark:text-gray-300">
                         {key.replace(/_/g, ' ')}
                       </span>

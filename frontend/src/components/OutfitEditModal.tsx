@@ -237,9 +237,9 @@ export default function OutfitEditModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-xl flex items-center justify-center z-50 p-4">
-      <div className="bg-white/90 dark:bg-[#1A1510]/90 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white/90 dark:bg-[#0D0D0D]/90 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/60 dark:bg-[#2C2119]/40 backdrop-blur">
+        <div className="flex items-center justify-between p-6 border-b border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-white/60 dark:bg-[#1A1A1A]/40 backdrop-blur">
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
               Edit outfit
@@ -262,7 +262,7 @@ export default function OutfitEditModal({
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-152px)] bg-white/40 dark:bg-[#1A1510]/40 backdrop-blur-sm">
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-152px)] bg-white/40 dark:bg-[#0D0D0D]/40 backdrop-blur-sm">
           {errors.general && (
             <div className="mb-4 p-4 bg-[#FFF0EC] border border-[#FF6F61]/40 rounded-2xl">
               <div className="flex items-start gap-2">
@@ -294,7 +294,7 @@ export default function OutfitEditModal({
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   placeholder="Enter outfit name"
                   className={cn(
-                    "bg-white/80 dark:bg-[#1A1510]/80 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 focus:border-[#FFB84C] focus:ring-[#FFB84C]/20",
+                    "bg-white/80 dark:bg-[#0D0D0D]/80 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 focus:border-[#FFB84C] focus:ring-[#FFB84C]/20",
                     errors.name && 'border-[#FF6F61] focus:border-[#FF6F61] focus:ring-[#FF6F61]/20'
                   )}
                 />
@@ -316,7 +316,7 @@ export default function OutfitEditModal({
                   onValueChange={(value) => handleInputChange('occasion', value)}
                 >
                   <SelectTrigger className={cn(
-                    "border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/80 dark:bg-[#1A1510]/80 focus:border-[#FFB84C] focus:ring-[#FFB84C]/20",
+                    "border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-white/80 dark:bg-[#0D0D0D]/80 focus:border-[#FFB84C] focus:ring-[#FFB84C]/20",
                     errors.occasion && 'border-[#FF6F61] focus:border-[#FF6F61] focus:ring-[#FF6F61]/20'
                   )}>
                     <SelectValue placeholder="Select occasion" />
@@ -347,7 +347,7 @@ export default function OutfitEditModal({
                   onValueChange={(value) => handleInputChange('style', value)}
                 >
                   <SelectTrigger className={cn(
-                    "border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/80 dark:bg-[#1A1510]/80 focus:border-[#FFB84C] focus:ring-[#FFB84C]/20",
+                    "border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-white/80 dark:bg-[#0D0D0D]/80 focus:border-[#FFB84C] focus:ring-[#FFB84C]/20",
                     errors.style && 'border-[#FF6F61] focus:border-[#FF6F61] focus:ring-[#FF6F61]/20'
                   )}>
                     <SelectValue placeholder="Select style" />
@@ -379,7 +379,7 @@ export default function OutfitEditModal({
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   placeholder="Describe this outfit..."
                   rows={3}
-                  className="bg-white/80 dark:bg-[#1A1510]/80 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 focus:border-[#FFB84C] focus:ring-[#FFB84C]/20"
+                  className="bg-white/80 dark:bg-[#0D0D0D]/80 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 focus:border-[#FFB84C] focus:ring-[#FFB84C]/20"
                 />
               </div>
 
@@ -394,7 +394,7 @@ export default function OutfitEditModal({
                   onChange={(e) => handleInputChange('notes', e.target.value)}
                   placeholder="Add personal notes about this outfit..."
                   rows={2}
-                  className="bg-white/80 dark:bg-[#1A1510]/80 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 focus:border-[#FFB84C] focus:ring-[#FFB84C]/20"
+                  className="bg-white/80 dark:bg-[#0D0D0D]/80 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 focus:border-[#FFB84C] focus:ring-[#FFB84C]/20"
                 />
               </div>
             </div>
@@ -418,13 +418,13 @@ export default function OutfitEditModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/60 dark:bg-[#2C2119]/60 backdrop-blur">
+        <div className="flex items-center justify-between p-6 border-t border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-white/60 dark:bg-[#1A1A1A]/60 backdrop-blur">
           <div className="flex gap-2">
             <Button
               variant="outline"
               onClick={handleReset}
               disabled={isLoading}
-              className="flex items-center gap-2 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              className="flex items-center gap-2 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <RotateCcw className="h-4 w-4" />
               Reset
@@ -433,7 +433,7 @@ export default function OutfitEditModal({
               variant="outline"
               onClick={resetFormWithFreshData}
               disabled={isLoading}
-              className="flex items-center gap-2 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              className="flex items-center gap-2 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <RotateCcw className="h-4 w-4" />
               Refresh data
@@ -445,7 +445,7 @@ export default function OutfitEditModal({
               variant="outline"
               onClick={onClose}
               disabled={isLoading}
-              className="px-5 rounded-2xl border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              className="px-5 rounded-2xl border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               Cancel
             </Button>

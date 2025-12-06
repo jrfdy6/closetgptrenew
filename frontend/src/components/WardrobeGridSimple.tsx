@@ -34,7 +34,7 @@ export default function WardrobeGridSimple({
     return (
       <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-5">
         {[...Array(12)].map((_, i) => (
-          <div key={i} className="aspect-square bg-[#F5F0E8] dark:bg-[#2C2119] border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-xl animate-pulse" />
+          <div key={i} className="aspect-square bg-[#F5F0E8] dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-xl animate-pulse" />
         ))}
       </div>
     );
@@ -42,7 +42,7 @@ export default function WardrobeGridSimple({
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-12 bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl">
+      <div className="text-center py-12 bg-white/85 dark:bg-[#0D0D0D]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl">
         <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
           No items found
         </p>
@@ -59,7 +59,7 @@ export default function WardrobeGridSimple({
           onClick={() => onItemClick(item)}
         >
           {/* Image Container - Clean, Premium */}
-          <div className="relative aspect-square overflow-hidden rounded-xl bg-[#F5F0E8] dark:bg-[#2C2119] border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 transition-transform duration-200 hover:scale-[1.02]">
+          <div className="relative aspect-square overflow-hidden rounded-xl bg-[#F5F0E8] dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 transition-transform duration-200 hover:scale-[1.02]">
             <img
               src={item.imageUrl}
               alt={item.name}

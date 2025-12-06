@@ -48,10 +48,10 @@ export const EmptyState = ({
 
   return (
     <div className={cn(
-      "flex flex-col items-center justify-center py-12 px-4 text-center bg-white/85 dark:bg-[#2C2119]/80 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl backdrop-blur-xl shadow-lg",
+      "flex flex-col items-center justify-center py-12 px-4 text-center bg-white/85 dark:bg-[#1A1A1A]/80 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl backdrop-blur-xl shadow-lg",
       className
     )}>
-      <div className="w-16 h-16 bg-[#F5F0E8] dark:bg-[#2C2119] rounded-full flex items-center justify-center mb-4 shadow-inner">
+      <div className="w-16 h-16 bg-[#F5F0E8] dark:bg-[#1A1A1A] rounded-full flex items-center justify-center mb-4 shadow-inner">
         <Icon className="w-8 h-8 text-[#FF9400]" />
       </div>
       <h3 className="text-xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2">{title}</h3>
@@ -64,7 +64,7 @@ export const EmptyState = ({
           </Button>
         )}
         {onSecondaryAction && secondaryActionText && (
-          <Button variant="outline" onClick={onSecondaryAction} size="sm" className="px-5 py-2 rounded-2xl border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]">
+          <Button variant="outline" onClick={onSecondaryAction} size="sm" className="px-5 py-2 rounded-2xl border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]">
             {secondaryActionText}
           </Button>
         )}
@@ -101,7 +101,7 @@ export const ErrorState = ({
 
   return (
     <div className={cn(
-      "flex flex-col items-center justify-center py-12 px-4 text-center bg-white/85 dark:bg-[#2C2119]/80 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl backdrop-blur-xl shadow-lg",
+      "flex flex-col items-center justify-center py-12 px-4 text-center bg-white/85 dark:bg-[#1A1A1A]/80 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl backdrop-blur-xl shadow-lg",
       className
     )}>
       <div className="w-16 h-16 bg-[#FFF0EC] dark:bg-[#3D211F] rounded-full flex items-center justify-center mb-4 shadow-inner">
@@ -118,7 +118,7 @@ export const ErrorState = ({
           </Button>
         )}
         {onGoBack && (
-          <Button variant="outline" onClick={onGoBack} size="sm" className="px-5 py-2 rounded-2xl border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]">
+          <Button variant="outline" onClick={onGoBack} size="sm" className="px-5 py-2 rounded-2xl border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Go back
           </Button>
@@ -154,8 +154,8 @@ export const NoResults = ({
 }: NoResultsProps) => {
   return (
     <div className={cn("space-y-6", className)}>
-      <div className="flex flex-col items-center justify-center py-8 px-4 text-center bg-white/85 dark:bg-[#2C2119]/80 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl backdrop-blur-xl shadow-lg">
-        <div className="w-16 h-16 bg-[#F5F0E8] dark:bg-[#2C2119] rounded-full flex items-center justify-center mb-4 shadow-inner">
+      <div className="flex flex-col items-center justify-center py-8 px-4 text-center bg-white/85 dark:bg-[#1A1A1A]/80 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl backdrop-blur-xl shadow-lg">
+        <div className="w-16 h-16 bg-[#F5F0E8] dark:bg-[#1A1A1A] rounded-full flex items-center justify-center mb-4 shadow-inner">
           <Search className="w-8 h-8 text-[#FF9400]" />
         </div>
         <h3 className="text-xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2">No results found</h3>
@@ -168,7 +168,7 @@ export const NoResults = ({
         
         <div className="flex flex-col sm:flex-row gap-3">
           {onClearFilters && filters.length > 0 && (
-            <Button variant="outline" onClick={onClearFilters} size="sm" className="px-5 py-2 rounded-2xl border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]">
+            <Button variant="outline" onClick={onClearFilters} size="sm" className="px-5 py-2 rounded-2xl border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]">
               <Filter className="w-4 h-4 mr-2" />
               Clear filters
             </Button>
@@ -184,7 +184,7 @@ export const NoResults = ({
 
       {/* Suggestions */}
       {suggestions.length > 0 && (
-        <Card className="bg-white/80 dark:bg-[#2C2119]/80 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl shadow-md">
+        <Card className="bg-white/80 dark:bg-[#1A1A1A]/80 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl shadow-md">
           <CardContent className="p-5 space-y-3">
             <h4 className="font-semibold text-sm text-[#1C1917] dark:text-[#F8F5F1] uppercase tracking-wide">Try searching for</h4>
             <div className="flex flex-wrap gap-2">
@@ -194,7 +194,7 @@ export const NoResults = ({
                   variant="outline"
                   size="sm"
                   onClick={() => onNewSearch?.()}
-                  className="text-xs px-3 py-1.5 rounded-full border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+                  className="text-xs px-3 py-1.5 rounded-full border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
                 >
                   {suggestion}
                 </Button>
@@ -274,8 +274,8 @@ export const PermissionErrorState = ({ onGoBack }: { onGoBack?: () => void }) =>
 
 // Maintenance mode state
 export const MaintenanceState = () => (
-  <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-white/85 dark:bg-[#2C2119]/80 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl backdrop-blur-xl shadow-lg">
-    <div className="w-16 h-16 bg-[#FFF7E6] dark:bg-[#3D2F24] rounded-full flex items-center justify-center mb-4 shadow-inner">
+  <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-white/85 dark:bg-[#1A1A1A]/80 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl backdrop-blur-xl shadow-lg">
+    <div className="w-16 h-16 bg-[#FFF7E6] dark:bg-[#262626] rounded-full flex items-center justify-center mb-4 shadow-inner">
       <Settings className="w-8 h-8 text-[#FF9400]" />
     </div>
     <h3 className="text-xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2">Under maintenance</h3>
@@ -283,7 +283,7 @@ export const MaintenanceState = () => (
       We’re upgrading Easy Outfit for an even smoother experience. Sit tight and check back shortly.
     </p>
     <div className="flex flex-col sm:flex-row gap-3">
-      <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="px-5 py-2 rounded-2xl border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]">
+      <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="px-5 py-2 rounded-2xl border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]">
         <RefreshCw className="w-4 h-4 mr-2" />
         Refresh page
       </Button>

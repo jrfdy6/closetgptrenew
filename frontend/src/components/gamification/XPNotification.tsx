@@ -54,7 +54,7 @@ export default function XPNotification({
             rounded-xl p-3 shadow-lg ${
               levelUp
                 ? 'bg-gradient-to-r from-[#FFB84C] to-[#FF9400] border-none'
-                : 'bg-[#2C2119] border border-[#3D2F24]'
+                : 'bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70'
             }`}
         >
           <div className="flex items-center gap-3">
@@ -79,7 +79,7 @@ export default function XPNotification({
                   <div className="text-sm font-medium bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
                     +{xp} XP
                   </div>
-                  <div className="text-xs text-[#C4BCB4] mt-0.5">
+                  <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-0.5">
                     {reason}
                   </div>
                 </>

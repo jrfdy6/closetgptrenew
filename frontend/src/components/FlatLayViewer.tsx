@@ -186,7 +186,7 @@ export default function FlatLayViewer({
   const renderFlatLay = () => {
     if ((status === 'pending' || status === 'processing') && !flatLayUrl) {
       return (
-        <div className="aspect-[4/3] max-h-[600px] bg-[#F5F0E8]/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
+        <div className="aspect-[4/3] max-h-[600px] bg-[#F5F0E8]/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
           <Loader2 className="w-10 h-10 animate-spin text-amber-600 mb-4" />
           <p className="text-[#57534E] dark:text-[#C4BCB4] text-center font-semibold">
             Crafting your premium flat lay…
@@ -200,7 +200,7 @@ export default function FlatLayViewer({
 
     if ((status === 'awaiting_consent' || status === 'manual_pending') && !flatLayUrl) {
       return (
-        <div className="aspect-[4/3] max-h-[600px] bg-[#F5F0E8]/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
+        <div className="aspect-[4/3] max-h-[600px] bg-[#F5F0E8]/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
           <Eye className="w-12 h-12 text-[#FFB84C] mb-4" />
           <p className="text-[#1C1917] dark:text-[#F8F5F1] text-center font-semibold">
             Flat lay not requested yet
@@ -212,7 +212,7 @@ export default function FlatLayViewer({
             <Button 
               variant="outline" 
               onClick={toggleView}
-              className="mt-4 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              className="mt-4 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <Grid3x3 className="w-4 h-4 mr-2" />
               View item grid
@@ -224,7 +224,7 @@ export default function FlatLayViewer({
 
     if ((status === 'declined' || status === 'skipped') && !flatLayUrl) {
       return (
-        <div className="aspect-[4/3] max-h-[600px] bg-[#F5F0E8]/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
+        <div className="aspect-[4/3] max-h-[600px] bg-[#F5F0E8]/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
           <ImageOff className="w-12 h-12 text-[#8A827A] dark:text-[#806A5A] mb-4" />
           <p className="text-[#1C1917] dark:text-[#F8F5F1] text-center font-semibold">
             Flat lay skipped for this outfit
@@ -236,7 +236,7 @@ export default function FlatLayViewer({
             <Button 
               variant="outline" 
               onClick={toggleView}
-              className="mt-4 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              className="mt-4 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <Grid3x3 className="w-4 h-4 mr-2" />
               View item grid
@@ -262,7 +262,7 @@ export default function FlatLayViewer({
             <Button 
               variant="outline" 
               onClick={toggleView}
-              className="mt-4 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              className="mt-4 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <Grid3x3 className="w-4 h-4 mr-2" />
               View item grid
@@ -274,7 +274,7 @@ export default function FlatLayViewer({
 
     if (!flatLayUrl || imageError) {
       return (
-        <div className="aspect-[4/3] max-h-[600px] bg-[#F5F0E8]/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
+        <div className="aspect-[4/3] max-h-[600px] bg-[#F5F0E8]/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
           <ImageOff className="w-16 h-16 text-[#8A827A] dark:text-[#806A5A] mb-4" />
           <p className="text-[#57534E] dark:text-[#C4BCB4] text-center mb-2 font-semibold">
             {imageError ? 'Failed to load flat lay image' : 'No flat lay image available'}
@@ -283,7 +283,7 @@ export default function FlatLayViewer({
             <Button 
               variant="outline" 
               onClick={toggleView}
-              className="mt-4 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              className="mt-4 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <Grid3x3 className="w-4 h-4 mr-2" />
               View item grid
@@ -294,7 +294,7 @@ export default function FlatLayViewer({
     }
 
     return (
-      <div className="relative aspect-[4/3] max-h-[600px] bg-[#F5F0E8]/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl overflow-hidden shadow-xl backdrop-blur">
+      <div className="relative aspect-[4/3] max-h-[600px] bg-[#F5F0E8]/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl overflow-hidden shadow-xl backdrop-blur">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
@@ -316,7 +316,7 @@ export default function FlatLayViewer({
           <Button
             size="sm"
             variant="secondary"
-            className="bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 backdrop-blur-sm text-[#1C1917] dark:text-[#F8F5F1] hover:bg-white"
+            className="bg-white/85 dark:bg-[#0D0D0D]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 backdrop-blur-sm text-[#1C1917] dark:text-[#F8F5F1] hover:bg-white"
             onClick={() => setIsFullscreen(true)}
             aria-label="View flat lay in full screen"
           >
@@ -327,7 +327,7 @@ export default function FlatLayViewer({
             <Button
               size="sm"
               variant="secondary"
-              className="bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 backdrop-blur-sm text-[#1C1917] dark:text-[#F8F5F1] hover:bg-white"
+              className="bg-white/85 dark:bg-[#0D0D0D]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 backdrop-blur-sm text-[#1C1917] dark:text-[#F8F5F1] hover:bg-white"
               onClick={toggleView}
               aria-label="Switch to item grid"
             >

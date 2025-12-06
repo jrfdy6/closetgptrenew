@@ -32,7 +32,7 @@ export default function AccessibilitySettings() {
   };
 
   return (
-    <Card className="bg-white/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl shadow-lg backdrop-blur-xl">
+    <Card className="bg-white/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl shadow-lg backdrop-blur-xl">
       <CardHeader>
         <CardTitle className="text-xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
           Accessibility & feedback
@@ -84,7 +84,7 @@ export default function AccessibilitySettings() {
           </div>
 
           {reducedMotion && (
-            <div className="p-3 bg-[#FFF7E6] dark:bg-[#2C2119] border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl">
+            <div className="p-3 bg-[#FFF7E6] dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl">
               <p className="text-sm text-[#B45309] dark:text-[#FFDD99]">
                 ✓ Reduced motion detected from your system settings.
               </p>
@@ -136,7 +136,7 @@ export default function AccessibilitySettings() {
         </div>
 
         {/* Info Note */}
-        <div className="p-4 bg-[#F5F0E8]/80 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl">
+        <div className="p-4 bg-[#F5F0E8]/80 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl">
           <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
             <span className="font-semibold text-[#1C1917] dark:text-[#F8F5F1]">Note:</span> Visual feedback is always present. Sound and haptic feedback are optional enhancements for a multisensory experience.
           </p>

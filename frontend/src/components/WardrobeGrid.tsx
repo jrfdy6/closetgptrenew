@@ -141,11 +141,11 @@ export default function WardrobeGrid({
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {Array.from({ length: 10 }).map((_, index) => (
-          <Card key={index} className="animate-pulse bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl">
-            <div className="aspect-square bg-[#F5F0E8] dark:bg-[#2C2119] rounded-t-2xl border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70" />
+          <Card key={index} className="animate-pulse bg-white/85 dark:bg-[#0D0D0D]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl">
+            <div className="aspect-square bg-[#F5F0E8] dark:bg-[#1A1A1A] rounded-t-2xl border-b border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70" />
             <CardContent className="p-4 space-y-2">
-              <div className="h-4 bg-[#F5F0E8] dark:bg-[#2C2119] rounded" />
-              <div className="h-3 bg-[#F5F0E8] dark:bg-[#2C2119] rounded w-2/3" />
+              <div className="h-4 bg-[#F5F0E8] dark:bg-[#1A1A1A] rounded" />
+              <div className="h-3 bg-[#F5F0E8] dark:bg-[#1A1A1A] rounded w-2/3" />
             </CardContent>
           </Card>
         ))}
@@ -155,8 +155,8 @@ export default function WardrobeGrid({
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-12 bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl">
-        <div className="w-16 h-16 bg-[#F5F0E8] dark:bg-[#2C2119] rounded-full flex items-center justify-center mx-auto mb-4">
+      <div className="text-center py-12 bg-white/85 dark:bg-[#0D0D0D]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl">
+        <div className="w-16 h-16 bg-[#F5F0E8] dark:bg-[#1A1A1A] rounded-full flex items-center justify-center mx-auto mb-4">
           <Eye className="w-8 h-8 text-[#FF9400]" />
         </div>
         <h3 className="text-lg font-display text-[#1C1917] dark:text-[#F8F5F1] mb-2">No items found</h3>
@@ -172,7 +172,7 @@ export default function WardrobeGrid({
   return (
     <div>
       {filteredCount > 0 && (
-        <div className="mb-4 p-3 bg-[#FFF7E6] dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-xl">
+        <div className="mb-4 p-3 bg-[#FFF7E6] dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-xl">
           <p className="text-sm text-[#1C1917] dark:text-[#F8F5F1]">
             ⚠️ {filteredCount} item{filteredCount > 1 ? 's' : ''} with broken images hidden from display.
           </p>
@@ -182,12 +182,12 @@ export default function WardrobeGrid({
         {validItems.map((item) => (
         <Card
           key={item.id}
-          className="group cursor-pointer bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+          className="group cursor-pointer bg-white/85 dark:bg-[#0D0D0D]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
           onClick={() => onItemClick(item)}
         >
           {/* Image Container */}
-          <div className="relative aspect-square overflow-hidden rounded-t-2xl border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
-            <div className="relative w-full h-full bg-[#F5F0E8] dark:bg-[#2C2119] flex items-center justify-center">
+          <div className="relative aspect-square overflow-hidden rounded-t-2xl border-b border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
+            <div className="relative w-full h-full bg-[#F5F0E8] dark:bg-[#1A1A1A] flex items-center justify-center">
               <Image
                 src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl}
                 alt={item.name || "Wardrobe item"}
@@ -232,12 +232,12 @@ export default function WardrobeGrid({
                 {item.style && safeSlice(item.style, 0, 2).length > 0 && (
                   <div className="flex gap-1">
                     {safeSlice(item.style, 0, 2).map((style, index) => (
-                      <Badge key={index} variant="outline" className="text-xs border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+                      <Badge key={index} variant="outline" className="text-xs border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
                         {style}
                       </Badge>
                     ))}
                     {safeSlice(item.style, 0).length > 2 && (
-                      <Badge variant="outline" className="text-xs border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+                      <Badge variant="outline" className="text-xs border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
                         +{safeSlice(item.style, 0).length - 2}
                       </Badge>
                     )}
@@ -249,12 +249,12 @@ export default function WardrobeGrid({
               {(item.season || item.occasion) && (
                 <div className="flex flex-wrap gap-1">
                   {safeSlice(item.season, 0, 2).map((season, index) => (
-                    <Badge key={index} variant="outline" className="text-xs border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+                    <Badge key={index} variant="outline" className="text-xs border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
                       {season}
                     </Badge>
                   ))}
                   {safeSlice(item.occasion, 0, 1).map((occasion, index) => (
-                    <Badge key={index} variant="outline" className="text-xs border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+                    <Badge key={index} variant="outline" className="text-xs border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
                       {occasion}
                     </Badge>
                   ))}
@@ -268,7 +268,7 @@ export default function WardrobeGrid({
       
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-white/90 dark:bg-[#1A1510]/90 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl">
+        <AlertDialogContent className="bg-white/90 dark:bg-[#1A1510]/90 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-[#1C1917] dark:text-[#F8F5F1]">Delete wardrobe item</AlertDialogTitle>
             <AlertDialogDescription className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
@@ -276,7 +276,7 @@ export default function WardrobeGrid({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)} className="border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]">
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)} className="border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction

@@ -162,11 +162,11 @@ export default function EnhancedWardrobeGapAnalysis({
       case 'high':
         return 'text-[#FF4A3A] bg-[#FFF0EC] dark:bg-[#3D211F] border border-[#FF6F61]/40 shadow-sm';
       case 'medium':
-        return 'text-[#B45309] bg-[#FFF7E6] dark:bg-[#3D2F24] border border-[#FFB84C]/40 shadow-sm';
+        return 'text-[#B45309] bg-[#FFF7E6] dark:bg-[#262626] border border-[#FFB84C]/40 shadow-sm';
       case 'low':
         return 'text-[#0F766E] bg-[#ECFDF5] dark:bg-[#1F3D32] border border-[#6EE7B7]/40 shadow-sm';
       default:
-        return 'text-[#57534E] bg-[#F5F0E8]/70 dark:bg-[#2C2119]/70 border border-[#F5F0E8]/50 dark:border-[#3D2F24]/60 shadow-sm';
+        return 'text-[#57534E] bg-[#F5F0E8]/70 dark:bg-[#1A1A1A]/70 border border-[#F5F0E8]/50 dark:border-[#2E2E2E]/60 shadow-sm';
     }
   };
 
@@ -211,7 +211,7 @@ export default function EnhancedWardrobeGapAnalysis({
 
   if (!gaps || gaps.length === 0) {
     return (
-      <Card className={cn("bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl shadow-lg backdrop-blur-xl", className)}>
+      <Card className={cn("bg-white/85 dark:bg-[#0D0D0D]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl shadow-lg backdrop-blur-xl", className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-amber-600" />
@@ -234,8 +234,8 @@ export default function EnhancedWardrobeGapAnalysis({
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Main Gap Analysis Card */}
-      <Card className="bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl shadow-lg backdrop-blur-xl">
-        <CardHeader className="border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+      <Card className="bg-white/85 dark:bg-[#0D0D0D]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl shadow-lg backdrop-blur-xl">
+        <CardHeader className="border-b border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
               <ShoppingBag className="h-5 w-5 text-[#FFB84C]" />
@@ -246,7 +246,7 @@ export default function EnhancedWardrobeGapAnalysis({
                 variant="outline"
                 size="sm"
                 onClick={onRefresh}
-                className="border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+                className="border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
               >
                 <TrendingUp className="h-4 w-4 mr-2" />
                 Refresh
@@ -261,7 +261,7 @@ export default function EnhancedWardrobeGapAnalysis({
               const isExpanded = expandedGaps.has(gapId);
               
               return (
-                <div key={index} className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl p-4 bg-white/80 dark:bg-[#1A1510]/80 shadow-sm">
+                <div key={index} className="border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl p-4 bg-white/80 dark:bg-[#1A1510]/80 shadow-sm">
                   <Collapsible open={isExpanded} onOpenChange={() => toggleGapExpansion(gapId)}>
                     <CollapsibleTrigger asChild>
                       <div className="flex items-center justify-between cursor-pointer">
@@ -295,7 +295,7 @@ export default function EnhancedWardrobeGapAnalysis({
                         
                         <div className="flex flex-wrap gap-2">
                           {gap.suggestedItems.map((item, itemIndex) => (
-                            <Badge key={itemIndex} variant="outline" className="border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4]">
+                            <Badge key={itemIndex} variant="outline" className="border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4]">
                               {item}
                             </Badge>
                           ))}
@@ -309,7 +309,7 @@ export default function EnhancedWardrobeGapAnalysis({
                               ? `${Math.round((gap.currentCount / gap.recommendedCount) * 100)}%` 
                               : '0%'}</span>
                           </div>
-                          <div className="w-full bg-[#E7DDCF] dark:bg-[#3D2F24] rounded-full h-2">
+                          <div className="w-full bg-[#E7DDCF] dark:bg-[#262626] rounded-full h-2">
                             <div 
                               className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-300"
                               style={{ width: `${gap.recommendedCount && gap.recommendedCount > 0 
@@ -330,8 +330,8 @@ export default function EnhancedWardrobeGapAnalysis({
 
       {/* Shopping Recommendations */}
       {(shoppingRecommendations?.success || loadingRecommendations) && (
-        <Card className="bg-white/85 dark:bg-[#1A1510]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl shadow-lg backdrop-blur-xl">
-          <CardHeader className="border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+        <Card className="bg-white/85 dark:bg-[#0D0D0D]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl shadow-lg backdrop-blur-xl">
+          <CardHeader className="border-b border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
                 <ShoppingCart className="h-5 w-5 text-[#FFB84C]" />
@@ -342,7 +342,7 @@ export default function EnhancedWardrobeGapAnalysis({
               </CardTitle>
               <div className="flex items-center gap-2">
                 <Select value={selectedBudget} onValueChange={setSelectedBudget}>
-                  <SelectTrigger className="w-32 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/80 dark:bg-[#1A1510]/80">
+                  <SelectTrigger className="w-32 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-white/80 dark:bg-[#1A1510]/80">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -362,7 +362,7 @@ export default function EnhancedWardrobeGapAnalysis({
                     Total: {formatPrice(shoppingRecommendations.total_estimated_cost)}
                   </span>
                 </div>
-                <Badge variant="outline" className="border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4]">
+                <Badge variant="outline" className="border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4]">
                   {shoppingRecommendations.budget_range} budget
                 </Badge>
               </div>
@@ -411,10 +411,10 @@ export default function EnhancedWardrobeGapAnalysis({
                   <h4 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1]">Shopping phases</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {shoppingRecommendations.shopping_strategy.shopping_phases.map((phase) => (
-                      <div key={phase.phase} className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl p-4 bg-white/80 dark:bg-[#1A1510]/80 shadow-sm">
+                      <div key={phase.phase} className="border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl p-4 bg-white/80 dark:bg-[#1A1510]/80 shadow-sm">
                         <div className="flex items-center justify-between mb-2">
                           <h5 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1]">Phase {phase.phase}: {phase.name}</h5>
-                          <Badge variant="outline" className="border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4]">
+                          <Badge variant="outline" className="border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4]">
                             {formatPrice(phase.estimated_cost)}
                           </Badge>
                         </div>
@@ -436,7 +436,7 @@ export default function EnhancedWardrobeGapAnalysis({
                   <h4 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1]">Recommended stores</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {shoppingRecommendations.store_recommendations.map((store, index) => (
-                      <div key={index} className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl p-4 bg-white/80 dark:bg-[#1A1510]/75 hover:shadow-xl transition-shadow">
+                      <div key={index} className="border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl p-4 bg-white/80 dark:bg-[#1A1510]/75 hover:shadow-xl transition-shadow">
                         <div className="flex items-center gap-2 mb-2 text-[#57534E] dark:text-[#C4BCB4]">
                           <MapPin className="h-4 w-4 text-[#FF9400]" />
                           <h5 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1]">{store.name}</h5>
@@ -444,7 +444,7 @@ export default function EnhancedWardrobeGapAnalysis({
                         <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-2">
                           {store.description}
                         </p>
-                        <Badge variant="outline" className="text-xs border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4]">
+                        <Badge variant="outline" className="text-xs border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4]">
                           {store.price_range}
                         </Badge>
                       </div>
@@ -455,7 +455,7 @@ export default function EnhancedWardrobeGapAnalysis({
 
               {/* Shopping Tips */}
               {shoppingRecommendations.shopping_strategy?.tips && (
-                <div className="bg-[#F5F0E8]/70 dark:bg-[#2C2119]/80 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 p-4 rounded-2xl shadow-sm">
+                <div className="bg-[#F5F0E8]/70 dark:bg-[#1A1A1A]/80 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 p-4 rounded-2xl shadow-sm">
                   <h4 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-3">Shopping tips</h4>
                   <ul className="space-y-2">
                     {shoppingRecommendations.shopping_strategy.tips.map((tip, index) => (

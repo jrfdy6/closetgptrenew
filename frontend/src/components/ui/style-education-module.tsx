@@ -593,7 +593,7 @@ export default function StyleEducationModule({
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {outfitItems.map((item, index) => (
-                  <div key={index} className="flex items-start gap-2 p-3 bg-white/85 dark:bg-[#1A1510]/85 rounded-2xl border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 shadow-sm">
+                  <div key={index} className="flex items-start gap-2 p-3 bg-white/85 dark:bg-[#0D0D0D]/85 rounded-2xl border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 shadow-sm">
                     <div className="w-1.5 h-1.5 bg-[#FFB84C] rounded-full mt-2 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-[#1C1917] dark:text-[#F8F5F1] truncate">
@@ -628,7 +628,7 @@ export default function StyleEducationModule({
                 {outfitInsights.map((insight) => (
                   <div 
                     key={insight.id}
-                  className="bg-white/85 dark:bg-[#1A1510]/85 rounded-2xl border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 overflow-hidden shadow-md"
+                  className="bg-white/85 dark:bg-[#0D0D0D]/85 rounded-2xl border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 overflow-hidden shadow-md"
                 >
                   <button
                       onClick={() => toggleSection(insight.id)}
@@ -655,7 +655,7 @@ export default function StyleEducationModule({
                   </button>
                   
                     {expandedSection === insight.id && (
-                      <div className="px-3 pb-3 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+                      <div className="px-3 pb-3 border-t border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
                         <ul className="pt-3 space-y-1.5">
                           {insight.tips.map((tip, index) => (
                               <li key={index} className="text-sm text-[#57534E] dark:text-[#C4BCB4] flex items-start gap-2">

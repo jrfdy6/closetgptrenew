@@ -116,7 +116,7 @@ export function LocationSettings({ onLocationChange, className }: LocationSettin
 
   return (
     <Card className={cn(
-      "bg-white/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl shadow-lg backdrop-blur-xl",
+      "bg-white/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl shadow-lg backdrop-blur-xl",
       className
     )}>
       <CardHeader className="pb-4">
@@ -136,7 +136,7 @@ export function LocationSettings({ onLocationChange, className }: LocationSettin
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Enter city name or coordinates"
-              className="flex-1 bg-white/80 dark:bg-[#1A1510]/80 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70"
+              className="flex-1 bg-white/80 dark:bg-[#0D0D0D]/80 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70"
             />
             <Button
               type="button"
@@ -144,7 +144,7 @@ export function LocationSettings({ onLocationChange, className }: LocationSettin
               size="sm"
               onClick={detectLocation}
               disabled={isDetecting}
-              className="flex items-center gap-1 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              className="flex items-center gap-1 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <Navigation className={`h-4 w-4 ${isDetecting ? 'animate-spin' : ''}`} />
               {isDetecting ? 'Detecting…' : 'Auto'}
@@ -185,7 +185,7 @@ export function LocationSettings({ onLocationChange, className }: LocationSettin
             <Button
               variant="outline"
               onClick={clearLocation}
-              className="border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              className="border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               Clear
             </Button>

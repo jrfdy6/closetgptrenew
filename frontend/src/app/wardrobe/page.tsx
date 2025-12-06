@@ -261,11 +261,11 @@ export default function WardrobePage() {
   // Loading state
   if (authLoading || wardrobeLoading) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
+      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D]">
         <Navigation />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
-            <div className="w-12 h-12 mx-auto mb-4 rounded-full border-2 border-[#F5F0E8] dark:border-[#3D2F24]/70 border-t-[#FFB84C] animate-spin" />
+            <div className="w-12 h-12 mx-auto mb-4 rounded-full border-2 border-[#F5F0E8] dark:border-[#2E2E2E]/70 border-t-[#FFB84C] animate-spin" />
             <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Loading your wardrobe…</p>
           </div>
         </div>
@@ -276,10 +276,10 @@ export default function WardrobePage() {
   // Error state
   if (wardrobeError) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
+      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D]">
         <Navigation />
         <div className="flex items-center justify-center min-h-[60vh] px-4">
-          <div className="max-w-md w-full text-center bg-white/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-2xl p-6 backdrop-blur-xl">
+          <div className="max-w-md w-full text-center bg-white/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl p-6 backdrop-blur-xl">
             <AlertCircle className="w-10 h-10 text-[#FF9400] dark:text-[#FFB84C] mx-auto mb-4" />
             <h2 className="text-lg font-display text-[#1C1917] dark:text-[#F8F5F1] mb-2">We couldn’t load your wardrobe</h2>
             <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-4">{wardrobeError}</p>
@@ -294,13 +294,13 @@ export default function WardrobePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
+    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D]">
       <Navigation />
       
       {/* Header */}
       <div className="px-4 py-12">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-white/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-lg">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-white/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-lg">
             <div>
               <h1 className="text-4xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-3">My wardrobe</h1>
               <p className="text-[#57534E] dark:text-[#C4BCB4] text-base">
@@ -394,7 +394,7 @@ export default function WardrobePage() {
 
           <TabsContent value="all" className="mt-6">
             {currentItems.length === 0 ? (
-              <Card className="text-center py-12 bg-white/85 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 backdrop-blur-xl rounded-3xl">
+              <Card className="text-center py-12 bg-white/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 backdrop-blur-xl rounded-3xl">
                 <CardContent>
                   <Shirt className="w-16 h-16 text-[#FF9400] dark:text-[#FFB84C] mx-auto mb-4" />
                   <h3 className="text-lg font-display text-[#1C1917] dark:text-[#F8F5F1] mb-2">No items yet</h3>
@@ -409,7 +409,7 @@ export default function WardrobePage() {
                       <Upload className="w-4 h-4 mr-2" />
                       Add items with AI
                     </Button>
-                    <Button variant="outline" onClick={handleClearFilters} className="border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] rounded-2xl">
+                    <Button variant="outline" onClick={handleClearFilters} className="border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] rounded-2xl">
                       <Filter className="w-4 h-4 mr-2" />
                       Clear filters
                     </Button>
@@ -427,7 +427,7 @@ export default function WardrobePage() {
             variant="outline" 
             size="sm" 
             onClick={() => router.push('/outfits/generate')}
-    className="border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] transition-colors duration-200 rounded-2xl"
+    className="border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] transition-colors duration-200 rounded-2xl"
           >
     <Zap className="w-4 h-4 mr-2 text-[#FF9400]" />
     Generate outfit

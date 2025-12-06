@@ -615,7 +615,7 @@ export default function StylePersonaPage() {
           </div>
 
           {/* Rest of Content - Same Container, Below Image */}
-          <div className="p-8 bg-[#2C2119] dark:bg-[#2C2119]">
+          <div className="p-8 bg-[#2C2119] dark:bg-[#1A1A1A]">
             {/* YOU ARE + Tagline and Traits */}
             <div className="text-center max-w-4xl mx-auto mb-8">
               <div className="text-sm font-medium text-gray-400 mb-3 tracking-wider">YOU ARE</div>
@@ -657,7 +657,7 @@ export default function StylePersonaPage() {
 
 
         {/* Premium Upsell Section */}
-        <div className="glass-float rounded-3xl p-10 mb-10 glass-shadow border border-[#F5F0E8]/80 dark:border-[#3D2F24]/80 bg-gradient-to-r from-[#FFB84C]/20 via-[#FFF4E0]/40 to-[#FF9400]/20 dark:from-[#4A2E1A]/70 dark:via-[#2C2119]/80 dark:to-[#3D2F24]/70">
+        <div className="glass-float rounded-3xl p-10 mb-10 glass-shadow border border-[#F5F0E8]/80 dark:border-[#2E2E2E]/80 bg-gradient-to-r from-[#FFB84C]/20 via-[#FFF4E0]/40 to-[#FF9400]/20 dark:from-[#4A2E1A]/70 dark:via-[#2C2119]/80 dark:to-[#3D2F24]/70">
           <div className="flex flex-col lg:flex-row gap-8 lg:items-center">
             <div className="flex-1 space-y-4">
               <span className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-[#B45309] dark:text-[#FBBF24]">

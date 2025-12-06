@@ -1641,7 +1641,7 @@ function OnboardingContent() {
   // Show loading state while authenticating
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D] flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB84C] mx-auto mb-4"></div>
           <p className="text-body text-gray-600 dark:text-[#C4BCB4]">Authenticating...</p>
@@ -1653,7 +1653,7 @@ function OnboardingContent() {
   // Redirect if not authenticated
   if (!modeResolved) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D] flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB84C] mx-auto mb-4"></div>
           <p className="text-body text-gray-600 dark:text-[#C4BCB4]">Loading your experience...</p>
@@ -1664,7 +1664,7 @@ function OnboardingContent() {
 
   if (!user && !isGuestFlow) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D] flex items-center justify-center p-4">
         <div className="text-center space-y-4">
           <p className="text-lg text-gray-700 dark:text-[#C4BCB4]">Redirecting you back home...</p>
         </div>
@@ -1696,7 +1696,7 @@ function OnboardingContent() {
   // Show loading state while redirecting after upload completion
   if (uploadComplete) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D] flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Redirecting to your style persona...</p>
@@ -2091,7 +2091,7 @@ function OnboardingContent() {
               <button
                 onClick={handlePrevious}
                 disabled={currentQuestionIndex === 0}
-                className="flex w-full sm:w-auto items-center justify-center px-4 py-3 rounded-2xl text-button font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-[#3D2F24] text-gray-700 dark:text-[#F8F5F1] hover:bg-gray-200 dark:hover:bg-[#3D2F24]/80"
+                className="flex w-full sm:w-auto items-center justify-center px-4 py-3 rounded-2xl text-button font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#F8F5F1] hover:bg-gray-200 dark:hover:bg-[#262626]/80"
               >
                 <ArrowLeft className="h-4 w-4 mr-2 inline-block" />
                 Previous

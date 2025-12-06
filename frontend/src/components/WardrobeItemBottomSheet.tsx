@@ -63,7 +63,7 @@ export default function WardrobeItemBottomSheet({
     >
       <div className="p-6 space-y-6 max-w-2xl mx-auto">
         {/* Image Section */}
-        <div className="relative w-full max-w-xs md:max-w-sm mx-auto aspect-[3/4] bg-gray-100 dark:bg-[#3D2F24] rounded-2xl overflow-hidden">
+        <div className="relative w-full max-w-xs md:max-w-sm mx-auto aspect-[3/4] bg-gray-100 dark:bg-[#262626] rounded-2xl overflow-hidden">
           {!imageLoaded && (
             <div className="absolute inset-0 animate-pulse bg-gray-200 dark:bg-[#8A827A]" />
           )}
@@ -119,7 +119,7 @@ export default function WardrobeItemBottomSheet({
         </div>
 
         {/* Stats */}
-        <div className="flex gap-4 p-4 bg-[#F5F0E8]/80 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-xl">
+        <div className="flex gap-4 p-4 bg-[#F5F0E8]/80 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-xl">
           <div className="flex-1 text-center">
             <div className="text-2xl font-bold text-gray-900 dark:text-[#F8F5F1]">
               {item.wearCount || 0}
@@ -128,7 +128,7 @@ export default function WardrobeItemBottomSheet({
               Times worn
             </div>
           </div>
-          <div className="w-px bg-[#F5F0E8] dark:bg-[#3D2F24]" />
+          <div className="w-px bg-[#F5F0E8] dark:bg-[#262626]" />
           <div className="flex-1 text-center">
             <div className="text-2xl font-bold text-gray-900 dark:text-[#F8F5F1]">
               {item.lastWorn 
@@ -162,7 +162,7 @@ export default function WardrobeItemBottomSheet({
             variant="outline"
             onClick={handleToggleFavorite}
             className={cn(
-              "flex-col h-20 gap-1 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]",
+              "flex-col h-20 gap-1 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]",
               item.favorite && "border-[#FF6F61] bg-[#FFF0EC] dark:bg-[#3D211F] text-[#FF6F61]"
             )}
           >
@@ -180,7 +180,7 @@ export default function WardrobeItemBottomSheet({
           <Button
             variant="outline"
             onClick={handleIncrementWear}
-            className="flex-col h-20 gap-1 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+            className="flex-col h-20 gap-1 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
           >
             <Calendar className="w-5 h-5" />
             <span className="text-caption">Wore it</span>
@@ -192,7 +192,7 @@ export default function WardrobeItemBottomSheet({
               onClick={() => {
                 onEdit(item);
               }}
-              className="flex-col h-20 gap-1 border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              className="flex-col h-20 gap-1 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
             >
               <Edit className="w-5 h-5" />
               <span className="text-caption">Edit</span>

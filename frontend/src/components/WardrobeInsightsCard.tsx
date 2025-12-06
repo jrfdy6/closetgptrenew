@@ -96,7 +96,7 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
   };
 
   return (
-    <Card className="border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60 bg-white/85 dark:bg-[#2C2119]/85">
+    <Card className="border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60 bg-white/85 dark:bg-[#1A1A1A]/85">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -117,7 +117,7 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
       <CardContent className="space-y-6">
         {/* Weekly Summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60">
+          <div className="bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
             <div className="flex items-center gap-2 mb-2">
               <Shirt className="h-4 w-4 text-[#FF9400] dark:text-[#FFB84C]" />
               <p className="text-xs font-medium text-[#57534E] dark:text-[#C4BCB4]">Outfits Worn</p>
@@ -128,7 +128,7 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
             <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-1">this week</p>
           </div>
 
-          <div className="bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60">
+          <div className="bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
             <div className="flex items-center gap-2 mb-2">
               <Target className="h-4 w-4 text-[#FF9400] dark:text-[#FFB84C]" />
               <p className="text-xs font-medium text-[#57534E] dark:text-[#C4BCB4]">Items Used</p>
@@ -139,7 +139,7 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
             <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-1">unique items</p>
           </div>
 
-          <div className="bg-gradient-to-br from-[#FFE08F]/40 to-[#FFB84C]/35 dark:from-[#FFD27F]/25 dark:to-[#FFB84C]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60">
+          <div className="bg-gradient-to-br from-[#FFE08F]/40 to-[#FFB84C]/35 dark:from-[#FFD27F]/25 dark:to-[#FFB84C]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-4 w-4 text-[#FF9400] dark:text-[#FFB84C]" />
               <p className="text-xs font-medium text-[#57534E] dark:text-[#C4BCB4]">Created</p>
@@ -150,7 +150,7 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
             <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-1">new outfits</p>
           </div>
 
-          <div className="bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60">
+          <div className="bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
             <div className="flex items-center gap-2 mb-2">
               <BarChart3 className="h-4 w-4 text-[#FF9400] dark:text-[#FFB84C]" />
               <p className="text-xs font-medium text-[#57534E] dark:text-[#C4BCB4]">Utilization</p>
@@ -183,7 +183,7 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
 
         {/* Most Worn Item */}
         {weeklySummary?.mostWornItem && (
-          <div className="bg-[#F5F0E8]/30 dark:bg-[#3D2F24]/30 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60">
+          <div className="bg-[#F5F0E8]/30 dark:bg-[#262626]/30 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">
@@ -245,7 +245,7 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
                   className="flex-1 text-center"
                 >
                   <div 
-                    className="h-12 rounded-lg mb-2 border-2 border-[#F5F0E8] dark:border-[#3D2F24]"
+                    className="h-12 rounded-lg mb-2 border-2 border-[#F5F0E8] dark:border-[#2E2E2E]"
                     style={{ backgroundColor: color.name.toLowerCase() }}
                     title={color.name}
                   />
@@ -273,7 +273,7 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
                 <Button 
                   size="sm" 
                   variant="outline"
-                  className="text-xs border-[#F5F0E8]/70 dark:border-[#3D2F24]/80 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+                  className="text-xs border-[#F5F0E8]/70 dark:border-[#2E2E2E]/80 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
                 >
                   View Forgotten Items
                   <ChevronRight className="h-3 w-3 ml-1" />

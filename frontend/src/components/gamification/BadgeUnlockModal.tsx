@@ -74,17 +74,17 @@ export default function BadgeUnlockModal({
       case 'legendary':
         return 'border-[#FFB84C]';
       case 'epic':
-        return 'border-[#3D2F24]';
+        return 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70';
       case 'rare':
-        return 'border-[#3D2F24]';
+        return 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70';
       default:
-        return 'border-[#3D2F24]';
+        return 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70';
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md overflow-hidden bg-[#2C2119] border border-[#3D2F24]">
+      <DialogContent className="sm:max-w-md overflow-hidden bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         {/* Shimmer Effect */}
         <ShimmerEffect />
 
@@ -99,7 +99,7 @@ export default function BadgeUnlockModal({
             }}
             className="mb-4"
           >
-            <p className="text-sm font-medium text-[#C4BCB4] mb-2">
+            <p className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-2">
               Badge Unlocked!
             </p>
           </motion.div>
@@ -117,7 +117,7 @@ export default function BadgeUnlockModal({
             className="mb-6"
           >
             <motion.div
-              className={`w-24 h-24 mx-auto rounded-2xl bg-[#3D2F24] border-2 ${getRarityBorder(rarity)}
+              className={`w-24 h-24 mx-auto rounded-2xl bg-[#F5F0E8] dark:bg-[#262626] border-2 ${getRarityBorder(rarity)}
                 flex items-center justify-center relative animate-shimmer`}
             >
               <IconComponent className="w-12 h-12 text-[#FFB84C] relative z-10" />
@@ -134,7 +134,7 @@ export default function BadgeUnlockModal({
               bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
               {badgeName}
             </h2>
-            <p className="text-sm text-[#C4BCB4] mb-4">
+            <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-4">
               {badgeDescription}
             </p>
           </motion.div>
@@ -151,7 +151,7 @@ export default function BadgeUnlockModal({
             }}
             className="mb-8"
           >
-            <Badge className="text-sm px-4 py-1 bg-[#3D2F24] border border-[#3D2F24] text-[#F8F5F1]">
+            <Badge className="text-sm px-4 py-1 bg-[#F5F0E8] dark:bg-[#262626] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#1C1917] dark:text-[#F8F5F1]">
               {rarity.charAt(0).toUpperCase() + rarity.slice(1)}
             </Badge>
           </motion.div>

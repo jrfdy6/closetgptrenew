@@ -22,7 +22,7 @@ export default function FilterPills({ filters, onClearAll }: FilterPillsProps) {
   const hasActiveFilters = filters.some(f => f.selected !== 'all');
 
   return (
-    <div className="sticky top-0 z-30 bg-[#FAFAF9]/95 dark:bg-[#1A1510]/95 pb-4 -mx-4 px-4 border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 backdrop-blur-xl">
+    <div className="sticky top-0 z-30 bg-[#FAFAF9]/95 dark:bg-[#0D0D0D]/95 pb-4 -mx-4 px-4 border-b border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 backdrop-blur-xl">
       {/* Horizontal scrollable filter pills */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {filters.map((filter) => (
@@ -42,7 +42,7 @@ export default function FilterPills({ filters, onClearAll }: FilterPillsProps) {
                       "whitespace-nowrap min-h-[32px]",
                       isSelected
                         ? "bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white shadow-md shadow-amber-500/20"
-                        : "bg-[#F5F0E8] dark:bg-[#2C2119] text-[#57534E] dark:text-[#C4BCB4] border border-transparent hover:border-[#FFB84C]/40 dark:hover:border-[#FFB84C]/30 hover:text-[#1C1917] dark:hover:text-[#F8F5F1]"
+                        : "bg-[#F5F0E8] dark:bg-[#1A1A1A] text-[#57534E] dark:text-[#C4BCB4] border border-transparent hover:border-[#FFB84C]/40 dark:hover:border-[#FFB84C]/30 hover:text-[#1C1917] dark:hover:text-[#F8F5F1]"
                     )}
                   >
                     {option.label}

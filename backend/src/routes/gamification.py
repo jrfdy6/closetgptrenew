@@ -148,44 +148,20 @@ async def get_gamification_stats(
     - Active challenges
     """
     try:
-        import time
-        stats_start = time.time()
-        logger.info(f"🚀 GAMIFICATION: Stats request received for user: {current_user.id}")
-        
-        # Get level info (fast - just calculation)
+        # Get level info
         level_info = gamification_service.get_level_info(current_user.xp or 0)
-        logger.info(f"⏱️ GAMIFICATION: Level info calculated ({time.time() - stats_start:.2f}s)")
         
-        # Get AI Fit Score explanation (may query feedback data)
-        ai_fit_start = time.time()
+        # Get AI Fit Score explanation
         ai_fit_explanation = await ai_fit_score_service.get_score_explanation(current_user.id)
-        logger.info(f"⏱️ GAMIFICATION: AI Fit Score calculated ({time.time() - ai_fit_start:.2f}s, total: {time.time() - stats_start:.2f}s)")
         
-        # Get TVE stats (SLOW - fetches all wardrobe items)
-        # OPTIMIZED: Make this optional or cache it
-        tve_start = time.time()
-        try:
-            tve_stats = await tve_service.calculate_wardrobe_tve(current_user.id)
-            logger.info(f"⏱️ GAMIFICATION: TVE calculated ({time.time() - tve_start:.2f}s, total: {time.time() - stats_start:.2f}s)")
-        except Exception as tve_error:
-            logger.warning(f"⏱️ GAMIFICATION: TVE calculation failed ({time.time() - tve_start:.2f}s): {tve_error}")
-            # Return empty TVE stats instead of failing entire request
-            tve_stats = {
-                "total_tve": 0,
-                "total_wardrobe_cost": 0,
-                "percent_recouped": 0,
-                "annual_potential_range": {"low": 0, "high": 0},
-                "tve_by_category": {},
-                "lowest_progress_category": None
-            }
+        # Get TVE stats
+        tve_stats = await tve_service.calculate_wardrobe_tve(current_user.id)
         
-        # Get active challenges (may query challenge data)
-        challenges_start = time.time()
+        # Get active challenges
         from ..services.challenge_service import challenge_service
         active_challenges = await challenge_service.get_active_challenges(current_user.id)
-        logger.info(f"⏱️ GAMIFICATION: Challenges fetched ({time.time() - challenges_start:.2f}s, total: {time.time() - stats_start:.2f}s)")
         
-        response_data = {
+        return {
             "success": True,
             "data": {
                 "xp": current_user.xp or 0,
@@ -197,9 +173,6 @@ async def get_gamification_stats(
                 "active_challenges_count": len(active_challenges)
             }
         }
-        
-        logger.info(f"✅ GAMIFICATION: Stats response prepared (total: {time.time() - stats_start:.2f}s)")
-        return response_data
         
     except Exception as e:
         logger.error(f"Error getting gamification stats: {e}", exc_info=True)
@@ -380,23 +353,6 @@ async def check_cold_start_progress(
     except Exception as e:
         logger.error(f"Error checking Cold Start progress: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to check Cold Start progress")
-
-
-@router.post("/recalculate-tve")
-async def recalculate_tve(
-    current_user: UserProfile = Depends(get_current_user)
-) -> Dict[str, Any]:
-    """
-    Recalculate TVE for all user's items using new wear rates.
-    This migration endpoint updates value_per_wear and recalculates current_tve
-    based on wearCount × new_value_per_wear.
-    """
-    try:
-        result = await tve_service.recalculate_user_tve(current_user.id)
-        return result
-    except Exception as e:
-        logger.error(f"Error recalculating TVE: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Error recalculating TVE: {str(e)}")
 
 
 @router.get("/gws")

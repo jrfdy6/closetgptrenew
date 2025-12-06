@@ -227,7 +227,6 @@ ROUTERS = [
     ("src.routes.gamification", "/api"),  # Gamification system - XP, levels, badges
     ("src.routes.challenges", "/api"),  # Challenge management
     ("src.routes.admin_migration", "/api"),  # Admin migration endpoint
-    ("src.routes.auth_working", "/api/auth"),  # Authentication routes - profile endpoint
 ]
 
 def include_router_safe(module_name: str, prefix: str):
