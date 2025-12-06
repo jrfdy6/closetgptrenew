@@ -865,14 +865,29 @@ async def get_wardrobe_items_with_slash(
         
         # Prepare response
         response_prep_start = time.time()
+        
+        # OPTIMIZED: Exclude large fields for mobile to reduce response size
+        # metadata and analysis can be very large (image analysis data, embeddings, etc.)
+        # For mobile, exclude these to speed up transfer
+        import json
+        optimized_items = []
+        for item in transformed_items:
+            optimized_item = {k: v for k, v in item.items() if k not in ['metadata', 'analysis']}
+            optimized_items.append(optimized_item)
+        
         response_data = {
             "success": True,
-            "items": transformed_items,
-            "count": len(transformed_items),
+            "items": optimized_items,
+            "count": len(optimized_items),
             "user_id": current_user.id
         }
+        
+        # Log response size
+        response_json = json.dumps(response_data)
+        response_size_mb = len(response_json.encode('utf-8')) / (1024 * 1024)
         logger.info(f"⏱️ WARDROBE: Response prepared ({time.time() - response_prep_start:.2f}s, total: {time.time() - start_time:.2f}s)")
-        logger.info(f"✅ WARDROBE: Returning {len(transformed_items)} items (total time: {time.time() - start_time:.2f}s)")
+        logger.info(f"📦 WARDROBE: Response size: {response_size_mb:.2f} MB ({len(response_json)} bytes)")
+        logger.info(f"✅ WARDROBE: Returning {len(optimized_items)} items (total time: {time.time() - start_time:.2f}s)")
         
         # Successfully returning items
         return response_data
