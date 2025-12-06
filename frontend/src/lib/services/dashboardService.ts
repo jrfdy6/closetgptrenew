@@ -402,37 +402,12 @@ class DashboardService {
       // Declare response variable that will be used in both paths
       let response: any;
       
-      // Now that CORS is fixed, use API route for both mobile and desktop
-      // The CORS fix allows mobile browsers to make cross-origin requests properly
-      console.log(isMobile ? '📱 DEBUG: Mobile detected - using API route (CORS fixed)' : '🖥️ DEBUG: Desktop detected - using API route');
+      // Backend is working (Railway logs confirm), but Vercel API route times out at 10s
+      // Call backend directly - CORS is fixed and working (Railway logs show OPTIONS 200 OK)
+      console.log(isMobile ? '📱 DEBUG: Mobile - calling backend directly (CORS fixed, backend working)' : '🖥️ DEBUG: Desktop - calling backend directly (CORS fixed, backend working)');
       
-      // Quick health check first - fail fast if backend is down (non-blocking, informational only)
-      const healthCheckController = new AbortController();
-      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 3000); // Reduced to 3s for faster fail
-      const healthCheckPromise = fetch(`${backendUrl}/api/health`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        signal: healthCheckController.signal,
-      })
-        .then(response => {
-          clearTimeout(healthCheckTimeout);
-          return response;
-        })
-        .catch(() => {
-          clearTimeout(healthCheckTimeout);
-          // Silently fail - health check is just informational
-          return null;
-        });
-      
-      const apiRoutePromise = this.makeAuthenticatedRequest('/wardrobe', user, {
-        method: 'GET'
-      }).catch((error) => {
-        console.warn('⚠️ DEBUG: API route failed:', error);
-        throw error;
-      });
-      
-      // Direct backend call with timeout as fallback
-      const directTimeout = isMobile ? 30000 : 45000; // 30s for mobile, 45s for desktop
+      // Direct backend call - primary method (CORS is fixed, backend is working per Railway logs)
+      const directTimeout = 60000; // 60s - backend is working, just needs time for large datasets
       const directBackendPromise = (async () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
@@ -465,75 +440,13 @@ class DashboardService {
         }
       })();
       
-      // Wait for health check first (non-blocking, just for info)
-      // Don't wait for it - just check if it's done, then proceed with wardrobe fetch
-      healthCheckPromise.then(result => {
-        if (result && result.ok) {
-          console.log('✅ DEBUG: Backend health check passed');
-        }
-        // Silently ignore health check failures - they're just informational
-      }).catch(() => {
-        // Silently ignore health check errors
-      });
-      
-      // Race both promises - use whichever succeeds first
-      // Use allSettled to wait for both, then pick the first success
+      // Call backend directly - Railway logs show it's working, just needs time
       try {
-        const results = await Promise.allSettled([
-          apiRoutePromise.then(data => ({ source: 'api-route', data })),
-          directBackendPromise.then(data => ({ source: 'direct-backend', data }))
-        ]);
-        
-        // Find the first successful result
-        const successResult = results.find(r => r.status === 'fulfilled');
-        if (successResult && successResult.status === 'fulfilled') {
-          response = successResult.value.data;
-          console.log(`✅ DEBUG: ${successResult.value.source} succeeded`);
-        } else {
-          // Both failed - collect errors
-          const errors = results
-            .filter(r => r.status === 'rejected')
-            .map(r => r.status === 'rejected' ? r.reason : null);
-          console.error('❌ DEBUG: Both API route and direct backend failed:', errors);
-          
-          // Health check failure is just informational - don't block on it
-          
-          throw new Error(`Both attempts failed: ${errors.map(e => e?.message || String(e)).join('; ')}`);
-        }
-        
-        // Check if API route returned an error (timeout, etc.)
-        if (response?.success === false && response?.timeout) {
-          console.warn('⚠️ DEBUG: API route returned timeout error, but we got data from race');
-        }
-      } catch (raceError) {
-        // If both fail, try direct backend one more time with longer timeout
-        console.warn('⚠️ DEBUG: Both API route and direct backend failed, trying direct backend with extended timeout...');
-        const controller = new AbortController();
-        const extendedTimeout = isMobile ? 45000 : 60000; // 45s for mobile, 60s for desktop
-        const timeoutId = setTimeout(() => controller.abort(), extendedTimeout);
-        
-        try {
-          const lastResortResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            signal: controller.signal,
-          });
-          
-          clearTimeout(timeoutId);
-          
-          if (lastResortResponse.ok) {
-            response = await lastResortResponse.json();
-            console.log('✅ DEBUG: Last resort direct backend call succeeded');
-          } else {
-            throw raceError;
-          }
-        } catch (lastError) {
-          clearTimeout(timeoutId);
-          throw raceError;
-        }
+        response = await directBackendPromise;
+        console.log('✅ DEBUG: Direct backend call succeeded');
+      } catch (error) {
+        console.error('❌ DEBUG: Direct backend call failed:', error);
+        throw error;
       }
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
       console.log('🔍 DEBUG: Wardrobe stats response type:', typeof response);
