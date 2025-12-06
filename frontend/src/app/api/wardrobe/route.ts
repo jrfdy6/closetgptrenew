@@ -3,6 +3,10 @@ import { NextResponse } from 'next/server';
 // Force dynamic rendering since we use request.headers
 export const dynamic = 'force-dynamic';
 
+// Increase Vercel function timeout to 60 seconds (max for Pro plan)
+// This helps with mobile network latency between Vercel and Railway
+export const maxDuration = 60;
+
 export async function GET(request: Request) {
   try {
     console.log('🔍 DEBUG: Wardrobe API route called - CONNECTING TO BACKEND');
