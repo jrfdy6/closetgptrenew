@@ -101,6 +101,10 @@ app.add_middleware(
     expose_headers=["*"]  # Expose all headers in response
 )
 
+# Add GZip compression middleware to reduce response size for mobile
+from starlette.middleware.gzip import GZipMiddleware
+app.add_middleware(GZipMiddleware, minimum_size=1000)  # Compress responses > 1KB
+
 # Add explicit OPTIONS handler for all routes to ensure CORS headers are sent
 @app.options("/{full_path:path}")
 async def options_handler(full_path: str, request: Request):
