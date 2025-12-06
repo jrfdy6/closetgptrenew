@@ -836,14 +836,17 @@ async def get_wardrobe_items_with_slash(
                 errors.append(f"Failed to process item {doc.id}: {str(e)}")
         
         # OPTIMIZED: Sort by createdAt (newest first) - only if needed
+        sort_start = time.time()
         if transformed_items:
             transformed_items.sort(key=lambda x: x.get('createdAt', 0), reverse=True)
+        logger.info(f"⏱️ WARDROBE: Sorting complete ({time.time() - sort_start:.2f}s, total: {time.time() - start_time:.2f}s)")
         
         logger.info(f"Retrieved {len(transformed_items)} wardrobe items for user {current_user.id}")
         if errors:
             logger.warning(f"Encountered {len(errors)} errors while processing items")
         
         # OPTIMIZED: Analytics logging - quick Firestore write, wrapped in try-except
+        analytics_start = time.time()
         if ANALYTICS_AVAILABLE:
             try:
                 analytics_event = AnalyticsEvent(
@@ -856,16 +859,23 @@ async def get_wardrobe_items_with_slash(
                     }
                 )
                 log_analytics_event(analytics_event)  # Quick write, won't block significantly
-            except:
-                pass  # Silently fail analytics - don't block response
+                logger.info(f"⏱️ WARDROBE: Analytics logged ({time.time() - analytics_start:.2f}s, total: {time.time() - start_time:.2f}s)")
+            except Exception as analytics_error:
+                logger.warning(f"⏱️ WARDROBE: Analytics failed ({time.time() - analytics_start:.2f}s): {analytics_error}")
         
-        # Successfully returning items
-        return {
+        # Prepare response
+        response_prep_start = time.time()
+        response_data = {
             "success": True,
             "items": transformed_items,
             "count": len(transformed_items),
             "user_id": current_user.id
         }
+        logger.info(f"⏱️ WARDROBE: Response prepared ({time.time() - response_prep_start:.2f}s, total: {time.time() - start_time:.2f}s)")
+        logger.info(f"✅ WARDROBE: Returning {len(transformed_items)} items (total time: {time.time() - start_time:.2f}s)")
+        
+        # Successfully returning items
+        return response_data
         
     except HTTPException:
         # Re-raise HTTP exceptions
