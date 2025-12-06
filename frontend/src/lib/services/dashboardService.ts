@@ -243,9 +243,9 @@ class DashboardService {
       const userProfile = await Promise.race([userProfilePromise, userProfileTimeout]) as any;
 
       // Fetch wardrobe data first, then use it for top worn items calculation
-      // Dynamic timeout based on device - matches last resort timeout in getWardrobeStats
+      // Reduced timeout since we optimized the endpoint (should be much faster now)
       const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const wardrobeTimeout = isMobile ? 60000 : 60000; // 60s for both (last resort uses 45s mobile, 60s desktop, but we need to allow time for retries)
+      const wardrobeTimeout = 35000; // 35s - optimized endpoint should respond much faster
       const wardrobeStats = await fetchWithTimeout(
         this.getWardrobeStats(user), 
         wardrobeTimeout,
@@ -353,13 +353,31 @@ class DashboardService {
       if (!user) return { stylePersona: null };
       
       const token = await user.getIdToken();
-      
-      // OPTIMIZED: Call backend directly (like wardrobe) to avoid Vercel 10s timeout
-      // Profile endpoint is timing out on mobile via Vercel API route (504 errors)
-      // CORS is fixed, so direct backend calls work on mobile now
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+      
+      // Quick health check first (5s timeout) - fail fast if backend is down
+      const healthCheckController = new AbortController();
+      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 5000);
+      try {
+        const healthResponse = await fetch(`${backendUrl}/health`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          signal: healthCheckController.signal,
+        });
+        clearTimeout(healthCheckTimeout);
+        if (!healthResponse.ok) {
+          console.warn('⚠️ DEBUG: Backend health check failed - backend may be down');
+          return { stylePersona: null };
+        }
+      } catch (healthError) {
+        clearTimeout(healthCheckTimeout);
+        console.warn('⚠️ DEBUG: Backend health check failed - backend may be down:', healthError);
+        return { stylePersona: null };
+      }
+      
+      // If health check passes, try profile with shorter timeout (10s)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for direct backend call
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // Reduced to 10s - fail fast
       
       let response: Response;
       try {
@@ -385,7 +403,7 @@ class DashboardService {
     } catch (error) {
         console.error('Error fetching user profile:', error);
       if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
-        console.error('⏱️ DEBUG: Profile request timed out after 30 seconds (non-critical, continuing...)');
+        console.error('⏱️ DEBUG: Profile request timed out after 10 seconds (non-critical, continuing...)');
       }
       return { stylePersona: null };
     }
@@ -405,6 +423,38 @@ class DashboardService {
       // Declare response variable that will be used in both paths
       let response: any;
       
+      // Quick health check first (5s timeout) - fail fast if backend is down
+      const healthCheckController = new AbortController();
+      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 5000);
+      let backendHealthy = false;
+      try {
+        const healthResponse = await fetch(`${backendUrl}/health`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          signal: healthCheckController.signal,
+        });
+        clearTimeout(healthCheckTimeout);
+        backendHealthy = healthResponse.ok;
+        if (!backendHealthy) {
+          console.warn('⚠️ DEBUG: Backend health check failed - backend may be down');
+        }
+      } catch (healthError) {
+        clearTimeout(healthCheckTimeout);
+        console.warn('⚠️ DEBUG: Backend health check failed - backend may be down:', healthError);
+        backendHealthy = false;
+      }
+      
+      // If backend is not healthy, return empty data immediately
+      if (!backendHealthy) {
+        console.warn('⚠️ DEBUG: Backend appears to be down - returning empty wardrobe data');
+        return {
+          success: false,
+          items: [],
+          count: 0,
+          error: 'Backend health check failed'
+        };
+      }
+      
       // SECURITY NOTE: Calling backend directly (bypassing Vercel API route)
       // - Backend URL is already public (NEXT_PUBLIC_BACKEND_URL in client bundle)
       // - Authentication still required (Firebase ID tokens verified by backend)
@@ -414,10 +464,10 @@ class DashboardService {
       // Reason: Vercel API route times out at 10s (Hobby plan limit)
       // Backend is working (Railway logs show successful requests)
       // TODO: Consider upgrading Vercel plan or optimizing backend for faster responses
-      console.log(isMobile ? '📱 DEBUG: Mobile - calling backend directly (CORS fixed, backend working)' : '🖥️ DEBUG: Desktop - calling backend directly (CORS fixed, backend working)');
+      console.log(isMobile ? '📱 DEBUG: Mobile - calling backend directly (health check passed)' : '🖥️ DEBUG: Desktop - calling backend directly (health check passed)');
       
-      // Direct backend call - primary method (CORS is fixed, backend is working per Railway logs)
-      const directTimeout = 60000; // 60s - backend is working, just needs time for large datasets
+      // Direct backend call - reduced timeout since we optimized the endpoint
+      const directTimeout = 30000; // 30s - optimized endpoint should be much faster now
       const directBackendPromise = (async () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
