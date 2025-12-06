@@ -807,6 +807,11 @@ async def get_wardrobe_items_with_slash(
                     return default
                 
                 # Build transformed item in one pass with efficient defaults
+                # Convert lastWorn timestamp if present
+                last_worn = item_data.get('lastWorn')
+                if last_worn:
+                    last_worn = convert_timestamp(last_worn, None)
+                
                 transformed_item = {
                     "id": doc_id,
                     "name": item_data.get('name', 'Unknown Item'),
@@ -818,12 +823,12 @@ async def get_wardrobe_items_with_slash(
                     "style": item_data.get('style', []),
                     "season": item_data.get('season', ['all']),
                     "occasion": item_data.get('occasion', []),
-                    "lastWorn": item_data.get('lastWorn'),
+                    "lastWorn": last_worn,  # Already converted above
                     "userId": current_user.id,
                     "createdAt": convert_timestamp(item_data.get('createdAt'), current_time),
                     "updatedAt": convert_timestamp(item_data.get('updatedAt'), current_time),
-                    "metadata": item_data.get('metadata'),
-                    "analysis": item_data.get('analysis'),
+                    # Exclude metadata and analysis to reduce response size
+                    # These can be fetched separately if needed
                     "backgroundRemovedUrl": item_data.get('backgroundRemovedUrl'),
                     "thumbnailUrl": item_data.get('thumbnailUrl'),
                     "processing_status": item_data.get('processing_status'),
