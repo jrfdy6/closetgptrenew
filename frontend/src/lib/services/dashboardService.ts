@@ -497,6 +497,11 @@ class DashboardService {
         
         try {
           console.log(`🚀 FRONTEND: Sending GET request to ${wardrobeUrl}...`);
+          console.log(`🚀 FRONTEND: Request headers:`, {
+            'Authorization': `Bearer ${token.substring(0, 20)}...`,
+            'Content-Type': 'application/json',
+          });
+          
           const directResponse = await fetch(wardrobeUrl, {
             method: 'GET',
             headers: {
@@ -505,7 +510,14 @@ class DashboardService {
             },
             signal: controller.signal,
           });
-          console.log(`🚀 FRONTEND: Received response after ${Date.now() - fetchStart}ms, status: ${directResponse.status}`);
+          
+          const responseTime = Date.now() - fetchStart;
+          console.log(`🚀 FRONTEND: Received response after ${responseTime}ms, status: ${directResponse.status}`);
+          
+          if (!directResponse.ok) {
+            const errorText = await directResponse.text().catch(() => 'Unable to read error');
+            console.error(`🚀 FRONTEND: Response not OK - status: ${directResponse.status}, body: ${errorText.substring(0, 200)}`);
+          }
           
           clearTimeout(timeoutId);
           
@@ -518,6 +530,13 @@ class DashboardService {
           }
         } catch (error) {
           clearTimeout(timeoutId);
+          const errorTime = Date.now() - fetchStart;
+          console.error(`🚀 FRONTEND: Fetch error after ${errorTime}ms:`, error);
+          console.error(`🚀 FRONTEND: Error type:`, error instanceof Error ? error.constructor.name : typeof error);
+          console.error(`🚀 FRONTEND: Error message:`, error instanceof Error ? error.message : String(error));
+          if (error instanceof Error && error.name === 'AbortError') {
+            console.error(`🚀 FRONTEND: Request was aborted (likely timeout)`);
+          }
           throw error;
         }
       })();
