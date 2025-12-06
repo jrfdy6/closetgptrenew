@@ -371,8 +371,15 @@ class DashboardService {
         }
       } catch (healthError) {
         clearTimeout(healthCheckTimeout);
-        console.warn('⚠️ DEBUG: Backend health check failed - backend may be down:', healthError);
-        return { stylePersona: null };
+        // On mobile, health check CORS failures are common - don't block the main request
+        const isMobileDevice = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+        if (isMobileDevice) {
+          console.warn('⚠️ DEBUG: Mobile health check failed (likely CORS) - proceeding with main request anyway');
+          // Don't return early on mobile - proceed with profile request
+        } else {
+          console.warn('⚠️ DEBUG: Backend health check failed - backend may be down:', healthError);
+          return { stylePersona: null };
+        }
       }
       
       // If health check passes, try profile with shorter timeout (10s)
@@ -440,11 +447,18 @@ class DashboardService {
         }
       } catch (healthError) {
         clearTimeout(healthCheckTimeout);
-        console.warn('⚠️ DEBUG: Backend health check failed - backend may be down:', healthError);
-        backendHealthy = false;
+        // On mobile, health check CORS failures are common - don't block the main request
+        const isMobileDevice = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+        if (isMobileDevice) {
+          console.warn('⚠️ DEBUG: Mobile health check failed (likely CORS) - proceeding with main request anyway');
+          backendHealthy = true; // Don't block on mobile
+        } else {
+          console.warn('⚠️ DEBUG: Backend health check failed - backend may be down:', healthError);
+          backendHealthy = false;
+        }
       }
       
-      // If backend is not healthy, return empty data immediately
+      // If backend is not healthy (and not mobile), return empty data immediately
       if (!backendHealthy) {
         console.warn('⚠️ DEBUG: Backend appears to be down - returning empty wardrobe data');
         return {
