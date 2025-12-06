@@ -426,8 +426,8 @@ class DashboardService {
         throw error;
       });
       
-      // Direct backend call with shorter timeout for mobile (fail fast)
-      const directTimeout = isMobile ? 15000 : 30000; // Reduced from 30s/45s to 15s/30s
+      // Direct backend call with timeout - increased for mobile to match API route
+      const directTimeout = isMobile ? 30000 : 45000; // 30s for mobile (matches API route), 45s for desktop
       const directBackendPromise = (async () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {

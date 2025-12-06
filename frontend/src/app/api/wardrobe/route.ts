@@ -57,8 +57,10 @@ export async function GET(request: Request) {
     // Add retry logic with exponential backoff for mobile network issues
     const userAgent = request.headers.get('user-agent') || '';
     const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
-    const timeoutMs = isMobile ? 15000 : 30000; // 15s for mobile (shorter, fail fast), 30s for desktop
-    const maxRetries = isMobile ? 2 : 1; // Retry once on mobile
+    // Increased mobile timeout - backend responds but network latency on mobile can be high
+    // With 145+ items, backend needs more time to process and return data
+    const timeoutMs = isMobile ? 30000 : 45000; // 30s for mobile (was 15s), 45s for desktop
+    const maxRetries = isMobile ? 1 : 1; // Reduced retries since we increased timeout
     
     console.log('🔍 DEBUG: Wardrobe API route - isMobile:', isMobile, 'timeout:', timeoutMs, 'maxRetries:', maxRetries);
     
