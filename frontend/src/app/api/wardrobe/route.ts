@@ -43,20 +43,24 @@ export async function GET(request: Request) {
     console.log('🔍 DEBUG: About to call backend with URL:', fullBackendUrl);
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
     
-    // Add timeout for mobile connections (15 seconds)
+    // Add timeout for mobile connections (60 seconds - backend can be slow with large wardrobes)
+    // Backend logs show it IS responding, but may take time with 145+ items
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
     
-    const response = await fetch(fullBackendUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader, // Use ONLY the real auth token
-        'Content-Type': 'application/json',
-      },
-      signal: controller.signal,
-    }).finally(() => {
+    let response: Response;
+    try {
+      response = await fetch(fullBackendUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': authHeader, // Use ONLY the real auth token
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      });
+    } finally {
       clearTimeout(timeoutId);
-    });
+    }
     
     console.log('🔍 DEBUG: Backend response received:', {
       status: response.status,
@@ -66,58 +70,20 @@ export async function GET(request: Request) {
     
     if (!response.ok) {
       console.error('🔍 DEBUG: Backend response not ok:', response.status, response.statusText);
-      console.error('🔍 DEBUG: This means the backend rejected the request - likely due to invalid token');
-      // Fallback to mock data if backend is not available
-      const mockWardrobe = {
-        success: true,
-        items: [
-          {
-            id: 'item_1',
-            name: 'Dark Academia Blazer',
-            type: 'blazer',
-            color: 'charcoal',
-            brand: 'The Savile Row Company',
-            imageUrl: '/placeholder.jpg',
-            isFavorite: true,
-            category: 'outerwear'
-          },
-          {
-            id: 'item_2',
-            name: 'Statement T-Shirt',
-            type: 't-shirt',
-            color: 'white',
-            brand: 'Celine',
-            imageUrl: '/placeholder.jpg',
-            isFavorite: false,
-            category: 'tops'
-          },
-          {
-            id: 'item_3',
-            name: 'Slim Fit Pants',
-            type: 'pants',
-            color: 'olive',
-            brand: 'Dockers',
-            imageUrl: '/placeholder.jpg',
-            isFavorite: true,
-            category: 'bottoms'
-          },
-          {
-            id: 'item_4',
-            name: 'Oxford Shoes',
-            type: 'shoes',
-            color: 'brown',
-            brand: 'Unknown',
-            imageUrl: '/placeholder.jpg',
-            isFavorite: false,
-            category: 'shoes'
-          }
-        ],
-        count: 4,
-        user_id: 'mock-user',
-        message: 'Backend not available, using mock data'
-      };
+      console.error('🔍 DEBUG: This means the backend rejected the request');
+      const errorText = await response.text().catch(() => 'Unable to read error');
+      console.error('🔍 DEBUG: Error response:', errorText);
       
-      return NextResponse.json(mockWardrobe);
+      // Return error instead of mock data - let dashboard service handle fallback
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Backend returned ${response.status}: ${response.statusText}`,
+          items: [],
+          count: 0
+        },
+        { status: response.status }
+      );
     }
     
     const wardrobeData = await response.json();
@@ -138,60 +104,32 @@ export async function GET(request: Request) {
     
     // Check if it's a timeout/abort error
     if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
-      console.error('⏱️ DEBUG: Request timed out after 15 seconds - this may be a mobile connection issue');
+      console.error('⏱️ DEBUG: Request timed out after 60 seconds - backend may be slow or connection issue');
+      console.error('⏱️ DEBUG: Backend logs show it IS responding, but slowly. Consider checking backend performance.');
+      // Return timeout error instead of mock data
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Request timed out - backend is responding but slowly',
+          items: [],
+          count: 0,
+          timeout: true
+        },
+        { status: 504 } // Gateway Timeout
+      );
     }
     
-    // Fallback to mock data on error
-    const mockWardrobe = {
-      success: true,
-      items: [
-        {
-          id: 'item_1',
-          name: 'Dark Academia Blazer',
-          type: 'blazer',
-          color: 'charcoal',
-          brand: 'The Savile Row Company',
-          imageUrl: '/placeholder.jpg',
-          isFavorite: true,
-          category: 'outerwear'
-        },
-        {
-          id: 'item_2',
-          name: 'Statement T-Shirt',
-          type: 't-shirt',
-          color: 'white',
-          brand: 'Celine',
-          imageUrl: '/placeholder.jpg',
-          isFavorite: false,
-          category: 'tops'
-        },
-        {
-          id: 'item_3',
-          name: 'Slim Fit Pants',
-          type: 'pants',
-          color: 'olive',
-          brand: 'Dockers',
-          imageUrl: '/placeholder.jpg',
-          isFavorite: true,
-          category: 'bottoms'
-        },
-        {
-          id: 'item_4',
-          name: 'Oxford Shoes',
-          type: 'shoes',
-          color: 'brown',
-          brand: 'Unknown',
-          imageUrl: '/placeholder.jpg',
-          isFavorite: false,
-          category: 'shoes'
-        }
-      ],
-      count: 4,
-      user_id: 'mock-user',
-      message: 'Error occurred, using mock data'
-    };
-    
-    return NextResponse.json(mockWardrobe);
+    // For other errors, return error response instead of mock data
+    console.error('🔍 DEBUG: Returning error response instead of mock data');
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        items: [],
+        count: 0
+      },
+      { status: 500 }
+    );
   }
 }
 

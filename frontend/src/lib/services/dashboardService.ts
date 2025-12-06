@@ -235,19 +235,20 @@ class DashboardService {
         }
       };
 
-      // Fetch user profile with persona data
+      // Fetch user profile with persona data - increased timeout
       const userProfile = await fetchWithTimeout(
         this.getUserProfile(user),
-        5000,
+        10000,
         { stylePersona: null },
         'UserProfile'
       );
 
       // Fetch wardrobe data first, then use it for top worn items calculation
-      // Reduced timeout for mobile - 15s should be enough for most connections
+      // Increased timeout to 60s - backend can be slow with large wardrobes (145+ items)
+      // Backend logs show it IS responding, but may take time to process
       const wardrobeStats = await fetchWithTimeout(
         this.getWardrobeStats(user), 
-        15000, 
+        60000, 
         { items: [], total_items: 0 }, 
         'WardrobeStats'
       );
