@@ -871,28 +871,46 @@ async def get_wardrobe_items_with_slash(
         # Prepare response
         response_prep_start = time.time()
         
-        # OPTIMIZED: Exclude large fields for mobile to reduce response size
-        # metadata and analysis can be very large (image analysis data, embeddings, etc.)
-        # For mobile, exclude these to speed up transfer
+        # Items already exclude metadata/analysis (done during transformation)
+        # Ensure all datetime fields are JSON serializable
         import json
-        optimized_items = []
-        for item in transformed_items:
-            optimized_item = {k: v for k, v in item.items() if k not in ['metadata', 'analysis']}
-            optimized_items.append(optimized_item)
+        try:
+            # Test serialization to catch any remaining datetime issues
+            if transformed_items:
+                test_json = json.dumps(transformed_items[0])
+        except (TypeError, ValueError) as serialization_error:
+            logger.error(f"❌ WARDROBE: JSON serialization error in item: {serialization_error}")
+            # Try to find and fix the problematic field
+            for i, item in enumerate(transformed_items):
+                try:
+                    json.dumps(item)
+                except (TypeError, ValueError) as item_error:
+                    logger.error(f"❌ WARDROBE: Item {i} has serialization issue: {item_error}")
+                    # Convert any remaining datetime fields
+                    for key, value in item.items():
+                        if value and hasattr(value, 'timestamp'):
+                            try:
+                                item[key] = int(value.timestamp())
+                            except:
+                                item[key] = None
         
         response_data = {
             "success": True,
-            "items": optimized_items,
-            "count": len(optimized_items),
+            "items": transformed_items,
+            "count": len(transformed_items),
             "user_id": current_user.id
         }
         
         # Log response size
-        response_json = json.dumps(response_data)
-        response_size_mb = len(response_json.encode('utf-8')) / (1024 * 1024)
-        logger.info(f"⏱️ WARDROBE: Response prepared ({time.time() - response_prep_start:.2f}s, total: {time.time() - start_time:.2f}s)")
-        logger.info(f"📦 WARDROBE: Response size: {response_size_mb:.2f} MB ({len(response_json)} bytes)")
-        logger.info(f"✅ WARDROBE: Returning {len(optimized_items)} items (total time: {time.time() - start_time:.2f}s)")
+        try:
+            response_json = json.dumps(response_data)
+            response_size_mb = len(response_json.encode('utf-8')) / (1024 * 1024)
+            logger.info(f"⏱️ WARDROBE: Response prepared ({time.time() - response_prep_start:.2f}s, total: {time.time() - start_time:.2f}s)")
+            logger.info(f"📦 WARDROBE: Response size: {response_size_mb:.2f} MB ({len(response_json)} bytes)")
+        except (TypeError, ValueError) as size_error:
+            logger.error(f"❌ WARDROBE: Failed to calculate response size: {size_error}")
+        
+        logger.info(f"✅ WARDROBE: Returning {len(transformed_items)} items (total time: {time.time() - start_time:.2f}s)")
         
         # Successfully returning items
         return response_data
