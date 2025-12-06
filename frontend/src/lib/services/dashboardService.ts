@@ -402,8 +402,15 @@ class DashboardService {
       // Declare response variable that will be used in both paths
       let response: any;
       
-      // Backend is working (Railway logs confirm), but Vercel API route times out at 10s
-      // Call backend directly - CORS is fixed and working (Railway logs show OPTIONS 200 OK)
+      // SECURITY NOTE: Calling backend directly (bypassing Vercel API route)
+      // - Backend URL is already public (NEXT_PUBLIC_BACKEND_URL in client bundle)
+      // - Authentication still required (Firebase ID tokens verified by backend)
+      // - CORS is properly configured and working (Railway logs confirm)
+      // - Backend has its own security measures (auth, validation, rate limiting)
+      // 
+      // Reason: Vercel API route times out at 10s (Hobby plan limit)
+      // Backend is working (Railway logs show successful requests)
+      // TODO: Consider upgrading Vercel plan or optimizing backend for faster responses
       console.log(isMobile ? '📱 DEBUG: Mobile - calling backend directly (CORS fixed, backend working)' : '🖥️ DEBUG: Desktop - calling backend directly (CORS fixed, backend working)');
       
       // Direct backend call - primary method (CORS is fixed, backend is working per Railway logs)
