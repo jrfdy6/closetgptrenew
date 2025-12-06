@@ -108,20 +108,24 @@ export function useGamificationStats() {
       // Call backend directly to avoid Vercel API route timeout (10s limit)
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
       const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const timeout = isMobile ? 30000 : 20000; // 30s on mobile, 20s on desktop
+      const timeout = isMobile ? 60000 : 30000; // 60s on mobile (matching wardrobe), 30s on desktop
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      const timeoutId = setTimeout(() => {
+        console.warn(`⏱️ DEBUG: Gamification stats request timing out after ${timeout/1000}s...`);
+        controller.abort();
+      }, timeout);
       
-      const response = await fetch(`${backendUrl}/api/gamification/stats`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
+      try {
+        const response = await fetch(`${backendUrl}/api/gamification/stats`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch gamification stats: ${response.status}`);
@@ -129,14 +133,24 @@ export function useGamificationStats() {
 
       const data = await response.json();
       
-      if (data.success) {
-        setStats(data.data);
-      } else {
-        throw new Error(data.error || 'Failed to fetch stats');
+        if (data.success) {
+          setStats(data.data);
+        } else {
+          throw new Error(data.error || 'Failed to fetch stats');
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
       }
     } catch (err) {
-      console.error('Error fetching gamification stats:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.error(`⏱️ DEBUG: Gamification stats timed out after ${timeout/1000}s (non-critical, continuing...)`);
+        // Don't set error for timeout - allow dashboard to continue without stats
+        setStats(null);
+      } else {
+        console.error('Error fetching gamification stats:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      }
     } finally {
       setLoading(false);
     }
@@ -245,7 +259,7 @@ export function useChallenges() {
       // Call backend directly to avoid Vercel API route timeout
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
       const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const timeout = isMobile ? 30000 : 20000; // 30s on mobile, 20s on desktop
+      const timeout = isMobile ? 60000 : 30000; // 60s on mobile (matching wardrobe), 30s on desktop
       
       // Fetch active and available challenges in parallel
       const [activeResponse, availableResponse] = await Promise.all([
