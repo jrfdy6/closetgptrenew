@@ -64,7 +64,7 @@ export default function MobileOptimizedNav({
                 variant="ghost"
                 size="sm"
                 onClick={onSearchClick}
-                className="p-2 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#3D2F24]"
+                className="p-2 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#262626]"
               >
                 <Search className="h-5 w-5" />
               </Button>
@@ -75,7 +75,7 @@ export default function MobileOptimizedNav({
               <Button
                 variant="ghost"
                 size="sm"
-                className="p-2 relative text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#3D2F24]"
+                className="p-2 relative text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#262626]"
               >
                 <Bell className="h-5 w-5" />
                 <Badge 
@@ -92,7 +92,7 @@ export default function MobileOptimizedNav({
               variant="ghost"
               size="sm"
               onClick={() => setIsOpen(!isOpen)}
-              className="p-2 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#3D2F24]"
+              className="p-2 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#262626]"
             >
               {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
@@ -162,7 +162,7 @@ export default function MobileOptimizedNav({
                       className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-200 ${
                         active
                           ? 'border-[#FFB84C]/60 bg-[#F5F0E8] dark:bg-[#1A1A1A] text-[#1C1917] dark:text-[#F8F5F1]'
-                          : 'border-transparent text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]'
+                          : 'border-transparent text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#262626] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]'
                       }`}
                     >
                       <Icon className="h-5 w-5" />
@@ -173,7 +173,7 @@ export default function MobileOptimizedNav({
               </nav>
 
               {/* Quick Actions */}
-              <div className="mt-8 pt-6 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+              <div className="mt-8 pt-6 border-t border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
                 <h3 className="text-sm font-medium text-[#8A827A] dark:text-[#C4BCB4] mb-3 uppercase tracking-wide">
                   Quick Actions
                 </h3>
@@ -189,7 +189,7 @@ export default function MobileOptimizedNav({
                   <Link
                     href="/wardrobe"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] rounded-xl transition-all duration-200"
+                    className="flex items-center gap-3 px-4 py-3 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#262626] rounded-xl transition-all duration-200"
                   >
                     <Shirt className="h-5 w-5" />
                     <span className="font-medium">Add Items</span>
@@ -198,11 +198,11 @@ export default function MobileOptimizedNav({
               </div>
 
               {/* Settings */}
-              <div className="mt-6 pt-6 border-t border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+              <div className="mt-6 pt-6 border-t border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
                 <Link
                   href="/settings"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] rounded-xl transition-all duration-200"
+                  className="flex items-center gap-3 px-4 py-3 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#262626] rounded-xl transition-all duration-200"
                 >
                   <Settings className="h-5 w-5" />
                   <span className="font-medium">Settings</span>
