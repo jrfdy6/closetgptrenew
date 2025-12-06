@@ -546,12 +546,21 @@ class DashboardService {
         console.warn('⚠️ DEBUG: 4. Backend is returning fallback/mock data');
       }
       
-      // Calculate categories and colors from the actual items
+      // OPTIMIZED: Limit items processed on mobile for better performance
+      const isMobileDevice = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const maxItemsForStats = isMobileDevice ? 200 : wardrobeItems.length; // Limit to 200 items on mobile for stats
+      const itemsForStats = Array.isArray(wardrobeItems) ? wardrobeItems.slice(0, maxItemsForStats) : [];
+      
+      if (isMobileDevice && wardrobeItems.length > maxItemsForStats) {
+        console.log(`📱 DEBUG: Mobile detected - limiting stats calculation to ${maxItemsForStats} items (out of ${wardrobeItems.length})`);
+      }
+      
+      // Calculate categories and colors from the actual items (limited on mobile)
       const categories: { [key: string]: number } = {};
       const colors: { [key: string]: number } = {};
       
-      if (Array.isArray(wardrobeItems)) {
-        wardrobeItems.forEach((item: any) => {
+      if (itemsForStats.length > 0) {
+        itemsForStats.forEach((item: any) => {
           // Count categories
           const category = item.type || item.category || 'unknown';
           categories[category] = (categories[category] || 0) + 1;
@@ -786,24 +795,39 @@ class DashboardService {
       console.log('🔍 DEBUG: Calculating top worn items from wardrobe data');
       console.log('🔍 DEBUG: Wardrobe items count:', wardrobeItems.length);
       
+      // OPTIMIZED: Limit items processed on mobile for better performance
+      const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const maxItemsToProcess = isMobile ? 100 : wardrobeItems.length; // Limit to 100 items on mobile
+      const itemsToProcess = wardrobeItems.slice(0, maxItemsToProcess);
+      
+      if (isMobile && wardrobeItems.length > maxItemsToProcess) {
+        console.log(`📱 DEBUG: Mobile detected - limiting processing to ${maxItemsToProcess} items (out of ${wardrobeItems.length})`);
+      }
+      
       // Calculate top worn items from the wardrobe data we already have
-      if (wardrobeItems && wardrobeItems.length > 0) {
+      if (itemsToProcess && itemsToProcess.length > 0) {
         const usedIds = new Set<string>();
         const categorySelections: any[] = [];
 
+        // OPTIMIZED: Pre-calculate preference scores once instead of multiple times
+        const itemsWithScores = itemsToProcess.map(item => ({
+          item,
+          score: calculatePreferenceScore(item)
+        }));
+
+        // OPTIMIZED: Single pass through items instead of nested loops
         WARDROBE_CATEGORY_CONFIG.forEach((config) => {
           let bestItem: any = null;
           let bestScore = -Infinity;
 
-          wardrobeItems.forEach((item: any) => {
+          itemsWithScores.forEach(({ item, score }) => {
             if (!itemMatchesCategory(item, config.keywords)) {
               return;
             }
 
-            const preferenceScore = calculatePreferenceScore(item);
-            if (!bestItem || preferenceScore > bestScore) {
+            if (!bestItem || score > bestScore) {
               bestItem = item;
-              bestScore = preferenceScore;
+              bestScore = score;
             }
           });
 
@@ -813,12 +837,14 @@ class DashboardService {
           }
         });
 
-        // Fallback to highest preference score items to ensure we always have data
-        const sortedByPreference = [...wardrobeItems].sort(
-          (a, b) => calculatePreferenceScore(b) - calculatePreferenceScore(a)
-        );
+        // OPTIMIZED: Use pre-sorted items instead of sorting again
+        const sortedByPreference = itemsWithScores
+          .sort((a, b) => b.score - a.score)
+          .map(({ item }) => item);
+        
         const combinedItems: any[] = [...categorySelections];
 
+        // Add top items by preference score (already sorted)
         sortedByPreference.forEach((item) => {
           if (!item || usedIds.has(item.id)) {
             return;
