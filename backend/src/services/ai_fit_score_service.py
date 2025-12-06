@@ -21,9 +21,16 @@ class AIFitScoreService:
     async def get_feedback_count(self, user_id: str) -> int:
         """Get total feedback count for a user"""
         try:
-            feedback_ref = self.db.collection('outfit_feedback').where('user_id', '==', user_id)
+            import time
+            count_start = time.time()
+            # OPTIMIZED: Limit to 1000 to prevent timeout on users with massive feedback history
+            feedback_ref = self.db.collection('outfit_feedback')\
+                .where('user_id', '==', user_id)\
+                .limit(1000)  # Cap at 1000 for performance
             feedback_docs = list(feedback_ref.stream())
-            return len(feedback_docs)
+            count = len(feedback_docs)
+            logger.info(f"⏱️ AI_FIT: Feedback count query: {count} items ({time.time() - count_start:.2f}s)")
+            return count
         except Exception as e:
             logger.error(f"Error getting feedback count: {e}", exc_info=True)
             return 0
