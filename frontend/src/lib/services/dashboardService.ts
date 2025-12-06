@@ -243,11 +243,11 @@ class DashboardService {
       const userProfile = await Promise.race([userProfilePromise, userProfileTimeout]) as any;
 
       // Fetch wardrobe data first, then use it for top worn items calculation
-      // Increased timeout to 60s - backend can be slow with large wardrobes (145+ items)
-      // Backend logs show it IS responding, but may take time to process
+      // Use shorter timeout - backend responds quickly (Railway logs show <1s response)
+      // If it takes longer, likely a network issue, so fail fast and retry
       const wardrobeStats = await fetchWithTimeout(
         this.getWardrobeStats(user), 
-        60000, 
+        30000, // 30s timeout - backend responds quickly, longer = network issue
         { items: [], total_items: 0 }, 
         'WardrobeStats'
       );

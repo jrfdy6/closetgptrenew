@@ -541,19 +541,32 @@ export default function Dashboard() {
                   />
                     </div>
 
-        {/* Backend Status Message */}
-        {dashboardData && dashboardData.totalItems === 0 && (
+        {/* Backend Status Message - Show when no items loaded */}
+        {dashboardData && dashboardData.totalItems === 0 && !isLoading && (
           <Card className="mb-8 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-[#FFF7E6]/85 dark:bg-[#2C2119]/85 backdrop-blur-xl rounded-2xl sm:hover:shadow-lg transition-shadow duration-200">
             <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <Info className="h-6 w-6 text-[#FF9400] dark:text-[#FFB84C]" />
-                <div>
-                  <h3 className="text-lg font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
-                    Backend setup in progress
+              <div className="flex items-start space-x-3">
+                <Info className="h-6 w-6 text-[#FF9400] dark:text-[#FFB84C] flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="text-lg font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2">
+                    {isMobile ? 'Connection Issue' : 'Backend setup in progress'}
                   </h3>
-                  <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
-                    Your dashboard is live. Wardrobe data will appear as soon as the backend endpoints finish syncing.
+                  <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-4">
+                    {isMobile 
+                      ? 'Unable to load wardrobe items. This may be due to a slow mobile connection. Please try refreshing or check your network connection.'
+                      : 'Your dashboard is live. Wardrobe data will appear as soon as the backend endpoints finish syncing.'}
                   </p>
+                  <Button
+                    onClick={() => {
+                      fetchDashboardData();
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="border-[#FF9400]/30 text-[#FF9400] hover:bg-[#FF9400]/10"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Retry Loading
+                  </Button>
                 </div>
               </div>
             </CardContent>

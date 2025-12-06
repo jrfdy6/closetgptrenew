@@ -43,10 +43,19 @@ export async function GET(request: Request) {
     console.log('🔍 DEBUG: About to call backend with URL:', fullBackendUrl);
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
     
-    // Add timeout for mobile connections (60 seconds - backend can be slow with large wardrobes)
-    // Backend logs show it IS responding, but may take time with 145+ items
+    // Add timeout - shorter for mobile, longer for desktop
+    // Check user agent to detect mobile
+    const userAgent = request.headers.get('user-agent') || '';
+    const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+    const timeoutMs = isMobile ? 30000 : 60000; // 30s for mobile, 60s for desktop
+    
+    console.log('🔍 DEBUG: Wardrobe API route - isMobile:', isMobile, 'timeout:', timeoutMs);
+    
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const timeoutId = setTimeout(() => {
+      console.error(`⏱️ DEBUG: Wardrobe request timed out after ${timeoutMs}ms (${isMobile ? 'mobile' : 'desktop'})`);
+      controller.abort();
+    }, timeoutMs);
     
     let response: Response;
     try {
@@ -104,16 +113,24 @@ export async function GET(request: Request) {
     
     // Check if it's a timeout/abort error
     if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
-      console.error('⏱️ DEBUG: Request timed out after 60 seconds - backend may be slow or connection issue');
-      console.error('⏱️ DEBUG: Backend logs show it IS responding, but slowly. Consider checking backend performance.');
+      const userAgent = request.headers.get('user-agent') || '';
+      const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+      const timeoutMsg = isMobile 
+        ? 'Request timed out on mobile - network may be slow. Try refreshing or check your connection.'
+        : 'Request timed out - backend may be slow or connection issue';
+      
+      console.error(`⏱️ DEBUG: ${timeoutMsg}`);
+      console.error('⏱️ DEBUG: Backend logs show it IS responding quickly, this is likely a network issue.');
+      
       // Return timeout error instead of mock data
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Request timed out - backend is responding but slowly',
+          error: timeoutMsg,
           items: [],
           count: 0,
-          timeout: true
+          timeout: true,
+          isMobile: isMobile
         },
         { status: 504 } // Gateway Timeout
       );
