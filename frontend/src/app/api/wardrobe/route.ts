@@ -75,6 +75,7 @@ export async function GET(request: Request) {
         
         try {
           console.log(`🔍 DEBUG: Attempt ${attempt + 1}/${maxRetries + 1} - Fetching from backend...`);
+          console.log(`🔍 DEBUG: Backend URL: ${fullBackendUrl}`);
           const startTime = Date.now();
           
           response = await fetch(fullBackendUrl, {
@@ -93,6 +94,15 @@ export async function GET(request: Request) {
           break; // Success, exit retry loop
         } catch (fetchError) {
           clearTimeout(timeoutId);
+          // Log more details about the fetch error
+          if (fetchError instanceof Error) {
+            console.error(`❌ DEBUG: Fetch error details:`, {
+              name: fetchError.name,
+              message: fetchError.message,
+              cause: fetchError.cause,
+              stack: fetchError.stack?.substring(0, 200)
+            });
+          }
           throw fetchError;
         }
       } catch (error) {
@@ -108,9 +118,15 @@ export async function GET(request: Request) {
       }
     }
     
-    // If all retries failed, throw the last error
+    // If all retries failed, provide more context
     if (!response) {
-      throw lastError || new Error('All retry attempts failed');
+      const errorMessage = lastError instanceof Error 
+        ? `All retry attempts failed: ${lastError.message}` 
+        : 'All retry attempts failed';
+      console.error(`❌ DEBUG: ${errorMessage}`);
+      console.error(`❌ DEBUG: Backend URL was: ${fullBackendUrl}`);
+      console.error(`❌ DEBUG: This could be a network issue, backend down, or CORS problem`);
+      throw lastError || new Error(errorMessage);
     }
     
     console.log('🔍 DEBUG: Backend response received:', {
@@ -166,10 +182,11 @@ export async function GET(request: Request) {
     console.error('🔍 DEBUG: Error type:', error instanceof Error ? error.constructor.name : typeof error);
     console.error('🔍 DEBUG: Error message:', error instanceof Error ? error.message : String(error));
     
+    const userAgent = request.headers.get('user-agent') || '';
+    const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+    
     // Check if it's a timeout/abort error
     if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
-      const userAgent = request.headers.get('user-agent') || '';
-      const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
       const timeoutMsg = isMobile 
         ? 'Request timed out on mobile - network may be slow. Try refreshing or check your connection.'
         : 'Request timed out - backend may be slow or connection issue';
@@ -198,12 +215,53 @@ export async function GET(request: Request) {
       );
     }
     
+    // Check if it's a network error (fetch failed, connection refused, etc.)
+    const isNetworkError = error instanceof Error && (
+      error.message.includes('fetch failed') ||
+      error.message.includes('Failed to fetch') ||
+      error.message.includes('NetworkError') ||
+      error.message.includes('network') ||
+      error.name === 'TypeError' && error.message.includes('fetch')
+    );
+    
+    if (isNetworkError) {
+      const networkMsg = isMobile
+        ? 'Network error - unable to reach backend. Check your mobile connection.'
+        : 'Network error - unable to reach backend. Check your connection.';
+      
+      console.error(`🌐 DEBUG: ${networkMsg}`);
+      console.error('🌐 DEBUG: This could mean the backend is down or unreachable from Vercel.');
+      
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: networkMsg,
+          items: [],
+          count: 0,
+          networkError: true,
+          isMobile: isMobile
+        },
+        { 
+          status: 503, // Service Unavailable
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          },
+        }
+      );
+    }
+    
     // For other errors, return error response instead of mock data
     console.error('🔍 DEBUG: Returning error response instead of mock data');
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : String(error);
+    
     return NextResponse.json(
       { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        error: errorMessage || 'Unknown error occurred',
         items: [],
         count: 0
       },

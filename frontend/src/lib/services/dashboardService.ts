@@ -441,15 +441,27 @@ class DashboardService {
       })();
       
       // Race both promises - use whichever succeeds first
+      // Use allSettled to wait for both, then pick the first success
       let response: any;
       try {
-        response = await Promise.race([
+        const results = await Promise.allSettled([
           apiRoutePromise.then(data => ({ source: 'api-route', data })),
           directBackendPromise.then(data => ({ source: 'direct-backend', data }))
         ]);
         
-        console.log(`✅ DEBUG: ${response.source} won the race`);
-        response = response.data;
+        // Find the first successful result
+        const successResult = results.find(r => r.status === 'fulfilled');
+        if (successResult && successResult.status === 'fulfilled') {
+          response = successResult.value.data;
+          console.log(`✅ DEBUG: ${successResult.value.source} succeeded`);
+        } else {
+          // Both failed - collect errors
+          const errors = results
+            .filter(r => r.status === 'rejected')
+            .map(r => r.status === 'rejected' ? r.reason : null);
+          console.error('❌ DEBUG: Both API route and direct backend failed:', errors);
+          throw new Error(`Both attempts failed: ${errors.map(e => e?.message || String(e)).join('; ')}`);
+        }
         
         // Check if API route returned an error (timeout, etc.)
         if (response?.success === false && response?.timeout) {
