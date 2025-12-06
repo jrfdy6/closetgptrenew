@@ -202,11 +202,16 @@ class WardrobeAnalysisService:
                 try:
                     clothing_item = ClothingItem(**processed_data)
                     wardrobe.append(clothing_item)
-                    print(f"🔍 DEBUG: ✓ Successfully parsed item {doc.id}")
+                    # Reduced logging to avoid Railway rate limits
+                    # print(f"🔍 DEBUG: ✓ Successfully parsed item {doc.id}")
                 except Exception as e:
                     error_msg = f"Item {doc.id}: {str(e)}"
-                    print(f"🔍 DEBUG: ✗ Error parsing item {doc.id}: {e}")
-                    print(f"🔍 DEBUG: Item keys: {list(processed_data.keys())[:10]}")
+                    # Only log errors, not every item parse attempt
+                    if "lastWorn" in str(e) or "DatetimeWithNanoseconds" in str(e):
+                        # This is a known issue - don't spam logs
+                        pass
+                    else:
+                        logger.warning(f"Error parsing item {doc.id}: {e}")
                     self.parsing_errors.append(error_msg)
                     # print(f"DEBUG: ✗ Error parsing wardrobe item {doc.id}: {e}")
                     # print(f"DEBUG:   Raw data: {item_data}")
