@@ -245,7 +245,9 @@ class DashboardService {
       // Fetch wardrobe data first, then use it for top worn items calculation
       // Reduced timeout since we optimized the endpoint (should be much faster now)
       const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const wardrobeTimeout = 35000; // 35s - optimized endpoint should respond much faster
+      // Longer timeout on mobile for slow networks
+      const isMobileDevice = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const wardrobeTimeout = isMobileDevice ? 60000 : 35000; // 60s on mobile, 35s on desktop
       const wardrobeStats = await fetchWithTimeout(
         this.getWardrobeStats(user), 
         wardrobeTimeout,
@@ -382,9 +384,11 @@ class DashboardService {
         }
       }
       
-      // If health check passes, try profile with shorter timeout (10s)
+      // If health check passes, try profile with timeout (longer on mobile for slow networks)
+      const isMobileDevice = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const profileTimeout = isMobileDevice ? 30000 : 15000; // 30s on mobile, 15s on desktop
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // Reduced to 10s - fail fast
+      const timeoutId = setTimeout(() => controller.abort(), profileTimeout);
       
       let response: Response;
       try {
@@ -480,8 +484,9 @@ class DashboardService {
       // TODO: Consider upgrading Vercel plan or optimizing backend for faster responses
       console.log(isMobile ? '📱 DEBUG: Mobile - calling backend directly (health check passed)' : '🖥️ DEBUG: Desktop - calling backend directly (health check passed)');
       
-      // Direct backend call - reduced timeout since we optimized the endpoint
-      const directTimeout = 30000; // 30s - optimized endpoint should be much faster now
+      // Direct backend call - longer timeout on mobile for slow networks
+      const isMobileDevice = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const directTimeout = isMobileDevice ? 60000 : 35000; // 60s on mobile, 35s on desktop
       const directBackendPromise = (async () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {

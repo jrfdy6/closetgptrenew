@@ -37,12 +37,22 @@ export async function POST(request: Request) {
       'Authorization': authHeader, // Forward the auth header
     };
 
+    // Longer timeout for mobile networks
+    const userAgent = request.headers.get('user-agent') || '';
+    const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+    const timeout = isMobile ? 30000 : 15000; // 30s on mobile, 15s on desktop
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    
     const response = await fetch(backendUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(15000), // 15 second timeout
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
 
     console.log("✨ Backend response status:", response.status);
 
