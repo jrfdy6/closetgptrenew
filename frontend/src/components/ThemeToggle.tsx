@@ -25,7 +25,7 @@ const ThemeToggle: React.FC = () => {
   if (!mounted) {
     return (
       <button
-        className="p-2 rounded-2xl bg-white/50 dark:bg-[#2C2119]/70 border border-[#F5F0E8]/50 dark:border-[#3D2F24]/60 backdrop-blur transition-colors"
+        className="p-2 rounded-2xl bg-white/60 dark:bg-[#1A1A1A]/70 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 backdrop-blur transition-colors"
         aria-label="Loading theme toggle"
       >
         <div className="w-4 h-4 bg-[#FFB84C]/40 dark:bg-[#FF9400]/40 rounded animate-pulse" />
@@ -39,7 +39,7 @@ const ThemeToggle: React.FC = () => {
     <button
       data-testid="theme-toggle"
       onClick={handleThemeChange}
-      className="p-2 rounded-2xl bg-white/60 dark:bg-[#2C2119]/70 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 backdrop-blur transition-all duration-200 hover:scale-[1.03] shadow-sm shadow-amber-500/10"
+      className="p-2 rounded-2xl bg-white/60 dark:bg-[#1A1A1A]/70 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 backdrop-blur transition-all duration-200 hover:scale-[1.03] shadow-sm shadow-amber-500/10"
       aria-label={`Switch to ${isDark ? 'light' : 'dark'} theme`}
     >
       {isDark ? (

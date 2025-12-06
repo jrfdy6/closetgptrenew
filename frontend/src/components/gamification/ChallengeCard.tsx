@@ -52,10 +52,10 @@ export default function ChallengeCard({
       transition={{ duration: 0.3 }}
       whileHover={{ scale: 1.02 }}
     >
-      <Card className={`relative overflow-hidden bg-[#2C2119] border ${
+      <Card className={`relative overflow-hidden bg-white dark:bg-[#1A1A1A] border ${
         isActive ? 'border-[#FFB84C]' :
-        isCompleted ? 'border-[#3D2F24] opacity-75' :
-        'border-[#3D2F24]'
+        isCompleted ? 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 opacity-75' :
+        'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70'
       }`}>
         {/* Featured Badge */}
         {challenge.featured && variant === 'available' && (
@@ -70,7 +70,7 @@ export default function ChallengeCard({
         {/* Completed Badge */}
         {isCompleted && (
           <div className="absolute top-2 right-2">
-            <Badge className="bg-[#3D2F24] border border-[#3D2F24] text-[#C4BCB4]">
+            <Badge className="bg-[#F5F0E8] dark:bg-[#262626] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4]">
               <CheckCircle className="w-3 h-3 mr-1" />
               Completed
             </Badge>
@@ -79,12 +79,12 @@ export default function ChallengeCard({
 
         <CardHeader>
           <div className="flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-[#3D2F24]">
+            <div className="p-2 rounded-lg bg-[#F5F0E8] dark:bg-[#262626]">
               <IconComponent className="w-5 h-5 text-[#FFB84C]" />
             </div>
             <div className="flex-1">
-              <CardTitle className="text-lg text-[#F8F5F1]">{challenge.title}</CardTitle>
-              <CardDescription className="mt-1 text-sm text-[#C4BCB4]">
+              <CardTitle className="text-lg text-[#1C1917] dark:text-[#F8F5F1]">{challenge.title}</CardTitle>
+              <CardDescription className="mt-1 text-sm text-[#57534E] dark:text-[#C4BCB4]">
                 {challenge.description}
               </CardDescription>
             </div>
@@ -96,7 +96,7 @@ export default function ChallengeCard({
           {isActive && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-[#C4BCB4]">
+                <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
                   Progress
                 </span>
                 <span className="text-sm font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
@@ -109,7 +109,7 @@ export default function ChallengeCard({
 
           {/* Expiration (for active challenges) */}
           {isActive && challenge.expires_at && (
-            <div className="flex items-center gap-2 text-xs text-[#8A827A]">
+            <div className="flex items-center gap-2 text-xs text-[#57534E] dark:text-[#C4BCB4]">
               <Clock className="w-3 h-3" />
               Expires {new Date(challenge.expires_at).toLocaleDateString()}
             </div>
@@ -117,12 +117,12 @@ export default function ChallengeCard({
 
           {/* Rewards */}
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge className="bg-[#3D2F24] border border-[#3D2F24] text-[#FFB84C]">
+            <Badge className="bg-[#F5F0E8] dark:bg-[#262626] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#FFB84C]">
               <Trophy className="w-3 h-3 mr-1" />
               +{challenge.rewards?.xp || 0} XP
             </Badge>
             {challenge.rewards?.badge && (
-              <Badge className="bg-[#3D2F24] border border-[#3D2F24] text-[#F8F5F1]">
+              <Badge className="bg-[#F5F0E8] dark:bg-[#262626] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#1C1917] dark:text-[#F8F5F1]">
                 <Award className="w-3 h-3 mr-1" />
                 Badge
               </Badge>
@@ -144,7 +144,7 @@ export default function ChallengeCard({
           {variant === 'active' && (
             <Button
               variant="outline"
-              className="w-full border-[#3D2F24] text-[#C4BCB4] hover:bg-[#3D2F24]"
+              className="w-full border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#262626]"
               size="sm"
               disabled
             >

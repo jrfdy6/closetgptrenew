@@ -17,10 +17,10 @@ export default function AIFitScoreCard() {
 
   if (loading) {
     return (
-      <Card>
+      <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
+            <Brain className="w-5 h-5 text-[#FFB84C]" />
             AI Fit Score
           </CardTitle>
         </CardHeader>
@@ -36,15 +36,15 @@ export default function AIFitScoreCard() {
 
   if (error || !stats?.ai_fit_score) {
     return (
-      <Card>
+      <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
+            <Brain className="w-5 h-5 text-[#FFB84C]" />
             AI Fit Score
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
             Rate outfits to build your AI Fit Score
           </p>
         </CardContent>
@@ -72,15 +72,15 @@ export default function AIFitScoreCard() {
   };
 
   return (
-    <Card className="bg-[#2C2119] border border-[#3D2F24]">
+    <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-[#F8F5F1]">
+        <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
           <Brain className="w-5 h-5 text-[#FFB84C]" />
           AI Fit Score
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                <Info className="w-4 h-4 text-[#8A827A]" />
+                <Info className="w-4 h-4 text-[#57534E] dark:text-[#C4BCB4]" />
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs text-sm">
@@ -91,7 +91,7 @@ export default function AIFitScoreCard() {
             </Tooltip>
           </TooltipProvider>
         </CardTitle>
-        <CardDescription className="text-[#C4BCB4]">
+        <CardDescription className="text-[#57534E] dark:text-[#C4BCB4]">
           {getScoreLabel(score)}
         </CardDescription>
       </CardHeader>
@@ -108,7 +108,7 @@ export default function AIFitScoreCard() {
                 stroke="currentColor"
                 strokeWidth="8"
                 fill="none"
-                className="text-[#3D2F24]"
+                className="text-[#F5F0E8] dark:text-[#262626]"
               />
               {/* Progress circle - Amber gradient */}
               <defs>
@@ -154,7 +154,7 @@ export default function AIFitScoreCard() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 + index * 0.1 }}
-                className="text-xs text-[#C4BCB4] flex items-start gap-1"
+                className="text-xs text-[#57534E] dark:text-[#C4BCB4] flex items-start gap-1"
               >
                 <Star className="w-3 h-3 mt-0.5 flex-shrink-0 text-[#FFB84C]" />
                 <span>{explanation}</span>
@@ -168,15 +168,15 @@ export default function AIFitScoreCard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="w-full pt-4 border-t border-[#3D2F24]"
+              className="w-full pt-4 border-t border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70"
             >
-              <div className="text-xs font-medium text-[#F8F5F1] mb-1">
+              <div className="text-xs font-medium text-[#1C1917] dark:text-[#F8F5F1] mb-1">
                 Next Milestone
               </div>
-              <div className="text-xs text-[#C4BCB4]">
+              <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
                 {nextMilestone.message}
               </div>
-              <div className="mt-2 h-1 bg-[#3D2F24] rounded-full overflow-hidden">
+              <div className="mt-2 h-1 bg-[#F5F0E8] dark:bg-[#262626] rounded-full overflow-hidden">
                 <motion.div
                   className="h-full bg-gradient-to-r from-[#FFB84C] to-[#FF9400]"
                   initial={{ width: 0 }}
@@ -186,7 +186,7 @@ export default function AIFitScoreCard() {
                   transition={{ duration: 0.3, ease: "easeOut" }}
                 />
               </div>
-              <div className="text-xs text-[#8A827A] mt-1">
+              <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-1">
                 {nextMilestone.current} / {nextMilestone.target}
               </div>
             </motion.div>
