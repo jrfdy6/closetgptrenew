@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { DollarSign, TrendingUp, Info, Sparkles, Target } from 'lucide-react';
+import { DollarSign, TrendingUp, Info, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useGamificationStats } from '@/hooks/useGamificationStats';
 import {
@@ -58,7 +58,6 @@ export default function TVECard() {
   const totalWardrobeCost = tve.total_wardrobe_cost || 0;
   const percentRecouped = tve.percent_recouped || 0;
   const annualPotentialRange = tve.annual_potential_range || { low: 0, high: 0 };
-  const lowestCategory = tve.lowest_progress_category;
 
   return (
     <Card className="bg-[#2C2119] border border-[#3D2F24] overflow-hidden">
@@ -156,36 +155,6 @@ export default function TVECard() {
               </div>
             </div>
           </motion.div>
-
-          {/* Lowest Progress Category (Action Item) */}
-          {lowestCategory && lowestCategory.category && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="pt-4 border-t border-[#3D2F24]"
-            >
-              <div className="flex items-start gap-2">
-                <Target className="w-4 h-4 text-[#FFB84C] mt-0.5" />
-                <div className="flex-1">
-                  <div className="text-xs font-medium text-[#F8F5F1] mb-1">
-                    Next Target Category
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-[#3D2F24] border border-[#FFB84C] text-[#FFB84C] capitalize">
-                      {lowestCategory.category}
-                    </Badge>
-                    <span className="text-xs text-[#C4BCB4]">
-                      {lowestCategory.percent.toFixed(0)}% value extracted
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#8A827A] mt-1">
-                    Wear your {lowestCategory.category} to boost your TVE!
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          )}
         </div>
       </CardContent>
     </Card>
