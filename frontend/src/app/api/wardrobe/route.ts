@@ -43,12 +43,19 @@ export async function GET(request: Request) {
     console.log('🔍 DEBUG: About to call backend with URL:', fullBackendUrl);
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
     
+    // Add timeout for mobile connections (15 seconds)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    
     const response = await fetch(fullBackendUrl, {
       method: 'GET',
       headers: {
         'Authorization': authHeader, // Use ONLY the real auth token
         'Content-Type': 'application/json',
       },
+      signal: controller.signal,
+    }).finally(() => {
+      clearTimeout(timeoutId);
     });
     
     console.log('🔍 DEBUG: Backend response received:', {
@@ -126,6 +133,13 @@ export async function GET(request: Request) {
     
   } catch (error) {
     console.error('🔍 DEBUG: Error in wardrobe route:', error);
+    console.error('🔍 DEBUG: Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('🔍 DEBUG: Error message:', error instanceof Error ? error.message : String(error));
+    
+    // Check if it's a timeout/abort error
+    if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
+      console.error('⏱️ DEBUG: Request timed out after 15 seconds - this may be a mobile connection issue');
+    }
     
     // Fallback to mock data on error
     const mockWardrobe = {

@@ -244,9 +244,10 @@ class DashboardService {
       );
 
       // Fetch wardrobe data first, then use it for top worn items calculation
+      // Reduced timeout for mobile - 15s should be enough for most connections
       const wardrobeStats = await fetchWithTimeout(
         this.getWardrobeStats(user), 
-        20000, 
+        15000, 
         { items: [], total_items: 0 }, 
         'WardrobeStats'
       );
