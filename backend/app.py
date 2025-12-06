@@ -893,7 +893,13 @@ async def get_wardrobe(request: Request):
     route_start = time.time()
     import logging
     logger = logging.getLogger(__name__)
-    logger.info(f"🚀 DIRECT ROUTE: GET /api/wardrobe/ called ({time.time() - route_start:.3f}s)")
+    
+    # Log immediately - this should appear in Railway logs if request reaches backend
+    logger.info(f"🚀 DIRECT ROUTE: GET /api/wardrobe/ called at {time.time()}")
+    logger.info(f"🚀 DIRECT ROUTE: Request method: {request.method}")
+    logger.info(f"🚀 DIRECT ROUTE: Request URL: {request.url}")
+    logger.info(f"🚀 DIRECT ROUTE: Request headers: {dict(request.headers)}")
+    print(f"🚀 DIRECT ROUTE: GET /api/wardrobe/ called - PRINT STATEMENT")
     
     try:
         # Import auth utils
