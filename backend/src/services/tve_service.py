@@ -427,7 +427,7 @@ class TVEService:
                 "high": round(total_wardrobe_cost * 0.75, 2)    # 75% = active rotation (2x/week)
             }
             
-            return {
+            result = {
                 "total_tve": round(total_tve, 2),
                 "total_wardrobe_cost": round(total_wardrobe_cost, 2),
                 "percent_recouped": round(percent_recouped, 1),
@@ -438,6 +438,8 @@ class TVEService:
                     "percent": round(lowest_percent, 1)
                 } if lowest_category else None
             }
+            logger.info(f"✅ TVE: Calculation complete (total: {time.time() - tve_calc_start:.2f}s)")
+            return result
             
         except Exception as e:
             logger.error(f"Error calculating wardrobe TVE for user {user_id}: {e}", exc_info=True)
