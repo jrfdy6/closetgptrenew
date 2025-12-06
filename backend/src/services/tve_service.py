@@ -362,8 +362,14 @@ class TVEService:
             - lowest_progress_category: Category with lowest % recouped
         """
         try:
+            import time
+            tve_calc_start = time.time()
+            logger.info(f"⏱️ TVE: Starting calculation for user: {user_id}")
+            
+            # OPTIMIZED: Use efficient query (already optimized in wardrobe endpoint)
             wardrobe_ref = self.db.collection('wardrobe').where('userId', '==', user_id)
             items = list(wardrobe_ref.stream())
+            logger.info(f"⏱️ TVE: Fetched {len(items)} items ({time.time() - tve_calc_start:.2f}s)")
             
             if not items:
                 return {
