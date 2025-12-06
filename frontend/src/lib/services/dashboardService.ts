@@ -353,13 +353,14 @@ class DashboardService {
       
       const token = await user.getIdToken();
       
-      // Add timeout for profile fetch (30 seconds - backend can be slow)
+      // Use Next.js API route instead of calling backend directly
+      // This gives us caching, retry logic, and better timeout handling
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout (API route has its own retry logic)
       
       let response: Response;
       try {
-        response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/auth/profile`, {
+        response = await fetch('/api/user/profile', {
           headers: {
             'Authorization': `Bearer ${token}`
           },
@@ -380,7 +381,7 @@ class DashboardService {
     } catch (error) {
       console.error('Error fetching user profile:', error);
       if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
-        console.error('⏱️ DEBUG: Profile request timed out after 30 seconds');
+        console.error('⏱️ DEBUG: Profile request timed out after 10 seconds');
       }
       return { stylePersona: null };
     }
