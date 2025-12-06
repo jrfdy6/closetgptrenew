@@ -309,7 +309,15 @@ class DashboardService {
       const styleCollections = this.buildStyleCollections(wardrobeStats, trendingStyles, userProfile);
       const styleGoalsData = this.calculateStyleGoals(styleCollections);
       
-      const resolvedWardrobeGaps = hasWardrobeItems ? await this.getWardrobeGapsFromBackend(user) : [];
+      // Make wardrobe gaps non-blocking with timeout - don't let it hang the dashboard
+      const resolvedWardrobeGaps = hasWardrobeItems 
+        ? await fetchWithTimeout(
+            this.getWardrobeGapsFromBackend(user),
+            10000, // 10s timeout
+            [], // Empty array fallback
+            'WardrobeGaps'
+          )
+        : [];
       if (!hasWardrobeItems) {
         console.log('ℹ️ DEBUG: No wardrobe items found for user, skipping wardrobe gaps fetch and returning empty insights.');
       }
