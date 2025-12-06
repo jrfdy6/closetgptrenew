@@ -235,14 +235,12 @@ class DashboardService {
         }
       };
 
-      // Fetch user profile with persona data - increased timeout to 30s
-      // Profile endpoint can be slow, especially on first load
-      const userProfile = await fetchWithTimeout(
-        this.getUserProfile(user),
-        30000,
-        { stylePersona: null },
-        'UserProfile'
-      );
+      // Fetch user profile with persona data - make it non-blocking
+      // Profile is optional for dashboard - don't block if backend is slow
+      // Use Promise.race to fail fast if backend is down
+      const userProfilePromise = this.getUserProfile(user);
+      const userProfileTimeout = new Promise(resolve => setTimeout(() => resolve({ stylePersona: null }), 5000));
+      const userProfile = await Promise.race([userProfilePromise, userProfileTimeout]) as any;
 
       // Fetch wardrobe data first, then use it for top worn items calculation
       // Increased timeout to 60s - backend can be slow with large wardrobes (145+ items)
