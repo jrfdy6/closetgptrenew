@@ -570,6 +570,7 @@ class DashboardService {
           throw raceError;
         }
       }
+      }
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
       console.log('🔍 DEBUG: Wardrobe stats response type:', typeof response);
       console.log('🔍 DEBUG: Wardrobe stats response keys:', Object.keys(response || {}));
