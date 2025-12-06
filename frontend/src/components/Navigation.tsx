@@ -81,7 +81,7 @@ export default function Navigation() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-[#FAFAF9]/90 dark:bg-[#2C2119]/85 backdrop-blur-2xl border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 shadow-sm">
+    <nav className="sticky top-0 z-50 bg-[#FAFAF9]/90 dark:bg-[#1A1A1A]/85 backdrop-blur-2xl border-b border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 sm:h-18">
           {/* Logo - Cleaner mobile version */}
@@ -119,7 +119,7 @@ export default function Navigation() {
                       "text-[#57534E] dark:text-[#C4BCB4]",
                       "hover:text-[#1C1917] dark:hover:text-[#F8F5F1]",
                       "hover:bg-[#F5F0E8] dark:hover:bg-[#3D2F24]",
-                      isActive && "text-[#1C1917] dark:text-[#F8F5F1] bg-[#F5F0E8] dark:bg-[#3D2F24]"
+                      isActive && "text-[#1C1917] dark:text-[#F8F5F1] bg-[#F5F0E8] dark:bg-[#262626]"
                     )}
                   >
                     <Icon className={cn(
@@ -192,14 +192,14 @@ export default function Navigation() {
           
           {/* Menu Panel */}
           <div 
-            className="fixed inset-x-0 top-16 bottom-0 bg-[#FAFAF9] dark:bg-[#1A1510] z-[70] md:hidden overflow-y-auto shadow-2xl"
+            className="fixed inset-x-0 top-16 bottom-0 bg-[#FAFAF9] dark:bg-[#0D0D0D] z-[70] md:hidden overflow-y-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="Navigation menu"
           >
             {/* Menu Header with Close Button */}
-            <div className="sticky top-0 z-[71] bg-[#FAFAF9] dark:bg-[#1A1510] border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 px-4 py-3 flex justify-between items-center">
+            <div className="sticky top-0 z-[71] bg-[#FAFAF9] dark:bg-[#0D0D0D] border-b border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 px-4 py-3 flex justify-between items-center">
               <span className="font-semibold text-lg text-[#1C1917] dark:text-[#F8F5F1]">Menu</span>
               <button
                 onClick={(e) => {

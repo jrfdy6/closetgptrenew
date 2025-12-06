@@ -46,7 +46,7 @@ export default function MobileOptimizedNav({
   return (
     <>
       {/* Mobile Header */}
-      <div className="lg:hidden bg-[#FAFAF9]/95 dark:bg-[#2C2119]/90 border-b border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 px-4 py-3 backdrop-blur-xl">
+      <div className="lg:hidden bg-[#FAFAF9]/95 dark:bg-[#1A1A1A]/90 border-b border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 px-4 py-3 backdrop-blur-xl">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2">
@@ -107,7 +107,7 @@ export default function MobileOptimizedNav({
             className="absolute inset-0 bg-black/50" 
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-[#FAFAF9] dark:bg-[#1A1510] border-l border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 shadow-xl">
+          <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-[#FAFAF9] dark:bg-[#0D0D0D] border-l border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 shadow-xl">
             <div className="p-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-8">
@@ -121,7 +121,7 @@ export default function MobileOptimizedNav({
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsOpen(false)}
-                  className="p-2 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#3D2F24]"
+                  className="p-2 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#262626]"
                 >
                   <X className="h-5 w-5" />
                 </Button>
@@ -129,7 +129,7 @@ export default function MobileOptimizedNav({
 
               {/* User Info */}
               {user && (
-                <div className="mb-6 p-4 bg-[#F5F0E8] dark:bg-[#2C2119] rounded-xl border border-[#F5F0E8]/70 dark:border-[#3D2F24]/70">
+                <div className="mb-6 p-4 bg-[#F5F0E8] dark:bg-[#1A1A1A] rounded-xl border border-[#F5F0E8]/70 dark:border-[#2E2E2E]/70">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] rounded-full flex items-center justify-center shadow-md shadow-amber-500/20">
                       <span className="text-white font-semibold text-sm">
@@ -161,7 +161,7 @@ export default function MobileOptimizedNav({
                       onClick={() => setIsOpen(false)}
                       className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-200 ${
                         active
-                          ? 'border-[#FFB84C]/60 bg-[#F5F0E8] dark:bg-[#2C2119] text-[#1C1917] dark:text-[#F8F5F1]'
+                          ? 'border-[#FFB84C]/60 bg-[#F5F0E8] dark:bg-[#1A1A1A] text-[#1C1917] dark:text-[#F8F5F1]'
                           : 'border-transparent text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]'
                       }`}
                     >
