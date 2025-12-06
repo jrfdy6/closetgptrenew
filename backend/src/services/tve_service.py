@@ -516,11 +516,46 @@ class TVEService:
                     lowest_percent = data["percent"]
                     lowest_category = category
             
-            # Calculate annual potential range (50% to 75% of TWC)
-            # Reflects higher extraction potential with weekly rotation standards
+            # Calculate annual potential range based on target wear rates and value per wear
+            # This is more realistic than a percentage of total cost
+            annual_potential_low = 0.0
+            annual_potential_high = 0.0
+            
+            # Group items by category for calculation
+            items_by_category = {}
+            for doc in items:
+                item_data = doc.to_dict()
+                item_type = item_data.get('type', '').lower().replace(" ", "_")
+                category = CATEGORY_TO_SPENDING_KEY.get(item_type, "tops")
+                
+                if category not in items_by_category:
+                    items_by_category[category] = []
+                items_by_category[category].append(item_data)
+            
+            # Calculate potential for each category
+            for category, category_items in items_by_category.items():
+                target_wear_rate = TARGET_WEAR_RATES.get(category, 52)  # Default to tops rate
+                
+                for item_data in category_items:
+                    value_per_wear = item_data.get('value_per_wear', 0.0)
+                    if value_per_wear is None or value_per_wear == 0:
+                        # Calculate from estimated_cost if value_per_wear is missing
+                        estimated_cost = item_data.get('estimated_cost', 0.0) or 0.0
+                        target_wears = item_data.get('target_wears', 0) or 0
+                        if target_wears > 0:
+                            value_per_wear = estimated_cost / target_wears
+                        else:
+                            # Fallback: use category average
+                            value_per_wear = 1.0  # Default $1/wear
+                    
+                    # Low potential: 80% of target wear rate (conservative)
+                    # High potential: 120% of target wear rate (active rotation)
+                    annual_potential_low += (target_wear_rate * 0.80) * value_per_wear
+                    annual_potential_high += (target_wear_rate * 1.20) * value_per_wear
+            
             annual_potential_range = {
-                "low": round(total_wardrobe_cost * 0.50, 2),   # 50% = baseline weekly rotation
-                "high": round(total_wardrobe_cost * 0.75, 2)    # 75% = active rotation (2x/week)
+                "low": round(annual_potential_low, 2),
+                "high": round(annual_potential_high, 2)
             }
             
             result = {
