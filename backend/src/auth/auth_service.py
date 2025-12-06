@@ -12,12 +12,16 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     Authenticate user using Firebase JWT token.
     """
     import logging
+    import time
     logger = logging.getLogger(__name__)
+    auth_start = time.time()
+    logger.info(f"🔐 AUTH: get_current_user called - token length: {len(credentials.credentials) if credentials.credentials else 0}, has_token: {bool(credentials.credentials)}")
     
     # Import Firebase inside function to prevent import-time crashes
     try:
         from firebase_admin import auth
         import firebase_admin
+        logger.info(f"⏱️ AUTH: Firebase imports complete ({time.time() - auth_start:.2f}s)")
         
         # Check if Firebase Admin is initialized
         if not firebase_admin._apps:
