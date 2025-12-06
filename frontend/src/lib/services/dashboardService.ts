@@ -354,16 +354,19 @@ class DashboardService {
       
       const token = await user.getIdToken();
       
-      // Use Next.js API route instead of calling backend directly
-      // This gives us caching, retry logic, and better timeout handling
+      // OPTIMIZED: Call backend directly (like wardrobe) to avoid Vercel 10s timeout
+      // Profile endpoint is timing out on mobile via Vercel API route (504 errors)
+      // CORS is fixed, so direct backend calls work on mobile now
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout (API route has its own retry logic)
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for direct backend call
       
       let response: Response;
       try {
-        response = await fetch('/api/user/profile', {
+        response = await fetch(`${backendUrl}/api/auth/profile`, {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
           signal: controller.signal,
         });

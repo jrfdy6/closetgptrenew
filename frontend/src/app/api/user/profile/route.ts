@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+// Increase Vercel function timeout (Hobby plan has 10s limit, but we can try)
+export const maxDuration = 60; // Try to get 60s timeout (may not work on Hobby plan)
+
 // 🔥 ENHANCEMENT #3: In-memory cache for profile data (5-minute TTL)
 const profileCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -96,12 +99,12 @@ export async function GET(request: Request) {
     const fullBackendUrl = `${backendUrl}/api/auth/profile`;
     console.log('🔍 PROFILE PROXY: Calling backend:', fullBackendUrl);
     
-    // Add timeout
+    // Add timeout - increased for mobile (Vercel may still limit to 10s on Hobby plan)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.error('🔍 PROFILE PROXY: Request timeout after 10s');
+      console.error('🔍 PROFILE PROXY: Request timeout after 30s');
       controller.abort();
-    }, 10000); // 10 second timeout
+    }, 30000); // 30 second timeout (Vercel may still kill at 10s on Hobby plan)
     
     try {
       // 🔥 ENHANCEMENT #4: Use retry logic
