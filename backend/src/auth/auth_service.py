@@ -71,16 +71,15 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         
         # Verify Firebase JWT token
         try:
-            # print("🔍 DEBUG: Attempting Firebase token verification...")
-            # print(f"🔍 DEBUG: Firebase auth module: {auth}")
-            # print(f"🔍 DEBUG: Firebase auth type: {type(auth)}")
-            # print(f"🔍 DEBUG: Token to verify: {credentials.credentials[:20]}...")
+            import time
+            verify_start = time.time()
+            logger.info(f"⏱️ AUTH: Starting token verification... ({time.time() - auth_start:.2f}s)")
             # Try with default settings first
             decoded_token = auth.verify_id_token(credentials.credentials)
+            logger.info(f"⏱️ AUTH: Token verified successfully ({time.time() - verify_start:.2f}s, total: {time.time() - auth_start:.2f}s)")
             user_id = decoded_token['uid']
             email = (decoded_token.get('email', '') if decoded_token else '')
             name = (decoded_token.get('name', 'User') if decoded_token else 'User')
-            # print(f"🔍 DEBUG: Token verified successfully for user: {user_id}")
             
             # Create user profile from token data
             user = UserProfile(
