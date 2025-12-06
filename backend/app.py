@@ -91,7 +91,10 @@ if os.getenv("ENVIRONMENT") == "development":
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"^https://(www\.)?easyoutfitapp\.com$|^https://easyoutfit(app|frontend)-[a-z0-9-]*\.vercel\.app$|^https://easyoutfit-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$",
+    # Remove production domain from regex - it's already in allow_origins for exact matching
+    # Mobile browsers reject regex-based CORS when allow_credentials=True
+    # Keep regex only for Vercel preview URLs which don't need credentials
+    allow_origin_regex=r"^https://easyoutfit(app|frontend)-[a-z0-9-]*\.vercel\.app$|^https://easyoutfit-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods including OPTIONS
     allow_headers=["*"],  # Allow all headers
@@ -108,9 +111,10 @@ async def options_handler(full_path: str, request: Request):
     origin = request.headers.get("origin")
     
     # Check if origin is in allowed origins or matches regex patterns
+    # Production domain (easyoutfitapp.com) should use exact matching, not regex
+    # Mobile browsers reject regex-based CORS when credentials are enabled
     is_allowed = (
         origin in allowed_origins or
-        (origin and re.match(r"^https://(www\.)?easyoutfitapp\.com$", origin)) or
         (origin and re.match(r"^https://easyoutfit(app|frontend)-[a-z0-9-]*\.vercel\.app$", origin)) or
         (origin and re.match(r"^https://easyoutfit-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$", origin))
     )
