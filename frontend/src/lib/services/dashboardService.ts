@@ -237,10 +237,8 @@ class DashboardService {
 
       // Fetch user profile with persona data - make it non-blocking
       // Profile is optional for dashboard - don't block if backend is slow
-      // Use Promise.race to fail fast if backend is down
-      const userProfilePromise = this.getUserProfile(user);
-      const userProfileTimeout = new Promise(resolve => setTimeout(() => resolve({ stylePersona: null }), 5000));
-      const userProfile = await Promise.race([userProfilePromise, userProfileTimeout]) as any;
+      // Get user profile with proper timeout handling (no early race condition)
+      const userProfile = await this.getUserProfile(user);
 
       // Fetch wardrobe data first, then use it for top worn items calculation
       // Longer timeout on mobile for slow networks
