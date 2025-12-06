@@ -461,7 +461,7 @@
   }
   
   .card-mobile-hover {
-    @apply card-mobile hover:shadow-xl transition-all duration-200 hover:scale-[1.01];
+    @apply card-mobile hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-200 hover:scale-[1.01];
   }
   
   /* Display + Sans Typography System */
@@ -611,11 +611,11 @@
   
   /* Enhanced card styles */
   .card-enhanced {
-    @apply rounded-2xl border bg-card text-card-foreground shadow-md hover:shadow-lg transition-all duration-200;
+    @apply rounded-2xl border bg-card text-card-foreground shadow-md hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-200;
   }
   
   .card-hover {
-    @apply card-enhanced hover:scale-[1.02] hover:shadow-xl;
+    @apply card-enhanced hover:scale-[1.02] hover:shadow-xl hover:shadow-amber-500/20;
   }
   
   .card-premium {
@@ -637,15 +637,15 @@
   
   /* Premium button styles with amber */
   .btn-premium {
-    @apply bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white shadow-md hover:shadow-lg transition-all duration-200;
+    @apply bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white shadow-md hover:shadow-lg hover:shadow-amber-500/30 transition-all duration-200;
   }
   
   .btn-secondary-premium {
-    @apply bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md hover:shadow-lg transition-all duration-200;
+    @apply bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md hover:shadow-lg hover:shadow-amber-500/30 transition-all duration-200;
   }
   
   .btn-accent-premium {
-    @apply bg-gradient-to-r from-orange-600 to-amber-700 hover:from-orange-700 hover:to-amber-800 text-white shadow-md hover:shadow-lg transition-all duration-200;
+    @apply bg-gradient-to-r from-orange-600 to-amber-700 hover:from-orange-700 hover:to-amber-800 text-white shadow-md hover:shadow-lg hover:shadow-amber-500/30 transition-all duration-200;
   }
 } 
 
@@ -908,5 +908,5 @@
   }
   
   .glass-button-secondary {
-    @apply glass-button hover:bg-amber-50/60 dark:hover:bg-amber-900/60 shadow-md hover:shadow-lg;
+    @apply glass-button hover:bg-amber-50/60 dark:hover:bg-amber-900/60 shadow-md hover:shadow-lg hover:shadow-amber-500/20;
   } 
