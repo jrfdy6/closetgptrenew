@@ -43,8 +43,10 @@ async def profile_health():
 async def get_user_profile(current_user: UserProfile = Depends(get_current_user)):
     """Get current user's profile."""
     import asyncio
+    import time
     
     try:
+        profile_start = time.time()
         logger.info(f"🔍 PROFILE: Route handler called for user: {current_user.id if current_user else 'None'}")
         
         # Verify we have a valid user object
