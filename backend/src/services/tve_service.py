@@ -519,7 +519,7 @@ class TVEService:
                     lowest_category = category
             
             # Calculate annual potential range based on target wear rates and value per wear
-            # This is more realistic than a percentage of total cost
+            # Result should be 50-75% of total wardrobe cost for realistic extraction
             annual_potential_low = 0.0
             annual_potential_high = 0.0
             
@@ -534,31 +534,56 @@ class TVEService:
                     items_by_category[category] = []
                 items_by_category[category].append(item_data)
             
-            # Calculate potential for each category
+            # Calculate potential for each item based on target wear rates
             for category, category_items in items_by_category.items():
                 target_wear_rate = TARGET_WEAR_RATES.get(category, 52)  # Default to tops rate
                 
                 for item_data in category_items:
-                    value_per_wear = item_data.get('value_per_wear', 0.0)
+                    # Get value_per_wear from item, or calculate it
+                    value_per_wear = item_data.get('value_per_wear', None)
                     if value_per_wear is None or value_per_wear == 0:
-                        # Calculate from estimated_cost if value_per_wear is missing
+                        # Calculate from estimated_cost and target_wears
                         estimated_cost = item_data.get('estimated_cost', 0.0) or 0.0
                         target_wears = item_data.get('target_wears', 0) or 0
-                        if target_wears > 0:
+                        if target_wears > 0 and estimated_cost > 0:
                             value_per_wear = estimated_cost / target_wears
+                        elif estimated_cost > 0:
+                            # Fallback: estimate target_wears from category wear rate
+                            # If item should be worn target_wear_rate times/year to recoup cost
+                            value_per_wear = estimated_cost / target_wear_rate if target_wear_rate > 0 else 1.0
                         else:
-                            # Fallback: use category average
+                            # Last resort: use default
                             value_per_wear = 1.0  # Default $1/wear
                     
-                    # Low potential: 80% of target wear rate (conservative)
-                    # High potential: 120% of target wear rate (active rotation)
+                    # Annual potential = target wear rate × value per wear
+                    # Low: 80% of target (conservative rotation)
+                    # High: 120% of target (active rotation)
                     annual_potential_low += (target_wear_rate * 0.80) * value_per_wear
                     annual_potential_high += (target_wear_rate * 1.20) * value_per_wear
             
-            annual_potential_range = {
-                "low": round(annual_potential_low, 2),
-                "high": round(annual_potential_high, 2)
-            }
+            # Ensure the result is reasonable (50-75% of total wardrobe cost)
+            # This validates that our calculation makes sense
+            calculated_low = round(annual_potential_low, 2)
+            calculated_high = round(annual_potential_high, 2)
+            percentage_low = (calculated_low / total_wardrobe_cost * 100) if total_wardrobe_cost > 0 else 0
+            percentage_high = (calculated_high / total_wardrobe_cost * 100) if total_wardrobe_cost > 0 else 0
+            
+            # If calculated values are way off (too high or too low), use percentage-based fallback
+            # But prefer the calculated values if they're in a reasonable range (30-100% of cost)
+            if percentage_low < 30 or percentage_high > 100:
+                logger.warning(f"⚠️ TVE: Calculated annual potential ({percentage_low:.1f}%-{percentage_high:.1f}%) seems off, using percentage-based fallback")
+                annual_potential_range = {
+                    "low": round(total_wardrobe_cost * 0.50, 2),   # 50% = baseline weekly rotation
+                    "high": round(total_wardrobe_cost * 0.75, 2)    # 75% = active rotation
+                }
+            else:
+                annual_potential_range = {
+                    "low": calculated_low,
+                    "high": calculated_high
+                }
+            
+            logger.info(f"📊 TVE: Annual potential calculated: ${annual_potential_range['low']:.2f}-${annual_potential_range['high']:.2f} "
+                       f"({percentage_low:.1f}%-{percentage_high:.1f}% of ${total_wardrobe_cost:.2f} wardrobe)")
             
             result = {
                 "total_tve": round(total_tve, 2),
