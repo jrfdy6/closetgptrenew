@@ -802,10 +802,10 @@ export function SmartWeatherOutfitGenerator({
               
               {/* Reasoning/Advisory - Truncated with Read More */}
               {generatedOutfit.reasoning && (
-                <div className="card-surface backdrop-blur-xl rounded-xl p-2.5 sm:p-3 border border-[#FFB84C]/20 dark:border-[#FF9400]/20 bg-gradient-to-r from-[#FFB84C]/5 to-[#FF9400]/5 dark:from-[#FFB84C]/10 dark:to-[#FF9400]/10">
+                <div className="card-surface backdrop-blur-xl rounded-xl p-2.5 sm:p-3 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-white/85 dark:bg-[#1A1A1A]/85">
                   <div className="flex items-start gap-2 sm:gap-3">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-[#FF9400]" />
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-[#FF9400] dark:text-[#FFB84C]" />
                   </div>
                     <div className="flex-1 min-w-0">
                       <h6 className="text-xs sm:text-sm font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1">
