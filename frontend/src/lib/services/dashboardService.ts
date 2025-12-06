@@ -490,8 +490,14 @@ class DashboardService {
           controller.abort();
         }, directTimeout);
         
+        const wardrobeUrl = `${backendUrl}/api/wardrobe/`;
+        console.log(`🚀 FRONTEND: About to fetch wardrobe from: ${wardrobeUrl}`);
+        console.log(`🚀 FRONTEND: Token length: ${token.length}, isMobile: ${isMobile}, timeout: ${directTimeout}ms`);
+        const fetchStart = Date.now();
+        
         try {
-          const directResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
+          console.log(`🚀 FRONTEND: Sending GET request to ${wardrobeUrl}...`);
+          const directResponse = await fetch(wardrobeUrl, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -499,6 +505,7 @@ class DashboardService {
             },
             signal: controller.signal,
           });
+          console.log(`🚀 FRONTEND: Received response after ${Date.now() - fetchStart}ms, status: ${directResponse.status}`);
           
           clearTimeout(timeoutId);
           
