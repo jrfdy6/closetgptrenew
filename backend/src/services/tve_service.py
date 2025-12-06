@@ -398,6 +398,9 @@ class TVEService:
             items_initialized = 0
             items_recalculated = 0
             
+            # Store processed items with their calculated values for annual potential calculation
+            processed_items = []
+            
             for doc in items:
                 item_data = doc.to_dict()
                 item_id = doc.id
