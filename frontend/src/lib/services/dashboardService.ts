@@ -243,11 +243,9 @@ class DashboardService {
       const userProfile = await Promise.race([userProfilePromise, userProfileTimeout]) as any;
 
       // Fetch wardrobe data first, then use it for top worn items calculation
-      // Reduced timeout since we optimized the endpoint (should be much faster now)
-      const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
       // Longer timeout on mobile for slow networks
-      const isMobileDevice = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const wardrobeTimeout = isMobileDevice ? 60000 : 35000; // 60s on mobile, 35s on desktop
+      const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const wardrobeTimeout = isMobile ? 60000 : 35000; // 60s on mobile, 35s on desktop
       const wardrobeStats = await fetchWithTimeout(
         this.getWardrobeStats(user), 
         wardrobeTimeout,
