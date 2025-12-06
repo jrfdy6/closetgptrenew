@@ -243,11 +243,12 @@ class DashboardService {
       const userProfile = await Promise.race([userProfilePromise, userProfileTimeout]) as any;
 
       // Fetch wardrobe data first, then use it for top worn items calculation
-      // Reduced timeout since we're failing fast now (15s mobile, 30s desktop for direct calls)
-      // If backend is down, we'll know quickly from health check
+      // Dynamic timeout based on device - matches last resort timeout in getWardrobeStats
+      const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const wardrobeTimeout = isMobile ? 60000 : 60000; // 60s for both (last resort uses 45s mobile, 60s desktop, but we need to allow time for retries)
       const wardrobeStats = await fetchWithTimeout(
         this.getWardrobeStats(user), 
-        45000, // 45s timeout - reduced from 60s since we fail fast now
+        wardrobeTimeout,
         { items: [], total_items: 0 }, 
         'WardrobeStats'
       );
@@ -534,142 +535,6 @@ class DashboardService {
           clearTimeout(timeoutId);
           throw raceError;
         }
-      }
-      }
-        // On desktop, use API route (has retry logic and caching)
-        console.log('🖥️ DEBUG: Desktop detected - using API route with direct backend fallback');
-        
-        // Quick health check first - fail fast if backend is down
-        const healthCheckController = new AbortController();
-        const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 5000);
-        const healthCheckPromise = fetch(`${backendUrl}/api/health`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          signal: healthCheckController.signal,
-        })
-          .then(response => {
-            clearTimeout(healthCheckTimeout);
-            return response;
-          })
-          .catch(() => {
-            clearTimeout(healthCheckTimeout);
-            console.warn('⚠️ DEBUG: Backend health check failed - backend may be down');
-            return null;
-          });
-        
-        const apiRoutePromise = this.makeAuthenticatedRequest('/wardrobe', user, {
-          method: 'GET'
-        }).catch((error) => {
-          console.warn('⚠️ DEBUG: API route failed:', error);
-          throw error;
-        });
-        
-        // Direct backend call with timeout for desktop
-        const directTimeout = 45000; // 45s for desktop
-      const directBackendPromise = (async () => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-          console.warn('⏱️ DEBUG: Direct backend call timing out...');
-          controller.abort();
-        }, directTimeout);
-        
-        try {
-          const directResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            signal: controller.signal,
-          });
-          
-          clearTimeout(timeoutId);
-          
-          if (directResponse.ok) {
-            const data = await directResponse.json();
-            console.log('✅ DEBUG: Direct backend call succeeded');
-            return data;
-          } else {
-            throw new Error(`Direct backend returned ${directResponse.status}`);
-          }
-        } catch (error) {
-          clearTimeout(timeoutId);
-          throw error;
-        }
-      })();
-      
-      // Wait for health check first (non-blocking, just for info)
-      const healthCheckResult = await healthCheckPromise;
-      if (!healthCheckResult || !healthCheckResult.ok) {
-        console.warn('⚠️ DEBUG: Backend health check indicates backend may be down');
-        console.warn('⚠️ DEBUG: Will still attempt wardrobe fetch, but expecting failure');
-      } else {
-        console.log('✅ DEBUG: Backend health check passed');
-      }
-      
-      // Race both promises - use whichever succeeds first
-      // Use allSettled to wait for both, then pick the first success
-      let response: any;
-      try {
-        const results = await Promise.allSettled([
-          apiRoutePromise.then(data => ({ source: 'api-route', data })),
-          directBackendPromise.then(data => ({ source: 'direct-backend', data }))
-        ]);
-        
-        // Find the first successful result
-        const successResult = results.find(r => r.status === 'fulfilled');
-        if (successResult && successResult.status === 'fulfilled') {
-          response = successResult.value.data;
-          console.log(`✅ DEBUG: ${successResult.value.source} succeeded`);
-        } else {
-          // Both failed - collect errors
-          const errors = results
-            .filter(r => r.status === 'rejected')
-            .map(r => r.status === 'rejected' ? r.reason : null);
-          console.error('❌ DEBUG: Both API route and direct backend failed:', errors);
-          
-          // If health check also failed, backend is likely down
-          if (!healthCheckResult || !healthCheckResult.ok) {
-            throw new Error('Backend appears to be down or unreachable. Please check Railway status.');
-          }
-          
-          throw new Error(`Both attempts failed: ${errors.map(e => e?.message || String(e)).join('; ')}`);
-        }
-        
-        // Check if API route returned an error (timeout, etc.)
-        if (response?.success === false && response?.timeout) {
-          console.warn('⚠️ DEBUG: API route returned timeout error, but we got data from race');
-        }
-      } catch (raceError) {
-        // If both fail, try direct backend one more time with longer timeout
-        console.warn('⚠️ DEBUG: Both API route and direct backend failed, trying direct backend with extended timeout...');
-        const controller = new AbortController();
-        const extendedTimeout = isMobile ? 45000 : 60000;
-        const timeoutId = setTimeout(() => controller.abort(), extendedTimeout);
-        
-        try {
-          const lastResortResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            signal: controller.signal,
-          });
-          
-          clearTimeout(timeoutId);
-          
-          if (lastResortResponse.ok) {
-            response = await lastResortResponse.json();
-            console.log('✅ DEBUG: Last resort direct backend call succeeded');
-          } else {
-            throw raceError;
-          }
-        } catch (lastError) {
-          clearTimeout(timeoutId);
-          throw raceError;
-        }
-      }
       }
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
       console.log('🔍 DEBUG: Wardrobe stats response type:', typeof response);
