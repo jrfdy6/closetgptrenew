@@ -235,10 +235,11 @@ class DashboardService {
         }
       };
 
-      // Fetch user profile with persona data - increased timeout
+      // Fetch user profile with persona data - increased timeout to 30s
+      // Profile endpoint can be slow, especially on first load
       const userProfile = await fetchWithTimeout(
         this.getUserProfile(user),
-        10000,
+        30000,
         { stylePersona: null },
         'UserProfile'
       );
@@ -353,11 +354,22 @@ class DashboardService {
       if (!user) return { stylePersona: null };
       
       const token = await user.getIdToken();
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/auth/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      
+      // Add timeout for profile fetch (30 seconds - backend can be slow)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      let response: Response;
+      try {
+        response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/auth/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (response.ok) {
         const profileData = await response.json();
@@ -365,9 +377,13 @@ class DashboardService {
         return profileData;
       }
       
+      console.warn('🔍 DEBUG: Profile response not ok:', response.status, response.statusText);
       return { stylePersona: null };
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
+        console.error('⏱️ DEBUG: Profile request timed out after 30 seconds');
+      }
       return { stylePersona: null };
     }
   }
