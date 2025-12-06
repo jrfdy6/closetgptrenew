@@ -13,14 +13,16 @@ logger = logging.getLogger(__name__)
 
 
 # Category-specific Target Wear Rates (R) - wears per year
+# Updated to benchmark against "Efficient Minimalist" standards (weekly active rotation)
+# instead of wasteful industry averages ("Hoarder Standard")
 TARGET_WEAR_RATES = {
-    "tops": 12,
-    "pants": 15,
-    "dresses": 8,
-    "jackets": 10,
-    "shoes": 20,
-    "activewear": 15,
-    "accessories": 12
+    "tops": 52,        # 1/week - A good shirt is part of your weekly rotation
+    "pants": 75,       # 1.5/week - Pants have higher re-wear potential
+    "dresses": 25,     # 1/2 weeks - Occasion wear, but still needs frequent use
+    "jackets": 50,     # Seasonal daily, averaged to 1/week annual
+    "shoes": 100,      # 2/week - Good shoes are worn constantly
+    "activewear": 75,  # 1.5/week - Workout gear gets heavy rotation
+    "accessories": 45  # ~0.9/week - Core accessories (belt, watch) get regular use
 }
 
 # Range midpoints for cost estimation (from old CPW system)
@@ -213,7 +215,7 @@ class TVEService:
                 return None
             
             # Get target wear rate for category (R)
-            target_wear_rate = TARGET_WEAR_RATES.get(category, 12)
+            target_wear_rate = TARGET_WEAR_RATES.get(category, 52)  # Default to tops standard
             
             # Calculate CPW target: S / (I × R)
             cpw_target = annual_spending / (item_count * target_wear_rate)
@@ -282,10 +284,11 @@ class TVEService:
             
             if value_per_wear is None:
                 logger.warning(f"Could not calculate value_per_wear for item {item_id}")
-                value_per_wear = 5.0  # Default fallback
+                value_per_wear = 1.0  # Default fallback (more realistic for value standard)
             
             # Calculate target wears (T = C / V_W)
-            target_wears = round(estimated_cost / value_per_wear) if value_per_wear > 0 else 20
+            # More reasonable fallback: if $50 item with $0.50/wear = 100 wears target
+            target_wears = round(estimated_cost / value_per_wear) if value_per_wear > 0 else round(estimated_cost / 0.50)
             
             # Update item with TVE fields
             item_ref.update({
@@ -417,10 +420,11 @@ class TVEService:
                     lowest_percent = data["percent"]
                     lowest_category = category
             
-            # Calculate annual potential range (30% to 50% of TWC)
+            # Calculate annual potential range (50% to 75% of TWC)
+            # Reflects higher extraction potential with weekly rotation standards
             annual_potential_range = {
-                "low": round(total_wardrobe_cost * 0.30, 2),
-                "high": round(total_wardrobe_cost * 0.50, 2)
+                "low": round(total_wardrobe_cost * 0.50, 2),   # 50% = baseline weekly rotation
+                "high": round(total_wardrobe_cost * 0.75, 2)    # 75% = active rotation (2x/week)
             }
             
             return {

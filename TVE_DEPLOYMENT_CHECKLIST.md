@@ -63,7 +63,7 @@ git commit -m "✨ Implement TVE (Total Value Extracted) framework
 
 - Replace CPW system with value-creation focused TVE
 - Dynamic CPW targets based on spending & inventory
-- Category-specific wear rates (Tops:12, Pants:15, Shoes:20, etc)
+- Category-specific wear rates (Tops:52, Pants:75, Shoes:100, etc) - Based on weekly active rotation standards
 - Event-triggered TVE increments on outfit logging
 - Beautiful TVECard with progress visualization
 - Updated GWS to use TVE Progress (30% component)

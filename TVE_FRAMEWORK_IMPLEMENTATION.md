@@ -29,8 +29,8 @@ CPW_target = Annual Spending (S) / (Item Count (I) × Target Wear Rate (R))
 **Example for Tops:**
 - Annual Spending: $175
 - Item Count: 10 tops
-- Target Wear Rate: 12 wears/year
-- **CPW_target = $175 / (10 × 12) = $1.75 per wear**
+- Target Wear Rate: 52 wears/year (weekly rotation standard)
+- **CPW_target = $175 / (10 × 52) = $0.34 per wear**
 
 ### 2. **Item-Level TVE**
 
@@ -57,23 +57,23 @@ Low Potential = Total Wardrobe Cost × 30%
 High Potential = Total Wardrobe Cost × 50%
 ```
 
-Shows the value users can extract by increasing utilization from 30% to 50%.
+Shows the value users can extract by maintaining active rotation (50% to 75% of wardrobe value annually).
 
 ---
 
 ## 🎮 Category-Specific Wear Rates
 
-These constants define realistic annual wear targets:
+These constants define realistic annual wear targets based on **Efficient Minimalist** standards (weekly active rotation), not wasteful industry averages:
 
 | Category | Target Wears/Year | Rationale |
 |----------|------------------|-----------|
-| **Tops** | 12 | High rotation, everyday wear |
-| **Pants** | 15 | Limited variety, frequent use |
-| **Dresses** | 8 | Occasion-specific, less frequent |
-| **Jackets** | 10 | Seasonal, essential |
-| **Shoes** | 20 | High utility, limited pairs |
-| **Activewear** | 15 | Regular active lifestyle |
-| **Accessories** | 12 | Varied usage patterns |
+| **Tops** | 52 | 1/week - A good shirt is part of your weekly rotation |
+| **Pants** | 75 | 1.5/week - Pants have higher re-wear potential |
+| **Dresses** | 25 | 1/2 weeks - Occasion wear, but still needs frequent use |
+| **Jackets** | 50 | Seasonal daily, averaged to 1/week annual |
+| **Shoes** | 100 | 2/week - Good shoes are worn constantly |
+| **Activewear** | 75 | 1.5/week - Workout gear gets heavy rotation |
+| **Accessories** | 45 | ~0.9/week - Core accessories (belt, watch) get regular use |
 
 ---
 

@@ -223,21 +223,22 @@ if 'spending_ranges' in profile_data:
 
 ```python
 # Category-specific Target Wear Rates (R) - wears per year
+# Updated to benchmark against "Efficient Minimalist" standards (weekly active rotation)
 TARGET_WEAR_RATES = {
-    "tops": 12,
-    "pants": 15,
-    "dresses": 8,
-    "jackets": 10,
-    "shoes": 20,
-    "activewear": 15,
-    "accessories": 12
+    "tops": 52,        # 1/week - A good shirt is part of your weekly rotation
+    "pants": 75,       # 1.5/week - Pants have higher re-wear potential
+    "dresses": 25,     # 1/2 weeks - Occasion wear, but still needs frequent use
+    "jackets": 50,     # Seasonal daily, averaged to 1/week annual
+    "shoes": 100,      # 2/week - Good shoes are worn constantly
+    "activewear": 75,  # 1.5/week - Workout gear gets heavy rotation
+    "accessories": 45  # ~0.9/week - Core accessories (belt, watch) get regular use
 }
 ```
 
 **Used In Formula:**
 ```python
 # Get target wear rate for category (R)
-target_wear_rate = TARGET_WEAR_RATES.get(category, 12)
+target_wear_rate = TARGET_WEAR_RATES.get(category, 52)  # Default to tops standard
 
 # Calculate CPW target: S / (I × R)
 cpw_target = annual_spending / (item_count * target_wear_rate)
@@ -378,8 +379,8 @@ Using your production account (user_id: `6AEAFTXGb0M6doJb7nL8DhLei9N2`):
 **If you set spending ranges:**
 - Tops: $100-$250 → $175 midpoint
 - 7 tops in wardrobe (hypothetical)
-- Target wear rate: 12 wears/year
-- **Value per wear:** $175 / (7 × 12) = $2.08 per wear
+- Target wear rate: 52 wears/year (weekly rotation standard)
+- **Value per wear:** $175 / (7 × 52) = $0.48 per wear
 
 **When you log an outfit with a top:**
 - ✅ Item's `wearCount`: 0 → 1 (real increment)

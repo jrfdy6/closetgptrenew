@@ -29,7 +29,7 @@
 - Dynamic Target Cost Per Wear (CPWtarget) per category
 - Item-level TVE storage with event-triggered updates
 - Wardrobe-level metrics (Total TVE, % Recouped, Annual Potential Range)
-- Category-specific target wear rates (Tops: 12, Pants: 15, Shoes: 20, etc.)
+- Category-specific target wear rates (Tops: 52, Pants: 75, Shoes: 100, etc.) - Based on weekly active rotation standards
 - TVE preservation during spending range updates
 
 **Math Formula:**

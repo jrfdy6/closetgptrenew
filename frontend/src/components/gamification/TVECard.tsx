@@ -73,8 +73,7 @@ export default function TVECard() {
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs text-sm">
-                  TVE shows how much value you've extracted from your wardrobe investment. 
-                  Each wear adds value based on your spending habits!
+                  TVE tracks value extracted from your wardrobe. Each wear adds value when you actively rotate your items weekly!
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -152,7 +151,7 @@ export default function TVECard() {
                   <span className="text-xs text-[#8A827A]">this year</span>
                 </div>
                 <div className="text-xs text-[#8A827A] mt-1">
-                  Based on 30-50% utilization rate
+                  Based on 50-75% active rotation
                 </div>
               </div>
             </div>
