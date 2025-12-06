@@ -487,9 +487,32 @@ class TVEService:
                 current_tve = float(current_tve) if current_tve is not None else 0.0
                 estimated_cost = float(estimated_cost) if estimated_cost is not None else 0.0
                 
-                # Get category
+                # Get category and value_per_wear for annual potential calculation
                 item_type = item_data.get('type', '').lower().replace(" ", "_")
                 category = CATEGORY_TO_SPENDING_KEY.get(item_type, "tops")
+                
+                # Get value_per_wear (may have been calculated/updated above)
+                value_per_wear = item_data.get('value_per_wear', None)
+                if value_per_wear is None or value_per_wear == 0:
+                    # Calculate from estimated_cost and target_wears
+                    target_wears = item_data.get('target_wears', 0) or 0
+                    if target_wears > 0 and estimated_cost > 0:
+                        value_per_wear = estimated_cost / target_wears
+                    else:
+                        # Fallback: calculate from category target wear rate
+                        target_wear_rate = TARGET_WEAR_RATES.get(category, 52)
+                        if estimated_cost > 0 and target_wear_rate > 0:
+                            value_per_wear = estimated_cost / target_wear_rate
+                        else:
+                            value_per_wear = 1.0  # Default $1/wear
+                
+                # Store processed item data for annual potential calculation
+                processed_items.append({
+                    'category': category,
+                    'estimated_cost': estimated_cost,
+                    'value_per_wear': value_per_wear,
+                    'target_wears': item_data.get('target_wears', 0) or 0
+                })
                 
                 # Aggregate
                 total_tve += current_tve
@@ -522,47 +545,21 @@ class TVEService:
                     lowest_category = category
             
             # Calculate annual potential range based on target wear rates and value per wear
-            # Result should be 50-75% of total wardrobe cost for realistic extraction
+            # Use processed items with their calculated values
             annual_potential_low = 0.0
             annual_potential_high = 0.0
             
-            # Group items by category for calculation
-            items_by_category = {}
-            for doc in items:
-                item_data = doc.to_dict()
-                item_type = item_data.get('type', '').lower().replace(" ", "_")
-                category = CATEGORY_TO_SPENDING_KEY.get(item_type, "tops")
-                
-                if category not in items_by_category:
-                    items_by_category[category] = []
-                items_by_category[category].append(item_data)
-            
-            # Calculate potential for each item based on target wear rates
-            for category, category_items in items_by_category.items():
+            # Calculate potential for each processed item
+            for item in processed_items:
+                category = item['category']
+                value_per_wear = item['value_per_wear']
                 target_wear_rate = TARGET_WEAR_RATES.get(category, 52)  # Default to tops rate
                 
-                for item_data in category_items:
-                    # Get value_per_wear from item, or calculate it
-                    value_per_wear = item_data.get('value_per_wear', None)
-                    if value_per_wear is None or value_per_wear == 0:
-                        # Calculate from estimated_cost and target_wears
-                        estimated_cost = item_data.get('estimated_cost', 0.0) or 0.0
-                        target_wears = item_data.get('target_wears', 0) or 0
-                        if target_wears > 0 and estimated_cost > 0:
-                            value_per_wear = estimated_cost / target_wears
-                        elif estimated_cost > 0:
-                            # Fallback: estimate target_wears from category wear rate
-                            # If item should be worn target_wear_rate times/year to recoup cost
-                            value_per_wear = estimated_cost / target_wear_rate if target_wear_rate > 0 else 1.0
-                        else:
-                            # Last resort: use default
-                            value_per_wear = 1.0  # Default $1/wear
-                    
-                    # Annual potential = target wear rate × value per wear
-                    # Low: 80% of target (conservative rotation)
-                    # High: 120% of target (active rotation)
-                    annual_potential_low += (target_wear_rate * 0.80) * value_per_wear
-                    annual_potential_high += (target_wear_rate * 1.20) * value_per_wear
+                # Annual potential = target wear rate × value per wear
+                # Low: 80% of target (conservative rotation)
+                # High: 120% of target (active rotation)
+                annual_potential_low += (target_wear_rate * 0.80) * value_per_wear
+                annual_potential_high += (target_wear_rate * 1.20) * value_per_wear
             
             # Ensure the result is reasonable (50-75% of total wardrobe cost)
             # This validates that our calculation makes sense
