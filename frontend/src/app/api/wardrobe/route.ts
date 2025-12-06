@@ -29,7 +29,14 @@ export async function GET(request: Request) {
     if (!authHeader) {
       return NextResponse.json(
         { error: 'Authorization header required' },
-        { status: 401 }
+        { 
+          status: 401,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          },
+        }
       );
     }
     
@@ -126,7 +133,14 @@ export async function GET(request: Request) {
           items: [],
           count: 0
         },
-        { status: response.status }
+        { 
+          status: response.status,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          },
+        }
       );
     }
     
@@ -139,7 +153,13 @@ export async function GET(request: Request) {
       items: wardrobeData.items?.map(item => ({ id: item.id, name: item.name })) || []
     });
     
-    return NextResponse.json(wardrobeData);
+    return NextResponse.json(wardrobeData, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
     
   } catch (error) {
     console.error('🔍 DEBUG: Error in wardrobe route:', error);
@@ -167,7 +187,14 @@ export async function GET(request: Request) {
           timeout: true,
           isMobile: isMobile
         },
-        { status: 504 } // Gateway Timeout
+        { 
+          status: 504, // Gateway Timeout
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          },
+        }
       );
     }
     
@@ -180,9 +207,27 @@ export async function GET(request: Request) {
         items: [],
         count: 0
       },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      }
     );
   }
+}
+
+// Handle OPTIONS requests for CORS
+export async function OPTIONS(request: Request) {
+  return NextResponse.json({}, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }
 
 export async function POST(request: Request) {
@@ -215,7 +260,14 @@ export async function POST(request: Request) {
       console.error('🔍 DEBUG: Failed to parse request body:', bodyError);
       return NextResponse.json(
         { error: 'Invalid request body', details: 'Request body must be valid JSON' },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          },
+        }
       );
     }
     
@@ -267,6 +319,12 @@ export async function POST(request: Request) {
           ...requestBody,
           isFavorite: false
         }
+      }, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
       });
     }
     
@@ -290,10 +348,22 @@ export async function POST(request: Request) {
           ...requestBody,
           isFavorite: false
         }
+      }, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
       });
     }
     
-    return NextResponse.json(responseData);
+    return NextResponse.json(responseData, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
     
   } catch (error) {
     console.error('🔍 DEBUG: Error in wardrobe POST:', error);
@@ -309,6 +379,12 @@ export async function POST(request: Request) {
         color: 'blue',
         isFavorite: false
       }
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
     });
   }
 }
@@ -347,16 +423,43 @@ async function handleOutfitHistory(request: Request) {
     
     if (!response.ok) {
       console.error('🔍 DEBUG: Outfit history backend response not ok:', response.status);
-      return NextResponse.json({ error: 'Backend request failed' }, { status: response.status });
+      return NextResponse.json(
+        { error: 'Backend request failed' }, 
+        { 
+          status: response.status,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          },
+        }
+      );
     }
     
     const data = await response.json();
     console.log('🔍 DEBUG: Outfit history data received:', data);
     
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json(data, { 
+      status: response.status,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
     
   } catch (error) {
     console.error('❌ Error in outfit history handler:', error);
-    return NextResponse.json({ error: 'Failed to fetch outfit history' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch outfit history' }, 
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      }
+    );
   }
 }

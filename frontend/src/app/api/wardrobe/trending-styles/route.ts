@@ -64,7 +64,13 @@ export async function GET(request: NextRequest) {
     };
     
     console.log('🔍 DEBUG: Returning fallback trending styles data');
-    return NextResponse.json(fallbackData);
+    return NextResponse.json(fallbackData, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
     
   } catch (error) {
     console.error('❌ Frontend API: Error in trending-styles route:', error);
@@ -74,7 +80,25 @@ export async function GET(request: NextRequest) {
         error: 'Failed to fetch trending styles',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      }
     );
   }
+}
+
+// Handle OPTIONS requests for CORS
+export async function OPTIONS(request: NextRequest) {
+  return NextResponse.json({}, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 } 
