@@ -144,7 +144,9 @@ export function useGamificationStats() {
       }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
-        console.error(`⏱️ DEBUG: Gamification stats timed out after ${timeout/1000}s (non-critical, continuing...)`);
+        const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+        const timeoutSeconds = isMobile ? 60 : 30;
+        console.error(`⏱️ DEBUG: Gamification stats timed out after ${timeoutSeconds}s (non-critical, continuing...)`);
         // Don't set error for timeout - allow dashboard to continue without stats
         setStats(null);
       } else {
