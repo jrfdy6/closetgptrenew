@@ -22,7 +22,7 @@ export default function TVECard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[#F8F5F1]">
             <DollarSign className="w-5 h-5 text-[#FFB84C]" />
-            Total Value Extracted
+            Total Value Unlocked
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -41,12 +41,12 @@ export default function TVECard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[#F8F5F1]">
             <DollarSign className="w-5 h-5 text-[#FFB84C]" />
-            Total Value Extracted
+            Total Value Unlocked
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-[#C4BCB4]">
-            Complete onboarding to see your value extraction
+            Complete onboarding to see your value unlocked
           </p>
         </CardContent>
       </Card>
@@ -72,7 +72,7 @@ export default function TVECard() {
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs text-sm">
-                  TVE tracks value extracted from your wardrobe. Each wear adds value when you actively rotate your items weekly!
+                  TVE tracks value unlocked from your wardrobe. Each wear adds value when you actively rotate your items weekly!
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -84,7 +84,7 @@ export default function TVECard() {
       </CardHeader>
       <CardContent className="pt-6">
         <div className="space-y-6">
-          {/* Total Value Extracted - Big Number */}
+          {/* Total Value Unlocked - Big Number */}
           <div>
             <div className="flex items-baseline gap-2 mb-1">
               <motion.div
@@ -96,7 +96,7 @@ export default function TVECard() {
               >
                 ${totalTVE.toFixed(2)}
               </motion.div>
-              <span className="text-sm text-[#8A827A]">extracted</span>
+              <span className="text-sm text-[#8A827A]">unlocked</span>
             </div>
             <p className="text-xs text-[#C4BCB4]">
               {percentRecouped.toFixed(1)}% of your ${totalWardrobeCost.toFixed(0)} wardrobe investment
