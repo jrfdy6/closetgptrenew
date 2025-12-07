@@ -410,14 +410,15 @@ export default function WardrobeInsightsHub({
                           </div>
                           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div 
-                              className={`h-2 rounded-full transition-all duration-300 ${
-                                isSummer 
-                                  ? 'bg-gradient-to-r from-yellow-500 to-orange-500' 
-                                  : 'bg-gradient-to-r from-blue-500 to-indigo-500'
-                              }`}
-                              style={{ width: `${requiredCount && requiredCount > 0 
-                                ? Math.min((currentCount / requiredCount) * 100, 100) 
-                                : 0}%` }}
+                              className="h-2 rounded-full transition-all duration-300"
+                              style={{ 
+                                background: isSummer 
+                                  ? 'linear-gradient(90deg, #FFB84C 0%, #FF9400 100%)'
+                                  : 'linear-gradient(90deg, #3B82F6 0%, #6366F1 100%)',
+                                width: `${requiredCount && requiredCount > 0 
+                                  ? Math.min((currentCount / requiredCount) * 100, 100) 
+                                  : 0}%` 
+                              }}
                             />
                           </div>
                         </div>
@@ -509,14 +510,17 @@ export default function WardrobeInsightsHub({
                                     ? `${Math.round((currentCount / requiredCount) * 100)}%` 
                                     : '0%'}</span>
                                 </div>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                  <div 
-                                    className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-300"
-                                    style={{ width: `${requiredCount && requiredCount > 0 
+                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div 
+                                  className="h-2 rounded-full transition-all duration-300"
+                                  style={{ 
+                                    background: 'linear-gradient(90deg, #FFB84C 0%, #FF9400 100%)',
+                                    width: `${requiredCount && requiredCount > 0 
                                       ? Math.min((currentCount / requiredCount) * 100, 100) 
-                                      : 0}%` }}
-                                  />
-                                </div>
+                                      : 0}%` 
+                                  }}
+                                />
+                              </div>
                               </div>
                             </div>
                           </CollapsibleContent>
