@@ -413,7 +413,7 @@ export default function WardrobeInsightsHub({
                               className="h-2 rounded-full transition-all duration-300"
                               style={{ 
                                 background: isSummer 
-                                  ? 'linear-gradient(90deg, #FFB84C 0%, #FF9400 100%)'
+                                  ? 'linear-gradient(90deg, #D4A574 0%, #C9956F 50%, #B8860B 100%)'
                                   : 'linear-gradient(90deg, #3B82F6 0%, #6366F1 100%)',
                                 width: `${requiredCount && requiredCount > 0 
                                   ? Math.min((currentCount / requiredCount) * 100, 100) 
@@ -514,7 +514,7 @@ export default function WardrobeInsightsHub({
                                 <div 
                                   className="h-2 rounded-full transition-all duration-300"
                                   style={{ 
-                                    background: 'linear-gradient(90deg, #FFB84C 0%, #FF9400 100%)',
+                                    background: 'linear-gradient(90deg, #D4A574 0%, #C9956F 50%, #B8860B 100%)',
                                     width: `${requiredCount && requiredCount > 0 
                                       ? Math.min((currentCount / requiredCount) * 100, 100) 
                                       : 0}%` 
