@@ -368,8 +368,8 @@
   }
   
   .dark body {
-    /* Pure Black Luxury */
-    background: linear-gradient(135deg, #0D0D0D 0%, #1A1A1A 50%, #0D0D0D 100%);
+    /* Dark Mode: Deep amber-orange gradient matching outfit generate page */
+    background: linear-gradient(to bottom right, #451A03 0%, #78350F 50%, #431407 100%);
   }
   
   /* Enhanced mobile touch targets - WCAG AAA compliance */
