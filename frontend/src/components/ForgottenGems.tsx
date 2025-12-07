@@ -260,7 +260,7 @@ export default function ForgottenGems() {
             >
               {highPotentialItems.map((item) => (
                 <CarouselSlide key={item.id}>
-                  <Card className="h-full max-w-sm mx-auto shadow-lg border border-amber-200/80 dark:border-amber-800/60 bg-white dark:bg-stone-950">
+                  <Card className="h-full max-w-sm mx-auto shadow-lg border border-amber-200/80 dark:border-amber-800/60 bg-white dark:bg-[#1A1A1A]">
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start mb-2">
                         <Badge variant="outline" className="text-xs">
@@ -276,14 +276,14 @@ export default function ForgottenGems() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="relative aspect-[4/5] bg-gradient-to-br from-amber-100 via-white to-white dark:from-amber-900/30 dark:via-stone-950 dark:to-stone-950 rounded-xl overflow-hidden">
+                      <div className="relative aspect-[4/5] bg-gradient-to-br from-amber-100 via-white to-white dark:from-amber-900/30 dark:via-[#0D0D0D] dark:to-[#0D0D0D] rounded-xl overflow-hidden">
                         <img
                           src={item.imageUrl || '/placeholder.jpg'}
                           alt={item.name}
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute top-3 right-3">
-                          <Badge variant="secondary" className="text-xs bg-white/80 dark:bg-stone-900/70">
+                          <Badge variant="secondary" className="text-xs bg-white/80 dark:bg-[#1A1A1A]/70">
                             {item.color}
                           </Badge>
                         </div>
