@@ -310,7 +310,7 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
         <div className="flex gap-2 pt-2">
           <Button
             onClick={handleRefresh}
-            className="flex-1"
+            className="flex-1 gradient-copper-gold text-white"
             variant="default"
           >
             <RefreshCw className="w-4 h-4 mr-2" />

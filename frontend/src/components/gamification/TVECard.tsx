@@ -96,9 +96,9 @@ export default function TVECard() {
               >
                 ${totalTVE.toFixed(2)}
               </motion.div>
-              <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">unlocked</span>
+              <span className="text-sm text-[#78716C] dark:text-[#C4BCB4]">unlocked</span>
             </div>
-            <p className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
+            <p className="text-xs text-[#78716C] dark:text-[#C4BCB4]">
               {percentRecouped.toFixed(1)}% of your ${totalWardrobeCost.toFixed(0)} wardrobe investment
             </p>
           </div>
@@ -106,7 +106,7 @@ export default function TVECard() {
           {/* Progress Bar */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
+              <span className="text-sm font-medium text-[#78716C] dark:text-[#C4BCB4]">
                 Investment Recouped
               </span>
               <span className="text-sm font-bold gradient-copper-gold bg-clip-text text-transparent">
@@ -139,7 +139,7 @@ export default function TVECard() {
                 <div className="text-sm font-medium text-[#1C1917] dark:text-[#F8F5F1] mb-1">
                   Annual Potential Value
                 </div>
-                <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] mb-2">
+                <div className="text-xs text-[#78716C] dark:text-[#C4BCB4] mb-2">
                   By wearing your wardrobe consistently, you can extract:
                 </div>
                 <div className="flex items-center gap-2">
@@ -147,9 +147,9 @@ export default function TVECard() {
                     gradient-copper-gold bg-clip-text text-transparent">
                     ${annualPotentialRange.low.toFixed(0)} - ${annualPotentialRange.high.toFixed(0)}
                   </span>
-                  <span className="text-xs text-[#57534E] dark:text-[#C4BCB4]">this year</span>
+                  <span className="text-xs text-[#78716C] dark:text-[#C4BCB4]">this year</span>
                 </div>
-                <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-1">
+                <div className="text-xs text-[#78716C] dark:text-[#C4BCB4] mt-1">
                   Based on 50-75% active rotation
                 </div>
               </div>
