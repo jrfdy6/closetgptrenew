@@ -101,7 +101,7 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-              <Sparkles className="h-5 w-5 text-[#FF9400] dark:text-[#FFB84C]" />
+              <Sparkles className="h-5 w-5 text-[#C9956F] dark:text-[#D4A574]" />
               Wardrobe Insights
             </CardTitle>
             <CardDescription className="text-[#57534E] dark:text-[#C4BCB4]">Your style activity this week</CardDescription>
@@ -117,9 +117,9 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
       <CardContent className="space-y-6">
         {/* Weekly Summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
+          <div className="bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
             <div className="flex items-center gap-2 mb-2">
-              <Shirt className="h-4 w-4 text-[#FF9400] dark:text-[#FFB84C]" />
+              <Shirt className="h-4 w-4 text-[#C9956F] dark:text-[#D4A574]" />
               <p className="text-xs font-medium text-[#57534E] dark:text-[#C4BCB4]">Outfits Worn</p>
             </div>
             <p className="text-2xl font-bold text-[#1C1917] dark:text-[#F8F5F1]">
@@ -128,9 +128,9 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
             <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-1">this week</p>
           </div>
 
-          <div className="bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
+          <div className="bg-gradient-to-br from-[#D4A574]/30 to-[#C9956F]/30 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
             <div className="flex items-center gap-2 mb-2">
-              <Target className="h-4 w-4 text-[#FF9400] dark:text-[#FFB84C]" />
+              <Target className="h-4 w-4 text-[#C9956F] dark:text-[#D4A574]" />
               <p className="text-xs font-medium text-[#57534E] dark:text-[#C4BCB4]">Items Used</p>
             </div>
             <p className="text-2xl font-bold text-[#1C1917] dark:text-[#F8F5F1]">
@@ -139,9 +139,9 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
             <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-1">unique items</p>
           </div>
 
-          <div className="bg-gradient-to-br from-[#FFE08F]/40 to-[#FFB84C]/35 dark:from-[#FFD27F]/25 dark:to-[#FFB84C]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
+          <div className="bg-gradient-to-br from-[#DDB896]/40 to-[#D4A574]/35 dark:from-[#E8C8A0]/25 dark:to-[#D4A574]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
             <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-4 w-4 text-[#FF9400] dark:text-[#FFB84C]" />
+              <Sparkles className="h-4 w-4 text-[#C9956F] dark:text-[#D4A574]" />
               <p className="text-xs font-medium text-[#57534E] dark:text-[#C4BCB4]">Created</p>
             </div>
             <p className="text-2xl font-bold text-[#1C1917] dark:text-[#F8F5F1]">
@@ -150,9 +150,9 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
             <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-1">new outfits</p>
           </div>
 
-          <div className="bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
+          <div className="bg-gradient-to-br from-[#D4A574]/30 to-[#C9956F]/30 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-lg p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
             <div className="flex items-center gap-2 mb-2">
-              <BarChart3 className="h-4 w-4 text-[#FF9400] dark:text-[#FFB84C]" />
+              <BarChart3 className="h-4 w-4 text-[#C9956F] dark:text-[#D4A574]" />
               <p className="text-xs font-medium text-[#57534E] dark:text-[#C4BCB4]">Utilization</p>
             </div>
             <p className={`text-2xl font-bold ${getUtilizationColor(utilizationRate)}`}>
@@ -193,7 +193,7 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
                   {weeklySummary.mostWornItem.name}
                 </p>
               </div>
-              <Badge variant="secondary" className="text-lg px-3 py-1 bg-[#FFB84C]/20 dark:bg-[#FF9400]/20 text-[#FF9400] dark:text-[#FFB84C]">
+              <Badge variant="secondary" className="text-lg px-3 py-1 bg-[#D4A574]/20 dark:bg-[#C9956F]/20 text-[#C9956F] dark:text-[#D4A574]">
                 {weeklySummary.mostWornItem.count}×
               </Badge>
             </div>
@@ -204,7 +204,7 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
         {wardrobeData.topStyles && wardrobeData.topStyles.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-[#1C1917] dark:text-[#F8F5F1] flex items-center gap-2">
-              <Palette className="h-4 w-4 text-[#FF9400] dark:text-[#FFB84C]" />
+              <Palette className="h-4 w-4 text-[#C9956F] dark:text-[#D4A574]" />
               Your Go-To Styles
             </h3>
             <div className="space-y-2">
@@ -213,9 +213,9 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
                   <div className="flex items-center gap-2">
                     <div 
                       className={`h-2 w-2 rounded-full ${
-                        index === 0 ? 'bg-[#FF9400] dark:bg-[#FFB84C]' : 
-                        index === 1 ? 'bg-[#FFB84C] dark:bg-[#FFD27F]' : 
-                        'bg-[#FFCC66] dark:bg-[#FFE08F]'
+                        index === 0 ? 'bg-[#C9956F] dark:bg-[#D4A574]' : 
+                        index === 1 ? 'bg-[#D4A574] dark:bg-[#E8C8A0]' : 
+                        'bg-[#E8C8A0] dark:bg-[#DDB896]'
                       }`}
                     />
                     <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
@@ -235,7 +235,7 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
         {wardrobeData.topColors && wardrobeData.topColors.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-[#1C1917] dark:text-[#F8F5F1] flex items-center gap-2">
-              <Palette className="h-4 w-4 text-[#FF9400] dark:text-[#FFB84C]" />
+              <Palette className="h-4 w-4 text-[#C9956F] dark:text-[#D4A574]" />
               Color Palette
             </h3>
             <div className="flex gap-2">
@@ -260,9 +260,9 @@ export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeI
 
         {/* Actionable Insights */}
         {wardrobeData.underutilizedItems > 0 && (
-          <div className="bg-[#FFE08F]/20 dark:bg-[#FFB84C]/10 border border-[#FFB84C]/30 dark:border-[#FF9400]/30 rounded-lg p-4">
+          <div className="bg-[#DDB896]/20 dark:bg-[#D4A574]/10 border border-[#D4A574]/30 dark:border-[#C9956F]/30 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-[#FF9400] dark:text-[#FFB84C] flex-shrink-0 mt-0.5" />
+              <AlertCircle className="h-5 w-5 text-[#C9956F] dark:text-[#D4A574] flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-[#1C1917] dark:text-[#F8F5F1] mb-1">
                   You have {wardrobeData.underutilizedItems} items not worn recently

@@ -234,8 +234,8 @@ export default function OutfitResultsDisplay({
   const flatLayGenerationError = flatLayState.error;
 
   const getConfidenceColor = (score: number) => {
-    if (score >= 0.8) return 'text-amber-600 bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20';
-    if (score >= 0.6) return 'text-amber-600 bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20';
+    if (score >= 0.8) return 'text-[#B8860B] bg-[#E8C8A0]/20 dark:text-[#E8C8A0] dark:bg-[#B8860B]/20';
+    if (score >= 0.6) return 'text-[#B8860B] bg-[#E8C8A0]/20 dark:text-[#E8C8A0] dark:bg-[#B8860B]/20';
     return 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/20';
   };
 
@@ -304,7 +304,7 @@ export default function OutfitResultsDisplay({
   return (
     <div className="space-y-6">
       {/* Main Outfit Card */}
-      <Card className="overflow-hidden border-2 border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20">
+      <Card className="overflow-hidden border-2 border-[#E8C8A0]/40 dark:border-[#B8860B]/60 bg-gradient-to-br from-[#E8C8A0]/50 to-orange-50 dark:from-[#B8860B]/40/20 dark:to-[#C9956F]/40/20">
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -348,13 +348,13 @@ export default function OutfitResultsDisplay({
 
         <CardContent className="space-y-6">
           {/* HERO: Flat Lay Image (Primary Display) */}
-          <div className="mb-6 p-6 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 rounded-2xl border-4 border-amber-500 dark:border-amber-600">
+          <div className="mb-6 p-6 bg-gradient-to-br from-[#E8C8A0]/30 to-[#C9956F]/30 dark:from-[#B8860B]/40/40 dark:to-[#C9956F]/40/40 rounded-2xl border-4 border-[#D4A574] dark:border-[#C9956F]">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-                <Eye className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                <Eye className="h-6 w-6 text-[#B8860B] dark:text-[#E8C8A0]" />
                 Complete Outfit Preview
               </h4>
-              <Badge className="bg-amber-600 text-white dark:bg-amber-500">
+              <Badge className="bg-[#B8860B] text-white dark:bg-[#E8C8A0]/100">
                 Flat Lay
               </Badge>
             </div>
@@ -382,7 +382,7 @@ export default function OutfitResultsDisplay({
                 variant="secondary"
                 onClick={handleDownload}
                 disabled={!flatLayUrl}
-                className="bg-amber-200 hover:bg-amber-300 dark:bg-amber-800 dark:hover:bg-amber-700 disabled:opacity-50"
+                className="bg-rose-gold-200 hover:bg-rose-gold-300 dark:bg-rose-gold-800 dark:hover:bg-rose-gold-700 disabled:opacity-50"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Download
@@ -392,7 +392,7 @@ export default function OutfitResultsDisplay({
                 variant="secondary"
                 onClick={handleShare}
                 disabled={!flatLayUrl}
-                className="bg-amber-200 hover:bg-amber-300 dark:bg-amber-800 dark:hover:bg-amber-700 disabled:opacity-50"
+                className="bg-rose-gold-200 hover:bg-rose-gold-300 dark:bg-rose-gold-800 dark:hover:bg-rose-gold-700 disabled:opacity-50"
               >
                 <Share2 className="w-4 h-4 mr-2" />
                 Share
@@ -403,7 +403,7 @@ export default function OutfitResultsDisplay({
           {/* Outfit Items Grid (Secondary - Detailed View) */}
           <div>
             <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Shirt className="h-5 w-5 text-amber-600" />
+              <Shirt className="h-5 w-5 text-[#B8860B]" />
               Outfit Details ({outfit.items.length} pieces)
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -453,7 +453,7 @@ export default function OutfitResultsDisplay({
           {outfit.reasoning && (
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                <Info className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0] mt-0.5 flex-shrink-0" />
                 <div>
                   <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Outfit Advisory</h4>
                   <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
@@ -477,19 +477,19 @@ export default function OutfitResultsDisplay({
                   <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
                     {outfit.score_breakdown.total_score}
                   </div>
-                  <div className="text-xs text-amber-600 dark:text-amber-400">
+                  <div className="text-xs text-[#B8860B] dark:text-[#E8C8A0]">
                     Grade: {outfit.score_breakdown.grade}
                   </div>
                 </div>
-                <div className="bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 p-4 rounded-lg">
+                <div className="bg-gradient-to-r from-[#E8C8A0]/50 to-rose-gold-100 dark:from-[#B8860B]/40/20 dark:to-rose-gold-800/20 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="h-4 w-4 text-amber-600" />
-                    <span className="text-sm font-medium text-amber-700 dark:text-amber-300">Confidence</span>
+                    <CheckCircle className="h-4 w-4 text-[#B8860B]" />
+                    <span className="text-sm font-medium text-[#B8860B] dark:text-[#E8C8A0]">Confidence</span>
                   </div>
-                  <div className="text-2xl font-bold text-amber-800 dark:text-amber-200">
+                  <div className="text-2xl font-bold text-rose-gold-800 dark:text-[#DDB896]">
                     {Math.round(outfit.confidence_score * 100)}%
                   </div>
-                  <div className="text-xs text-amber-600 dark:text-amber-400">
+                  <div className="text-xs text-[#B8860B] dark:text-[#E8C8A0]">
                     {getConfidenceText(outfit.confidence_score)}
                   </div>
                 </div>
@@ -586,7 +586,7 @@ export default function OutfitResultsDisplay({
                     {outfit.metadata.item_intelligence.slice(0, 3).map((insight: any, idx: number) => (
                       <div 
                         key={idx}
-                        className="bg-gradient-to-r from-amber-50/50 to-orange-50/50 dark:from-amber-900/10 dark:to-orange-900/10 rounded-lg p-3 border border-amber-200/50 dark:border-amber-800/50"
+                        className="bg-gradient-to-r from-[#E8C8A0]/50/50 to-orange-50/50 dark:from-[#B8860B]/40/10 dark:to-[#C9956F]/40/10 rounded-lg p-3 border border-[#E8C8A0]/40/50 dark:border-[#B8860B]/60/50"
                       >
                         <div className="flex items-start gap-2">
                           <div className="text-lg">{insight.icon || '✨'}</div>
@@ -646,8 +646,8 @@ export default function OutfitResultsDisplay({
                     onClick={() => onRatingChange(star)}
                     className={`text-2xl transition-all duration-200 hover:scale-110 cursor-pointer select-none ${
                       star <= rating.rating
-                        ? 'text-amber-400 fill-current'
-                        : 'text-gray-300 dark:text-gray-600 hover:text-amber-300'
+                        ? 'text-[#E8C8A0] fill-current'
+                        : 'text-gray-300 dark:text-gray-600 hover:text-[#E8C8A0]'
                     }`}
                     style={{ userSelect: 'none' }}
                     disabled={ratingSubmitted}
@@ -662,7 +662,7 @@ export default function OutfitResultsDisplay({
                 </span>
               )}
               {ratingSubmitted && (
-                <span className="text-xs text-amber-600 dark:text-amber-400 ml-2">
+                <span className="text-xs text-[#B8860B] dark:text-[#E8C8A0] ml-2">
                   ✓ Submitted
                 </span>
               )}
@@ -677,8 +677,8 @@ export default function OutfitResultsDisplay({
                 disabled={ratingSubmitted}
                 className={`flex items-center gap-2 ${
                   rating.isLiked 
-                    ? 'bg-amber-600 hover:bg-amber-700 text-white' 
-                    : 'hover:bg-green-50 hover:text-amber-600'
+                    ? 'bg-[#B8860B] hover:bg-rose-gold-700 text-white' 
+                    : 'hover:bg-green-50 hover:text-[#B8860B]'
                 } ${ratingSubmitted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <ThumbsUp className="h-4 w-4" />
@@ -710,7 +710,7 @@ export default function OutfitResultsDisplay({
 
             {/* Status Messages */}
             {rating.rating > 0 && !ratingSubmitted && (
-              <div className="text-xs text-amber-600 dark:text-amber-400 text-center mb-4 flex items-center justify-center gap-2">
+              <div className="text-xs text-[#B8860B] dark:text-[#E8C8A0] text-center mb-4 flex items-center justify-center gap-2">
                 <Sparkles className="h-3 w-3" />
                 ✓ Rating will be automatically submitted and improve your AI
               </div>
@@ -729,7 +729,7 @@ export default function OutfitResultsDisplay({
 
             {isWorn && (
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
-                <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
+                <p className="text-sm text-[#B8860B] dark:text-[#E8C8A0] text-center">
                   ✓ Outfit marked as worn! Redirecting to outfits page...
                 </p>
               </div>
@@ -741,14 +741,14 @@ export default function OutfitResultsDisplay({
             {isWorn ? (
               <Button 
                 onClick={onViewOutfits} 
-                className="flex-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
+                className="flex-1 bg-gradient-to-r from-rose-gold-600 to-orange-600 hover:from-rose-gold-700 hover:to-orange-700"
               >
                 <Shirt className="h-4 w-4 mr-2" />
                 View My Looks
               </Button>
             ) : ratingSubmitted ? (
               <>
-                <Button onClick={onWearOutfit} className="flex-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-green-700 hover:to-emerald-700">
+                <Button onClick={onWearOutfit} className="flex-1 bg-gradient-to-r from-rose-gold-600 to-orange-600 hover:from-green-700 hover:to-emerald-700">
                   <Calendar className="h-4 w-4 mr-2" />
                   Wear This Outfit
                 </Button>
@@ -763,7 +763,7 @@ export default function OutfitResultsDisplay({
               </>
             ) : (
               <>
-                <Button onClick={onWearOutfit} className="flex-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-green-700 hover:to-emerald-700">
+                <Button onClick={onWearOutfit} className="flex-1 bg-gradient-to-r from-rose-gold-600 to-orange-600 hover:from-green-700 hover:to-emerald-700">
                   <Calendar className="h-4 w-4 mr-2" />
                   Wear This Outfit
                 </Button>
