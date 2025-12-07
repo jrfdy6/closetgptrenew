@@ -211,19 +211,14 @@ export default function WardrobeInsightsHub({
   };
 
   // Separate seasonal gaps from regular gaps
+  // Use type field instead of category name to properly distinguish gap types
   const seasonalGaps = gaps.filter(gap => 
-    (gap.type === 'seasonal' || 
-    gap.category?.toLowerCase().includes('summer') || 
-    gap.category?.toLowerCase().includes('winter') ||
-    gap.category?.toLowerCase().includes('essentials')) &&
+    gap.type === 'seasonal' &&
     !(gap.id && gap.id.toString().startsWith('demo-'))
   );
   
   const regularGaps = gaps.filter(gap => 
     gap.type !== 'seasonal' && 
-    !gap.category?.toLowerCase().includes('summer') && 
-    !gap.category?.toLowerCase().includes('winter') &&
-    !gap.category?.toLowerCase().includes('essentials') &&
     !(gap.id && gap.id.toString().startsWith('demo-'))
   );
 
