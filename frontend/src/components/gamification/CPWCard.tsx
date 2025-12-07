@@ -17,17 +17,17 @@ export default function CPWCard() {
 
   if (loading) {
     return (
-      <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
+      <Card className="bg-card dark:bg-card border border-border/60 dark:border-border/70">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-            <DollarSign className="w-5 h-5 text-[#FFB84C]" />
+          <CardTitle className="flex items-center gap-2 text-card-foreground">
+            <DollarSign className="w-5 h-5 text-primary" />
             Cost Per Wear
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="h-12 bg-[#F5F0E8] dark:bg-[#262626] rounded animate-pulse" />
-            <div className="h-4 bg-[#F5F0E8] dark:bg-[#262626] rounded animate-pulse" />
+            <div className="h-12 bg-secondary dark:bg-muted rounded animate-pulse" />
+            <div className="h-4 bg-secondary dark:bg-muted rounded animate-pulse" />
           </div>
         </CardContent>
       </Card>
@@ -36,15 +36,15 @@ export default function CPWCard() {
 
   if (error || !stats?.cpw) {
     return (
-      <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
+      <Card className="bg-card dark:bg-card border border-border/60 dark:border-border/70">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-            <DollarSign className="w-5 h-5 text-[#FFB84C]" />
+          <CardTitle className="flex items-center gap-2 text-card-foreground">
+            <DollarSign className="w-5 h-5 text-primary" />
             Cost Per Wear
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+          <p className="text-sm text-muted-foreground">
             Set your spending ranges in settings to see CPW
           </p>
         </CardContent>
@@ -59,15 +59,15 @@ export default function CPWCard() {
   const isDecreasing = changePercentage < 0;
 
   return (
-    <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 overflow-hidden">
+    <Card className="bg-card dark:bg-card border border-border/60 dark:border-border/70 overflow-hidden">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-          <DollarSign className="w-5 h-5 text-[#FFB84C]" />
+        <CardTitle className="flex items-center gap-2 text-card-foreground">
+          <DollarSign className="w-5 h-5 text-primary" />
           Cost Per Wear
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                <Info className="w-4 h-4 text-[#57534E] dark:text-[#C4BCB4]" />
+                <Info className="w-4 h-4 text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs text-sm">
@@ -78,7 +78,7 @@ export default function CPWCard() {
             </Tooltip>
           </TooltipProvider>
         </CardTitle>
-        <CardDescription className="text-[#57534E] dark:text-[#C4BCB4]">
+        <CardDescription className="text-muted-foreground">
           Average across your wardrobe
         </CardDescription>
       </CardHeader>
@@ -91,11 +91,11 @@ export default function CPWCard() {
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200 }}
               className="text-4xl font-display font-semibold
-                bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent"
+                bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
             >
               ${currentCPW?.toFixed(2) || '0.00'}
             </motion.div>
-            <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">per wear</span>
+            <span className="text-sm text-muted-foreground">per wear</span>
           </div>
 
           {/* Trend Indicator */}
@@ -108,23 +108,23 @@ export default function CPWCard() {
             >
               {isDecreasing ? (
                 <>
-                  <TrendingDown className="w-5 h-5 text-[#FFB84C]" />
-                  <span className="text-sm font-medium text-[#FFB84C]">
+                  <TrendingDown className="w-5 h-5 text-primary" />
+                  <span className="text-sm font-medium text-primary">
                     {Math.abs(changePercentage).toFixed(1)}% decrease
                   </span>
-                  <Badge className="bg-[#F5F0E8] dark:bg-[#262626] border border-[#FFB84C] text-[#FFB84C]">
+                  <Badge className="bg-secondary dark:bg-muted border border-primary text-primary">
                     Great!
                   </Badge>
                 </>
               ) : changePercentage > 0 ? (
                 <>
-                  <TrendingUp className="w-5 h-5 text-[#FF9400]" />
-                  <span className="text-sm font-medium text-[#FF9400]">
+                  <TrendingUp className="w-5 h-5 text-accent" />
+                  <span className="text-sm font-medium text-accent">
                     {changePercentage.toFixed(1)}% increase
                   </span>
                 </>
               ) : (
-                <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                <span className="text-sm text-muted-foreground">
                   Stable this month
                 </span>
               )}
@@ -132,10 +132,10 @@ export default function CPWCard() {
           )}
 
           {/* Insight */}
-          <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] pt-2 border-t border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
+          <div className="text-xs text-muted-foreground pt-2 border-t border-border/60 dark:border-border/70">
             {isDecreasing ? (
               <p className="flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-[#FFB84C]" />
+                <Sparkles className="w-3 h-3 text-primary" />
                 You're getting more value from your wardrobe!
               </p>
             ) : currentCPW && currentCPW < 10 ? (

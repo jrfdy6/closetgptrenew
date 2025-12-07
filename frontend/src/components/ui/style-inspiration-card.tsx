@@ -219,9 +219,9 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
 
       {/* Image */}
       <CardContent className="space-y-4">
-        <div className="relative rounded-3xl overflow-hidden bg-[#F5F0E8] dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 h-48 sm:h-64 w-full shadow-lg">
+        <div className="relative rounded-3xl overflow-hidden bg-secondary dark:bg-card border border-border/60 dark:border-border/70 h-48 sm:h-64 w-full shadow-lg">
           {imageLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-[#F5F0E8] dark:bg-[#1A1A1A] z-10">
+            <div className="absolute inset-0 flex items-center justify-center bg-secondary dark:bg-card z-10">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-copper-dark"></div>
             </div>
           )}
@@ -248,29 +248,29 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
 
         {/* Item Info */}
         <div>
-          <h3 className="font-semibold text-lg text-[#1C1917] dark:text-[#F8F5F1]">{inspiration.title}</h3>
-          <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">{inspiration.brand}</p>
-          <p className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1] mt-1">
+          <h3 className="font-semibold text-lg text-card-foreground">{inspiration.title}</h3>
+          <p className="text-sm text-muted-foreground">{inspiration.brand}</p>
+          <p className="text-lg font-bold text-card-foreground mt-1">
             {inspiration.price}
           </p>
         </div>
 
         {/* Rationale */}
-        <div className="bg-[#F5F0E8]/75 dark:bg-[#1A1A1A]/80 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 p-3 rounded-2xl">
-          <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] leading-relaxed">
+        <div className="bg-secondary/75 dark:bg-card/80 border border-border/60 dark:border-border/70 p-3 rounded-2xl">
+          <p className="text-sm text-muted-foreground leading-relaxed">
             {inspiration.rationale}
           </p>
         </div>
 
         {/* Style Scores */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-semibold text-[#57534E] dark:text-[#C4BCB4]">
+          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span>Style Match</span>
             <Button
               onClick={() => setShowDetails(!showDetails)}
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-[#57534E] dark:text-[#C4BCB4]"
+              className="h-6 px-2 text-muted-foreground"
             >
               <Info className="w-3 h-3 mr-1" />
               {showDetails ? 'Hide' : 'Details'}
@@ -281,14 +281,14 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
             <div className="space-y-1">
               {topStyles.map(([style, score]) => (
                 <div key={style} className="flex items-center gap-2">
-                  <span className="text-xs text-[#57534E] dark:text-[#C4BCB4] w-24 capitalize">{style}</span>
-                  <div className="flex-1 h-2 bg-[#E7DDCF] dark:bg-[#262626] rounded-full overflow-hidden">
+                  <span className="text-xs text-muted-foreground w-24 capitalize">{style}</span>
+                  <div className="flex-1 h-2 bg-muted dark:bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full gradient-copper-gold"
                       style={{ width: `${score * 100}%` }}
                     />
                   </div>
-                  <span className="text-xs font-semibold text-[#57534E] dark:text-[#C4BCB4]">
+                  <span className="text-xs font-semibold text-muted-foreground">
                     {Math.round(score * 100)}%
                   </span>
                 </div>

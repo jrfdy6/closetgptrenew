@@ -115,7 +115,7 @@ export default function SwipeableOutfitCard({
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-10 w-10 h-10 bg-[#F5F0E8]/20 hover:bg-[#F5F0E8]/30 text-[#F8F5F1] rounded-full flex items-center justify-center transition-colors border border-white/20 backdrop-blur"
+        className="absolute top-4 right-4 z-10 w-10 h-10 bg-secondary/20 hover:bg-secondary/30 text-card-foreground rounded-full flex items-center justify-center transition-colors border border-white/20 backdrop-blur"
         aria-label="Close"
       >
         <X className="w-5 h-5" />
@@ -134,9 +134,9 @@ export default function SwipeableOutfitCard({
           transition: isDragging ? "none" : "all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)"
         }}
       >
-        <div className="card-surface rounded-3xl shadow-2xl overflow-hidden border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-white/90 dark:bg-[#1A1510]/90 backdrop-blur-xl">
+        <div className="card-surface rounded-3xl shadow-2xl overflow-hidden border border-border/60 dark:border-border/70 bg-card/90 dark:bg-card/90 backdrop-blur-xl">
           {/* Outfit Image */}
-          <div className="relative aspect-[3/4] bg-[#F5F0E8] dark:bg-[#2C2119]">
+          <div className="relative aspect-[3/4] bg-secondary dark:bg-muted">
             <img
               src={outfit.imageUrl || outfit.items[0]?.imageUrl || "/placeholder.jpg"}
               alt={outfit.name}
@@ -164,15 +164,15 @@ export default function SwipeableOutfitCard({
               className={cn(
                 "absolute top-4 right-4 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 border border-white/40 backdrop-blur",
                 isSaved
-                  ? "bg-[#FF6F61] text-white scale-110"
-                  : "bg-white/80 hover:bg-white hover:scale-110 text-[#1A1510]"
+                  ? "bg-destructive text-white scale-110"
+                  : "bg-card/80 hover:bg-card hover:scale-110 text-primary-foreground"
               )}
               aria-label={isSaved ? "Outfit saved" : "Save outfit"}
             >
               <Heart
                 className={cn(
                   "w-6 h-6 transition-all duration-300",
-                  isSaved ? "fill-white text-white" : "text-[#1C1917]"
+                  isSaved ? "fill-white text-white" : "text-card-foreground"
                 )}
               />
             </button>
@@ -180,14 +180,14 @@ export default function SwipeableOutfitCard({
 
           {/* Outfit Details */}
           <div className="p-6">
-            <h2 className="heading-lg mb-2 text-[#1C1917] dark:text-[#F8F5F1]">
+            <h2 className="heading-lg mb-2 text-card-foreground">
               {outfit.name}
             </h2>
 
             {/* Toggle Items */}
             <button
               onClick={() => setShowItems(!showItems)}
-              className="flex items-center gap-2 text-body text-[#57534E] dark:text-[#C4BCB4] mb-4"
+              className="flex items-center gap-2 text-body text-muted-foreground mb-4"
             >
               <span>{outfit.items.length} items</span>
               <ChevronDown
@@ -204,9 +204,9 @@ export default function SwipeableOutfitCard({
                 {outfit.items.map((item, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-3 p-2 bg-[#F5F0E8]/80 dark:bg-[#2C2119]/85 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 rounded-xl"
+                    className="flex items-center gap-3 p-2 bg-secondary/80 dark:bg-muted/85 border border-border/60 dark:border-border/70 rounded-xl"
                   >
-                    <div className="w-10 h-10 bg-[#FFF7E6] dark:bg-[#3D2F24] rounded-lg overflow-hidden flex-shrink-0 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+                    <div className="w-10 h-10 bg-secondary/90 dark:bg-muted rounded-lg overflow-hidden flex-shrink-0 border border-border/60 dark:border-border/70">
                       <img
                         src={item.imageUrl}
                         alt={item.name}
@@ -214,10 +214,10 @@ export default function SwipeableOutfitCard({
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-body-sm font-medium text-[#1C1917] dark:text-[#F8F5F1] truncate">
+                      <div className="text-body-sm font-medium text-card-foreground truncate">
                         {item.name}
                       </div>
-                      <div className="text-caption text-[#57534E] dark:text-[#C4BCB4] capitalize">
+                      <div className="text-caption text-muted-foreground capitalize">
                         {item.type}
                       </div>
                     </div>
@@ -230,14 +230,14 @@ export default function SwipeableOutfitCard({
             <div className="flex gap-3">
               <button
                 onClick={handleRemix}
-                className="flex-1 h-12 rounded-xl text-button font-semibold flex items-center justify-center gap-2 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70 bg-[#F5F0E8]/70 dark:bg-[#2C2119]/80 text-[#1C1917] dark:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+                className="flex-1 h-12 rounded-xl text-button font-semibold flex items-center justify-center gap-2 border border-border/60 dark:border-border/70 bg-secondary/70 dark:bg-muted/80 text-card-foreground hover:bg-secondary"
               >
                 <RefreshCw className="w-4 h-4" />
                 Remix
               </button>
               <button
                 onClick={handleNext}
-                className="flex-1 h-12 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white rounded-xl text-button font-semibold transition-transform hover:scale-[1.02] flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25"
+                className="flex-1 h-12 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-xl text-button font-semibold transition-transform hover:scale-[1.02] flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25"
               >
                 Next look
               </button>
@@ -247,7 +247,7 @@ export default function SwipeableOutfitCard({
 
         {/* Swipe indicators */}
         {!isSaved && (
-          <div className="absolute -bottom-12 left-0 right-0 flex justify-between text-[#F5F0E8]/60 text-caption font-medium tracking-wide">
+          <div className="absolute -bottom-12 left-0 right-0 flex justify-between text-border/60 text-caption font-medium tracking-wide">
             <span>← Remix</span>
             <span>Next →</span>
           </div>

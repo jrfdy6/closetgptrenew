@@ -1352,7 +1352,7 @@ export default function OutfitGenerationPage() {
             <Button
               onClick={() => setSheetOpen(true)}
               disabled={wardrobeLoading}
-              className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] hover:shadow-lg hover:shadow-[#FFB84C]/30 transition-all rounded-2xl"
+              className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-accent text-primary-foreground hover:shadow-lg hover:shadow-primary/30 transition-all rounded-2xl"
             >
               <Sparkles className="h-5 w-5 mr-2" />
               Generate Outfit

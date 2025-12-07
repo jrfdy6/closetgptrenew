@@ -64,21 +64,21 @@ export default function MinimalOutfitDefault({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <Card className="bg-[#2C2119] border border-[#3D2F24] rounded-2xl overflow-hidden">
+            <Card className="bg-card dark:bg-card border border-border rounded-2xl overflow-hidden">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <Sparkles className="w-5 h-5 text-[#FFB84C]" />
-                      <h3 className="text-lg font-display font-semibold text-[#F8F5F1]">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg font-display font-semibold text-card-foreground">
                         AI Suggested Outfit
                       </h3>
                     </div>
-                    <p className="text-sm text-[#C4BCB4] mb-3">
+                    <p className="text-sm text-muted-foreground mb-3">
                       {suggestedOutfit.name} • {suggestedOutfit.occasion}
                     </p>
                     {weather && (
-                      <p className="text-xs text-[#8A827A]">
+                      <p className="text-xs text-muted-foreground">
                         {weather.temperature}°F, {weather.condition}
                         {weather.location && ` • ${weather.location}`}
                       </p>
@@ -94,11 +94,11 @@ export default function MinimalOutfitDefault({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <Card className="bg-[#2C2119] border border-[#3D2F24] rounded-2xl overflow-hidden">
+            <Card className="bg-card dark:bg-card border border-border rounded-2xl overflow-hidden">
               <CardContent className="p-6">
                 <div className="text-center py-8">
-                  <Sparkles className="w-12 h-12 text-[#FFB84C] mx-auto mb-3 opacity-50" />
-                  <p className="text-sm text-[#C4BCB4]">
+                  <Sparkles className="w-12 h-12 text-primary mx-auto mb-3 opacity-50" />
+                  <p className="text-sm text-muted-foreground">
                     Generate your first outfit to see AI suggestions
                   </p>
                 </div>
@@ -113,7 +113,7 @@ export default function MinimalOutfitDefault({
           <Button
             onClick={onShuffle}
             disabled={generating}
-            className="h-12 bg-[#2C2119] border border-[#3D2F24] text-[#F8F5F1] hover:bg-[#3D2F24] hover:border-[#3D2F24] active:scale-95 transition-all"
+            className="h-12 bg-card dark:bg-card border border-border text-card-foreground hover:bg-muted hover:border-border active:scale-95 transition-all"
           >
             <Shuffle className="w-5 h-5 mr-2" />
             Shuffle
@@ -123,7 +123,7 @@ export default function MinimalOutfitDefault({
           <Button
             onClick={() => setSheetOpen(true)}
             disabled={generating}
-            className="h-12 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] hover:shadow-lg hover:shadow-[#FFB84C]/30 active:scale-95 transition-all"
+            className="h-12 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:shadow-lg hover:shadow-primary/30 active:scale-95 transition-all"
           >
             <ChevronDown className="w-5 h-5 mr-2" />
             Expand

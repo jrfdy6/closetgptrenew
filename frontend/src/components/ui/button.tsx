@@ -6,20 +6,20 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFB84C] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:-translate-y-0.5 active:scale-[0.98]",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:-translate-y-0.5 active:scale-[0.98]",
   {
     variants: {
       variant: {
         default:
-          "bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] shadow-md hover:shadow-lg hover:shadow-[#FFB84C]/30",
+          "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md hover:shadow-lg hover:shadow-primary/30",
         destructive:
           "bg-destructive text-destructive-foreground shadow-md hover:bg-destructive/90 hover:shadow-lg hover:shadow-red-500/20",
         outline:
-          "border border-[#3D2F24] bg-[#2C2119] text-[#F8F5F1] shadow-md hover:bg-[#3D2F24] hover:border-[#FFB84C] hover:shadow-lg hover:shadow-[#FFB84C]/20",
+          "border border-border bg-secondary text-secondary-foreground shadow-md hover:bg-secondary/80 hover:border-primary hover:shadow-lg hover:shadow-primary/20",
         secondary:
-          "bg-[#3D2F24] text-[#F8F5F1] shadow-md hover:bg-[#3D2F24]/80 hover:shadow-lg",
-        ghost: "hover:bg-[#3D2F24] hover:text-[#F8F5F1] text-[#C4BCB4]",
-        link: "text-[#FFB84C] underline-offset-4 hover:underline hover:text-[#FF9400]",
+          "bg-secondary text-secondary-foreground shadow-md hover:bg-secondary/80 hover:shadow-lg",
+        ghost: "hover:bg-secondary hover:text-secondary-foreground text-muted-foreground",
+        link: "text-primary underline-offset-4 hover:underline hover:text-accent",
       },
       size: {
         default: "h-11 min-h-[44px] px-4 py-2.5", // 44px minimum for mobile accessibility

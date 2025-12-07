@@ -81,7 +81,7 @@ export default function Navigation() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-[#FAFAF9]/90 dark:bg-[#1A1A1A]/85 backdrop-blur-2xl border-b border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 shadow-sm">
+    <nav className="sticky top-0 z-50 bg-background/90 dark:bg-card/85 backdrop-blur-2xl border-b border-border/60 dark:border-border/70 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 sm:h-18">
           {/* Logo - Cleaner mobile version */}
@@ -116,15 +116,15 @@ export default function Navigation() {
                     href={item.href}
                     className={cn(
                       "group flex items-center space-x-2 px-4 py-2.5 min-h-[44px] h-[44px] rounded-xl text-sm font-medium transition-all duration-200",
-                      "text-[#57534E] dark:text-[#C4BCB4]",
-                      "hover:text-[#1C1917] dark:hover:text-[#F8F5F1]",
-                      "hover:bg-[#F5F0E8] dark:hover:bg-[#262626]",
-                      isActive && "text-[#1C1917] dark:text-[#F8F5F1] bg-[#F5F0E8] dark:bg-[#262626]"
+                      "text-muted-foreground",
+                      "hover:text-foreground",
+                      "hover:bg-secondary",
+                      isActive && "text-foreground bg-secondary"
                     )}
                   >
                     <Icon className={cn(
                       "w-4 h-4 transition-transform duration-200",
-                      isActive ? "text-[#FFB84C]" : "group-hover:scale-110"
+                      isActive ? "text-primary" : "group-hover:scale-110"
                     )} />
                     <span>{item.label}</span>
                     {item.badge && (
@@ -146,7 +146,7 @@ export default function Navigation() {
                 onClick={handleSignOut}
                 variant="outline"
                 size="sm"
-                className="rounded-xl border-2 border-[var(--copper-dark)] text-[var(--copper-dark)] dark:text-[var(--copper-light)] hover:bg-[var(--copper-dark)] hover:text-white dark:hover:bg-[var(--copper-light)] dark:hover:text-[#1A1510] transition-all"
+                className="rounded-xl border-2 border-[var(--copper-dark)] text-[var(--copper-dark)] dark:text-[var(--copper-light)] hover:bg-[var(--copper-dark)] hover:text-white dark:hover:bg-[var(--copper-light)] dark:hover:text-primary-foreground transition-all"
               >
                 Sign Out
               </Button>
@@ -163,7 +163,7 @@ export default function Navigation() {
                 toggleMenu();
               }}
               type="button"
-              className="inline-flex items-center justify-center p-2.5 rounded-xl text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#262626] transition-all duration-200 min-h-[44px] min-w-[44px] relative z-[100]"
+              className="inline-flex items-center justify-center p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200 min-h-[44px] min-w-[44px] relative z-[100]"
               aria-expanded={isMenuOpen}
               aria-label="Toggle menu"
             >
@@ -192,15 +192,15 @@ export default function Navigation() {
           
           {/* Menu Panel */}
           <div 
-            className="fixed inset-x-0 top-16 bottom-0 bg-[#FAFAF9] dark:bg-[#0D0D0D] z-[70] md:hidden overflow-y-auto shadow-2xl"
+            className="fixed inset-x-0 top-16 bottom-0 bg-background z-[70] md:hidden overflow-y-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="Navigation menu"
           >
             {/* Menu Header with Close Button */}
-            <div className="sticky top-0 z-[71] bg-[#FAFAF9] dark:bg-[#0D0D0D] border-b border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 px-4 py-3 flex justify-between items-center">
-              <span className="font-semibold text-lg text-[#1C1917] dark:text-[#F8F5F1]">Menu</span>
+            <div className="sticky top-0 z-[71] bg-background border-b border-border/60 dark:border-border/70 px-4 py-3 flex justify-between items-center">
+              <span className="font-semibold text-lg text-card-foreground">Menu</span>
               <button
                 onClick={(e) => {
                   e.preventDefault();
@@ -208,7 +208,7 @@ export default function Navigation() {
                   console.log('🔴 Close button clicked');
                   setIsMenuOpen(false);
                 }}
-                className="inline-flex items-center justify-center p-2 rounded-xl text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#262626] transition-all duration-200 min-h-[44px] min-w-[44px]"
+                className="inline-flex items-center justify-center p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200 min-h-[44px] min-w-[44px]"
                 aria-label="Close menu"
                 type="button"
               >
@@ -222,14 +222,14 @@ export default function Navigation() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="flex items-center space-x-4 px-5 py-4 rounded-2xl text-base font-semibold transition-all duration-200 min-h-[56px] h-[56px] border-2 border-transparent text-[#1C1917] dark:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#262626] hover:border-[#FFB84C]/60 dark:hover:border-[#FF9400]/50"
+                    className="flex items-center space-x-4 px-5 py-4 rounded-2xl text-base font-semibold transition-all duration-200 min-h-[56px] h-[56px] border-2 border-transparent text-card-foreground hover:bg-secondary hover:border-primary/60 dark:hover:border-accent/50"
                     onClick={() => {
                       console.log('🔴 Menu link clicked:', item.href);
                       setIsMenuOpen(false);
                     }}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFCC66]/40 to-[#FF9400]/40 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 flex items-center justify-center">
-                      <Icon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/40 to-accent/40 dark:from-primary/20 dark:to-accent/20 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-primary dark:text-primary" />
                     </div>
                     <span className="flex-1">{item.label}</span>
                     {item.badge && (
@@ -243,7 +243,7 @@ export default function Navigation() {
               
               {/* Divider */}
               {user && (
-                <div className="border-t border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 my-4" />
+                <div className="border-t border-border/60 dark:border-border/70 my-4" />
               )}
               
               {user && (

@@ -26,9 +26,9 @@ function ToastItem({ message, type, onClose }: ToastProps) {
   };
 
   const colors = {
-    success: "bg-[#ECFDF5]/95 border-[#6EE7B7]/40 text-[#0F172A] dark:bg-[#1F3D32]/90 dark:border-[#15803D]/40 dark:text-[#D1FAE5]",
-    info: "bg-[#FFF7E6]/95 border-[#FFB84C]/40 text-[#7C3E0A] dark:bg-[#3D2F24]/90 dark:border-[#FF9400]/35 dark:text-[#FDE68A]",
-    error: "bg-[#FFF0EC]/95 border-[#FF6F61]/40 text-[#7F1D1D] dark:bg-[#3D211F]/90 dark:border-[#FF6F61]/35 dark:text-[#FCA5A5]"
+    success: "bg-green-50/95 border-green-200/40 text-green-900 dark:bg-green-900/90 dark:border-green-700/40 dark:text-green-100",
+    info: "bg-secondary/95 border-primary/40 text-accent dark:bg-muted/90 dark:border-accent/35 dark:text-accent-foreground",
+    error: "bg-destructive/10 border-destructive/40 text-destructive dark:bg-destructive/20 dark:border-destructive/35 dark:text-destructive-foreground"
   };
 
   const Icon = icons[type];

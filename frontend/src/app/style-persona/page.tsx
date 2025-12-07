@@ -615,7 +615,7 @@ export default function StylePersonaPage() {
           </div>
 
           {/* Rest of Content - Same Container, Below Image */}
-          <div className="p-8 bg-[#2C2119] dark:bg-[#1A1A1A]">
+          <div className="p-8 bg-card dark:bg-card">
             {/* YOU ARE + Tagline and Traits */}
             <div className="text-center max-w-4xl mx-auto mb-8">
               <div className="text-sm font-medium text-gray-400 mb-3 tracking-wider">YOU ARE</div>
@@ -645,7 +645,7 @@ export default function StylePersonaPage() {
             
             {/* Style Mission */}
             <div className="max-w-3xl mx-auto">
-              <div className="bg-[#1A1510] rounded-2xl p-8 border border-[#3D2F24]">
+              <div className="bg-card rounded-2xl p-8 border border-border">
                 <h3 className="text-2xl font-serif font-semibold text-white mb-4">Your Style Mission</h3>
                 <p className="text-lg text-gray-400 italic leading-relaxed">
                   {persona.styleMission}
@@ -657,47 +657,47 @@ export default function StylePersonaPage() {
 
 
         {/* Premium Upsell Section */}
-        <div className="glass-float rounded-3xl p-10 mb-10 glass-shadow border border-[#F5F0E8]/80 dark:border-[#2E2E2E]/80 bg-gradient-to-r from-[#FFB84C]/20 via-[#FFF4E0]/40 to-[#FF9400]/20 dark:from-[#4A2E1A]/70 dark:via-[#2C2119]/80 dark:to-[#3D2F24]/70">
+        <div className="glass-float rounded-3xl p-10 mb-10 glass-shadow border border-border/80 dark:border-border/80 bg-gradient-to-r from-primary/20 via-secondary/40 to-accent/20 dark:from-muted/70 dark:via-card/80 dark:to-muted/70">
           <div className="flex flex-col lg:flex-row gap-8 lg:items-center">
             <div className="flex-1 space-y-4">
-              <span className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-[#B45309] dark:text-[#FBBF24]">
+              <span className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-accent dark:text-accent">
                 <Sparkles className="h-4 w-4" />
                 Premium Style Blueprint
               </span>
-              <h2 className="text-3xl font-serif font-bold text-[#1C1917] dark:text-[#F8F5F1]">
+              <h2 className="text-3xl font-serif font-bold text-card-foreground">
                 Level up your {persona.name} look with pro styling
               </h2>
-              <p className="text-lg text-[#57534E] dark:text-[#C4BCB4] leading-relaxed">
+              <p className="text-lg text-muted-foreground leading-relaxed">
                 Unlock a bespoke wardrobe roadmap, tailored capsule collections, and weekly fit drops designed specifically for your {persona.name.toLowerCase()} vibe.
               </p>
-              <ul className="grid sm:grid-cols-2 gap-3 pt-2 text-sm text-[#57534E] dark:text-[#C4BCB4]">
+              <ul className="grid sm:grid-cols-2 gap-3 pt-2 text-sm text-muted-foreground">
                 <li className="glass-inner rounded-xl px-4 py-3 flex items-start gap-3">
-                  <span className="text-[#FF9400]">◆</span>
+                  <span className="text-accent">◆</span>
                   <span>Curated outfit playbooks refreshed every season</span>
                 </li>
                 <li className="glass-inner rounded-xl px-4 py-3 flex items-start gap-3">
-                  <span className="text-[#FF9400]">◆</span>
+                  <span className="text-accent">◆</span>
                   <span>Shopping lists with brand & price filters matched to you</span>
                 </li>
                 <li className="glass-inner rounded-xl px-4 py-3 flex items-start gap-3">
-                  <span className="text-[#FF9400]">◆</span>
+                  <span className="text-accent">◆</span>
                   <span>Style coach check-ins to keep your streak alive</span>
                 </li>
                 <li className="glass-inner rounded-xl px-4 py-3 flex items-start gap-3">
-                  <span className="text-[#FF9400]">◆</span>
+                  <span className="text-accent">◆</span>
                   <span>Advanced color + fit guidance for every event</span>
                 </li>
               </ul>
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-4">
                 <button
                   onClick={() => router.push('/upgrade?plan=style-blueprint')}
-                  className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-8 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/25 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                  className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground px-8 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/25 transition-transform hover:scale-[1.02] active:scale-[0.98]"
                 >
                   Upgrade for {persona.name} perks
                   <ArrowRight className="h-4 w-4" />
                 </button>
                 {cameFromQuiz && (
-                  <span className="text-sm font-medium text-[#B45309] dark:text-[#FBBF24]">
+                  <span className="text-sm font-medium text-accent dark:text-accent">
                     You’re moments away from your premium wardrobe kit.
                   </span>
                 )}

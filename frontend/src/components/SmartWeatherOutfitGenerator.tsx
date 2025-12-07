@@ -694,13 +694,13 @@ export function SmartWeatherOutfitGenerator({
     if (!weather) return null;
     const condition = weather.condition.toLowerCase();
     if (condition.includes('clear') || condition.includes('sun')) {
-      return <Sun className="h-6 w-6 text-[#D4A574]" />;
+      return <Sun className="h-6 w-6 text-[var(--copper-mid)]" />;
     } else if (condition.includes('rain') || condition.includes('storm')) {
       return <Droplets className="h-6 w-6 text-blue-500" />;
     } else if (condition.includes('snow')) {
       return <Cloud className="h-6 w-6 text-blue-300" />;
     }
-    return <Cloud className="h-6 w-6 text-[#C9956F]" />;
+    return <Cloud className="h-6 w-6 text-[var(--copper-mid)]" />;
   };
 
   const content = (
@@ -708,32 +708,32 @@ export function SmartWeatherOutfitGenerator({
         {/* Today's Outfit Section - Moved to Top */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-base sm:text-lg font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
+            <h3 className="text-base sm:text-lg font-display font-semibold text-card-foreground">
               Today&apos;s Outfit
             </h3>
-            <div className="flex items-center gap-1.5 text-xs text-[#57534E] dark:text-[#C4BCB4]">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Calendar className="h-3.5 w-3.5" />
               <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
             </div>
           </div>
 
           {generatedOutfit ? (
-            <div className="card-surface backdrop-blur-xl rounded-2xl p-3 sm:p-4 lg:p-5 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 space-y-2 sm:space-y-3">
+            <div className="card-surface backdrop-blur-xl rounded-2xl p-3 sm:p-4 lg:p-5 border border-border/60 dark:border-border/70 space-y-2 sm:space-y-3">
               {/* Outfit Header - More Compact */}
               <div className="flex items-start gap-3">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-inner flex-shrink-0">
-                  <Shirt className="h-6 w-6 sm:h-7 sm:w-7 text-[#C9956F] dark:text-[#D4A574]" />
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-[var(--copper-light)]/35 to-[var(--copper-mid)]/35 dark:from-[var(--copper-mid)]/20 dark:to-[var(--copper-mid)]/20 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-inner flex-shrink-0">
+                  <Shirt className="h-6 w-6 sm:h-7 sm:w-7 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-display font-semibold text-sm sm:text-base text-[#1C1917] dark:text-[#F8F5F1] mb-0.5">
+                  <h4 className="font-display font-semibold text-sm sm:text-base text-card-foreground mb-0.5">
                     {generatedOutfit.name}
                   </h4>
-                  <p className="text-xs sm:text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Perfect for {generatedOutfit.weather.temperature}°F {generatedOutfit.weather.condition.toLowerCase()}
                   </p>
                 </div>
                 {generatedOutfit.isWorn && (
-                  <Badge className="bg-[#D4A574] text-white border-0 flex items-center gap-1.5 flex-shrink-0 text-xs">
+                  <Badge className="bg-[var(--copper-mid)] text-white border-0 flex items-center gap-1.5 flex-shrink-0 text-xs">
                     <CheckCircle className="h-3 w-3" />
                     Worn
                   </Badge>
@@ -743,18 +743,18 @@ export function SmartWeatherOutfitGenerator({
               {/* Outfit Items Grid - Compact with Prominent Photos */}
               {generatedOutfit.items && generatedOutfit.items.length > 0 ? (
                 <div className="space-y-2">
-                  <h5 className="text-xs sm:text-sm font-semibold text-[#57534E] dark:text-[#C4BCB4]">
+                  <h5 className="text-xs sm:text-sm font-semibold text-muted-foreground">
                     Items ({generatedOutfit.items.length})
                   </h5>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
                     {generatedOutfit.items.map((item, index) => (
                       <div 
                         key={index} 
-                        className="card-surface backdrop-blur-xl rounded-lg sm:rounded-xl p-2 sm:p-3 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70"
+                        className="card-surface backdrop-blur-xl rounded-lg sm:rounded-xl p-2 sm:p-3 border border-border/60 dark:border-border/70"
                       >
                         <div className="space-y-2">
                           {/* Prominent Photo */}
-                          <div className="w-full aspect-square bg-[#F5F0E8] dark:bg-[#262626] rounded-lg flex items-center justify-center overflow-hidden">
+                          <div className="w-full aspect-square bg-secondary dark:bg-muted rounded-lg flex items-center justify-center overflow-hidden">
                             {item.imageUrl || item.image ? (
                               <img 
                                 src={item.imageUrl || item.image} 
@@ -762,19 +762,19 @@ export function SmartWeatherOutfitGenerator({
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <Shirt className="h-6 w-6 sm:h-8 sm:w-8 text-[#57534E] dark:text-[#C4BCB4]" />
+                              <Shirt className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
                             )}
                           </div>
                           {/* Compact Info */}
                           <div className="space-y-0.5">
-                            <div className="font-medium text-xs text-[#1C1917] dark:text-[#F8F5F1] truncate">
+                            <div className="font-medium text-xs text-card-foreground truncate">
                               {item.name}
                             </div>
-                            <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] truncate">
+                            <div className="text-xs text-muted-foreground truncate">
                               {item.type} • {item.color}
                             </div>
                             {item.brand && (
-                              <div className="text-xs text-[#57534E]/70 dark:text-[#C4BCB4]/70 truncate">
+                              <div className="text-xs text-muted-foreground/70 truncate">
                                 {item.brand}
                               </div>
                             )}
@@ -785,14 +785,14 @@ export function SmartWeatherOutfitGenerator({
                   </div>
                 </div>
               ) : (
-                <div className="card-surface backdrop-blur-xl rounded-xl p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
-                  <h5 className="text-sm font-semibold text-[#57534E] dark:text-[#C4BCB4] mb-3">
+                <div className="card-surface backdrop-blur-xl rounded-xl p-4 border border-border/60 dark:border-border/70">
+                  <h5 className="text-sm font-semibold text-muted-foreground mb-3">
                     Weather Recommendations
                   </h5>
                     <div className="space-y-2">
                       {recommendations.slice(0, 5).map((rec, index) => (
-                      <div key={index} className="flex items-center gap-2 text-sm text-[#57534E] dark:text-[#C4BCB4]">
-                        <div className="w-1.5 h-1.5 bg-[#C9956F] rounded-full flex-shrink-0"></div>
+                      <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="w-1.5 h-1.5 bg-[var(--copper-mid)] rounded-full flex-shrink-0"></div>
                           <span>{rec}</span>
                         </div>
                       ))}
@@ -802,22 +802,22 @@ export function SmartWeatherOutfitGenerator({
               
               {/* Reasoning/Advisory - Truncated with Read More */}
               {generatedOutfit.reasoning && (
-                <div className="card-surface backdrop-blur-xl rounded-xl p-2.5 sm:p-3 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-white/85 dark:bg-[#1A1A1A]/85">
+                <div className="card-surface backdrop-blur-xl rounded-xl p-2.5 sm:p-3 border border-border/60 dark:border-border/70 bg-card/85 dark:bg-card/85">
                   <div className="flex items-start gap-2 sm:gap-3">
                     <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-[#D4A574]/30 to-[#C9956F]/30 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-[#C9956F] dark:text-[#D4A574]" />
+                      <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
                   </div>
                     <div className="flex-1 min-w-0">
-                      <h6 className="text-xs sm:text-sm font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1">
+                      <h6 className="text-xs sm:text-sm font-semibold text-card-foreground mb-1">
                         Why this outfit?
                     </h6>
-                      <p className={`text-xs text-[#57534E] dark:text-[#C4BCB4] leading-relaxed ${!isReasoningExpanded ? 'line-clamp-2' : ''}`}>
+                      <p className={`text-xs text-muted-foreground leading-relaxed ${!isReasoningExpanded ? 'line-clamp-2' : ''}`}>
                       {generatedOutfit.reasoning}
                     </p>
                       {generatedOutfit.reasoning.length > 100 && (
                         <button
                           onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}
-                          className="text-xs text-[#C9956F] dark:text-[#D4A574] mt-1 font-medium hover:underline"
+                          className="text-xs text-[var(--copper-mid)] dark:text-[var(--copper-mid)] mt-1 font-medium hover:underline"
                         >
                           {isReasoningExpanded ? 'Read less' : 'Read more'}
                         </button>
@@ -828,7 +828,7 @@ export function SmartWeatherOutfitGenerator({
               )}
               
               {/* Action Buttons - Removed Confidence */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 sm:pt-3 border-t border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 sm:pt-3 border-t border-border/60 dark:border-border/60">
                 <div className="flex items-center gap-2">
                   <Button 
                     onClick={() => {
@@ -838,7 +838,7 @@ export function SmartWeatherOutfitGenerator({
                     variant="outline"
                     size="sm"
                     disabled={isGeneratingOutfit}
-                    className="border-[#F5F0E8]/70 dark:border-[#2E2E2E]/80 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#262626] text-xs sm:text-sm h-8 sm:h-9"
+                    className="border-border/70 dark:border-border/80 text-muted-foreground hover:bg-secondary text-xs sm:text-sm h-8 sm:h-9"
                   >
                     <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 ${isGeneratingOutfit ? 'animate-spin' : ''}`} />
                     Regenerate
@@ -849,8 +849,8 @@ export function SmartWeatherOutfitGenerator({
                     size="sm"
                     className={`${
                       generatedOutfit.isWorn 
-                        ? 'bg-[#D4A574] hover:bg-[#C9956F] text-white' 
-                        : 'bg-gradient-to-r from-[#D4A574] to-[#C9956F] hover:from-[#D4A574] hover:to-[#FF7700] text-white shadow-lg shadow-[#D4A574]/25'
+                        ? 'bg-[var(--copper-mid)] hover:bg-[var(--copper-mid)]/90 text-white' 
+                        : 'bg-gradient-to-r from-[var(--copper-mid)] to-[var(--copper-mid)] hover:from-[var(--copper-mid)] hover:to-accent text-white shadow-lg shadow-[var(--copper-mid)]/25'
                     } text-xs sm:text-sm h-8 sm:h-9`}
                   >
                     {isWearingOutfit ? (
@@ -874,7 +874,7 @@ export function SmartWeatherOutfitGenerator({
               </div>
             </div>
           ) : (
-            <div className="card-surface backdrop-blur-xl rounded-2xl p-6 sm:p-8 text-center border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
+            <div className="card-surface backdrop-blur-xl rounded-2xl p-6 sm:p-8 text-center border border-border/60 dark:border-border/70">
               {outfitError ? (
                 <div className="space-y-3">
                   <AlertCircle className="h-10 w-10 text-red-500 mx-auto" />
@@ -882,26 +882,26 @@ export function SmartWeatherOutfitGenerator({
                 </div>
               ) : isGeneratingOutfit ? (
                 <div className="space-y-4">
-                  <RefreshCw className="h-12 w-12 text-[#D4A574] mx-auto animate-spin" />
+                  <RefreshCw className="h-12 w-12 text-[var(--copper-mid)] mx-auto animate-spin" />
                   <div>
-                    <p className="text-[#1C1917] dark:text-[#F8F5F1] font-medium mb-1">Generating your perfect outfit...</p>
-                    <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Analyzing weather and your wardrobe</p>
+                    <p className="text-card-foreground font-medium mb-1">Generating your perfect outfit...</p>
+                    <p className="text-sm text-muted-foreground">Analyzing weather and your wardrobe</p>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div className="w-16 h-16 bg-gradient-to-br from-[#E8C8A0]/20 to-[#C9956F]/20 dark:from-[#D4A574]/15 dark:to-[#C9956F]/15 rounded-2xl flex items-center justify-center mx-auto">
-                    <Shirt className="h-8 w-8 text-[#C9956F]" />
+                    <Shirt className="h-8 w-8 text-[var(--copper-mid)]" />
                   </div>
                   <div>
-                    <p className="text-[#1C1917] dark:text-[#F8F5F1] font-medium mb-1">Preparing today&apos;s outfit</p>
-                    <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Auto-generating based on current weather</p>
+                    <p className="text-card-foreground font-medium mb-1">Preparing today&apos;s outfit</p>
+                    <p className="text-sm text-muted-foreground">Auto-generating based on current weather</p>
                   </div>
                 </div>
               )}
               
               {!user && (
-                <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-4">
+                <p className="text-xs text-muted-foreground mt-4">
                   Sign in to get your daily weather outfit
                 </p>
               )}
@@ -913,12 +913,12 @@ export function SmartWeatherOutfitGenerator({
           {weatherLoading && !weather ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <RefreshCw className="h-8 w-8 animate-spin text-[#D4A574] mx-auto mb-3" />
-              <p className="text-[#57534E] dark:text-[#C4BCB4]">Getting your weather...</p>
+              <RefreshCw className="h-8 w-8 animate-spin text-[var(--copper-mid)] mx-auto mb-3" />
+              <p className="text-muted-foreground">Getting your weather...</p>
             </div>
             </div>
           ) : weather ? (
-          <div className={`card-surface backdrop-blur-xl rounded-2xl p-2.5 sm:p-4 lg:p-5 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 transition-all ${weatherIsStale ? 'opacity-60' : ''}`}>
+          <div className={`card-surface backdrop-blur-xl rounded-2xl p-2.5 sm:p-4 lg:p-5 border border-border/60 dark:border-border/70 transition-all ${weatherIsStale ? 'opacity-60' : ''}`}>
             {/* Compact Weather Display - Always Visible */}
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -929,7 +929,7 @@ export function SmartWeatherOutfitGenerator({
                   <div className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#D4A574] to-[#C9956F] bg-clip-text text-transparent">
                     {formattedWeather?.temperature}
                   </div>
-                  <p className="text-xs sm:text-sm text-[#57534E] dark:text-[#C4BCB4] truncate">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">
                     {formattedWeather?.condition}
                   </p>
                 </div>
@@ -945,25 +945,25 @@ export function SmartWeatherOutfitGenerator({
             </div>
 
             {/* Expanded Weather Details - Collapsible on Mobile, Always Visible on Desktop */}
-            <div className={`mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60 space-y-1.5 sm:space-y-2 ${isWeatherExpanded ? 'block' : 'hidden sm:block'}`}>
-                <div className="flex items-center gap-1.5 text-xs sm:text-sm text-[#57534E] dark:text-[#C4BCB4]">
-                  <MapPin className="h-3.5 w-3.5 text-[#C9956F]" />
+            <div className={`mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/60 dark:border-border/60 space-y-1.5 sm:space-y-2 ${isWeatherExpanded ? 'block' : 'hidden sm:block'}`}>
+                <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                  <MapPin className="h-3.5 w-3.5 text-[var(--copper-mid)]" />
                   <span className="font-medium">{weather.location}</span>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-[#57534E] dark:text-[#C4BCB4]">
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Droplets className="h-3 w-3 text-blue-500" />
                     <span>{weather.humidity}%</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Wind className="h-3 w-3 text-[#C9956F]" />
+                    <Wind className="h-3 w-3 text-[var(--copper-mid)]" />
                     <span>{weather.wind_speed} mph</span>
                   </div>
                 </div>
                 {(weather.fallback || weatherIsStale || weatherLoading) && (
                   <div className="flex items-center gap-2 flex-wrap">
                     {weather.fallback && (
-                      <Badge variant="secondary" className="text-xs bg-[#E8C8A0]/20 dark:bg-[#B8860B]/20/40 text-[#B8860B] dark:text-[#E8C8A0] border-0">
+                      <Badge variant="secondary" className="text-xs bg-[var(--copper-light)]/20 dark:bg-[var(--copper-dark)]/20 text-[var(--copper-dark)] dark:text-[var(--copper-light)] border-0">
                         Fallback Data
                       </Badge>
                     )}
@@ -986,7 +986,7 @@ export function SmartWeatherOutfitGenerator({
                       <Badge 
                         key={index} 
                         variant="secondary" 
-                        className="text-xs bg-[#F5F0E8]/60 dark:bg-[#262626]/60 text-[#57534E] dark:text-[#C4BCB4] border-0"
+                        className="text-xs bg-secondary/60 dark:bg-muted/60 text-muted-foreground border-0"
                       >
                         {rec}
                       </Badge>
@@ -1003,7 +1003,7 @@ export function SmartWeatherOutfitGenerator({
               onClick={fetchWeatherByLocation} 
               variant="outline" 
               size="sm"
-              className="border-[#F5F0E8]/70 dark:border-[#2E2E2E]/80 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#262626]"
+              className="border-border/70 dark:border-border/80 text-muted-foreground hover:bg-secondary"
             >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Retry
@@ -1013,16 +1013,16 @@ export function SmartWeatherOutfitGenerator({
 
         {/* Location Permission Prompt */}
         {locationStatus === 'denied' && (
-          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 border border-[#D4A574]/30 dark:border-[#C9956F]/30 bg-gradient-to-r from-[#D4A574]/5 to-[#C9956F]/5 dark:from-[#D4A574]/10 dark:to-[#C9956F]/10">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 border border-[var(--copper-mid)]/30 dark:border-[var(--copper-mid)]/30 bg-gradient-to-r from-[var(--copper-mid)]/5 to-[var(--copper-mid)]/5 dark:from-[var(--copper-mid)]/10 dark:to-[var(--copper-mid)]/10">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-[#D4A574]/20 to-[#C9956F]/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <MapPin className="h-5 w-5 text-[#C9956F]" />
+                <MapPin className="h-5 w-5 text-[var(--copper-mid)]" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1">
+                <h4 className="text-sm font-semibold text-card-foreground mb-1">
                   Location Access Needed
                 </h4>
-                <p className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
+                <p className="text-xs text-muted-foreground">
                   Enable location for accurate weather-based recommendations
                 </p>
               </div>
@@ -1046,7 +1046,7 @@ export function SmartWeatherOutfitGenerator({
   }
 
   return (
-    <Card className={`card-surface backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 hover:shadow-xl hover:shadow-[#D4A574]/20 transition-all duration-300 bg-white/85 dark:bg-[#1A1A1A]/85 ${className}`}>
+    <Card className={`card-surface backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-border/60 dark:border-border/70 hover:shadow-xl hover:shadow-[var(--copper-mid)]/20 transition-all duration-300 bg-card/85 dark:bg-card/85 ${className}`}>
       <CardContent className="p-3 sm:p-4 lg:p-6">
         {content}
       </CardContent>

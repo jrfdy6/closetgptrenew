@@ -25,10 +25,10 @@ const ThemeToggle: React.FC = () => {
   if (!mounted) {
     return (
       <button
-        className="p-2 rounded-2xl bg-white/60 dark:bg-[#1A1A1A]/70 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 backdrop-blur transition-colors"
+        className="p-2 rounded-2xl bg-card/60 dark:bg-card/70 border border-border/60 dark:border-border/70 backdrop-blur transition-colors"
         aria-label="Loading theme toggle"
       >
-        <div className="w-4 h-4 bg-[#FFB84C]/40 dark:bg-[#FF9400]/40 rounded animate-pulse" />
+        <div className="w-4 h-4 bg-primary/40 dark:bg-accent/40 rounded animate-pulse" />
       </button>
     );
   }
@@ -39,13 +39,13 @@ const ThemeToggle: React.FC = () => {
     <button
       data-testid="theme-toggle"
       onClick={handleThemeChange}
-      className="p-2 rounded-2xl bg-white/60 dark:bg-[#1A1A1A]/70 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 backdrop-blur transition-all duration-200 hover:scale-[1.03] shadow-sm shadow-amber-500/10"
+      className="p-2 rounded-2xl bg-card/60 dark:bg-card/70 border border-border/60 dark:border-border/70 backdrop-blur transition-all duration-200 hover:scale-[1.03] shadow-sm shadow-amber-500/10"
       aria-label={`Switch to ${isDark ? 'light' : 'dark'} theme`}
     >
       {isDark ? (
-        <Sun className="w-4 h-4 text-[#FFB84C]" />
+        <Sun className="w-4 h-4 text-primary" />
       ) : (
-        <Moon className="w-4 h-4 text-[#FF9400]" />
+        <Moon className="w-4 h-4 text-accent" />
       )}
     </button>
   );

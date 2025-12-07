@@ -48,9 +48,9 @@ const BadgeIconMap: Record<string, any> = {
 
 // Rarity border colors (refined for "Sophisticated Gamification")
 const RarityBorderColors: Record<string, string> = {
-  'common': 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70',
-  'rare': 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70',
-  'epic': 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70',
+  'common': 'border-border/60 dark:border-border/70',
+  'rare': 'border-border/60 dark:border-border/70',
+  'epic': 'border-border/60 dark:border-border/70',
   'legendary': 'border-[var(--copper-light)]',
 };
 
@@ -102,7 +102,7 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
                 stiffness: 200
               }}
             >
-              <Badge className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#1C1917] dark:text-[#F8F5F1] hover:border-[var(--copper-mid)]">
+              <Badge className="bg-card dark:bg-card border border-border/60 dark:border-border/70 text-card-foreground hover:border-[var(--copper-mid)]">
                 <IconComponent className="w-3 h-3 mr-1 text-[var(--copper-dark)]" />
                 {badge.name}
               </Badge>
@@ -146,16 +146,16 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
                     }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`w-16 h-16 bg-white dark:bg-[#1A1A1A] border ${
+                    className={`w-16 h-16 bg-card dark:bg-card border ${
                       badge.rarity === 'legendary' 
                         ? 'border-[var(--copper-light)] animate-shimmer' 
-                        : 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70'
+                        : 'border-border/60 dark:border-border/70'
                     } rounded-2xl
                       flex flex-col items-center justify-center gap-2 transition-all
                       hover:border-[var(--copper-mid)] cursor-pointer`}
                   >
                     <IconComponent className="w-6 h-6 text-[var(--copper-dark)]" />
-                    <span className="text-xs font-medium text-center text-[#1C1917] dark:text-[#F8F5F1]">
+                    <span className="text-xs font-medium text-center text-card-foreground">
                       {badge.name}
                     </span>
                   </motion.button>
@@ -163,18 +163,18 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-3">
-                      <div className={`p-3 rounded-lg bg-white dark:bg-[#1A1A1A] border ${RarityBorderColors[badge.rarity]}`}>
+                      <div className={`p-3 rounded-lg bg-card dark:bg-card border ${RarityBorderColors[badge.rarity]}`}>
                         <IconComponent className="w-6 h-6 text-[var(--copper-dark)]" />
                       </div>
                       {badge.name}
                     </DialogTitle>
                     <DialogDescription className="space-y-2">
-                      <p className="text-[#57534E] dark:text-[#C4BCB4]">{badge.description}</p>
+                      <p className="text-muted-foreground">{badge.description}</p>
                       <div className="flex items-center gap-2 pt-2">
-                        <Badge className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#1C1917] dark:text-[#F8F5F1]">
+                        <Badge className="bg-card dark:bg-card border border-border/60 dark:border-border/70 text-card-foreground">
                           {badge.rarity.charAt(0).toUpperCase() + badge.rarity.slice(1)}
                         </Badge>
-                        <span className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
+                        <span className="text-xs text-muted-foreground">
                           {badge.unlock_condition}
                         </span>
                       </div>

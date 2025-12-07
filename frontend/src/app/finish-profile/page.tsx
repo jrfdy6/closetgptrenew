@@ -51,7 +51,7 @@ export default function FinishProfilePage() {
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950 flex flex-col">
         <Navigation />
         <div className="flex-1 flex items-center justify-center px-6 py-16">
-          <div className="text-center text-gray-600 dark:text-[#C4BCB4]">
+          <div className="text-center text-muted-foreground">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-500 mx-auto mb-4"></div>
             Preparing your style journey...
           </div>
@@ -77,10 +77,10 @@ export default function FinishProfilePage() {
                   <ShieldCheck className="h-4 w-4 mr-2" />
                   Finish profile setup
                 </div>
-                <h1 className="mt-4 text-3xl sm:text-4xl font-serif font-semibold text-[#1C1917] dark:text-[#F8F5F1] leading-snug">
+                <h1 className="mt-4 text-3xl sm:text-4xl font-serif font-semibold text-card-foreground leading-snug">
                   You're moments away from {personaName}
                 </h1>
-                <p className="mt-3 text-base sm:text-lg text-[#57534E] dark:text-[#C4BCB4] leading-relaxed">
+                <p className="mt-3 text-base sm:text-lg text-muted-foreground leading-relaxed">
                   {personaTagline} Complete your profile so we can unlock your personalized style persona and wardrobe plan.
                 </p>
               </div>
@@ -89,12 +89,12 @@ export default function FinishProfilePage() {
               </div>
             </div>
 
-            <div className="bg-white/70 dark:bg-[#1A1A1A]/80 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl p-6 sm:p-8 space-y-6">
+            <div className="bg-card/70 dark:bg-card/80 border border-border/60 dark:border-border/70 rounded-2xl p-6 sm:p-8 space-y-6">
               <div className="space-y-3">
-                <h2 className="text-xl font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
+                <h2 className="text-xl font-semibold text-card-foreground">
                   Here's what's next
                 </h2>
-                <ul className="space-y-3 text-[#57534E] dark:text-[#C4BCB4] text-sm sm:text-base">
+                <ul className="space-y-3 text-muted-foreground text-sm sm:text-base">
                   <li className="flex items-start gap-3">
                     <span className="mt-1 h-2 w-2 rounded-full bg-amber-500" />
                     Create your Easy Outfit account so we can save your results securely.
@@ -113,7 +113,7 @@ export default function FinishProfilePage() {
               <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
                 <Button
                   asChild
-                  className="w-full sm:w-auto bg-gradient-to-r from-[#FFB84C] to-[#FF9400] hover:from-[#FFB84C] hover:to-[#FF7700] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20 transition-transform hover:scale-[1.02]"
+                  className="w-full sm:w-auto bg-gradient-to-r from-primary to-accent hover:from-primary hover:to-accent/90 text-primary-foreground px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20 transition-transform hover:scale-[1.02]"
                 >
                   <Link href="/signup?from=quiz">
                     Finish profile & unlock my persona
@@ -123,7 +123,7 @@ export default function FinishProfilePage() {
 
                 <Link
                   href="/signin?from=quiz"
-                  className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] transition-colors text-center sm:text-left"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors text-center sm:text-left"
                 >
                   Already have an account? Sign in instead
                 </Link>
@@ -133,7 +133,7 @@ export default function FinishProfilePage() {
             <div className="mt-8 text-center">
               <button
                 onClick={() => router.push("/onboarding?mode=guest")}
-                className="inline-flex items-center text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] transition-colors"
+                className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
                 Want to adjust your answers? Retake the quiz

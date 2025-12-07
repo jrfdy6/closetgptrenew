@@ -593,13 +593,13 @@ export default function StyleEducationModule({
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {outfitItems.map((item, index) => (
-                  <div key={index} className="flex items-start gap-2 p-3 bg-white/85 dark:bg-[#0D0D0D]/85 rounded-2xl border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 shadow-sm">
-                    <div className="w-1.5 h-1.5 bg-[#FFB84C] rounded-full mt-2 flex-shrink-0" />
+                  <div key={index} className="flex items-start gap-2 p-3 bg-card/85 dark:bg-card/85 rounded-2xl border border-border/60 dark:border-border/70 shadow-sm">
+                    <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[#1C1917] dark:text-[#F8F5F1] truncate">
+                      <p className="text-sm font-medium text-card-foreground truncate">
                         {item.name}
                       </p>
-                      <p className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
+                      <p className="text-xs text-muted-foreground">
                         {item.type} • {item.color}
                       </p>
                     </div>
@@ -628,11 +628,11 @@ export default function StyleEducationModule({
                 {outfitInsights.map((insight) => (
                   <div 
                     key={insight.id}
-                  className="bg-white/85 dark:bg-[#0D0D0D]/85 rounded-2xl border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 overflow-hidden shadow-md"
+                  className="bg-card/85 dark:bg-card/85 rounded-2xl border border-border/60 dark:border-border/70 overflow-hidden shadow-md"
                 >
                   <button
                       onClick={() => toggleSection(insight.id)}
-                      className="w-full p-3 text-left hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] transition-colors"
+                      className="w-full p-3 text-left hover:bg-secondary transition-colors"
                   >
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -655,10 +655,10 @@ export default function StyleEducationModule({
                   </button>
                   
                     {expandedSection === insight.id && (
-                      <div className="px-3 pb-3 border-t border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
+                      <div className="px-3 pb-3 border-t border-border/60 dark:border-border/70">
                         <ul className="pt-3 space-y-1.5">
                           {insight.tips.map((tip, index) => (
-                              <li key={index} className="text-sm text-[#57534E] dark:text-[#C4BCB4] flex items-start gap-2">
+                              <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                               <CheckCircle className="h-3.5 w-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
                                 {tip}
                               </li>

@@ -157,17 +157,17 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-white/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl shadow-2xl shadow-amber-500/10 backdrop-blur-xl">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-card/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-3xl shadow-2xl shadow-amber-500/10 backdrop-blur-xl">
         <CardHeader className="text-center space-y-4 pb-8">
-          <Link href="/" className="inline-flex items-center text-sm text-[#57534E] hover:text-[#1C1917] dark:text-[#C4BCB4] dark:hover:text-[#F8F5F1] mb-6 font-medium transition-colors">
+          <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6 font-medium transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>
-          <CardTitle className="text-3xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
+          <CardTitle className="text-3xl font-display font-semibold text-card-foreground">
             Create Account
           </CardTitle>
-          <CardDescription className="text-[#57534E] dark:text-[#C4BCB4] font-light text-lg">
+          <CardDescription className="text-muted-foreground font-light text-lg">
             Join Easy Outfit and discover your perfect style
           </CardDescription>
         </CardHeader>
@@ -212,7 +212,7 @@ export default function SignUp() {
               <span className="w-full border-t border-gray-300 dark:border-gray-600" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white/85 dark:bg-[#2C2119]/85 px-2 text-gray-500 dark:text-gray-400">
+              <span className="bg-card/85 dark:bg-card/85 px-2 text-muted-foreground">
                 Or continue with email
               </span>
             </div>
@@ -359,7 +359,7 @@ export default function SignUp() {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-amber-500/25 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground px-6 py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-amber-500/25 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
               disabled={isLoading || !isFormValid}
             >
               {isLoading ? "Creating account..." : "Create account"}
@@ -367,11 +367,11 @@ export default function SignUp() {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+            <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
               <Link 
                 href="/signin" 
-                className="font-medium text-amber-700 hover:text-amber-800 dark:text-[#FFCC66] dark:hover:text-[#FFB84C]"
+                className="font-medium text-primary hover:text-primary/90"
               >
                 Sign in
               </Link>

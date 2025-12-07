@@ -261,12 +261,12 @@ export default function WardrobePage() {
   // Loading state
   if (authLoading || wardrobeLoading) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D]">
+      <div className="min-h-screen bg-background">
         <Navigation />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
-            <div className="w-12 h-12 mx-auto mb-4 rounded-full border-2 border-[#F5F0E8] dark:border-[#2E2E2E]/70 border-t-[#FFB84C] animate-spin" />
-            <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Loading your wardrobe…</p>
+            <div className="w-12 h-12 mx-auto mb-4 rounded-full border-2 border-border/70 dark:border-border/70 border-t-primary animate-spin" />
+            <p className="text-sm text-muted-foreground">Loading your wardrobe…</p>
           </div>
         </div>
       </div>
@@ -276,14 +276,14 @@ export default function WardrobePage() {
   // Error state
   if (wardrobeError) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D]">
+      <div className="min-h-screen bg-background">
         <Navigation />
         <div className="flex items-center justify-center min-h-[60vh] px-4">
-          <div className="max-w-md w-full text-center bg-white/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl p-6 backdrop-blur-xl">
-            <AlertCircle className="w-10 h-10 text-[#FF9400] dark:text-[#FFB84C] mx-auto mb-4" />
-            <h2 className="text-lg font-display text-[#1C1917] dark:text-[#F8F5F1] mb-2">We couldn’t load your wardrobe</h2>
-            <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-4">{wardrobeError}</p>
-            <Button onClick={refetch} className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20">
+          <div className="max-w-md w-full text-center bg-card/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-2xl p-6 backdrop-blur-xl">
+            <AlertCircle className="w-10 h-10 text-accent dark:text-primary mx-auto mb-4" />
+            <h2 className="text-lg font-display text-card-foreground mb-2">We couldn't load your wardrobe</h2>
+            <p className="text-sm text-muted-foreground mb-4">{wardrobeError}</p>
+            <Button onClick={refetch} className="bg-gradient-to-r from-primary to-accent text-primary-foreground px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20">
               <RefreshCw className="w-4 h-4 mr-2" />
               Try again
             </Button>
@@ -294,16 +294,16 @@ export default function WardrobePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D]">
+    <div className="min-h-screen bg-background">
       <Navigation />
       
       {/* Header */}
       <div className="px-4 py-12">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-white/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-lg">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-card/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-lg">
             <div>
-              <h1 className="text-4xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-3">My wardrobe</h1>
-              <p className="text-[#57534E] dark:text-[#C4BCB4] text-base">
+              <h1 className="text-4xl font-display font-semibold text-card-foreground mb-3">My wardrobe</h1>
+              <p className="text-muted-foreground text-base">
                 {wardrobeItems.length} items • {getFavorites().length} favorites
               </p>
               <BodyPositiveMessage variant="wardrobe" className="mt-6" />
@@ -312,7 +312,7 @@ export default function WardrobePage() {
             <div className="flex gap-4">
               <Button 
                 onClick={() => setShowBatchUpload(true)}
-                className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                className="bg-gradient-to-r from-primary to-accent text-primary-foreground px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Upload className="w-5 h-5 mr-3" />
                 Add items with AI
@@ -394,22 +394,22 @@ export default function WardrobePage() {
 
           <TabsContent value="all" className="mt-6">
             {currentItems.length === 0 ? (
-              <Card className="text-center py-12 bg-white/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 backdrop-blur-xl rounded-3xl">
+              <Card className="text-center py-12 bg-card/85 dark:bg-card/85 border border-border/60 dark:border-border/70 backdrop-blur-xl rounded-3xl">
                 <CardContent>
-                  <Shirt className="w-16 h-16 text-[#FF9400] dark:text-[#FFB84C] mx-auto mb-4" />
-                  <h3 className="text-lg font-display text-[#1C1917] dark:text-[#F8F5F1] mb-2">No items yet</h3>
-                  <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-6">
+                  <Shirt className="w-16 h-16 text-accent dark:text-primary mx-auto mb-4" />
+                  <h3 className="text-lg font-display text-card-foreground mb-2">No items yet</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
                     {wardrobeItems.length === 0 
                       ? "Add a few favorites to unlock outfit magic."
                       : "Adjust your filters or add something new to see it here."
                     }
                   </p>
                   <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-                    <Button onClick={() => setShowBatchUpload(true)} className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20">
+                    <Button onClick={() => setShowBatchUpload(true)} className="bg-gradient-to-r from-primary to-accent text-primary-foreground px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20">
                       <Upload className="w-4 h-4 mr-2" />
                       Add items with AI
                     </Button>
-                    <Button variant="outline" onClick={handleClearFilters} className="border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] rounded-2xl">
+                    <Button variant="outline" onClick={handleClearFilters} className="border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-2xl">
                       <Filter className="w-4 h-4 mr-2" />
                       Clear filters
                     </Button>
@@ -419,7 +419,7 @@ export default function WardrobePage() {
             ) : (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                  <p className="text-sm text-muted-foreground">
                     Showing {currentItems.length} of {wardrobeItems.length} items
                   </p>
         <div className="flex gap-3">
@@ -427,7 +427,7 @@ export default function WardrobePage() {
             variant="outline" 
             size="sm" 
             onClick={() => router.push('/outfits/generate')}
-    className="border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] transition-colors duration-200 rounded-2xl"
+    className="border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors duration-200 rounded-2xl"
           >
     <Zap className="w-4 h-4 mr-2 text-[var(--copper-dark)]" />
     Generate outfit

@@ -87,16 +87,16 @@ export default function AdjustBottomSheet({
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent
         side="bottom"
-        className="h-[90vh] max-h-[90vh] bg-[#2C2119] border-t border-[#3D2F24] rounded-t-3xl p-0 overflow-hidden flex flex-col"
+        className="h-[90vh] max-h-[90vh] bg-card border-t border-border rounded-t-3xl p-0 overflow-hidden flex flex-col"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[#3D2F24]">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-border">
           <div className="flex-1">
-            <SheetTitle className="text-xl font-display font-semibold text-[#F8F5F1] mb-1">
+            <SheetTitle className="text-xl font-display font-semibold text-card-foreground mb-1">
               Refine your look
             </SheetTitle>
             {weather && (
-              <SheetDescription className="text-sm text-[#C4BCB4]">
+              <SheetDescription className="text-sm text-muted-foreground">
                 AI suggestion: Smart Casual • {weather.temperature}°F, {weather.condition}
                 {weather.location && ` • ${weather.location}`}
               </SheetDescription>
@@ -106,7 +106,7 @@ export default function AdjustBottomSheet({
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="h-11 w-11 text-[#C4BCB4] hover:text-[#F8F5F1] hover:bg-[#3D2F24]"
+            className="h-11 w-11 text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             <X className="h-5 w-5" />
           </Button>
@@ -116,7 +116,7 @@ export default function AdjustBottomSheet({
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
           {/* Occasion Section */}
           <div>
-            <label className="text-xs font-medium text-[#C4BCB4] uppercase tracking-wider mb-3 block">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 block">
               Occasion
             </label>
             <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
@@ -137,7 +137,7 @@ export default function AdjustBottomSheet({
 
           {/* Mood Section */}
           <div>
-            <label className="text-xs font-medium text-[#C4BCB4] uppercase tracking-wider mb-3 block">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 block">
               Mood
             </label>
             <div className="flex flex-wrap gap-3">
@@ -157,7 +157,7 @@ export default function AdjustBottomSheet({
 
           {/* Style Section */}
           <div>
-            <label className="text-xs font-medium text-[#C4BCB4] uppercase tracking-wider mb-3 block">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 block">
               Style
             </label>
             <div className="flex flex-wrap gap-2">
@@ -178,7 +178,7 @@ export default function AdjustBottomSheet({
           {/* Base Item Section (Optional) */}
           {baseItems.length > 0 && (
             <div>
-              <label className="text-xs font-medium text-[#C4BCB4] uppercase tracking-wider mb-3 block">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 block">
                 Base Item (Optional)
               </label>
               <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
@@ -193,8 +193,8 @@ export default function AdjustBottomSheet({
                     className={cn(
                       'flex-shrink-0 w-15 h-15 rounded-xl overflow-hidden border-2 transition-all',
                       selectedBaseItem === item.id
-                        ? 'border-[#FFB84C] shadow-lg shadow-[#FFB84C]/30'
-                        : 'border-[#3D2F24] hover:border-[#3D2F24]/70'
+                        ? 'border-primary shadow-lg shadow-primary/30'
+                        : 'border-border hover:border-border/70'
                     )}
                     style={{ width: '60px', height: '60px' }}
                   >
@@ -205,8 +205,8 @@ export default function AdjustBottomSheet({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-[#3D2F24] flex items-center justify-center">
-                        <span className="text-xs text-[#C4BCB4]">{item.name}</span>
+                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                        <span className="text-xs text-muted-foreground">{item.name}</span>
                       </div>
                     )}
                   </button>
@@ -217,15 +217,15 @@ export default function AdjustBottomSheet({
         </div>
 
         {/* Sticky Generate Button */}
-        <div className="px-6 pt-4 pb-6 border-t border-[#3D2F24] bg-[#2C2119]">
+        <div className="px-6 pt-4 pb-6 border-t border-border bg-card">
           <Button
             onClick={handleGenerate}
             disabled={!canGenerate}
             className={cn(
               'w-full h-14 text-base font-semibold rounded-2xl transition-all',
               canGenerate
-                ? 'bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] hover:shadow-lg hover:shadow-[#FFB84C]/30'
-                : 'bg-[#3D2F24] text-[#8A827A] cursor-not-allowed'
+                ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground hover:shadow-lg hover:shadow-primary/30'
+                : 'bg-muted text-muted-foreground cursor-not-allowed'
             )}
           >
             {loading ? (

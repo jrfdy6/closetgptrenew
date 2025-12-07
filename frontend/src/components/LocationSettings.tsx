@@ -116,18 +116,18 @@ export function LocationSettings({ onLocationChange, className }: LocationSettin
 
   return (
     <Card className={cn(
-      "bg-white/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl shadow-lg backdrop-blur-xl",
+      "bg-card/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-3xl shadow-lg backdrop-blur-xl",
       className
     )}>
       <CardHeader className="pb-4">
-        <CardTitle className="text-xl font-display flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-          <MapPin className="h-5 w-5 text-[#FFB84C]" />
+        <CardTitle className="text-xl font-display flex items-center gap-2 text-card-foreground">
+          <MapPin className="h-5 w-5 text-primary" />
           Location settings
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="location" className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
+          <Label htmlFor="location" className="text-sm font-medium text-muted-foreground">
             Your location
           </Label>
           <div className="flex gap-2">
@@ -136,7 +136,7 @@ export function LocationSettings({ onLocationChange, className }: LocationSettin
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Enter city name or coordinates"
-              className="flex-1 bg-white/80 dark:bg-[#0D0D0D]/80 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70"
+              className="flex-1 bg-card/80 dark:bg-card/80 border-border/60 dark:border-border/70"
             />
             <Button
               type="button"
@@ -144,28 +144,28 @@ export function LocationSettings({ onLocationChange, className }: LocationSettin
               size="sm"
               onClick={detectLocation}
               disabled={isDetecting}
-              className="flex items-center gap-1 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              className="flex items-center gap-1 border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary"
             >
               <Navigation className={`h-4 w-4 ${isDetecting ? 'animate-spin' : ''}`} />
               {isDetecting ? 'Detecting…' : 'Auto'}
             </Button>
           </div>
-          <p className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
+          <p className="text-xs text-muted-foreground">
             Use city name (e.g., “New York, NY”) or coordinates (e.g., “40.7128, -74.0060”).
           </p>
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 bg-[#FFF0EC] dark:bg-[#3D211F] border border-[#FF6F61]/40 rounded-2xl">
-            <AlertCircle className="h-4 w-4 text-[#FF6F61]" />
-            <span className="text-sm text-[#FF6F61] dark:text-[#FFA094]">{error}</span>
+          <div className="flex items-center gap-2 p-3 bg-destructive/10 dark:bg-destructive/20 border border-destructive/40 rounded-2xl">
+            <AlertCircle className="h-4 w-4 text-destructive" />
+            <span className="text-sm text-destructive dark:text-destructive/90">{error}</span>
           </div>
         )}
 
         {savedLocation && (
-          <div className="flex items-center gap-2 p-3 bg-[#ECFDF5] dark:bg-[#1F3D32] border border-[#6EE7B7]/40 rounded-2xl">
-            <CheckCircle className="h-4 w-4 text-[#34D399]" />
-            <span className="text-sm text-[#0F172A] dark:text-[#C4BCB4]">
+          <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200/40 rounded-2xl">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <span className="text-sm text-green-900 dark:text-green-100">
               Location saved: {savedLocation}
             </span>
           </div>
@@ -175,7 +175,7 @@ export function LocationSettings({ onLocationChange, className }: LocationSettin
           <Button
             onClick={saveLocation}
             disabled={!location.trim() || location.trim() === savedLocation}
-            className="flex items-center gap-2 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white rounded-2xl px-4"
+            className="flex items-center gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-2xl px-4"
           >
             <Save className="h-4 w-4" />
             Save location
@@ -185,14 +185,14 @@ export function LocationSettings({ onLocationChange, className }: LocationSettin
             <Button
               variant="outline"
               onClick={clearLocation}
-              className="border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              className="border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary"
             >
               Clear
             </Button>
           )}
         </div>
 
-        <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] space-y-1">
+        <div className="text-xs text-muted-foreground space-y-1">
           <p>• Your location powers accurate weather-aware outfit recommendations.</p>
           <p>• Location data stays on your device.</p>
           <p>• Update it anytime to refresh forecasts.</p>

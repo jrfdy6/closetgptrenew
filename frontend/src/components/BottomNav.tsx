@@ -48,7 +48,7 @@ export default function BottomNav() {
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200/50 dark:border-[#2E2E2E] bg-white/80 dark:bg-[#1A1A1A]/80 backdrop-blur-2xl"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/50 dark:border-border bg-card/80 dark:bg-card/80 backdrop-blur-2xl"
       aria-label="Bottom navigation"
     >
       <div className="max-w-7xl mx-auto">
@@ -65,8 +65,8 @@ export default function BottomNav() {
                   "flex flex-col items-center justify-center gap-1 transition-all duration-200",
                   "min-h-[44px]", // WCAG touch target
                   isActive 
-                    ? "text-[#FFB84C]" 
-                    : "text-gray-600 dark:text-[#8A827A] hover:text-gray-900 dark:hover:text-[#F8F5F1]"
+                    ? "text-primary" 
+                    : "text-muted-foreground hover:text-foreground"
                 )}
                 aria-current={isActive ? "page" : undefined}
               >

@@ -102,24 +102,24 @@ export default function BottomSheet({
       >
         {/* Drag Handle */}
         <div className="flex justify-center pt-3 pb-2">
-          <div className="w-12 h-1 bg-gray-300 dark:bg-[#8A827A] rounded-full" />
+          <div className="w-12 h-1 bg-muted dark:bg-muted rounded-full" />
         </div>
 
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3D2F24]">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border dark:border-border">
             <h2 
               id="bottom-sheet-title" 
-              className="heading-lg text-gray-900 dark:text-[#F8F5F1]"
+              className="heading-lg text-card-foreground"
             >
               {title}
             </h2>
             <button
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-[#3D2F24] transition-colors"
+              className="p-2 rounded-full hover:bg-secondary transition-colors"
               aria-label="Close"
             >
-              <X className="w-5 h-5 text-gray-600 dark:text-[#C4BCB4]" />
+              <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
         )}

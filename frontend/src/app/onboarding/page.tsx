@@ -1463,7 +1463,7 @@ function OnboardingContent() {
     return (
       <div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
         <div className="text-center mb-12">
-          <h2 className="heading-lg text-gray-900 dark:text-[#F8F5F1] mb-8">
+          <h2 className="heading-lg text-card-foreground mb-8">
             {question.question}
           </h2>
           {question.type === "visual" && (
@@ -1522,7 +1522,7 @@ function OnboardingContent() {
                 />
               </div>
               <div className="text-center mb-3">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-[#F8F5F1] mb-1">
+                <h3 className="text-base sm:text-lg font-semibold text-card-foreground mb-1">
                   {question.style_name}
                 </h3>
                 <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -1641,10 +1641,10 @@ function OnboardingContent() {
   // Show loading state while authenticating
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB84C] mx-auto mb-4"></div>
-          <p className="text-body text-gray-600 dark:text-[#C4BCB4]">Authenticating...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-body text-muted-foreground">Authenticating...</p>
         </div>
       </div>
     );
@@ -1653,10 +1653,10 @@ function OnboardingContent() {
   // Redirect if not authenticated
   if (!modeResolved) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB84C] mx-auto mb-4"></div>
-          <p className="text-body text-gray-600 dark:text-[#C4BCB4]">Loading your experience...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-body text-muted-foreground">Loading your experience...</p>
         </div>
       </div>
     );
@@ -1664,9 +1664,9 @@ function OnboardingContent() {
 
   if (!user && !isGuestFlow) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center space-y-4">
-          <p className="text-lg text-gray-700 dark:text-[#C4BCB4]">Redirecting you back home...</p>
+          <p className="text-lg text-muted-foreground">Redirecting you back home...</p>
         </div>
       </div>
     );
@@ -1696,7 +1696,7 @@ function OnboardingContent() {
   // Show loading state while redirecting after upload completion
   if (uploadComplete) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Redirecting to your style persona...</p>
@@ -2091,7 +2091,7 @@ function OnboardingContent() {
               <button
                 onClick={handlePrevious}
                 disabled={currentQuestionIndex === 0}
-                className="flex w-full sm:w-auto items-center justify-center px-4 py-3 rounded-2xl text-button font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#F8F5F1] hover:bg-gray-200 dark:hover:bg-[#262626]/80"
+                className="flex w-full sm:w-auto items-center justify-center px-4 py-3 rounded-2xl text-button font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-secondary dark:bg-muted text-card-foreground hover:bg-secondary/80"
               >
                 <ArrowLeft className="h-4 w-4 mr-2 inline-block" />
                 Previous
@@ -2138,8 +2138,8 @@ export default function Onboarding() {
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950 flex items-center justify-center">
         <div className="animate-pulse text-center">
-          <Sparkles className="h-12 w-12 mx-auto mb-4 text-[#FFB84C]" />
-          <p className="text-[#57534E] dark:text-[#C4BCB4]">Loading onboarding...</p>
+          <Sparkles className="h-12 w-12 mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading onboarding...</p>
         </div>
       </div>
     }>

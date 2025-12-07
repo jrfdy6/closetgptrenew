@@ -97,16 +97,16 @@ export default function OutfitGenerationBottomSheet({
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent
         side="bottom"
-        className="h-[90vh] max-h-[90vh] bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-[#2C2119] dark:via-amber-900/20 dark:to-orange-900/20 border-t border-amber-200 dark:border-[#3D2F24] rounded-t-3xl p-0 overflow-hidden flex flex-col"
+        className="h-[90vh] max-h-[90vh] bg-gradient-to-br from-secondary/50 via-secondary/30 to-secondary/50 dark:from-muted dark:via-muted/20 dark:to-muted/20 border-t border-border dark:border-border rounded-t-3xl p-0 overflow-hidden flex flex-col"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-amber-200 dark:border-[#3D2F24]">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-border dark:border-border">
           <div className="flex-1">
-            <SheetTitle className="text-xl font-display font-semibold text-stone-900 dark:text-[#F8F5F1] mb-1">
+            <SheetTitle className="text-xl font-display font-semibold text-card-foreground mb-1">
               Generate Your Outfit
             </SheetTitle>
             {weather && (
-              <SheetDescription className="text-sm text-stone-600 dark:text-[#C4BCB4] flex items-center gap-2">
+              <SheetDescription className="text-sm text-muted-foreground flex items-center gap-2">
                 <Sun className="h-4 w-4" />
                 {Math.round(weather.temperature)}°F, {weather.condition}
                 {weather.location && ` • ${weather.location}`}
@@ -117,7 +117,7 @@ export default function OutfitGenerationBottomSheet({
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="h-11 w-11 text-stone-600 dark:text-[#C4BCB4] hover:text-stone-900 dark:hover:text-[#F8F5F1] hover:bg-amber-100 dark:hover:bg-[#3D2F24]"
+            className="h-11 w-11 text-muted-foreground hover:text-foreground hover:bg-secondary"
           >
             <X className="h-5 w-5" />
           </Button>
@@ -162,7 +162,7 @@ export default function OutfitGenerationBottomSheet({
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
           {/* Occasion Section */}
           <div>
-            <label className="text-xs font-medium text-stone-700 dark:text-[#C4BCB4] uppercase tracking-wider mb-3 block">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 block">
               Occasion *
             </label>
             <div className="flex flex-wrap gap-2">
@@ -182,7 +182,7 @@ export default function OutfitGenerationBottomSheet({
 
           {/* Style Section */}
           <div>
-            <label className="text-xs font-medium text-stone-700 dark:text-[#C4BCB4] uppercase tracking-wider mb-3 block">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 block">
               Style *
             </label>
             <div className="flex flex-wrap gap-2">
@@ -202,7 +202,7 @@ export default function OutfitGenerationBottomSheet({
 
           {/* Mood Section */}
           <div>
-            <label className="text-xs font-medium text-stone-700 dark:text-[#C4BCB4] uppercase tracking-wider mb-3 block">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 block">
               Mood *
             </label>
             <div className="flex flex-wrap gap-2">
@@ -246,7 +246,7 @@ export default function OutfitGenerationBottomSheet({
         </div>
 
         {/* Sticky Bottom Actions */}
-        <div className="px-6 pt-4 pb-6 border-t border-amber-200 dark:border-[#3D2F24] bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-[#2C2119] dark:via-amber-900/20 dark:to-orange-900/20 space-y-3">
+        <div className="px-6 pt-4 pb-6 border-t border-border dark:border-border bg-gradient-to-br from-secondary/50 via-secondary/30 to-secondary/50 dark:from-muted dark:via-muted/20 dark:to-muted/20 space-y-3">
           {/* Generate Button */}
           <Button
             onClick={handleGenerate}
@@ -254,8 +254,8 @@ export default function OutfitGenerationBottomSheet({
             className={cn(
               'w-full h-14 text-base font-semibold rounded-2xl transition-all',
               canGenerate
-                ? 'bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] hover:shadow-lg hover:shadow-[#FFB84C]/30'
-                : 'bg-stone-300 dark:bg-[#3D2F24] text-stone-500 dark:text-[#8A827A] cursor-not-allowed'
+                ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground hover:shadow-lg hover:shadow-primary/30'
+                : 'bg-muted dark:bg-muted text-muted-foreground cursor-not-allowed'
             )}
           >
             {generating ? (

@@ -234,7 +234,7 @@ export default function EnhancedOutfitCard({
           {/* If flat lay exists, show it as the main preview */}
           {outfit.metadata?.flat_lay_url ? (
             <div className="mb-3">
-              <div className="aspect-[9/16] bg-[#F5F0E8] dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl overflow-hidden">
+              <div className="aspect-[9/16] bg-secondary dark:bg-card border border-border/60 dark:border-border/70 rounded-2xl overflow-hidden">
                 <img
                   src={outfit.metadata.flat_lay_url}
                   alt={outfit.name}
@@ -273,7 +273,7 @@ export default function EnhancedOutfitCard({
               <div className="grid grid-cols-2 gap-2">
                 {outfit.items.slice(0, 4).map((item, index) => (
                   <div key={index} className="relative group/item">
-                    <div className="aspect-square bg-[#F5F0E8] dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl overflow-hidden">
+                    <div className="aspect-square bg-secondary dark:bg-card border border-border/60 dark:border-border/70 rounded-2xl overflow-hidden">
                       {item.imageUrl ? (
                         <img
                           src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl}
@@ -286,8 +286,8 @@ export default function EnhancedOutfitCard({
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <div className="text-[#8A827A] text-xs text-center">
-                            <div className="w-6 h-6 mx-auto mb-1 bg-[#E7DDCF] dark:bg-[#4A3526] rounded"></div>
+                          <div className="text-muted-foreground text-xs text-center">
+                            <div className="w-6 h-6 mx-auto mb-1 bg-muted dark:bg-muted rounded"></div>
                             <span className="text-xs">{item.type}</span>
                           </div>
                         </div>

@@ -249,7 +249,7 @@ export default function DarkModeTestPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] transition-colors duration-300">
+    <div className="min-h-screen bg-background dark:bg-background transition-colors duration-300">
       <Navigation />
       
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -257,10 +257,10 @@ export default function DarkModeTestPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl sm:text-4xl font-display font-bold text-[#1C1917] dark:text-[#F8F5F1] mb-2">
+              <h1 className="text-3xl sm:text-4xl font-display font-bold text-foreground mb-2">
                 Dark Mode Color Variations
               </h1>
-              <p className="text-[#57534E] dark:text-[#C4BCB4] text-base sm:text-lg">
+              <p className="text-muted-foreground text-base sm:text-lg">
                 Test different dark mode color palettes. Make sure dark mode is enabled to see the variations.
               </p>
             </div>
@@ -268,7 +268,7 @@ export default function DarkModeTestPage() {
               onClick={toggleDarkMode}
               variant="outline"
               size="lg"
-              className="flex items-center gap-2 border-[#F5F0E8]/70 dark:border-[#3D2F24]/80 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              className="flex items-center gap-2 border-border/70 dark:border-border/80 text-muted-foreground hover:bg-secondary"
             >
               {isDarkMode ? (
                 <>
@@ -300,8 +300,8 @@ export default function DarkModeTestPage() {
               key={variation.id}
               className={`card-surface backdrop-blur-xl rounded-2xl border transition-all duration-300 cursor-pointer hover:scale-[1.02] hover:shadow-xl ${
                 selectedVariation === variation.id
-                  ? 'border-[#FFB84C] dark:border-[#FFB84C] shadow-lg shadow-amber-500/20'
-                  : 'border-[#F5F0E8]/60 dark:border-[#3D2F24]/70'
+                  ? 'border-primary shadow-lg shadow-amber-500/20'
+                  : 'border-border/60 dark:border-border/70'
               }`}
               onClick={() => isDarkMode && applyVariation(variation)}
             >
@@ -309,55 +309,55 @@ export default function DarkModeTestPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <CardTitle className="text-lg sm:text-xl text-[#1C1917] dark:text-[#F8F5F1]">
+                      <CardTitle className="text-lg sm:text-xl text-card-foreground">
                         {variation.name}
                       </CardTitle>
                       {selectedVariation === variation.id && (
-                        <Check className="h-5 w-5 text-[#FFB84C] dark:text-[#FFB84C]" />
+                        <Check className="h-5 w-5 text-primary" />
                       )}
                     </div>
-                    <CardDescription className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                    <CardDescription className="text-sm text-muted-foreground">
                       {variation.description}
                     </CardDescription>
                   </div>
-                  <Palette className="h-6 w-6 text-[#FF9400] dark:text-[#FFB84C] flex-shrink-0" />
+                  <Palette className="h-6 w-6 text-accent dark:text-primary flex-shrink-0" />
                 </div>
               </CardHeader>
               <CardContent>
                 {/* Color Swatches */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-[#57534E] dark:text-[#C4BCB4] w-20">Background:</span>
+                    <span className="text-xs text-muted-foreground w-20">Background:</span>
                     <div className="flex items-center gap-2 flex-1">
                       <div
-                        className="w-12 h-8 rounded-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70"
+                        className="w-12 h-8 rounded-lg border border-border/60 dark:border-border/70"
                         style={{ backgroundColor: variation.colors.background }}
                       />
-                      <span className="text-xs font-mono text-[#57534E] dark:text-[#C4BCB4]">
+                      <span className="text-xs font-mono text-muted-foreground">
                         {variation.colors.background}
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-[#57534E] dark:text-[#C4BCB4] w-20">Card:</span>
+                    <span className="text-xs text-muted-foreground w-20">Card:</span>
                     <div className="flex items-center gap-2 flex-1">
                       <div
-                        className="w-12 h-8 rounded-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70"
+                        className="w-12 h-8 rounded-lg border border-border/60 dark:border-border/70"
                         style={{ backgroundColor: variation.colors.card }}
                       />
-                      <span className="text-xs font-mono text-[#57534E] dark:text-[#C4BCB4]">
+                      <span className="text-xs font-mono text-muted-foreground">
                         {variation.colors.card}
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-[#57534E] dark:text-[#C4BCB4] w-20">Border:</span>
+                    <span className="text-xs text-muted-foreground w-20">Border:</span>
                     <div className="flex items-center gap-2 flex-1">
                       <div
-                        className="w-12 h-8 rounded-lg border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70"
+                        className="w-12 h-8 rounded-lg border border-border/60 dark:border-border/70"
                         style={{ backgroundColor: variation.colors.border }}
                       />
-                      <span className="text-xs font-mono text-[#57534E] dark:text-[#C4BCB4]">
+                      <span className="text-xs font-mono text-muted-foreground">
                         {variation.colors.border}
                       </span>
                     </div>
@@ -367,8 +367,8 @@ export default function DarkModeTestPage() {
                 <Button
                   className={`w-full mt-4 ${
                     selectedVariation === variation.id
-                      ? 'bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-white hover:from-[#FFB84C] hover:to-[#FF7700]'
-                      : 'bg-[#F5F0E8] dark:bg-[#3D2F24] text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]'
+                      ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-primary hover:to-accent/90'
+                      : 'bg-secondary dark:bg-muted text-muted-foreground hover:bg-secondary'
                   }`}
                   disabled={!isDarkMode}
                   onClick={(e) => {
@@ -389,7 +389,7 @@ export default function DarkModeTestPage() {
             <Button
               onClick={resetVariation}
               variant="outline"
-              className="border-[#F5F0E8]/70 dark:border-[#3D2F24]/80 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              className="border-border/70 dark:border-border/80 text-muted-foreground hover:bg-secondary"
             >
               Reset to Default Dark Mode
             </Button>
@@ -399,61 +399,61 @@ export default function DarkModeTestPage() {
         {/* Preview Section */}
         {isDarkMode && (
           <div className="mt-12">
-            <h2 className="text-2xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-6">
+            <h2 className="text-2xl font-display font-semibold text-foreground mb-6">
               Preview Components
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Preview Card 1 */}
-              <Card className="card-surface backdrop-blur-xl rounded-2xl border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+              <Card className="card-surface backdrop-blur-xl rounded-2xl border border-border/60 dark:border-border/70">
                 <CardHeader>
-                  <CardTitle className="text-[#1C1917] dark:text-[#F8F5F1]">Sample Card</CardTitle>
-                  <CardDescription className="text-[#57534E] dark:text-[#C4BCB4]">
+                  <CardTitle className="text-card-foreground">Sample Card</CardTitle>
+                  <CardDescription className="text-muted-foreground">
                     This is how cards look with your selected variation
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Notice how the background, borders, and text colors work together.
                   </p>
-                  <Button className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-white hover:from-[#FFB84C] hover:to-[#FF7700]">
+                  <Button className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-primary hover:to-accent/90">
                     Amber Button
                   </Button>
                 </CardContent>
               </Card>
 
               {/* Preview Card 2 */}
-              <Card className="card-surface backdrop-blur-xl rounded-2xl border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+              <Card className="card-surface backdrop-blur-xl rounded-2xl border border-border/60 dark:border-border/70">
                 <CardHeader>
-                  <CardTitle className="text-[#1C1917] dark:text-[#F8F5F1]">Text Hierarchy</CardTitle>
+                  <CardTitle className="text-card-foreground">Text Hierarchy</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-[#1C1917] dark:text-[#F8F5F1] font-semibold mb-2">
+                  <p className="text-card-foreground font-semibold mb-2">
                     Primary Text Color
                   </p>
-                  <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Secondary/muted text maintains excellent readability.
                   </p>
                   <div className="space-y-2">
-                    <div className="h-2 bg-[#FFB84C] rounded-full w-3/4" />
-                    <div className="h-2 bg-[#FF9400] rounded-full w-1/2" />
+                    <div className="h-2 bg-primary rounded-full w-3/4" />
+                    <div className="h-2 bg-accent rounded-full w-1/2" />
                   </div>
                 </CardContent>
               </Card>
 
               {/* Preview Card 3 */}
-              <Card className="card-surface backdrop-blur-xl rounded-2xl border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
+              <Card className="card-surface backdrop-blur-xl rounded-2xl border border-border/60 dark:border-border/70">
                 <CardHeader>
-                  <CardTitle className="text-[#1C1917] dark:text-[#F8F5F1]">Gradients & Accents</CardTitle>
+                  <CardTitle className="text-card-foreground">Gradients & Accents</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="h-12 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] rounded-lg flex items-center justify-center">
-                      <span className="text-white font-semibold">Amber Gradient</span>
+                    <div className="h-12 bg-gradient-to-r from-primary to-accent rounded-lg flex items-center justify-center">
+                      <span className="text-primary-foreground font-semibold">Amber Gradient</span>
                     </div>
                     <div className="flex gap-2">
-                      <div className="h-8 w-8 rounded bg-[#FFB84C]" />
-                      <div className="h-8 w-8 rounded bg-[#FF9400]" />
-                      <div className="h-8 w-8 rounded bg-[#FF7700]" />
+                      <div className="h-8 w-8 rounded bg-primary" />
+                      <div className="h-8 w-8 rounded bg-accent" />
+                      <div className="h-8 w-8 rounded bg-accent/80" />
                     </div>
                   </div>
                 </CardContent>
@@ -463,11 +463,11 @@ export default function DarkModeTestPage() {
         )}
 
         {/* Instructions */}
-        <div className="mt-12 p-6 bg-[#F5F0E8] dark:bg-[#3D2F24] rounded-2xl border border-[#F5F0E8]/60 dark:border-[#3D2F24]/70">
-          <h3 className="text-lg font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-3">
+        <div className="mt-12 p-6 bg-secondary dark:bg-muted rounded-2xl border border-border/60 dark:border-border/70">
+          <h3 className="text-lg font-semibold text-card-foreground mb-3">
             How to Use
           </h3>
-          <ol className="space-y-2 text-sm text-[#57534E] dark:text-[#C4BCB4] list-decimal list-inside">
+          <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
             <li>Enable dark mode using the button in the top right</li>
             <li>Click on any variation card to apply it</li>
             <li>The variation will persist even if you navigate away</li>

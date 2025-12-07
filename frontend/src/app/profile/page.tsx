@@ -392,7 +392,7 @@ export default function ProfilePage() {
         <Navigation />
       <div className="container mx-auto p-8">
           <div className="max-w-2xl mx-auto">
-            <Card className="border border-amber-200 dark:border-[#2E2E2E]/70 bg-amber-50/50 dark:bg-[#1A1A1A]/85 backdrop-blur-sm">
+            <Card className="border border-primary/30 dark:border-border/70 bg-secondary/50 dark:bg-card/85 backdrop-blur-sm">
               <CardHeader className="pb-6">
                 <CardTitle className="flex items-center text-2xl font-serif text-amber-900 dark:text-amber-100">
                   <Sparkles className="h-8 w-8 mr-3 text-amber-600 dark:text-amber-400" />
@@ -401,27 +401,27 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  <p className="text-[#57534E] dark:text-[#C4BCB4] text-lg leading-relaxed">
+                  <p className="text-muted-foreground text-lg leading-relaxed">
                     Your profile is incomplete! To get personalized outfit recommendations and make the most of Easy Outfit, 
                     please complete your style quiz.
                   </p>
                   
-                  <div className="bg-white/85 dark:bg-[#1A1A1A]/85 rounded-2xl p-6 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 shadow-lg">
-                    <h3 className="font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-4">Current profile status</h3>
+                  <div className="bg-card/85 dark:bg-card/85 rounded-2xl p-6 border border-border/60 dark:border-border/70 shadow-lg">
+                    <h3 className="font-display font-semibold text-card-foreground mb-4">Current profile status</h3>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Basic information</span>
-                        <span className="text-[#4CAF50] dark:text-[#79E2A6] font-medium">✓ Complete</span>
+                        <span className="text-sm text-muted-foreground">Basic information</span>
+                        <span className="text-green-600 dark:text-green-400 font-medium">✓ Complete</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Style preferences</span>
-                        <span className="text-[#FF9400] dark:text-amber-300 font-medium">
+                        <span className="text-sm text-muted-foreground">Style preferences</span>
+                        <span className="text-accent dark:text-accent font-medium">
                           {profile.stylePreferences && Array.isArray(profile.stylePreferences) && profile.stylePreferences.length > 0 ? '✓ Complete' : '○ Incomplete'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Measurements & sizes</span>
-                        <span className="text-[#FF9400] dark:text-amber-300 font-medium">
+                        <span className="text-sm text-muted-foreground">Measurements & sizes</span>
+                        <span className="text-accent dark:text-accent font-medium">
                           {profile.measurements ? '✓ Complete' : '○ Incomplete'}
                         </span>
                       </div>
@@ -431,7 +431,7 @@ export default function ProfilePage() {
                   <div className="flex flex-col sm:flex-row gap-3 pt-4">
                     <Button 
                       onClick={() => router.push('/onboarding')}
-                      className="flex-1 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold transition-transform duration-200 hover:scale-[1.02] shadow-lg shadow-amber-500/20"
+                      className="flex-1 bg-gradient-to-r from-primary to-accent text-primary-foreground px-6 py-3 rounded-2xl font-semibold transition-transform duration-200 hover:scale-[1.02] shadow-lg shadow-amber-500/20"
                     >
                       <Sparkles className="h-5 w-5 mr-2" />
                       Complete style quiz
@@ -439,7 +439,7 @@ export default function ProfilePage() {
                     <Button 
                       variant="outline"
                       onClick={() => router.push('/dashboard')}
-                      className="flex-1 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] px-6 py-3 rounded-2xl font-semibold transition-transform duration-200 hover:scale-[1.02]"
+                      className="flex-1 border border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary px-6 py-3 rounded-2xl font-semibold transition-transform duration-200 hover:scale-[1.02]"
                     >
                       Back to dashboard
                     </Button>
@@ -454,21 +454,21 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D]">
+    <div className="min-h-screen bg-background">
       <Navigation />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-24">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-12 bg-white/85 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-lg">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-12 bg-card/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-lg">
         <div>
-          <h1 className="text-4xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-3">My profile</h1>
-          <p className="text-[#57534E] dark:text-[#C4BCB4] text-base leading-relaxed">
+          <h1 className="text-4xl font-display font-semibold text-card-foreground mb-3">My profile</h1>
+          <p className="text-muted-foreground text-base leading-relaxed">
             Tune your preferences so every look feels like you.
           </p>
         </div>
         <Button 
           onClick={() => setIsEditing(!isEditing)} 
           className={isEditing 
-            ? "border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] px-6 py-3 rounded-2xl font-semibold transition-transform duration-200 hover:scale-[1.02]"
-            : "bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
+            ? "border border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary px-6 py-3 rounded-2xl font-semibold transition-transform duration-200 hover:scale-[1.02]"
+            : "bg-gradient-to-r from-primary to-accent text-primary-foreground px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
           }
         >
           {isEditing ? "Cancel" : "Edit profile"}
@@ -477,10 +477,10 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Personal Information */}
-        <Card className="border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-white/85 dark:bg-[#1A1A1A]/85 backdrop-blur-xl rounded-3xl shadow-lg">
+        <Card className="border border-border/60 dark:border-border/70 bg-card/85 dark:bg-card/85 backdrop-blur-xl rounded-3xl shadow-lg">
           <CardHeader className="pb-6">
-            <CardTitle className="flex items-center text-xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
-              <User className="h-6 w-6 mr-3 text-[#FFB84C]" />
+            <CardTitle className="flex items-center text-xl font-display text-card-foreground">
+              <User className="h-6 w-6 mr-3 text-primary" />
               Personal information
             </CardTitle>
           </CardHeader>
@@ -505,10 +505,10 @@ export default function ProfilePage() {
         </Card>
 
         {/* Style Preferences */}
-        <Card className="border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-white/85 dark:bg-[#1A1A1A]/85 backdrop-blur-xl rounded-3xl shadow-lg">
+        <Card className="border border-border/60 dark:border-border/70 bg-card/85 dark:bg-card/85 backdrop-blur-xl rounded-3xl shadow-lg">
           <CardHeader className="pb-6">
-            <CardTitle className="flex items-center text-xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
-              <Palette className="h-6 w-6 mr-3 text-[#FFB84C]" />
+            <CardTitle className="flex items-center text-xl font-display text-card-foreground">
+              <Palette className="h-6 w-6 mr-3 text-primary" />
               Style preferences
             </CardTitle>
           </CardHeader>
@@ -587,10 +587,10 @@ export default function ProfilePage() {
         </Card>
 
         {/* Measurements & Sizes */}
-        <Card className="border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-white/85 dark:bg-[#1A1A1A]/85 backdrop-blur-xl rounded-3xl shadow-lg">
+        <Card className="border border-border/60 dark:border-border/70 bg-card/85 dark:bg-card/85 backdrop-blur-xl rounded-3xl shadow-lg">
           <CardHeader className="pb-6">
-            <CardTitle className="flex items-center text-xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
-              <Settings className="h-6 w-6 mr-3 text-[#FFB84C]" />
+            <CardTitle className="flex items-center text-xl font-display text-card-foreground">
+              <Settings className="h-6 w-6 mr-3 text-primary" />
               Measurements & sizes
             </CardTitle>
           </CardHeader>
@@ -687,10 +687,10 @@ export default function ProfilePage() {
 
         {/* Style Quiz Responses */}
         {profile.preferences?.style && profile.preferences.style.length > 0 && (
-          <Card className="border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-white/85 dark:bg-[#1A1A1A]/85 backdrop-blur-xl rounded-3xl shadow-lg">
+          <Card className="border border-border/60 dark:border-border/70 bg-card/85 dark:bg-card/85 backdrop-blur-xl rounded-3xl shadow-lg">
             <CardHeader className="pb-6">
-              <CardTitle className="flex items-center text-xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
-                <Heart className="h-6 w-6 mr-3 text-[#FFB84C]" />
+              <CardTitle className="flex items-center text-xl font-display text-card-foreground">
+                <Heart className="h-6 w-6 mr-3 text-primary" />
                 Style quiz responses
               </CardTitle>
             </CardHeader>
@@ -699,7 +699,7 @@ export default function ProfilePage() {
                 <Label>Style preferences</Label>
                 <div className="flex flex-wrap gap-2">
                   {profile.preferences.style.map((style, index) => (
-                    <span key={index} className="px-3 py-1 rounded-full text-caption bg-[#FFF7E6] text-[#B45309]">
+                    <span key={index} className="px-3 py-1 rounded-full text-caption bg-secondary/90 text-accent">
                       {style}
                     </span>
                   ))}
@@ -710,7 +710,7 @@ export default function ProfilePage() {
                   <Label>Color palette</Label>
                   <div className="flex flex-wrap gap-2">
                     {profile.preferences.colors.map((color, index) => (
-                      <span key={index} className="px-3 py-1 rounded-full text-caption border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4]">
+                      <span key={index} className="px-3 py-1 rounded-full text-caption border border-border/60 dark:border-border/70 text-muted-foreground">
                         {color}
                       </span>
                     ))}
@@ -725,21 +725,21 @@ export default function ProfilePage() {
         <SpendingRangesCard />
 
         {/* Account Status */}
-        <Card className="border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-white/85 dark:bg-[#1A1A1A]/85 backdrop-blur-xl rounded-3xl shadow-lg">
+        <Card className="border border-border/60 dark:border-border/70 bg-card/85 dark:bg-card/85 backdrop-blur-xl rounded-3xl shadow-lg">
           <CardHeader className="pb-6">
-            <CardTitle className="flex items-center text-xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
-              <Settings className="h-6 w-6 mr-3 text-[#FFB84C]" />
+            <CardTitle className="flex items-center text-xl font-display text-card-foreground">
+              <Settings className="h-6 w-6 mr-3 text-primary" />
               Account status
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Profile status</span>
-              <span className="text-sm font-semibold text-[#4CAF50] dark:text-[#79E2A6]">Complete</span>
+              <span className="text-sm font-medium text-muted-foreground">Profile status</span>
+              <span className="text-sm font-semibold text-green-600 dark:text-green-400">Complete</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Plan</span>
-              <span className="text-sm font-semibold text-[#FFB84C]">
+              <span className="text-sm font-medium text-muted-foreground">Plan</span>
+              <span className="text-sm font-semibold text-primary">
                 {subscription?.role === 'tier1' && 'Free'}
                 {subscription?.role === 'tier2' && 'Pro'}
                 {subscription?.role === 'tier3' && 'Premium'}
@@ -748,15 +748,15 @@ export default function ProfilePage() {
             </div>
             {subscription?.is_trialing && subscription?.days_remaining_in_trial !== undefined && (
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Free Trial</span>
-                <span className="text-sm font-semibold text-[#4CAF50] dark:text-[#79E2A6]">
+                <span className="text-sm font-medium text-muted-foreground">Free Trial</span>
+                <span className="text-sm font-semibold text-green-600 dark:text-green-400">
                   {subscription.days_remaining_in_trial} days remaining
                 </span>
               </div>
             )}
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Member since</span>
-              <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+              <span className="text-sm font-medium text-muted-foreground">Member since</span>
+              <span className="text-sm text-muted-foreground">
                 {(() => {
                   // Prioritize created_at over createdAt since created_at is the newer field
                   const timestamp = profile.created_at || profile.createdAt || 0;
@@ -768,8 +768,8 @@ export default function ProfilePage() {
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Last updated</span>
-              <span className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+              <span className="text-sm font-medium text-muted-foreground">Last updated</span>
+              <span className="text-sm text-muted-foreground">
                 {(() => {
                   // Prioritize updated_at over updatedAt since updated_at is the newer field
                   const timestamp = profile.updated_at || profile.updatedAt || 0;
@@ -781,11 +781,11 @@ export default function ProfilePage() {
               </span>
             </div>
             {user && (
-              <div className="flex items-center justify-between pt-2 border-t border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
-                <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">Sign-in methods</span>
+              <div className="flex items-center justify-between pt-2 border-t border-border/60 dark:border-border/70">
+                <span className="text-sm font-medium text-muted-foreground">Sign-in methods</span>
                 <div className="flex items-center gap-2">
                   {signInMethods.length === 0 ? (
-                    <span className="text-xs text-[#57534E] dark:text-[#C4BCB4]">Loading...</span>
+                    <span className="text-xs text-muted-foreground">Loading...</span>
                   ) : (
                     <>
                       {signInMethods.includes('google.com') && (
@@ -808,9 +808,9 @@ export default function ProfilePage() {
               </div>
             )}
             {signInMethods.includes('google.com') && !signInMethods.includes('password') && (
-              <div className="pt-4 border-t border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
+              <div className="pt-4 border-t border-border/60 dark:border-border/70">
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Lock className="h-4 w-4" />
                     <span>Link your password to sign in with email and password</span>
                   </div>
@@ -823,7 +823,7 @@ export default function ProfilePage() {
                   ) : (
                     <div className="space-y-2">
                       <div>
-                        <Label htmlFor="link-email" className="text-xs text-[#57534E] dark:text-[#C4BCB4]">Email</Label>
+                        <Label htmlFor="link-email" className="text-xs text-muted-foreground">Email</Label>
                         <Input
                           id="link-email"
                           type="email"
@@ -835,7 +835,7 @@ export default function ProfilePage() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="link-password" className="text-xs text-[#57534E] dark:text-[#C4BCB4]">Password</Label>
+                        <Label htmlFor="link-password" className="text-xs text-muted-foreground">Password</Label>
                         <Input
                           id="link-password"
                           type="password"
@@ -884,17 +884,17 @@ export default function ProfilePage() {
         </Card>
 
         {/* Quick Actions */}
-        <Card className="border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-white/85 dark:bg-[#1A1A1A]/85 backdrop-blur-xl rounded-3xl shadow-lg">
+        <Card className="border border-border/60 dark:border-border/70 bg-card/85 dark:bg-card/85 backdrop-blur-xl rounded-3xl shadow-lg">
           <CardHeader className="pb-6">
-            <CardTitle className="flex items-center text-xl font-display text-[#1C1917] dark:text-[#F8F5F1]">
-              <Heart className="h-6 w-6 mr-3 text-[#FFB84C]" />
+            <CardTitle className="flex items-center text-xl font-display text-card-foreground">
+              <Heart className="h-6 w-6 mr-3 text-primary" />
               Quick actions
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button 
               variant="outline" 
-              className="w-full justify-start border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]"
+              className="w-full justify-start border-border/60 dark:border-border/70 text-muted-foreground hover:bg-secondary hover:text-foreground"
               onClick={() => router.push('/onboarding')}
             >
               <Palette className="h-4 w-4 mr-2" />
@@ -902,17 +902,17 @@ export default function ProfilePage() {
             </Button>
             <Button 
               variant="outline" 
-              className="w-full justify-start border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]"
+              className="w-full justify-start border-border/60 dark:border-border/70 text-muted-foreground hover:bg-secondary hover:text-foreground"
               onClick={() => router.push('/style-persona')}
             >
               <Sparkles className="h-4 w-4 mr-2" />
               Style persona
             </Button>
-            <Button variant="outline" className="w-full justify-start border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]">
+            <Button variant="outline" className="w-full justify-start border-border/60 dark:border-border/70 text-muted-foreground hover:bg-secondary hover:text-foreground">
               <Heart className="h-4 w-4 mr-2" />
               Favorite items
             </Button>
-            <Button variant="outline" className="w-full justify-start border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] hover:text-[#1C1917] dark:hover:text-[#F8F5F1]">
+            <Button variant="outline" className="w-full justify-start border-border/60 dark:border-border/70 text-muted-foreground hover:bg-secondary hover:text-foreground">
               <Settings className="h-4 w-4 mr-2" />
               Preferences
             </Button>
@@ -925,13 +925,13 @@ export default function ProfilePage() {
           <Button 
             variant="outline" 
             onClick={() => setIsEditing(false)}
-            className="border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] px-8 py-3 rounded-2xl font-semibold transition-transform duration-200 hover:scale-[1.02]"
+            className="border border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary px-8 py-3 rounded-2xl font-semibold transition-transform duration-200 hover:scale-[1.02]"
           >
             Cancel
           </Button>
           <Button 
             onClick={handleSave}
-            className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-8 py-3 rounded-2xl font-semibold transition-transform duration-200 hover:scale-[1.02] shadow-lg shadow-amber-500/20"
+            className="bg-gradient-to-r from-primary to-accent text-primary-foreground px-8 py-3 rounded-2xl font-semibold transition-transform duration-200 hover:scale-[1.02] shadow-lg shadow-amber-500/20"
           >
             <Save className="h-5 w-5 mr-3" />
             Save changes

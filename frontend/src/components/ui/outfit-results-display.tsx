@@ -238,9 +238,9 @@ export default function OutfitResultsDisplay({
   const flatLayGenerationError = flatLayState.error;
 
   const getConfidenceColor = (score: number) => {
-    if (score >= 0.8) return 'text-[#B8860B] bg-[#E8C8A0]/20 dark:text-[#E8C8A0] dark:bg-[#B8860B]/20';
-    if (score >= 0.6) return 'text-[#B8860B] bg-[#E8C8A0]/20 dark:text-[#E8C8A0] dark:bg-[#B8860B]/20';
-    return 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/20';
+    if (score >= 0.8) return 'text-[var(--copper-dark)] bg-[var(--copper-light)]/20 dark:text-[var(--copper-light)] dark:bg-[var(--copper-dark)]/20';
+    if (score >= 0.6) return 'text-[var(--copper-dark)] bg-[var(--copper-light)]/20 dark:text-[var(--copper-light)] dark:bg-[var(--copper-dark)]/20';
+    return 'text-destructive bg-destructive/20 dark:text-destructive dark:bg-destructive/20';
   };
 
   const getConfidenceText = (score: number) => {
@@ -308,11 +308,11 @@ export default function OutfitResultsDisplay({
   return (
     <div className="space-y-6">
       {/* Main Outfit Card */}
-      <Card className="overflow-hidden border-2 border-[#E8C8A0]/40 dark:border-[#B8860B]/60 bg-gradient-to-br from-[#E8C8A0]/50 to-orange-50 dark:from-[#B8860B]/20 dark:to-[#C9956F]/20">
+      <Card className="overflow-hidden border-2 border-[var(--copper-light)]/40 dark:border-[var(--copper-dark)]/60 bg-gradient-to-br from-[var(--copper-light)]/50 to-orange-50 dark:from-[var(--copper-dark)]/20 dark:to-[var(--copper-mid)]/20">
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              <CardTitle className="text-2xl font-bold text-card-foreground mb-2">
                 {outfit.name}
               </CardTitle>
               <div className="flex flex-wrap gap-2 mb-3">
@@ -342,7 +342,7 @@ export default function OutfitResultsDisplay({
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowDetails(!showDetails)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <Eye className="h-4 w-4" />
               </Button>
@@ -354,13 +354,13 @@ export default function OutfitResultsDisplay({
           {/* Desktop Two-Column Layout / Mobile Stack */}
           <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
             {/* LEFT COLUMN: Flat Lay Image (Primary Display) */}
-            <div className="mb-4 lg:mb-0 p-4 bg-gradient-to-br from-[#E8C8A0]/30 to-[#C9956F]/30 dark:from-[#B8860B]/40 dark:to-[#C9956F]/40 rounded-xl border-2 border-[#D4A574] dark:border-[#C9956F]">
+            <div className="mb-4 lg:mb-0 p-4 bg-gradient-to-br from-[var(--copper-light)]/30 to-[var(--copper-mid)]/30 dark:from-[var(--copper-dark)]/40 dark:to-[var(--copper-mid)]/40 rounded-xl border-2 border-[var(--copper-mid)] dark:border-[var(--copper-mid)]">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-                <Eye className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
+              <h4 className="text-lg font-bold flex items-center gap-2 text-card-foreground">
+                <Eye className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
                 Your Outfit
               </h4>
-              <Badge className="bg-[#B8860B] text-white dark:bg-[#E8C8A0]/100 text-xs">
+              <Badge className="bg-[var(--copper-dark)] text-white dark:bg-[var(--copper-light)]/100 text-xs">
                 Flat Lay
               </Badge>
             </div>
@@ -388,7 +388,7 @@ export default function OutfitResultsDisplay({
                 variant="secondary"
                 onClick={handleDownload}
                 disabled={!flatLayUrl}
-                className="bg-rose-gold-200 hover:bg-rose-gold-300 dark:bg-rose-gold-800 dark:hover:bg-rose-gold-700 disabled:opacity-50"
+                className="bg-secondary hover:bg-secondary/80 disabled:opacity-50"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Download
@@ -398,7 +398,7 @@ export default function OutfitResultsDisplay({
                 variant="secondary"
                 onClick={handleShare}
                 disabled={!flatLayUrl}
-                className="bg-rose-gold-200 hover:bg-rose-gold-300 dark:bg-rose-gold-800 dark:hover:bg-rose-gold-700 disabled:opacity-50"
+                className="bg-secondary hover:bg-secondary/80 disabled:opacity-50"
               >
                 <Share2 className="w-4 h-4 mr-2" />
                 Share
@@ -420,22 +420,22 @@ export default function OutfitResultsDisplay({
             });
             return outfit.metadata && (outfit.metadata.user_learning_insights || outfit.metadata.user_stats || outfit.metadata.item_intelligence || outfit.metadata.diversity_info);
           })() && (
-            <div className="border-t border-[#E8C8A0]/30 dark:border-[#B8860B]/30 pt-6">
+            <div className="border-t border-[var(--copper-light)]/30 dark:border-[var(--copper-dark)]/30 pt-6">
               {/* Collapsible Header Button */}
               <button
                 onClick={() => setShowWhyItWorks(!showWhyItWorks)}
-                className="w-full flex items-center justify-between gap-3 mb-4 p-4 rounded-2xl bg-gradient-to-r from-[#E8C8A0]/20 to-orange-50/20 dark:from-[#B8860B]/20 dark:to-orange-900/20 hover:from-[#E8C8A0]/30 hover:to-orange-50/30 dark:hover:from-[#B8860B]/30 dark:hover:to-orange-900/30 border-2 border-[#E8C8A0]/40 dark:border-[#B8860B]/40 transition-all"
+                className="w-full flex items-center justify-between gap-3 mb-4 p-4 rounded-2xl bg-gradient-to-r from-[var(--copper-light)]/20 to-orange-50/20 dark:from-[var(--copper-dark)]/20 dark:to-orange-900/20 hover:from-[var(--copper-light)]/30 hover:to-orange-50/30 dark:hover:from-[var(--copper-dark)]/30 dark:hover:to-orange-900/30 border-2 border-[var(--copper-light)]/40 dark:border-[var(--copper-dark)]/40 transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <Sparkles className="h-6 w-6 text-[#B8860B] dark:text-[#E8C8A0]" />
-                  <h3 className="text-xl font-bold text-[#1C1917] dark:text-[#F8F5F1]">
+                  <Sparkles className="h-6 w-6 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
+                  <h3 className="text-xl font-bold text-card-foreground">
                     Why This Outfit Works
                   </h3>
                 </div>
                 {showWhyItWorks ? (
-                  <ChevronUp className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
+                  <ChevronUp className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
                 ) : (
-                  <ChevronDown className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
+                  <ChevronDown className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
                 )}
               </button>
 
@@ -444,23 +444,23 @@ export default function OutfitResultsDisplay({
                 <div className="space-y-4">
               {/* Item-Level Insights - Your Picks */}
               {outfit.metadata.item_intelligence && outfit.metadata.item_intelligence.length > 0 && (
-                <div className="bg-gradient-to-br from-[#E8C8A0]/30 to-orange-50/30 dark:from-[#B8860B]/20 dark:to-[#C9956F]/20 rounded-2xl p-5 border-2 border-[#E8C8A0]/50 dark:border-[#B8860B]/50">
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <Target className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
+                <div className="bg-gradient-to-br from-[var(--copper-light)]/30 to-orange-50/30 dark:from-[var(--copper-dark)]/20 dark:to-[var(--copper-mid)]/20 rounded-2xl p-5 border-2 border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50">
+                  <h4 className="text-lg font-semibold text-card-foreground mb-3 flex items-center gap-2">
+                    <Target className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
                     Your Picks 🎯
                   </h4>
                   <div className="space-y-3">
                     {outfit.metadata.item_intelligence.map((insight: any, idx: number) => (
                       <div 
                         key={idx}
-                        className="flex items-start gap-3 p-3 bg-[#E8C8A0]/20 dark:bg-[#B8860B]/20 rounded-xl border border-[#E8C8A0]/40 dark:border-[#B8860B]/40"
+                        className="flex items-start gap-3 p-3 bg-[var(--copper-light)]/20 dark:bg-[var(--copper-dark)]/20 rounded-xl border border-[var(--copper-light)]/40 dark:border-[var(--copper-dark)]/40"
                       >
                         <div className="text-2xl flex-shrink-0">{insight.icon || '✨'}</div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-[#1C1917] dark:text-[#F8F5F1]">
+                          <div className="font-medium text-card-foreground">
                             {insight.item_name}
                           </div>
-                          <div className="text-sm text-[#57534E] dark:text-[#C4BCB4] mt-1">
+                          <div className="text-sm text-muted-foreground mt-1">
                             {insight.reason}
                           </div>
                         </div>
@@ -470,14 +470,14 @@ export default function OutfitResultsDisplay({
 
                   {/* Fresh Picks Indicator integrated */}
                   {outfit.metadata.diversity_info && (
-                    <div className="mt-4 pt-4 border-t border-[#E8C8A0]/30 dark:border-[#B8860B]/30">
+                    <div className="mt-4 pt-4 border-t border-[var(--copper-light)]/30 dark:border-[var(--copper-dark)]/30">
                       <div className="flex items-start gap-2">
-                        <RefreshCw className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0] mt-0.5 flex-shrink-0" />
+                        <RefreshCw className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-0.5 flex-shrink-0" />
                         <div>
-                          <span className="text-sm font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
+                          <span className="text-sm font-semibold text-card-foreground">
                             Fresh Picks 🎯
                           </span>
-                          <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {outfit.metadata.diversity_info.message || 
                               `🎯 Super fresh! This outfit introduces new combinations you haven't tried before.`}
                           </p>
@@ -490,24 +490,24 @@ export default function OutfitResultsDisplay({
 
               {/* Personalization Section */}
               {(outfit.metadata.user_learning_insights || outfit.metadata.user_stats) && (
-                <div className="bg-gradient-to-r from-[#E8C8A0]/30 to-orange-50/30 dark:from-[#B8860B]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[#E8C8A0]/50 dark:border-[#B8860B]/50">
+                <div className="bg-gradient-to-r from-[var(--copper-light)]/30 to-orange-50/30 dark:from-[var(--copper-dark)]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50">
                   <div className="flex items-start gap-3 mb-3">
-                    <Sparkles className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0] mt-0.5 flex-shrink-0" />
+                    <Sparkles className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
-                      <h4 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2">
+                      <h4 className="font-semibold text-card-foreground mb-2">
                         Personalized for You 💜
                     </h4>
-                      <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] leading-relaxed">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
                       {outfit.metadata.user_learning_insights || 
                           `This outfit is tailored to your style preferences.`}
                       </p>
-                      <ul className="mt-2 space-y-1 text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                      <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
                         <li className="flex items-start gap-2">
-                          <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
+                          <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
                           <span>Based on your personal style profile</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
+                          <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
                           <span>Combines items you love wearing</span>
                         </li>
                       </ul>
@@ -516,29 +516,29 @@ export default function OutfitResultsDisplay({
 
                   {/* Learning Stats */}
                 {outfit.metadata.user_stats && (
-                    <div className="mt-4 pt-4 border-t border-[#E8C8A0]/30 dark:border-[#B8860B]/30">
+                    <div className="mt-4 pt-4 border-t border-[var(--copper-light)]/30 dark:border-[var(--copper-dark)]/30">
                     <div className="grid grid-cols-3 gap-3 text-center">
                       <div>
-                          <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
+                          <div className="text-lg font-bold text-card-foreground">
                           {outfit.metadata.user_stats.total_ratings || 0}
                         </div>
-                          <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
+                          <div className="text-xs text-muted-foreground">
                             Rated
                         </div>
                       </div>
                       <div>
-                          <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
+                          <div className="text-lg font-bold text-card-foreground">
                           {outfit.metadata.user_stats.favorite_styles || 'Learning'}
                         </div>
-                          <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
+                          <div className="text-xs text-muted-foreground">
                           Top Style
                         </div>
                       </div>
                       <div>
-                          <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
+                          <div className="text-lg font-bold text-card-foreground">
                           {outfit.metadata.user_stats.diversity_score ? `${outfit.metadata.user_stats.diversity_score}%` : 'Fresh'}
                         </div>
-                          <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
+                          <div className="text-xs text-muted-foreground">
                           Variety
                         </div>
                       </div>
@@ -546,8 +546,8 @@ export default function OutfitResultsDisplay({
                   </div>
                 )}
 
-                  <div className="mt-4 p-3 bg-[#E8C8A0]/20 dark:bg-[#B8860B]/20 rounded-lg">
-                    <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] flex items-start gap-2">
+                  <div className="mt-4 p-3 bg-[var(--copper-light)]/20 dark:bg-[var(--copper-dark)]/20 rounded-lg">
+                    <p className="text-xs text-muted-foreground flex items-start gap-2">
                       <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
                       <span>💡 Rate outfits to unlock Spotify-style personalization! Each rating helps us learn: colors, styles, patterns you prefer</span>
                     </p>
@@ -560,25 +560,25 @@ export default function OutfitResultsDisplay({
                 <div className="space-y-3">
                   {/* Color Strategy */}
                   {outfit.outfitAnalysis.colorStrategy && (
-                    <div className="bg-gradient-to-br from-[#E8C8A0]/30 to-orange-50/30 dark:from-[#B8860B]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[#E8C8A0]/50 dark:border-[#B8860B]/50">
-                      <h4 className="text-lg font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2 flex items-center gap-2">
-                        <Palette className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
+                    <div className="bg-gradient-to-br from-[var(--copper-light)]/30 to-orange-50/30 dark:from-[var(--copper-dark)]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50">
+                      <h4 className="text-lg font-semibold text-card-foreground mb-2 flex items-center gap-2">
+                        <Palette className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
                         Color Strategy
                       </h4>
-                      <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-2">
+                      <p className="text-sm text-muted-foreground mb-2">
                         {outfit.outfitAnalysis.colorStrategy.insight}
                       </p>
                       {outfit.items && outfit.items.length > 0 && (
-                        <ul className="text-xs text-[#57534E] dark:text-[#C4BCB4] space-y-1 mt-2">
+                        <ul className="text-xs text-muted-foreground space-y-1 mt-2">
                           {outfit.items.slice(0, 2).map((item, idx) => (
                             <li key={idx} className="flex items-start gap-2">
-                              <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
+                              <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
                               <span>{item.color} serves as {idx === 0 ? 'your base color' : 'accent and depth'}</span>
                             </li>
                           ))}
                           {outfit.items.length > 2 && (
                             <li className="flex items-start gap-2">
-                              <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
+                              <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
                               <span>Multiple colors add visual interest—keep accessories simple</span>
                             </li>
                           )}
@@ -589,12 +589,12 @@ export default function OutfitResultsDisplay({
 
                   {/* Silhouette Balance */}
                   {outfit.items && outfit.items.length >= 2 && (
-                    <div className="bg-gradient-to-br from-[#E8C8A0]/30 to-orange-50/30 dark:from-[#B8860B]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[#E8C8A0]/50 dark:border-[#B8860B]/50">
-                      <h4 className="text-lg font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2 flex items-center gap-2">
-                        <Target className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
+                    <div className="bg-gradient-to-br from-[var(--copper-light)]/30 to-orange-50/30 dark:from-[var(--copper-dark)]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50">
+                      <h4 className="text-lg font-semibold text-card-foreground mb-2 flex items-center gap-2">
+                        <Target className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
                         Silhouette Balance
                       </h4>
-                      <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                      <p className="text-sm text-muted-foreground">
                         Fitted + loose pieces create a flattering, proportioned silhouette
                       </p>
                 </div>
@@ -602,30 +602,30 @@ export default function OutfitResultsDisplay({
 
                   {/* Style Harmony */}
                   {outfit.style && (
-                    <div className="bg-gradient-to-br from-[#E8C8A0]/30 to-orange-50/30 dark:from-[#B8860B]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[#E8C8A0]/50 dark:border-[#B8860B]/50">
-                      <h4 className="text-lg font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2 flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
+                    <div className="bg-gradient-to-br from-[var(--copper-light)]/30 to-orange-50/30 dark:from-[var(--copper-dark)]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50">
+                      <h4 className="text-lg font-semibold text-card-foreground mb-2 flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
                         Style Harmony
                       </h4>
-                      <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-2">
+                      <p className="text-sm text-muted-foreground mb-2">
                         {outfit.style} style creates personal expression
                       </p>
                       {outfit.occasion && (
-                        <div className="mt-3 pt-3 border-t border-[#E8C8A0]/30 dark:border-[#B8860B]/30">
-                          <p className="text-sm font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1">
+                        <div className="mt-3 pt-3 border-t border-[var(--copper-light)]/30 dark:border-[var(--copper-dark)]/30">
+                          <p className="text-sm font-semibold text-card-foreground mb-1">
                             Perfect for {outfit.occasion}
                           </p>
-                          <ul className="text-xs text-[#57534E] dark:text-[#C4BCB4] space-y-1">
+                          <ul className="text-xs text-muted-foreground space-y-1">
                             <li className="flex items-start gap-2">
-                              <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
+                              <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
                               <span>{outfit.style} style matches the event's vibe</span>
                             </li>
                             <li className="flex items-start gap-2">
-                              <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
+                              <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
                               <span>Comfortable enough to wear confidently</span>
                             </li>
                             <li className="flex items-start gap-2">
-                              <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
+                              <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
                               <span>Easy to accessorize up or down as needed</span>
                             </li>
                           </ul>
@@ -636,9 +636,9 @@ export default function OutfitResultsDisplay({
 
                   {/* Weather Appropriateness */}
                   {(outfit.metadata?.weather || (outfit as any).weather) && (
-                    <div className="bg-gradient-to-br from-[#E8C8A0]/30 to-orange-50/30 dark:from-[#B8860B]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[#E8C8A0]/50 dark:border-[#B8860B]/50">
-                      <h4 className="text-lg font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2 flex items-center gap-2">
-                        <Cloud className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
+                    <div className="bg-gradient-to-br from-[var(--copper-light)]/30 to-orange-50/30 dark:from-[var(--copper-dark)]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50">
+                      <h4 className="text-lg font-semibold text-card-foreground mb-2 flex items-center gap-2">
+                        <Cloud className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
                         Weather Appropriateness
                       </h4>
                       {(() => {
@@ -646,21 +646,21 @@ export default function OutfitResultsDisplay({
                         const temp = weatherData?.temperature || 70;
                         return (
                           <>
-                            <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-2">
+                            <p className="text-sm text-muted-foreground mb-2">
                               Warm layers appropriate for {temp}°F weather - cozy and protective.
                             </p>
-                            <ul className="text-xs text-[#57534E] dark:text-[#C4BCB4] space-y-1">
+                            <ul className="text-xs text-muted-foreground space-y-1">
                               <li className="flex items-start gap-2">
-                                <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
+                                <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
                                 <span>Temperature-appropriate for {temp}°F conditions</span>
                               </li>
                               <li className="flex items-start gap-2">
-                                <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
+                                <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
                                 <span>Layering allows you to adjust throughout the day</span>
                               </li>
                               {temp < 60 && (
                                 <li className="flex items-start gap-2">
-                                  <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
+                                  <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
                                   <span>Materials chosen for weather comfort</span>
                                 </li>
                               )}
@@ -680,19 +680,19 @@ export default function OutfitResultsDisplay({
               {/* Rating Section with Enhanced Context */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-              <h4 className="font-semibold text-gray-900 dark:text-white">Rate This Outfit</h4>
+              <h4 className="font-semibold text-card-foreground">Rate This Outfit</h4>
               <Badge variant="outline" className="text-xs">
                 <Star className="h-3 w-3 mr-1" />
                 Powers Your AI
               </Badge>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-sm text-muted-foreground mb-4">
               Your feedback trains our AI to understand your unique style preferences better!
             </p>
             
             {/* Star Rating */}
             <div className="flex items-center gap-3 mb-4">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Rating:</span>
+              <span className="text-sm text-muted-foreground">Rating:</span>
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -700,8 +700,8 @@ export default function OutfitResultsDisplay({
                     onClick={() => onRatingChange(star)}
                     className={`text-2xl transition-all duration-200 hover:scale-110 cursor-pointer select-none ${
                       star <= rating.rating
-                        ? 'text-[#E8C8A0] fill-current'
-                        : 'text-gray-300 dark:text-gray-600 hover:text-[#E8C8A0]'
+                        ? 'text-[var(--copper-light)] fill-current'
+                        : 'text-muted-foreground/50 hover:text-[var(--copper-light)]'
                     }`}
                     style={{ userSelect: 'none' }}
                     disabled={ratingSubmitted}
@@ -711,12 +711,12 @@ export default function OutfitResultsDisplay({
                 ))}
               </div>
               {rating.rating > 0 && (
-                <span className="text-sm text-gray-600 dark:text-gray-400">
+                <span className="text-sm text-muted-foreground">
                   {rating.rating} star{rating.rating !== 1 ? 's' : ''}
                 </span>
               )}
               {ratingSubmitted && (
-                <span className="text-xs text-[#B8860B] dark:text-[#E8C8A0] ml-2">
+                <span className="text-xs text-[var(--copper-dark)] dark:text-[var(--copper-light)] ml-2">
                   ✓ Submitted
                 </span>
               )}
@@ -731,8 +731,8 @@ export default function OutfitResultsDisplay({
                 disabled={ratingSubmitted}
                   className={`flex items-center gap-2 ${
                     rating.isLiked 
-                     ? 'bg-[#B8860B] hover:bg-[#A0744F] text-white' 
-                     : 'hover:bg-green-50 hover:text-[#B8860B]'
+                     ? 'bg-[var(--copper-dark)] hover:bg-[var(--copper-dark)]/90 text-white' 
+                     : 'hover:bg-green-50 hover:text-[var(--copper-dark)]'
                   } ${ratingSubmitted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <ThumbsUp className="h-4 w-4" />
@@ -764,7 +764,7 @@ export default function OutfitResultsDisplay({
 
             {/* Status Messages */}
             {rating.rating > 0 && !ratingSubmitted && (
-              <div className="text-xs text-[#B8860B] dark:text-[#E8C8A0] text-center mb-4 flex items-center justify-center gap-2">
+              <div className="text-xs text-[var(--copper-dark)] dark:text-[var(--copper-light)] text-center mb-4 flex items-center justify-center gap-2">
                 <Sparkles className="h-3 w-3" />
                 ✓ Rating will be automatically submitted and improve your AI
               </div>
@@ -783,7 +783,7 @@ export default function OutfitResultsDisplay({
 
             {isWorn && (
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
-                <p className="text-sm text-[#B8860B] dark:text-[#E8C8A0] text-center">
+                <p className="text-sm text-[var(--copper-dark)] dark:text-[var(--copper-light)] text-center">
                   ✓ Outfit marked as worn! Redirecting to outfits page...
                 </p>
               </div>
@@ -836,7 +836,7 @@ export default function OutfitResultsDisplay({
           {outfit.reasoning && (
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <Info className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0] mt-0.5 flex-shrink-0" />
+                <Info className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-0.5 flex-shrink-0" />
                 <div>
                   <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Outfit Advisory</h4>
                   <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
@@ -860,19 +860,19 @@ export default function OutfitResultsDisplay({
                   <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
                     {outfit.score_breakdown.total_score}
                   </div>
-                  <div className="text-xs text-[#B8860B] dark:text-[#E8C8A0]">
+                  <div className="text-xs text-[var(--copper-dark)] dark:text-[var(--copper-light)]">
                     Grade: {outfit.score_breakdown.grade}
                   </div>
                 </div>
-                <div className="bg-gradient-to-r from-[#E8C8A0]/50 to-[#E8C8A0]/10 dark:from-[#B8860B]/20 dark:to-[#B8860B]/10 p-4 rounded-lg">
+                <div className="bg-gradient-to-r from-[var(--copper-light)]/50 to-[var(--copper-light)]/10 dark:from-[var(--copper-dark)]/20 dark:to-[var(--copper-dark)]/10 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="h-4 w-4 text-[#B8860B]" />
-                    <span className="text-sm font-medium text-[#B8860B] dark:text-[#E8C8A0]">Confidence</span>
+                    <CheckCircle className="h-4 w-4 text-[var(--copper-dark)]" />
+                    <span className="text-sm font-medium text-[var(--copper-dark)] dark:text-[var(--copper-light)]">Confidence</span>
                   </div>
-                   <div className="text-2xl font-bold text-[#B8860B] dark:text-[#DDB896]">
+                   <div className="text-2xl font-bold text-[var(--copper-dark)] dark:text-[var(--copper-mid)]">
                     {Math.round(outfit.confidence_score * 100)}%
                   </div>
-                  <div className="text-xs text-[#B8860B] dark:text-[#E8C8A0]">
+                  <div className="text-xs text-[var(--copper-dark)] dark:text-[var(--copper-light)]">
                     {getConfidenceText(outfit.confidence_score)}
                   </div>
                 </div>
@@ -883,11 +883,11 @@ export default function OutfitResultsDisplay({
                 {Object.entries(outfit.score_breakdown).map(([key, value]) => {
                   if (key === 'total_score' || key === 'grade' || key === 'score_interpretation') return null;
                   return (
-                    <div key={key} className="flex justify-between items-center text-sm py-2 px-3 bg-[#F5F0E8]/70 dark:bg-[#1A1A1A]/80 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-xl">
-                      <span className="capitalize text-gray-700 dark:text-gray-300">
+                    <div key={key} className="flex justify-between items-center text-sm py-2 px-3 bg-secondary/70 dark:bg-card/80 border border-border/60 dark:border-border/70 rounded-xl">
+                      <span className="capitalize text-muted-foreground">
                         {key.replace(/_/g, ' ')}
                       </span>
-                      <span className="font-medium text-gray-900 dark:text-white">
+                      <span className="font-medium text-card-foreground">
                         {value}
                       </span>
                     </div>

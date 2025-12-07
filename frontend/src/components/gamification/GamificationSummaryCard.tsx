@@ -14,9 +14,9 @@ export default function GamificationSummaryCard() {
 
   if (loading) {
     return (
-      <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
+      <Card className="bg-card dark:bg-card border border-border/60 dark:border-border/70">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
+          <CardTitle className="flex items-center gap-2 text-card-foreground">
             <Sparkles className="w-5 h-5 text-[var(--copper-dark)]" />
             Your Progress
           </CardTitle>
@@ -34,15 +34,15 @@ export default function GamificationSummaryCard() {
 
   if (error || !stats) {
     return (
-      <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
+      <Card className="bg-card dark:bg-card border border-border/60 dark:border-border/70">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
+          <CardTitle className="flex items-center gap-2 text-card-foreground">
             <Sparkles className="w-5 h-5 text-[var(--copper-dark)]" />
             Your Progress
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+          <p className="text-sm text-muted-foreground">
             Unable to load gamification stats
           </p>
         </CardContent>
@@ -54,10 +54,10 @@ export default function GamificationSummaryCard() {
   const progressPercentage = level?.progress_percentage || 0;
 
   return (
-    <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
+    <Card className="bg-card dark:bg-card border border-border/60 dark:border-border/70">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-          <Sparkles className="w-5 h-5 text-[#FFB84C]" />
+        <CardTitle className="flex items-center gap-2 text-card-foreground">
+          <Sparkles className="w-5 h-5 text-primary" />
           Your Progress
         </CardTitle>
       </CardHeader>
@@ -68,7 +68,7 @@ export default function GamificationSummaryCard() {
             <h3 className="text-xl font-display font-semibold gradient-copper-text">
               Level {level?.level || 1}
             </h3>
-            <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] uppercase tracking-wider mt-1">
+            <p className="text-sm text-muted-foreground uppercase tracking-wider mt-1">
               {level?.tier || 'Novice'}
             </p>
           </div>
@@ -76,7 +76,7 @@ export default function GamificationSummaryCard() {
           {/* XP Progress */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
+              <span className="text-sm font-medium text-muted-foreground">
                 Experience Points
               </span>
               <span className="text-sm font-bold gradient-copper-text">
@@ -84,28 +84,28 @@ export default function GamificationSummaryCard() {
               </span>
             </div>
             <Progress value={progressPercentage} className="h-1" />
-            <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {level?.xp_for_next_level - xp} XP until Level {(level?.level || 1) + 1}
             </p>
           </div>
 
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F0E8] dark:bg-[#262626]">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary dark:bg-muted">
               <Award className="w-4 h-4 text-[var(--copper-dark)]" />
               <div>
-                <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">Badges</div>
-                <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
+                <div className="text-xs text-muted-foreground">Badges</div>
+                <div className="text-lg font-bold text-card-foreground">
                   {badges?.length || 0}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F0E8] dark:bg-[#262626]">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary dark:bg-muted">
               <Target className="w-4 h-4 text-[var(--copper-dark)]" />
               <div>
-                <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">Active</div>
-                <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
+                <div className="text-xs text-muted-foreground">Active</div>
+                <div className="text-lg font-bold text-card-foreground">
                   {active_challenges_count || 0}
                 </div>
               </div>
@@ -114,7 +114,7 @@ export default function GamificationSummaryCard() {
 
           {/* CTA */}
           <Link href="/challenges">
-            <Button variant="outline" className="w-full border-2 border-[var(--copper-dark)] text-[var(--copper-dark)] dark:text-[var(--copper-light)] hover:bg-[var(--copper-dark)] hover:text-white dark:hover:bg-[var(--copper-light)] dark:hover:text-[#1A1510] transition-all" size="sm">
+            <Button variant="outline" className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all" size="sm">
               <Target className="w-4 h-4 mr-2" />
               View All Challenges
             </Button>

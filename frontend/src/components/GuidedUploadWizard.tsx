@@ -128,21 +128,21 @@ export default function GuidedUploadWizard({
 
   if (isComplete) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] flex items-center justify-center p-4">
-        <Card className="max-w-2xl w-full border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60 bg-white/85 dark:bg-[#2C2119]/85">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-2xl w-full border border-border/60 dark:border-border/60 bg-card/85 dark:bg-card/85">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 flex items-center justify-center">
-              <CheckCircle className="h-12 w-12 text-[#FF9400] dark:text-[#FFB84C]" />
+            <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 dark:from-primary/20 dark:to-accent/20 flex items-center justify-center">
+              <CheckCircle className="h-12 w-12 text-accent dark:text-primary" />
             </div>
-            <CardTitle className="text-3xl bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">🎉 Wardrobe Ready!</CardTitle>
-            <CardDescription className="text-lg mt-4 text-[#57534E] dark:text-[#C4BCB4]">
+            <CardTitle className="text-3xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">🎉 Wardrobe Ready!</CardTitle>
+            <CardDescription className="text-lg mt-4 text-muted-foreground">
               You've added {uploadedCount} items. Now let's create your first amazing outfit!
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="bg-gradient-to-r from-[#FFB84C]/10 to-[#FF9400]/10 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-lg p-6 text-center border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60">
-              <Sparkles className="h-8 w-8 mx-auto mb-3 text-[#FF9400] dark:text-[#FFB84C]" />
-              <p className="text-[#57534E] dark:text-[#C4BCB4] font-medium">
+            <div className="bg-gradient-to-r from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 rounded-lg p-6 text-center border border-border/60 dark:border-border/60">
+              <Sparkles className="h-8 w-8 mx-auto mb-3 text-accent dark:text-primary" />
+              <p className="text-muted-foreground font-medium">
                 Our AI is now ready to generate personalized outfits just for you!
               </p>
             </div>
@@ -157,18 +157,18 @@ export default function GuidedUploadWizard({
 
   if (showUpload) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] p-4">
+      <div className="min-h-screen bg-background p-4">
         <div className="max-w-6xl mx-auto">
-          <Card className="mb-6 border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60 bg-white/85 dark:bg-[#2C2119]/85">
+          <Card className="mb-6 border border-border/60 dark:border-border/60 bg-card/85 dark:bg-card/85">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-[#1C1917] dark:text-[#F8F5F1]">Build Your Digital Wardrobe</CardTitle>
-                  <CardDescription className="text-[#57534E] dark:text-[#C4BCB4]">
+                  <CardTitle className="text-card-foreground">Build Your Digital Wardrobe</CardTitle>
+                  <CardDescription className="text-muted-foreground">
                     {getEncouragementMessage()}
                   </CardDescription>
                 </div>
-                <Badge variant="secondary" className="text-lg px-4 py-2 bg-[#FFB84C]/20 dark:bg-[#FF9400]/20 text-[#FF9400] dark:text-[#FFB84C]">
+                <Badge variant="secondary" className="text-lg px-4 py-2 bg-primary/20 dark:bg-accent/20 text-accent dark:text-primary">
                   {uploadedCount} / {targetCount}
                 </Badge>
               </div>
@@ -190,17 +190,17 @@ export default function GuidedUploadWizard({
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] flex items-center justify-center p-4">
-      <Card className="max-w-4xl w-full border border-[#F5F0E8]/60 dark:border-[#3D2F24]/60 bg-white/85 dark:bg-[#2C2119]/85">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="max-w-4xl w-full border border-border/60 dark:border-border/60 bg-card/85 dark:bg-card/85">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 flex items-center justify-center">
-            <Camera className="h-10 w-10 text-[#FF9400] dark:text-[#FFB84C]" />
+            <Camera className="h-10 w-10 text-accent dark:text-primary" />
           </div>
           <CardTitle className="text-3xl md:text-4xl bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">Let's Build Your Digital Wardrobe!</CardTitle>
-          <CardDescription className="text-lg mt-4 text-[#57534E] dark:text-[#C4BCB4]">
+          <CardDescription className="text-lg mt-4 text-muted-foreground">
             We need {targetCount} items to start creating amazing outfits for you.
           </CardDescription>
-          <div className="mt-2 text-sm text-[#57534E] dark:text-[#C4BCB4]">
+          <div className="mt-2 text-sm text-muted-foreground">
             ⏱️ This takes about 5 minutes
           </div>
         </CardHeader>
@@ -261,14 +261,14 @@ export default function GuidedUploadWizard({
           <div className="text-center space-y-4">
             <Button
               size="lg"
-              className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] hover:from-[#FFB84C] hover:to-[#FF7700] text-[#1A1510] dark:text-white font-semibold px-8 py-6 text-lg shadow-lg shadow-amber-500/25"
+              className="bg-gradient-to-r from-primary to-accent hover:from-primary hover:to-accent/90 text-primary-foreground font-semibold px-8 py-6 text-lg shadow-lg shadow-amber-500/25"
               onClick={() => setShowUpload(true)}
             >
               <Camera className="h-6 w-6 mr-2" />
               Start Adding Items
               <ArrowRight className="h-6 w-6 ml-2" />
             </Button>
-            <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+            <p className="text-sm text-muted-foreground">
               You can always add more items later
             </p>
           </div>

@@ -302,7 +302,7 @@ export default function Dashboard() {
   // Show loading state while authentication is resolving
   if (loading || isLoading) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D]">
+      <div className="min-h-screen bg-background">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
@@ -320,7 +320,7 @@ export default function Dashboard() {
   // Show authentication required if no user
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D]">
+      <div className="min-h-screen bg-background">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
@@ -338,7 +338,7 @@ export default function Dashboard() {
   // Show error state if data fetching failed
   if (error) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D]">
+      <div className="min-h-screen bg-background">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
@@ -374,7 +374,7 @@ export default function Dashboard() {
 
   // Main dashboard - user is authenticated and data is loaded
   return (
-    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D]">
+    <div className="min-h-screen bg-background">
       <Navigation />
       
       {/* Main Content - Mobile Optimized - Bottom padding for nav */}
@@ -382,11 +382,11 @@ export default function Dashboard() {
         
         {/* Welcome Section - "Silent Luxury" Design */}
         <div className="mb-6 sm:mb-8">
-          <div className="card-surface backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
-            <h1 className="heading-xl bg-gradient-to-r from-[#D4A574] to-[#C9956F] bg-clip-text text-transparent mb-2 sm:mb-3">
+          <div className="card-surface backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-lg border border-border/60 dark:border-border/60">
+            <h1 className="heading-xl gradient-copper-text mb-2 sm:mb-3">
               Let&apos;s get you dressed ✨
             </h1>
-            <p className="text-body-lg text-[#57534E] dark:text-[#C4BCB4]">
+            <p className="text-body-lg text-muted-foreground">
               Your look today is ready when you are.
             </p>
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
@@ -397,7 +397,7 @@ export default function Dashboard() {
                   element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
               }}
-              className="gradient-copper-gold text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--copper-dark)]/25 hover:opacity-90 transition-all duration-200 sm:hover:scale-[1.02] active:scale-[0.98]"
+              className="gradient-copper-gold text-primary-foreground px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--copper-dark)]/25 hover:opacity-90 transition-all duration-200 sm:hover:scale-[1.02] active:scale-[0.98]"
             >
               <Sparkles className="w-5 h-5 mr-2" />
               Generate today&apos;s fit
@@ -405,7 +405,7 @@ export default function Dashboard() {
             <Button
                 variant="outline"
                 onClick={() => setShowBatchUpload(true)}
-                className="px-6 py-3 rounded-2xl border-[#F5F0E8]/70 dark:border-[#2E2E2E]/80 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#262626] transition-colors duration-200"
+                className="px-6 py-3 rounded-2xl border-border/70 dark:border-border/80 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors duration-200"
               >
                 <Upload className="w-5 h-5 mr-2" />
                 Add items with AI
@@ -419,14 +419,14 @@ export default function Dashboard() {
         <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8`}>
 
           {/* Style Goals Card */}
-          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#1A1A1A]/85">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-border/60 dark:border-border/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-card/85 dark:bg-card/85">
             <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#D4A574]/35 to-[#C9956F]/40 dark:from-[#E8C8A0]/20 dark:to-[#DDB896]/25 rounded-xl flex items-center justify-center shadow-inner">
-                <Target className="h-5 w-5 sm:h-6 sm:w-6 text-[#D4A574] dark:text-[#E8C8A0]" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--copper-mid)]/35 to-[var(--copper-mid)]/40 dark:from-[var(--copper-light)]/20 dark:to-[var(--copper-mid)]/25 rounded-xl flex items-center justify-center shadow-inner">
+                <Target className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--copper-mid)] dark:text-[var(--copper-light)]" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">Style Goals</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#D4A574] to-[#E8C8A0] bg-clip-text text-transparent">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Style Goals</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-copper-text">
                   {totalStyleGoals > 0 ? Math.round((clampedStyleGoalsCompleted / totalStyleGoals) * 100) : 0}%
                 </p>
               </div>
@@ -434,17 +434,17 @@ export default function Dashboard() {
           </div>
 
           {/* Wardrobe Optimization Journey Card */}
-          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#1A1A1A]/85">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-border/60 dark:border-border/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-card/85 dark:bg-card/85">
             <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#D4A574]/30 to-[#C9956F]/30 dark:from-[#DDB896]/25 dark:to-[#D4A574]/25 rounded-xl flex items-center justify-center shadow-inner">
-                <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-[#C9956F] dark:text-[#E8C8A0]" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--copper-mid)]/30 to-[var(--copper-mid)]/30 dark:from-[var(--copper-mid)]/25 dark:to-[var(--copper-mid)]/25 rounded-xl flex items-center justify-center shadow-inner">
+                <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--copper-mid)] dark:text-[var(--copper-light)]" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">Your Progress</p>
-                <p className="text-lg sm:text-xl font-bold text-[#1C1917] dark:text-[#F8F5F1] mb-0.5">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Your Progress</p>
+                <p className="text-lg sm:text-xl font-bold text-card-foreground mb-0.5">
                   Level {gamificationStats?.level?.level || 1}
                 </p>
-                <p className="text-xs sm:text-sm text-[#57534E] dark:text-[#C4BCB4] capitalize">
+                <p className="text-xs sm:text-sm text-muted-foreground capitalize">
                   {gamificationStats?.level?.tier || 'Novice'}
                 </p>
               </div>
@@ -452,17 +452,17 @@ export default function Dashboard() {
           </div>
 
           {/* AI Fit Score Card */}
-          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#1A1A1A]/85">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-border/60 dark:border-border/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-card/85 dark:bg-card/85">
             <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#D4A574]/30 to-[#E8A4A4]/35 dark:from-[#C9956F]/20 dark:to-[#E8A4A4]/25 rounded-xl flex items-center justify-center shadow-inner">
-                <Star className="h-5 w-5 sm:h-6 sm:w-6 text-[#E8A4A4] dark:text-[#F0C8C8]" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--copper-mid)]/30 to-primary/35 dark:from-[var(--copper-mid)]/20 dark:to-primary/25 rounded-xl flex items-center justify-center shadow-inner">
+                <Star className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80 dark:text-primary/70" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">AI Fit Score</p>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">AI Fit Score</p>
                 <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E8A4A4] to-[#D4A574] bg-clip-text text-transparent mb-0.5">
                   {gamificationStats?.ai_fit_score?.total_score || 0}
                 </p>
-                <p className="text-xs sm:text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {gamificationStats?.ai_fit_score?.total_score === undefined || gamificationStats?.ai_fit_score?.total_score === 0 
                     ? 'Getting Started' 
                     : gamificationStats?.ai_fit_score?.total_score >= 75 
@@ -476,13 +476,13 @@ export default function Dashboard() {
           </div>
 
           {/* Total Items Card */}
-          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#1A1A1A]/85">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-border/60 dark:border-border/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-card/85 dark:bg-card/85">
             <div className="flex flex-col space-y-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-xl flex items-center justify-center shadow-inner">
-                <Shirt className="h-5 w-5 sm:h-6 sm:w-6 text-[#C9956F] dark:text-[#D4A574]" />
+                <Shirt className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">Total items</p>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Total items</p>
                 <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#D4A574] to-[#C9956F] bg-clip-text text-transparent">
                   {dashboardData?.totalItems || 0}
                 </p>
@@ -491,13 +491,13 @@ export default function Dashboard() {
           </div>
 
           {/* Favorites Card */}
-          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#1A1A1A]/85">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-border/60 dark:border-border/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-card/85 dark:bg-card/85">
             <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#D4A574]/30 to-[#E8A4A4]/35 dark:from-[#C9956F]/20 dark:to-[#E8A4A4]/25 rounded-xl flex items-center justify-center shadow-inner">
-                <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-[#E8A4A4] dark:text-[#F0C8C8]" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--copper-mid)]/30 to-primary/35 dark:from-[var(--copper-mid)]/20 dark:to-primary/25 rounded-xl flex items-center justify-center shadow-inner">
+                <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80 dark:text-primary/70" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">Favorites</p>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Favorites</p>
                 <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E8A4A4] to-[#D4A574] bg-clip-text text-transparent">
                   {dashboardData?.favorites || 0}
                 </p>
@@ -506,13 +506,13 @@ export default function Dashboard() {
           </div>
 
           {/* This Week Card */}
-          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 hover:shadow-xl transition-transform duration-200 hover:scale-[1.02] bg-white/85 dark:bg-[#1A1A1A]/85">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-border/60 dark:border-border/70 hover:shadow-xl transition-transform duration-200 hover:scale-[1.02] bg-card/85 dark:bg-card/85">
             <div className="flex flex-col space-y-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#D4A574]/30 to-[#C9956F]/30 dark:from-[#C9956F]/25 dark:to-[#B8860B]/25 rounded-xl flex items-center justify-center shadow-inner">
-                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-[#C9956F] dark:text-[#D4A574]" />
+                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">This week</p>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">This week</p>
                 <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#C9956F] to-[#D4A574] bg-clip-text text-transparent">
                   {dashboardData?.outfitsThisWeek || 0}
                 </p>
@@ -543,15 +543,15 @@ export default function Dashboard() {
 
         {/* Backend Status Message - Show when no items loaded */}
         {dashboardData && dashboardData.totalItems === 0 && !isLoading && (
-          <Card className="mb-8 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-[#FFF7E6]/85 dark:bg-[#1A1A1A]/85 backdrop-blur-xl rounded-2xl sm:hover:shadow-lg transition-shadow duration-200">
+          <Card className="mb-8 border border-border/60 dark:border-border/70 bg-secondary/85 dark:bg-card/85 backdrop-blur-xl rounded-2xl sm:hover:shadow-lg transition-shadow duration-200">
             <CardContent className="p-6">
               <div className="flex items-start space-x-3">
-                <Info className="h-6 w-6 text-[#C9956F] dark:text-[#D4A574] flex-shrink-0 mt-0.5" />
+                <Info className="h-6 w-6 text-[var(--copper-mid)] dark:text-[var(--copper-mid)] flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <h3 className="text-lg font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2">
+                  <h3 className="text-lg font-display font-semibold text-card-foreground mb-2">
                     {isMobile ? 'Connection Issue' : 'Backend setup in progress'}
                   </h3>
-                  <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     {isMobile 
                       ? 'Unable to load wardrobe items. This may be due to a slow mobile connection. Please try refreshing or check your network connection.'
                       : 'Your dashboard is live. Wardrobe data will appear as soon as the backend endpoints finish syncing.'}
@@ -562,7 +562,7 @@ export default function Dashboard() {
                     }}
                     variant="outline"
                     size="sm"
-                    className="border-[#C9956F]/30 text-[#C9956F] hover:bg-[#C9956F]/10"
+                    className="border-[var(--copper-mid)]/30 text-[var(--copper-mid)] hover:bg-[var(--copper-mid)]/10"
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Retry Loading
@@ -575,16 +575,16 @@ export default function Dashboard() {
 
         {/* Today's Outfit Section - Only show if we have backend suggestion data AND no weather generator outfit */}
         {dashboardData?.todaysOutfit && (dashboardData.todaysOutfit as any)?.suggestionId && (
-        <Card className="mb-12 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-white/85 dark:bg-[#0D0D0D]/85 backdrop-blur-xl rounded-3xl">
+        <Card className="mb-12 border border-border/60 dark:border-border/70 bg-card/85 dark:bg-card/85 backdrop-blur-xl rounded-3xl">
           <CardHeader className="pb-6">
-            <CardTitle className="text-2xl font-display text-[#1C1917] dark:text-[#F8F5F1]">Today’s outfit suggestion</CardTitle>
-            <CardDescription className="text-sm text-[#57534E] dark:text-[#C4BCB4]">Powered by your Easy Outfit stylist</CardDescription>
+            <CardTitle className="text-2xl font-display text-card-foreground">Today’s outfit suggestion</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">Powered by your Easy Outfit stylist</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboardData?.todaysOutfit ? (
               <div className="space-y-4">
                 <div className="text-center mb-4">
-                  <p className="text-lg text-[#57534E] dark:text-[#C4BCB4] mb-2">
+                  <p className="text-lg text-muted-foreground mb-2">
                     {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                   </p>
                   <Badge variant="secondary" className="mb-3 uppercase tracking-wide">
@@ -593,19 +593,19 @@ export default function Dashboard() {
                 </div>
                 
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-4 p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl bg-white/80 dark:bg-[#1A1A1A]/80">
-                    <div className="w-16 h-16 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/25 dark:to-[#C9956F]/25 rounded-xl flex items-center justify-center">
-                      <Shirt className="w-8 h-8 text-[#C9956F] dark:text-[#D4A574]" />
+                  <div className="flex items-center space-x-4 p-4 border border-border/60 dark:border-border/70 rounded-2xl bg-card/80 dark:bg-card/80">
+                    <div className="w-16 h-16 bg-gradient-to-br from-[var(--copper-light)]/35 to-[var(--copper-mid)]/35 dark:from-[var(--copper-mid)]/25 dark:to-[var(--copper-mid)]/25 rounded-xl flex items-center justify-center">
+                      <Shirt className="w-8 h-8 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1] text-lg">
+                      <h4 className="font-semibold text-card-foreground text-lg">
                         {dashboardData.todaysOutfit.outfitName}
                       </h4>
-                      <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                      <p className="text-sm text-muted-foreground">
                         Mood: {dashboardData.todaysOutfit.mood}
                       </p>
                       {dashboardData.todaysOutfit.weather && dashboardData.todaysOutfit.weather.condition && (
-                        <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                        <p className="text-sm text-muted-foreground">
                           Weather: {dashboardData.todaysOutfit.weather.condition}, {dashboardData.todaysOutfit.weather.temperature}°C
                         </p>
                       )}
@@ -626,12 +626,12 @@ export default function Dashboard() {
                           {markingAsWorn ? 'Marking...' : 'Wear This'}
                         </Button>
                       ) : (dashboardData.todaysOutfit as any).isWorn ? (
-                        <Badge variant="default" className="bg-[#E8C8A0]/20 text-[#B8860B] dark:bg-[#B8860B]/30 dark:text-[#E8C8A0]">
+                        <Badge variant="default" className="bg-[var(--copper-light)]/20 text-[var(--copper-dark)] dark:bg-[var(--copper-dark)]/30 dark:text-[var(--copper-light)]">
                           <CheckCircle className="w-3 h-3 mr-1" />
                           Worn Today
                         </Badge>
                       ) : (
-                        <Button variant="outline" size="sm" className="border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#262626] transition-colors">
+                        <Button variant="outline" size="sm" className="border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                           <Calendar className="w-4 h-4 mr-2" />
                           View Details
                         </Button>
@@ -642,12 +642,12 @@ export default function Dashboard() {
                   {/* Outfit Items */}
                   {(dashboardData.todaysOutfit as any).items && (dashboardData.todaysOutfit as any).items.length > 0 && (
                     <div className="space-y-3">
-                      <h5 className="font-medium text-[#1C1917] dark:text-[#F8F5F1] text-sm uppercase tracking-wide">Outfit items</h5>
+                      <h5 className="font-medium text-card-foreground text-sm uppercase tracking-wide">Outfit items</h5>
                       <div className="grid gap-2">
                         {(dashboardData.todaysOutfit as any).items.map((item: any, index: number) => (
-                          <div key={index} className="flex items-center space-x-3 p-3 bg-white/70 dark:bg-[#1A1A1A]/70 border border-[#F5F0E8]/50 dark:border-[#2E2E2E]/60 rounded-xl">
+                          <div key={index} className="flex items-center space-x-3 p-3 bg-card/70 dark:bg-card/70 border border-border/50 dark:border-border/60 rounded-xl">
                             {item.imageUrl ? (
-                              <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
+                              <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 border border-border/60 dark:border-border/70">
                                 <img 
                                   src={item.imageUrl} 
                                   alt={item.name || 'Wardrobe item'}
@@ -659,7 +659,7 @@ export default function Dashboard() {
                                     if (parent) {
                                       parent.innerHTML = `
                                         <div class="w-12 h-12 bg-gradient-to-br from-[#E8C8A0]/30 to-[#C9956F]/30 dark:from-[#B8860B]/30 dark:to-[#C9956F]/30 rounded-md flex items-center justify-center">
-                                          <svg class="w-6 h-6 text-[#B8860B] dark:text-[#E8C8A0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <svg class="w-6 h-6 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                           </svg>
                                         </div>
@@ -670,19 +670,19 @@ export default function Dashboard() {
                               </div>
                             ) : (
                               <div className="w-12 h-12 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/25 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <Shirt className="w-6 h-6 text-[#C9956F] dark:text-[#D4A574]" />
+                                <Shirt className="w-6 h-6 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
                               </div>
                             )}
                             <div className="flex-1">
-                              <p className="font-medium text-[#1C1917] dark:text-[#F8F5F1] text-sm">
+                              <p className="font-medium text-card-foreground text-sm">
                                 {item.name || 'Wardrobe Item'}
                               </p>
-                              <p className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
+                              <p className="text-xs text-muted-foreground">
                                 {item.type || 'clothing'} {item.color && `• ${item.color}`}
                               </p>
                             </div>
                             {item.brand && (
-                              <Badge variant="outline" className="text-xs border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
+                              <Badge variant="outline" className="text-xs border-border/60 dark:border-border/70">
                                 {item.brand}
                               </Badge>
                             )}
@@ -694,8 +694,8 @@ export default function Dashboard() {
                 </div>
                 
                 {dashboardData.todaysOutfit.notes && (
-                  <div className="p-4 bg-[#FFF7E6] dark:bg-[#1A1A1A]/80 rounded-xl border border-[#F5F0E8]/50 dark:border-[#2E2E2E]/60">
-                    <p className="text-sm text-[#1C1917] dark:text-[#F8F5F1]">
+                  <div className="p-4 bg-secondary/90 dark:bg-card/80 rounded-xl border border-border/50 dark:border-border/60">
+                    <p className="text-sm text-card-foreground">
                       <span className="mr-2">💡</span>{dashboardData.todaysOutfit.notes}
                     </p>
                   </div>
@@ -703,24 +703,24 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-lg text-[#57534E] dark:text-[#C4BCB4] mb-4">
+                <p className="text-lg text-muted-foreground mb-4">
                   {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                 </p>
                 <div className="w-16 h-16 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-8 h-8 text-[#C9956F] dark:text-[#D4A574]" />
+                  <Sparkles className="w-8 h-8 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
                 </div>
-                <p className="text-[#57534E] dark:text-[#C4BCB4] mb-2 font-medium">
+                <p className="text-muted-foreground mb-2 font-medium">
                   Smart weather-perfect outfits
                 </p>
-                <p className="text-sm text-[#8A827A] dark:text-[#C4BCB4] mb-6 max-w-md mx-auto">
+                <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
                   Use the Smart Weather Outfit Generator above for instant, weather-matched looks.
                 </p>
                 <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-                  <div className="w-2 h-2 bg-[#D4A574] rounded-full"></div>
+                  <div className="w-2 h-2 bg-[var(--copper-mid)] rounded-full"></div>
                   <span>Automatic location detection</span>
                   <div className="w-2 h-2 bg-[var(--copper-mid)] rounded-full ml-3"></div>
                   <span>Real weather data</span>
-                  <div className="w-2 h-2 bg-[#C9956F] rounded-full ml-3"></div>
+                  <div className="w-2 h-2 bg-[var(--copper-mid)] rounded-full ml-3"></div>
                   <span>Perfect outfit matching</span>
                 </div>
               </div>
@@ -730,16 +730,16 @@ export default function Dashboard() {
         )}
 
         {/* Wardrobe Insights - Mobile Optimized */}
-        <div className="mb-6 sm:mb-8 lg:mb-12 bg-white/85 dark:bg-[#1A1A1A]/85 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
-          <div className="p-4 sm:p-6 lg:p-8 border-b border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
-            <h2 className="text-xl sm:text-2xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1 sm:mb-2">Wardrobe insights</h2>
-            <p className="text-sm sm:text-base text-[#57534E] dark:text-[#C4BCB4]">Your top items will appear here based on:</p>
+        <div className="mb-6 sm:mb-8 lg:mb-12 bg-card/85 dark:bg-card/85 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-border/60 dark:border-border/70">
+          <div className="p-4 sm:p-6 lg:p-8 border-b border-border/60 dark:border-border/70">
+            <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Wardrobe insights</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">Your top items will appear here based on:</p>
           </div>
           <div className="p-4 sm:p-6 lg:p-8">
             {topItemsByCategory.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                 {topItemsByCategory.map((item) => (
-                  <div key={item.id} className="bg-white/90 dark:bg-[#0D0D0D]/90 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02]">
+                  <div key={item.id} className="bg-card/90 dark:bg-card/90 border border-border/60 dark:border-border/70 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02]">
                     {/* Item Image */}
                     <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
                       {item.imageUrl && item.imageUrl !== '' && !item.imageUrl.includes('placeholder') ? (
@@ -761,8 +761,8 @@ export default function Dashboard() {
                           }}
                         />
                       ) : (
-                        <div className="w-full h-32 sm:h-full sm:aspect-square flex items-center justify-center bg-gradient-to-br from-[#E8C8A0]/20 to-[#C9956F]/20">
-                          <Sparkles className="h-8 w-8 sm:h-12 sm:w-12 text-[#C9956F]/70" />
+                        <div className="w-full h-32 sm:h-full sm:aspect-square flex items-center justify-center bg-gradient-to-br from-[var(--copper-light)]/20 to-[var(--copper-mid)]/20">
+                          <Sparkles className="h-8 w-8 sm:h-12 sm:w-12 text-[var(--copper-mid)]/70" />
                         </div>
                       )}
                       <div className="absolute top-3 left-3">
@@ -782,7 +782,7 @@ export default function Dashboard() {
                       </p>
                       
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1 text-xs sm:text-sm text-[#B8860B] dark:text-[#E8C8A0]">
+                        <div className="flex items-center gap-1 text-xs sm:text-sm text-[var(--copper-dark)] dark:text-[var(--copper-light)]">
                           <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
                           <span className="font-medium">{item.wearCount}</span>
                         </div>
@@ -799,14 +799,14 @@ export default function Dashboard() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 sm:py-12 border-2 border-dashed border-[#F5F0E8]/80 dark:border-[#2E2E2E]/70 rounded-xl sm:rounded-2xl bg-white/60 dark:bg-[#0D0D0D]/60">
-                <Sparkles className="w-12 h-12 sm:w-16 sm:h-16 text-[#D4A574]/70 dark:text-[#C9956F]/70 mx-auto mb-3 sm:mb-4" />
-                <p className="text-base sm:text-lg font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1 sm:mb-2">No top items yet</p>
-                <p className="text-sm sm:text-base text-[#57534E] dark:text-[#C4BCB4] mb-4 px-4">
+              <div className="text-center py-8 sm:py-12 border-2 border-dashed border-border/80 dark:border-border/70 rounded-xl sm:rounded-2xl bg-card/60 dark:bg-card/60">
+                <Sparkles className="w-12 h-12 sm:w-16 sm:h-16 text-[var(--copper-mid)]/70 dark:text-[var(--copper-mid)]/70 mx-auto mb-3 sm:mb-4" />
+                <p className="text-base sm:text-lg font-semibold text-card-foreground mb-1 sm:mb-2">No top items yet</p>
+                <p className="text-sm sm:text-base text-muted-foreground mb-4 px-4">
                   Wear pieces from your closet to see your top performers here.
                 </p>
-                <div className="mt-4 p-4 bg-[#FFF7E6] dark:bg-[#1A1A1A]/80 rounded-xl border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 max-w-md mx-auto">
-                  <p className="text-sm sm:text-base text-[#1C1917] dark:text-[#F8F5F1]">
+                <div className="mt-4 p-4 bg-secondary/90 dark:bg-card/80 rounded-xl border border-border/60 dark:border-border/70 max-w-md mx-auto">
+                  <p className="text-sm sm:text-base text-card-foreground">
                     <span className="mr-2">💡</span>Add a few favorites and generate looks to unlock insights.
                   </p>
                 </div>
@@ -816,29 +816,29 @@ export default function Dashboard() {
         </div>
 
         {/* Style Goals - Mobile Optimized */}
-        <div className="mb-6 sm:mb-8 lg:mb-12 bg-white/85 dark:bg-[#1A1A1A]/85 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
-          <div className="p-4 sm:p-6 lg:p-8 border-b border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
-            <h2 className="text-xl sm:text-2xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1 sm:mb-2">Style goals</h2>
-            <p className="text-sm sm:text-base text-[#57534E] dark:text-[#C4BCB4]">Personalized targets based on your look history</p>
+        <div className="mb-6 sm:mb-8 lg:mb-12 bg-card/85 dark:bg-card/85 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-border/60 dark:border-border/70">
+          <div className="p-4 sm:p-6 lg:p-8 border-b border-border/60 dark:border-border/70">
+            <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Style goals</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">Personalized targets based on your look history</p>
           </div>
           <div className="p-4 sm:p-6 lg:p-8">
             <div className="space-y-4 sm:space-y-6">
               {/* Overall Progress */}
-              <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-[#FFF7E6] to-[#FFE0B2] dark:from-[#1A1A1A]/85 dark:to-[#262626]/80 rounded-xl sm:rounded-2xl border border-[#F5F0E8]/50 dark:border-[#2E2E2E]/60">
+              <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-secondary/90 to-secondary/80 dark:from-card/85 dark:to-muted/80 rounded-xl sm:rounded-2xl border border-border/50 dark:border-border/60">
                 <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-[#D4A574] to-[#C9956F] bg-clip-text text-transparent mb-2">
                   {dashboardData?.overallProgress || 0}%
                 </div>
-                <p className="text-sm sm:text-base font-medium text-[#57534E] dark:text-[#C4BCB4] mb-3 sm:mb-4">Overall progress</p>
+                <p className="text-sm sm:text-base font-medium text-muted-foreground mb-3 sm:mb-4">Overall progress</p>
                 <Progress value={dashboardData?.overallProgress || 0} className="w-full max-w-md mx-auto h-2 sm:h-3" />
               </div>
 
               {/* Style Collections */}
               <div className="space-y-3 sm:space-y-4">
-                <h3 className="text-base sm:text-lg font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1]">Style collections</h3>
+                <h3 className="text-base sm:text-lg font-display font-semibold text-card-foreground">Style collections</h3>
                 {dashboardData?.styleCollections.map((collection, index) => (
-                  <div key={index} className="bg-white/85 dark:bg-[#0D0D0D]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-xl sm:rounded-2xl p-4 sm:p-5 hover:shadow-lg transition-shadow duration-200">
+                  <div key={index} className="bg-card/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-xl sm:rounded-2xl p-4 sm:p-5 hover:shadow-lg transition-shadow duration-200">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm sm:text-base font-semibold text-[#1C1917] dark:text-[#F8F5F1]">{collection.name}</h4>
+                      <h4 className="text-sm sm:text-base font-semibold text-card-foreground">{collection.name}</h4>
                       <Badge variant="secondary" className="text-xs sm:text-sm font-bold uppercase tracking-wide">
                         {collection.progress}/{collection.target}
                       </Badge>
@@ -847,7 +847,7 @@ export default function Dashboard() {
                       value={(collection.progress / collection.target) * 100} 
                       className="mb-2 sm:mb-3 h-2 sm:h-2.5" 
                     />
-                    <p className="text-xs sm:text-sm text-[#57534E] dark:text-[#C4BCB4]">{collection.status}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{collection.status}</p>
                   </div>
                 ))}
               </div>
@@ -865,10 +865,10 @@ export default function Dashboard() {
         />
 
         {/* Forgotten Gems - Mobile Optimized */}
-        <div className="mb-6 sm:mb-8 lg:mb-12 bg-white/85 dark:bg-[#1A1A1A]/85 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
-          <div className="p-4 sm:p-6 lg:p-8 border-b border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
-            <h2 className="text-xl sm:text-2xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1 sm:mb-2">Forgotten gems</h2>
-            <p className="text-sm sm:text-base text-[#57534E] dark:text-[#C4BCB4]">Rediscover items you haven’t worn in a while</p>
+        <div className="mb-6 sm:mb-8 lg:mb-12 bg-card/85 dark:bg-card/85 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-border/60 dark:border-border/70">
+          <div className="p-4 sm:p-6 lg:p-8 border-b border-border/60 dark:border-border/70">
+            <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Forgotten gems</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">Rediscover items you haven’t worn in a while</p>
           </div>
           <div className="p-4 sm:p-6 lg:p-8">
             <ForgottenGems />

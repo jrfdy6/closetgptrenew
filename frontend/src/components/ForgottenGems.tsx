@@ -175,7 +175,7 @@ export default function ForgottenGems() {
               "Backend data endpoints are still being configured. This is normal for new deployments."
             }
           </p>
-          <Button onClick={fetchForgottenGems} variant="outline" className="border-2 border-[var(--copper-dark)] text-[var(--copper-dark)] dark:text-[var(--copper-light)] hover:bg-[var(--copper-dark)] hover:text-white dark:hover:bg-[var(--copper-light)] dark:hover:text-[#1A1510] transition-all">
+          <Button onClick={fetchForgottenGems} variant="outline" className="border-2 border-[var(--copper-dark)] text-[var(--copper-dark)] dark:text-[var(--copper-light)] hover:bg-[var(--copper-dark)] hover:text-white dark:hover:bg-[var(--copper-light)] dark:hover:text-primary-foreground transition-all">
             <RefreshCw className="w-4 h-4 mr-2" />
             {data ? "Refresh Analysis" : "Check Again"}
           </Button>
@@ -194,7 +194,7 @@ export default function ForgottenGems() {
             Rediscover {data.rediscoveryOpportunities} items with high potential
           </p>
         </div>
-        <Button onClick={fetchForgottenGems} variant="outline" className="border-2 border-[var(--copper-dark)] text-[var(--copper-dark)] dark:text-[var(--copper-light)] hover:bg-[var(--copper-dark)] hover:text-white dark:hover:bg-[var(--copper-light)] dark:hover:text-[#1A1510] transition-all">
+        <Button onClick={fetchForgottenGems} variant="outline" className="border-2 border-[var(--copper-dark)] text-[var(--copper-dark)] dark:text-[var(--copper-light)] hover:bg-[var(--copper-dark)] hover:text-white dark:hover:bg-[var(--copper-light)] dark:hover:text-primary-foreground transition-all">
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh Analysis
         </Button>
@@ -227,19 +227,19 @@ export default function ForgottenGems() {
 
       {/* High Potential Carousel */}
       {highPotentialItems.length > 0 && (
-        <Card className="border border-[#E8C8A0]/40 dark:border-[#B8860B]/60 bg-[#E8C8A0]/10 dark:bg-[#B8860B]/10">
+        <Card className="border border-[var(--copper-light)]/40 dark:border-[var(--copper-dark)]/60 bg-[var(--copper-light)]/10 dark:bg-[var(--copper-dark)]/10">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg text-[#B8860B] dark:text-[#E8C8A0] flex items-center gap-2">
+                <CardTitle className="text-lg text-[var(--copper-dark)] dark:text-[var(--copper-light)] flex items-center gap-2">
                   <Sparkles className="w-5 h-5" />
                   Premium Rediscovery Spotlight
                 </CardTitle>
-                <CardDescription className="text-[#B8860B]/80 dark:text-[#E8C8A0]/70">
+                <CardDescription className="text-[var(--copper-dark)]/80 dark:text-[var(--copper-light)]/70">
                   Highlighted pieces with the highest rediscovery potential
                 </CardDescription>
               </div>
-              <Badge variant="outline" className="text-xs text-[#B8860B] border-[#E8C8A0]/60 dark:text-[#E8C8A0] dark:border-[#B8860B]/60">
+              <Badge variant="outline" className="text-xs text-[var(--copper-dark)] border-[var(--copper-light)]/60 dark:text-[var(--copper-light)] dark:border-[var(--copper-dark)]/60">
                 {highPotentialItems.length} featured
               </Badge>
             </div>
@@ -260,7 +260,7 @@ export default function ForgottenGems() {
             >
               {highPotentialItems.map((item) => (
                 <CarouselSlide key={item.id}>
-                  <Card className="h-full max-w-sm mx-auto shadow-lg border border-[#E8C8A0]/50 dark:border-[#B8860B]/50 bg-white dark:bg-[#1A1A1A]">
+                  <Card className="h-full max-w-sm mx-auto shadow-lg border border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50 bg-card dark:bg-card">
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start mb-2">
                         <Badge variant="outline" className="text-xs">
@@ -283,7 +283,7 @@ export default function ForgottenGems() {
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute top-3 right-3">
-                          <Badge variant="secondary" className="text-xs bg-white/80 dark:bg-[#1A1A1A]/70">
+                          <Badge variant="secondary" className="text-xs bg-card/80 dark:bg-card/70">
                             {item.color}
                           </Badge>
                         </div>

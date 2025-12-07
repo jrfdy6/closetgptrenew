@@ -63,9 +63,9 @@ export default function WardrobeItemBottomSheet({
     >
       <div className="p-6 space-y-6 max-w-2xl mx-auto">
         {/* Image Section */}
-        <div className="relative w-full max-w-xs md:max-w-sm mx-auto aspect-[3/4] bg-gray-100 dark:bg-[#262626] rounded-2xl overflow-hidden">
+        <div className="relative w-full max-w-xs md:max-w-sm mx-auto aspect-[3/4] bg-secondary dark:bg-muted rounded-2xl overflow-hidden">
           {!imageLoaded && (
-            <div className="absolute inset-0 animate-pulse bg-gray-200 dark:bg-[#8A827A]" />
+            <div className="absolute inset-0 animate-pulse bg-muted dark:bg-muted" />
           )}
           <img
             src={item.imageUrl}
@@ -88,10 +88,10 @@ export default function WardrobeItemBottomSheet({
 
         {/* Title & Type */}
         <div>
-          <h3 className="heading-lg mb-2 text-gray-900 dark:text-[#F8F5F1]">
+          <h3 className="heading-lg mb-2 text-card-foreground">
             {item.name}
           </h3>
-          <p className="text-body text-gray-600 dark:text-[#C4BCB4] capitalize">
+          <p className="text-body text-muted-foreground capitalize">
             {item.type}
           </p>
         </div>
@@ -119,23 +119,23 @@ export default function WardrobeItemBottomSheet({
         </div>
 
         {/* Stats */}
-        <div className="flex gap-4 p-4 bg-[#F5F0E8]/80 dark:bg-[#1A1A1A]/85 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-xl">
+        <div className="flex gap-4 p-4 bg-secondary/80 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-xl">
           <div className="flex-1 text-center">
-            <div className="text-2xl font-bold text-gray-900 dark:text-[#F8F5F1]">
+            <div className="text-2xl font-bold text-card-foreground">
               {item.wearCount || 0}
             </div>
-            <div className="text-caption text-[#57534E] dark:text-[#C4BCB4]">
+            <div className="text-caption text-muted-foreground">
               Times worn
             </div>
           </div>
-          <div className="w-px bg-[#F5F0E8] dark:bg-[#262626]" />
+          <div className="w-px bg-border dark:bg-border" />
           <div className="flex-1 text-center">
-            <div className="text-2xl font-bold text-gray-900 dark:text-[#F8F5F1]">
+            <div className="text-2xl font-bold text-card-foreground">
               {item.lastWorn 
                 ? new Date(item.lastWorn).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                 : 'Never'}
             </div>
-            <div className="text-caption text-[#57534E] dark:text-[#C4BCB4]">
+            <div className="text-caption text-muted-foreground">
               Last worn
             </div>
           </div>
@@ -146,7 +146,7 @@ export default function WardrobeItemBottomSheet({
           onClick={handleGenerateOutfit}
           className={cn(
             "w-full h-14 text-button font-semibold rounded-2xl",
-            "bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white",
+            "bg-gradient-to-r from-primary to-accent text-primary-foreground",
             "hover:from-[#FFB84C] hover:to-[#FF7700] transition-transform duration-200 hover:scale-[1.01]",
             "shadow-lg shadow-amber-500/20"
           )}
@@ -162,14 +162,14 @@ export default function WardrobeItemBottomSheet({
             variant="outline"
             onClick={handleToggleFavorite}
             className={cn(
-              "flex-col h-20 gap-1 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]",
-              item.favorite && "border-[#FF6F61] bg-[#FFF0EC] dark:bg-[#3D211F] text-[#FF6F61]"
+              "flex-col h-20 gap-1 border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary",
+              item.favorite && "border-destructive bg-destructive/10 dark:bg-destructive/20 text-destructive"
             )}
           >
             <Heart 
               className={cn(
                 "w-5 h-5",
-                item.favorite && "fill-[#FF6F61] text-[#FF6F61]"
+                item.favorite && "fill-destructive text-destructive"
               )} 
             />
             <span className="text-caption">
@@ -180,7 +180,7 @@ export default function WardrobeItemBottomSheet({
           <Button
             variant="outline"
             onClick={handleIncrementWear}
-            className="flex-col h-20 gap-1 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+            className="flex-col h-20 gap-1 border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary"
           >
             <Calendar className="w-5 h-5" />
             <span className="text-caption">Wore it</span>
@@ -192,7 +192,7 @@ export default function WardrobeItemBottomSheet({
               onClick={() => {
                 onEdit(item);
               }}
-              className="flex-col h-20 gap-1 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119]"
+              className="flex-col h-20 gap-1 border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary"
             >
               <Edit className="w-5 h-5" />
               <span className="text-caption">Edit</span>
@@ -210,7 +210,7 @@ export default function WardrobeItemBottomSheet({
                 onClose();
               }
             }}
-            className="w-full text-[#FF6F61] hover:text-[#FF4A3A] hover:bg-[#FFF0EC] dark:hover:bg-[#3D211F] rounded-2xl"
+            className="w-full text-destructive hover:text-destructive/90 hover:bg-destructive/10 dark:hover:bg-destructive/20 rounded-2xl"
           >
             <Trash2 className="w-4 h-4 mr-2" />
             Delete Item
