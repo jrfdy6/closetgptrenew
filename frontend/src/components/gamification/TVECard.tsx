@@ -92,7 +92,7 @@ export default function TVECard() {
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 200 }}
                 className="text-4xl font-display font-semibold
-                  bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent"
+                  gradient-copper-gold bg-clip-text text-transparent"
               >
                 ${totalTVE.toFixed(2)}
               </motion.div>
@@ -109,7 +109,7 @@ export default function TVECard() {
               <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
                 Investment Recouped
               </span>
-              <span className="text-sm font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
+              <span className="text-sm font-bold gradient-copper-gold bg-clip-text text-transparent">
                 {percentRecouped.toFixed(1)}%
               </span>
             </div>
@@ -118,7 +118,7 @@ export default function TVECard() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-2 flex items-center gap-1 text-xs text-[#FFB84C]"
+                className="mt-2 flex items-center gap-1 text-xs text-[var(--copper-dark)]"
               >
                 <Sparkles className="w-3 h-3" />
                 <span className="font-medium">Full investment recouped! Now generating bonus value!</span>
@@ -134,7 +134,7 @@ export default function TVECard() {
             className="p-4 rounded-lg bg-[#F5F0E8] dark:bg-[#262626] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70"
           >
             <div className="flex items-start gap-2 mb-2">
-              <TrendingUp className="w-4 h-4 text-[#FFB84C] mt-0.5" />
+              <TrendingUp className="w-4 h-4 text-[var(--copper-dark)] mt-0.5" />
               <div className="flex-1">
                 <div className="text-sm font-medium text-[#1C1917] dark:text-[#F8F5F1] mb-1">
                   Annual Potential Value
@@ -144,7 +144,7 @@ export default function TVECard() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-lg font-display font-semibold
-                    bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
+                    gradient-copper-gold bg-clip-text text-transparent">
                     ${annualPotentialRange.low.toFixed(0)} - ${annualPotentialRange.high.toFixed(0)}
                   </span>
                   <span className="text-xs text-[#57534E] dark:text-[#C4BCB4]">this year</span>

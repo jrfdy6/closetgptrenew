@@ -429,7 +429,7 @@ export default function WardrobePage() {
             onClick={() => router.push('/outfits/generate')}
     className="border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] transition-colors duration-200 rounded-2xl"
           >
-    <Zap className="w-4 h-4 mr-2 text-[#FF9400]" />
+    <Zap className="w-4 h-4 mr-2 text-[var(--copper-dark)]" />
     Generate outfit
           </Button>
         </div>

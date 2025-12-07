@@ -397,7 +397,7 @@ export default function Dashboard() {
                   element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
               }}
-              className="bg-gradient-to-r from-[#D4A574] to-[#C9956F] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-orange-600/25 hover:from-[#D4A574] hover:to-[#B8860B] transition-transform duration-200 sm:hover:scale-[1.02] active:scale-[0.98]"
+              className="gradient-copper-gold text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--copper-dark)]/25 hover:opacity-90 transition-all duration-200 sm:hover:scale-[1.02] active:scale-[0.98]"
             >
               <Sparkles className="w-5 h-5 mr-2" />
               Generate today&apos;s fit
@@ -718,7 +718,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
                   <div className="w-2 h-2 bg-[#D4A574] rounded-full"></div>
                   <span>Automatic location detection</span>
-                  <div className="w-2 h-2 bg-orange-500 rounded-full ml-3"></div>
+                  <div className="w-2 h-2 bg-[var(--copper-mid)] rounded-full ml-3"></div>
                   <span>Real weather data</span>
                   <div className="w-2 h-2 bg-[#C9956F] rounded-full ml-3"></div>
                   <span>Perfect outfit matching</span>
@@ -791,7 +791,7 @@ export default function Dashboard() {
                           <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">
                             {item.rating}
                           </span>
-                          <Star className={`h-3 w-3 sm:h-4 sm:w-4 ${item.rating >= 4 ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
+                          <Star className={`h-3 w-3 sm:h-4 sm:w-4 ${item.rating >= 4 ? 'text-[var(--copper-dark)] fill-[var(--copper-dark)]' : 'text-gray-300'}`} />
                         </div>
                       </div>
                     </div>
