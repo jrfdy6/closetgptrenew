@@ -551,8 +551,7 @@ export default function OutfitResultsDisplay({
 
               {/* Collapsible Content */}
               {showWhyItWorks && (
-                <div className="space-y-4"
-
+                <div className="space-y-4">
               {/* Item-Level Insights - Your Picks */}
               {outfit.metadata.item_intelligence && outfit.metadata.item_intelligence.length > 0 && (
                 <div className="bg-gradient-to-br from-[#E8C8A0]/30 to-orange-50/30 dark:from-[#B8860B]/20 dark:to-[#C9956F]/20 rounded-2xl p-5 border-2 border-[#E8C8A0]/50 dark:border-[#B8860B]/50">
