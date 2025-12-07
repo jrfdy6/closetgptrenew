@@ -369,7 +369,7 @@ export default function FlatLayViewer({
             </Button>
           </div>
           
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             {outfitItems.map((item) => (
               <div 
                 key={item.id}
@@ -383,14 +383,14 @@ export default function FlatLayViewer({
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <ImageOff className="w-8 h-8 text-gray-400" />
+                    <ImageOff className="w-6 w-6 text-gray-400" />
                   )}
                 </div>
-                <div className="p-2">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                <div className="p-1.5">
+                  <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
                     {item.name}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 capitalize truncate">
                     {item.type}
                   </p>
                 </div>
