@@ -383,7 +383,7 @@ export default function Dashboard() {
         {/* Welcome Section - "Silent Luxury" Design */}
         <div className="mb-6 sm:mb-8">
           <div className="card-surface backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/60">
-            <h1 className="heading-xl bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent mb-2 sm:mb-3">
+            <h1 className="heading-xl bg-gradient-to-r from-[#D4A574] to-[#C9956F] bg-clip-text text-transparent mb-2 sm:mb-3">
               Let&apos;s get you dressed ✨
             </h1>
             <p className="text-body-lg text-[#57534E] dark:text-[#C4BCB4]">
@@ -397,7 +397,7 @@ export default function Dashboard() {
                   element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
               }}
-              className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/25 hover:from-[#FFB84C] hover:to-[#FF7700] transition-transform duration-200 sm:hover:scale-[1.02] active:scale-[0.98]"
+              className="bg-gradient-to-r from-[#D4A574] to-[#C9956F] text-[#1A1510] dark:text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-orange-600/25 hover:from-[#D4A574] hover:to-[#B8860B] transition-transform duration-200 sm:hover:scale-[1.02] active:scale-[0.98]"
             >
               <Sparkles className="w-5 h-5 mr-2" />
               Generate today&apos;s fit
@@ -421,12 +421,12 @@ export default function Dashboard() {
           {/* Style Goals Card */}
           <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#1A1A1A]/85">
             <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFCC66]/35 to-[#FFE08F]/40 dark:from-[#FFB84C]/20 dark:to-[#FFD27F]/25 rounded-xl flex items-center justify-center shadow-inner">
-                <Target className="h-5 w-5 sm:h-6 sm:w-6 text-[#FFB84C] dark:text-[#FFD27F]" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#D4A574]/35 to-[#C9956F]/40 dark:from-[#E8C8A0]/20 dark:to-[#DDB896]/25 rounded-xl flex items-center justify-center shadow-inner">
+                <Target className="h-5 w-5 sm:h-6 sm:w-6 text-[#D4A574] dark:text-[#E8C8A0]" />
               </div>
               <div>
                 <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">Style Goals</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#FFB84C] to-[#FFE08F] bg-clip-text text-transparent">
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#D4A574] to-[#E8C8A0] bg-clip-text text-transparent">
                   {totalStyleGoals > 0 ? Math.round((clampedStyleGoalsCompleted / totalStyleGoals) * 100) : 0}%
                 </p>
               </div>
@@ -436,8 +436,8 @@ export default function Dashboard() {
           {/* Wardrobe Optimization Journey Card */}
           <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#1A1A1A]/85">
             <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 dark:from-[#FF9400]/25 dark:to-[#FF7700]/25 rounded-xl flex items-center justify-center shadow-inner">
-                <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-[#FF9400] dark:text-[#FFB84C]" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#D4A574]/30 to-[#C9956F]/30 dark:from-[#DDB896]/25 dark:to-[#D4A574]/25 rounded-xl flex items-center justify-center shadow-inner">
+                <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-[#C9956F] dark:text-[#E8C8A0]" />
               </div>
               <div>
                 <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">Your Progress</p>
@@ -454,12 +454,12 @@ export default function Dashboard() {
           {/* AI Fit Score Card */}
           <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#1A1A1A]/85">
             <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFB84C]/30 to-[#FF6F61]/35 dark:from-[#FF9400]/20 dark:to-[#FF6F61]/25 rounded-xl flex items-center justify-center shadow-inner">
-                <Star className="h-5 w-5 sm:h-6 sm:w-6 text-[#FF6F61] dark:text-[#FFB4A2]" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#D4A574]/30 to-[#E8A4A4]/35 dark:from-[#C9956F]/20 dark:to-[#E8A4A4]/25 rounded-xl flex items-center justify-center shadow-inner">
+                <Star className="h-5 w-5 sm:h-6 sm:w-6 text-[#E8A4A4] dark:text-[#F0C8C8]" />
               </div>
               <div>
                 <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">AI Fit Score</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#FF6F61] to-[#FFB84C] bg-clip-text text-transparent mb-0.5">
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E8A4A4] to-[#D4A574] bg-clip-text text-transparent mb-0.5">
                   {gamificationStats?.ai_fit_score?.total_score || 0}
                 </p>
                 <p className="text-xs sm:text-sm text-[#57534E] dark:text-[#C4BCB4]">
@@ -478,12 +478,12 @@ export default function Dashboard() {
           {/* Total Items Card */}
           <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#1A1A1A]/85">
             <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-xl flex items-center justify-center shadow-inner">
-                <Shirt className="h-5 w-5 sm:h-6 sm:w-6 text-[#FF9400] dark:text-[#FFB84C]" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-xl flex items-center justify-center shadow-inner">
+                <Shirt className="h-5 w-5 sm:h-6 sm:w-6 text-[#C9956F] dark:text-[#D4A574]" />
               </div>
               <div>
                 <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">Total items</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#D4A574] to-[#C9956F] bg-clip-text text-transparent">
                   {dashboardData?.totalItems || 0}
                 </p>
               </div>
@@ -493,12 +493,12 @@ export default function Dashboard() {
           {/* Favorites Card */}
           <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 sm:hover:shadow-xl transition-transform duration-200 sm:hover:scale-[1.02] bg-white/85 dark:bg-[#1A1A1A]/85">
             <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFB84C]/30 to-[#FF6F61]/35 dark:from-[#FF9400]/20 dark:to-[#FF6F61]/25 rounded-xl flex items-center justify-center shadow-inner">
-                <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-[#FF6F61] dark:text-[#FFB4A2]" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#D4A574]/30 to-[#E8A4A4]/35 dark:from-[#C9956F]/20 dark:to-[#E8A4A4]/25 rounded-xl flex items-center justify-center shadow-inner">
+                <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-[#E8A4A4] dark:text-[#F0C8C8]" />
               </div>
               <div>
                 <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">Favorites</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#FF6F61] to-[#FFB84C] bg-clip-text text-transparent">
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E8A4A4] to-[#D4A574] bg-clip-text text-transparent">
                   {dashboardData?.favorites || 0}
                 </p>
               </div>
@@ -508,12 +508,12 @@ export default function Dashboard() {
           {/* This Week Card */}
           <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 hover:shadow-xl transition-transform duration-200 hover:scale-[1.02] bg-white/85 dark:bg-[#1A1A1A]/85">
             <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFB84C]/30 to-[#FF9400]/30 dark:from-[#FF9400]/25 dark:to-[#FF7700]/25 rounded-xl flex items-center justify-center shadow-inner">
-                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-[#FF9400] dark:text-[#FFB84C]" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#D4A574]/30 to-[#C9956F]/30 dark:from-[#C9956F]/25 dark:to-[#B8860B]/25 rounded-xl flex items-center justify-center shadow-inner">
+                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-[#C9956F] dark:text-[#D4A574]" />
               </div>
               <div>
                 <p className="text-xs sm:text-sm font-medium text-[#57534E] dark:text-[#C4BCB4] mb-1">This week</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#FF9400] to-[#FFB84C] bg-clip-text text-transparent">
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#C9956F] to-[#D4A574] bg-clip-text text-transparent">
                   {dashboardData?.outfitsThisWeek || 0}
                 </p>
               </div>
@@ -546,7 +546,7 @@ export default function Dashboard() {
           <Card className="mb-8 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 bg-[#FFF7E6]/85 dark:bg-[#1A1A1A]/85 backdrop-blur-xl rounded-2xl sm:hover:shadow-lg transition-shadow duration-200">
             <CardContent className="p-6">
               <div className="flex items-start space-x-3">
-                <Info className="h-6 w-6 text-[#FF9400] dark:text-[#FFB84C] flex-shrink-0 mt-0.5" />
+                <Info className="h-6 w-6 text-[#C9956F] dark:text-[#D4A574] flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <h3 className="text-lg font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2">
                     {isMobile ? 'Connection Issue' : 'Backend setup in progress'}
@@ -562,7 +562,7 @@ export default function Dashboard() {
                     }}
                     variant="outline"
                     size="sm"
-                    className="border-[#FF9400]/30 text-[#FF9400] hover:bg-[#FF9400]/10"
+                    className="border-[#C9956F]/30 text-[#C9956F] hover:bg-[#C9956F]/10"
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Retry Loading
@@ -594,8 +594,8 @@ export default function Dashboard() {
                 
                 <div className="space-y-4">
                   <div className="flex items-center space-x-4 p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-2xl bg-white/80 dark:bg-[#1A1A1A]/80">
-                    <div className="w-16 h-16 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/25 dark:to-[#FF9400]/25 rounded-xl flex items-center justify-center">
-                      <Shirt className="w-8 h-8 text-[#FF9400] dark:text-[#FFB84C]" />
+                    <div className="w-16 h-16 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/25 dark:to-[#C9956F]/25 rounded-xl flex items-center justify-center">
+                      <Shirt className="w-8 h-8 text-[#C9956F] dark:text-[#D4A574]" />
                     </div>
                     <div className="flex-1">
                       <h4 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1] text-lg">
@@ -615,7 +615,7 @@ export default function Dashboard() {
                         <Button 
                           onClick={handleMarkAsWorn}
                           disabled={markingAsWorn}
-                          className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
+                          className="bg-gradient-to-r from-[#B8860B] to-[#C9956F] hover:from-[#A0744F] hover:to-[#B87840] text-white"
                           size="sm"
                         >
                           {markingAsWorn ? (
@@ -626,7 +626,7 @@ export default function Dashboard() {
                           {markingAsWorn ? 'Marking...' : 'Wear This'}
                         </Button>
                       ) : (dashboardData.todaysOutfit as any).isWorn ? (
-                        <Badge variant="default" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                        <Badge variant="default" className="bg-[#E8C8A0]/20 text-[#B8860B] dark:bg-[#B8860B]/30 dark:text-[#E8C8A0]">
                           <CheckCircle className="w-3 h-3 mr-1" />
                           Worn Today
                         </Badge>
@@ -658,8 +658,8 @@ export default function Dashboard() {
                                     const parent = target.parentElement;
                                     if (parent) {
                                       parent.innerHTML = `
-                                        <div class="w-12 h-12 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900 dark:to-orange-900 rounded-md flex items-center justify-center">
-                                          <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div class="w-12 h-12 bg-gradient-to-br from-[#E8C8A0]/30 to-[#C9956F]/30 dark:from-[#B8860B]/30 dark:to-[#C9956F]/30 rounded-md flex items-center justify-center">
+                                          <svg class="w-6 h-6 text-[#B8860B] dark:text-[#E8C8A0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                           </svg>
                                         </div>
@@ -669,8 +669,8 @@ export default function Dashboard() {
                                 />
                               </div>
                             ) : (
-                              <div className="w-12 h-12 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/25 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <Shirt className="w-6 h-6 text-[#FF9400] dark:text-[#FFB84C]" />
+                              <div className="w-12 h-12 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/25 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <Shirt className="w-6 h-6 text-[#C9956F] dark:text-[#D4A574]" />
                               </div>
                             )}
                             <div className="flex-1">
@@ -706,8 +706,8 @@ export default function Dashboard() {
                 <p className="text-lg text-[#57534E] dark:text-[#C4BCB4] mb-4">
                   {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                 </p>
-                <div className="w-16 h-16 bg-gradient-to-br from-[#FFCC66]/35 to-[#FF9400]/35 dark:from-[#FFB84C]/20 dark:to-[#FF9400]/20 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-8 h-8 text-[#FF9400] dark:text-[#FFB84C]" />
+                <div className="w-16 h-16 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="w-8 h-8 text-[#C9956F] dark:text-[#D4A574]" />
                 </div>
                 <p className="text-[#57534E] dark:text-[#C4BCB4] mb-2 font-medium">
                   Smart weather-perfect outfits
@@ -716,11 +716,11 @@ export default function Dashboard() {
                   Use the Smart Weather Outfit Generator above for instant, weather-matched looks.
                 </p>
                 <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-                  <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                  <div className="w-2 h-2 bg-[#D4A574] rounded-full"></div>
                   <span>Automatic location detection</span>
                   <div className="w-2 h-2 bg-orange-500 rounded-full ml-3"></div>
                   <span>Real weather data</span>
-                  <div className="w-2 h-2 bg-amber-600 rounded-full ml-3"></div>
+                  <div className="w-2 h-2 bg-[#C9956F] rounded-full ml-3"></div>
                   <span>Perfect outfit matching</span>
                 </div>
               </div>
@@ -761,8 +761,8 @@ export default function Dashboard() {
                           }}
                         />
                       ) : (
-                        <div className="w-full h-32 sm:h-full sm:aspect-square flex items-center justify-center bg-gradient-to-br from-[#FFCC66]/20 to-[#FF9400]/20">
-                          <Sparkles className="h-8 w-8 sm:h-12 sm:w-12 text-[#FF9400]/70" />
+                        <div className="w-full h-32 sm:h-full sm:aspect-square flex items-center justify-center bg-gradient-to-br from-[#E8C8A0]/20 to-[#C9956F]/20">
+                          <Sparkles className="h-8 w-8 sm:h-12 sm:w-12 text-[#C9956F]/70" />
                         </div>
                       )}
                       <div className="absolute top-3 left-3">
@@ -782,7 +782,7 @@ export default function Dashboard() {
                       </p>
                       
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1 text-xs sm:text-sm text-amber-600 dark:text-amber-400">
+                        <div className="flex items-center gap-1 text-xs sm:text-sm text-[#B8860B] dark:text-[#E8C8A0]">
                           <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
                           <span className="font-medium">{item.wearCount}</span>
                         </div>
@@ -800,7 +800,7 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="text-center py-8 sm:py-12 border-2 border-dashed border-[#F5F0E8]/80 dark:border-[#2E2E2E]/70 rounded-xl sm:rounded-2xl bg-white/60 dark:bg-[#0D0D0D]/60">
-                <Sparkles className="w-12 h-12 sm:w-16 sm:h-16 text-[#FFB84C]/70 dark:text-[#FF9400]/70 mx-auto mb-3 sm:mb-4" />
+                <Sparkles className="w-12 h-12 sm:w-16 sm:h-16 text-[#D4A574]/70 dark:text-[#C9956F]/70 mx-auto mb-3 sm:mb-4" />
                 <p className="text-base sm:text-lg font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1 sm:mb-2">No top items yet</p>
                 <p className="text-sm sm:text-base text-[#57534E] dark:text-[#C4BCB4] mb-4 px-4">
                   Wear pieces from your closet to see your top performers here.
@@ -825,7 +825,7 @@ export default function Dashboard() {
             <div className="space-y-4 sm:space-y-6">
               {/* Overall Progress */}
               <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-[#FFF7E6] to-[#FFE0B2] dark:from-[#1A1A1A]/85 dark:to-[#262626]/80 rounded-xl sm:rounded-2xl border border-[#F5F0E8]/50 dark:border-[#2E2E2E]/60">
-                <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent mb-2">
+                <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-[#D4A574] to-[#C9956F] bg-clip-text text-transparent mb-2">
                   {dashboardData?.overallProgress || 0}%
                 </div>
                 <p className="text-sm sm:text-base font-medium text-[#57534E] dark:text-[#C4BCB4] mb-3 sm:mb-4">Overall progress</p>
