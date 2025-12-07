@@ -227,19 +227,19 @@ export default function ForgottenGems() {
 
       {/* High Potential Carousel */}
       {highPotentialItems.length > 0 && (
-        <Card className="border border-amber-200 dark:border-amber-800/60 bg-amber-50/60 dark:bg-amber-900/10">
+        <Card className="border border-[#E8C8A0]/40 dark:border-[#B8860B]/60 bg-[#E8C8A0]/10 dark:bg-[#B8860B]/10">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                <CardTitle className="text-lg text-[#B8860B] dark:text-[#E8C8A0] flex items-center gap-2">
                   <Sparkles className="w-5 h-5" />
                   Premium Rediscovery Spotlight
                 </CardTitle>
-                <CardDescription className="text-amber-700/80 dark:text-amber-200/70">
+                <CardDescription className="text-[#B8860B]/80 dark:text-[#E8C8A0]/70">
                   Highlighted pieces with the highest rediscovery potential
                 </CardDescription>
               </div>
-              <Badge variant="outline" className="text-xs text-amber-700 border-amber-300 dark:text-amber-200 dark:border-amber-700">
+              <Badge variant="outline" className="text-xs text-[#B8860B] border-[#E8C8A0]/60 dark:text-[#E8C8A0] dark:border-[#B8860B]/60">
                 {highPotentialItems.length} featured
               </Badge>
             </div>
@@ -260,7 +260,7 @@ export default function ForgottenGems() {
             >
               {highPotentialItems.map((item) => (
                 <CarouselSlide key={item.id}>
-                  <Card className="h-full max-w-sm mx-auto shadow-lg border border-amber-200/80 dark:border-amber-800/60 bg-white dark:bg-[#1A1A1A]">
+                  <Card className="h-full max-w-sm mx-auto shadow-lg border border-[#E8C8A0]/50 dark:border-[#B8860B]/50 bg-white dark:bg-[#1A1A1A]">
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start mb-2">
                         <Badge variant="outline" className="text-xs">
@@ -276,7 +276,7 @@ export default function ForgottenGems() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="relative aspect-[4/5] bg-gradient-to-br from-amber-100 via-white to-white dark:from-amber-900/30 dark:via-[#0D0D0D] dark:to-[#0D0D0D] rounded-xl overflow-hidden">
+                      <div className="relative aspect-[4/5] bg-gradient-to-br from-[#E8C8A0]/30 via-white to-white dark:from-[#B8860B]/20 dark:via-[#0D0D0D] dark:to-[#0D0D0D] rounded-xl overflow-hidden">
                         <img
                           src={item.imageUrl || '/placeholder.jpg'}
                           alt={item.name}
@@ -318,7 +318,7 @@ export default function ForgottenGems() {
                       )}
                         <Button
                         onClick={() => handleUseInOutfit(item)}
-                        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                        className="w-full bg-gradient-to-r from-[#D4A574] to-[#C9956F] hover:from-[#C9956F] hover:to-[#B8860B] text-white"
                           size="sm"
                         >
                         <Shirt className="w-4 h-4 mr-2" />
