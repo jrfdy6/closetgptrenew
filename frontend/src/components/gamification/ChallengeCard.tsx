@@ -53,14 +53,14 @@ export default function ChallengeCard({
       whileHover={{ scale: 1.02 }}
     >
       <Card className={`relative overflow-hidden bg-white dark:bg-[#1A1A1A] border ${
-        isActive ? 'border-[#FFB84C]' :
+        isActive ? 'border-[var(--copper-dark)]' :
         isCompleted ? 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 opacity-75' :
         'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70'
       }`}>
         {/* Featured Badge */}
         {challenge.featured && variant === 'available' && (
           <div className="absolute top-2 right-2">
-            <Badge className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-white border-none">
+            <Badge className="gradient-copper-gold text-white border-none">
               <Sparkles className="w-3 h-3 mr-1" />
               Featured
             </Badge>
@@ -80,7 +80,7 @@ export default function ChallengeCard({
         <CardHeader>
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-lg bg-[#F5F0E8] dark:bg-[#262626]">
-              <IconComponent className="w-5 h-5 text-[#FFB84C]" />
+              <IconComponent className="w-5 h-5 text-[var(--copper-dark)]" />
             </div>
             <div className="flex-1">
               <CardTitle className="text-lg text-[#1C1917] dark:text-[#F8F5F1]">{challenge.title}</CardTitle>
@@ -99,7 +99,7 @@ export default function ChallengeCard({
                 <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
                   Progress
                 </span>
-                <span className="text-sm font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
+                <span className="text-sm font-bold gradient-copper-gold bg-clip-text text-transparent">
                   {progress}/{target}
                 </span>
               </div>
@@ -117,7 +117,7 @@ export default function ChallengeCard({
 
           {/* Rewards */}
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge className="bg-[#F5F0E8] dark:bg-[#262626] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#FFB84C]">
+            <Badge className="bg-[#F5F0E8] dark:bg-[#262626] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[var(--copper-dark)]">
               <Trophy className="w-3 h-3 mr-1" />
               +{challenge.rewards?.xp || 0} XP
             </Badge>
@@ -133,7 +133,7 @@ export default function ChallengeCard({
           {variant === 'available' && onStart && (
             <Button
               onClick={() => onStart(challenge.challenge_id)}
-              className="w-full bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-white hover:opacity-90"
+              className="w-full gradient-copper-gold text-white hover:opacity-90"
               size="sm"
             >
               <Target className="w-4 h-4 mr-2" />
