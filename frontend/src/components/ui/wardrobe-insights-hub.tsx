@@ -435,76 +435,96 @@ export default function WardrobeInsightsHub({
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white">Additional Gaps</h3>
                 )}
                 
-                {regularGaps.map((gap, index) => {
-                  const gapId = gap.id || `gap-${index}`;
-                  const isExpanded = expandedGaps.has(gapId);
-                  
-                  return (
-                    <div key={gapId} className="border rounded-lg p-4">
-                      <Collapsible open={isExpanded} onOpenChange={() => toggleGapExpansion(gapId)}>
-                        <CollapsibleTrigger asChild>
-                          <div className="flex items-center justify-between cursor-pointer">
-                            <div className="flex items-center gap-3">
-                              <div className={`p-2 rounded-lg ${getPriorityColor(gap.priority)}`}>
-                                {getPriorityIcon(gap.priority)}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {regularGaps.map((gap, index) => {
+                    const gapId = gap.id || `gap-${index}`;
+                    const isExpanded = expandedGaps.has(gapId);
+                    
+                    // Handle both old and new data structure
+                    const currentCount = gap.data?.current_count ?? gap.currentCount ?? 0;
+                    const requiredCount = gap.data?.required_count ?? gap.recommendedCount ?? 0;
+                    
+                    // Convert numeric priority to string for icon/color mapping
+                    let priorityLevel = 'medium';
+                    if (typeof gap.priority === 'number') {
+                      priorityLevel = gap.priority >= 4 ? 'high' : gap.priority >= 2 ? 'medium' : 'low';
+                    } else if (typeof gap.priority === 'string') {
+                      priorityLevel = gap.priority;
+                    }
+                    
+                    return (
+                      <div 
+                        key={gapId}
+                        className="border rounded-lg p-4 bg-white/50 dark:bg-stone-900/50 hover:shadow-md transition-shadow"
+                      >
+                        <Collapsible open={isExpanded} onOpenChange={() => toggleGapExpansion(gapId)}>
+                          <CollapsibleTrigger asChild>
+                            <div className="flex items-start justify-between cursor-pointer">
+                              <div className="flex items-start gap-3">
+                                <div className={`p-2 rounded-lg flex-shrink-0 ${getPriorityColor(priorityLevel)}`}>
+                                  {getPriorityIcon(priorityLevel)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-gray-900 dark:text-white">
+                                    {gap.category || gap.title}
+                                  </h4>
+                                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    {currentCount}/{requiredCount} items
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <h4 className="font-medium text-gray-900 dark:text-white">
-                                  {gap.category}
-                                </h4>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  {gap.currentCount}/{gap.recommendedCount} items
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant={gap.priority === 'high' ? 'destructive' : gap.priority === 'medium' ? 'secondary' : 'outline'}>
-                                {gap.priority} priority
-                              </Badge>
-                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            </div>
-                          </div>
-                        </CollapsibleTrigger>
-                        
-                        <CollapsibleContent className="mt-4">
-                          <div className="space-y-3">
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {gap.description}
-                            </p>
-                            
-                            {gap.suggestedItems && gap.suggestedItems.length > 0 && (
-                              <div className="flex flex-wrap gap-2">
-                                {gap.suggestedItems.map((item, itemIndex) => (
-                                  <Badge key={itemIndex} variant="outline">
-                                    {item}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
-                            
-                            {/* Progress Bar */}
-                            <div className="space-y-2">
-                              <div className="flex justify-between text-sm">
-                                <span>Progress</span>
-                                <span>{gap.recommendedCount && gap.recommendedCount > 0 
-                                  ? `${Math.round((gap.currentCount / gap.recommendedCount) * 100)}%` 
-                                  : '0%'}</span>
-                              </div>
-                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                <div 
-                                  className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-300"
-                                  style={{ width: `${gap.recommendedCount && gap.recommendedCount > 0 
-                                    ? Math.min((gap.currentCount / gap.recommendedCount) * 100, 100) 
-                                    : 0}%` }}
-                                />
+                              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                <Badge 
+                                  variant={priorityLevel === 'high' ? 'destructive' : priorityLevel === 'medium' ? 'secondary' : 'outline'}
+                                  className="text-xs"
+                                >
+                                  {priorityLevel}
+                                </Badge>
+                                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                               </div>
                             </div>
-                          </div>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    </div>
-                  );
-                })}
+                          </CollapsibleTrigger>
+                          
+                          <CollapsibleContent className="mt-4 ml-11">
+                            <div className="space-y-3">
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {gap.description}
+                              </p>
+                              
+                              {gap.suggestedItems && gap.suggestedItems.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                  {gap.suggestedItems.map((item, itemIndex) => (
+                                    <Badge key={itemIndex} variant="outline" className="text-xs">
+                                      {item}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              {/* Progress Bar */}
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-600 dark:text-gray-400">Progress</span>
+                                  <span className="font-medium">{requiredCount && requiredCount > 0 
+                                    ? `${Math.round((currentCount / requiredCount) * 100)}%` 
+                                    : '0%'}</span>
+                                </div>
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                  <div 
+                                    className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-300"
+                                    style={{ width: `${requiredCount && requiredCount > 0 
+                                      ? Math.min((currentCount / requiredCount) * 100, 100) 
+                                      : 0}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
