@@ -91,8 +91,7 @@ export default function TVECard() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 200 }}
-                className="text-4xl font-display font-semibold
-                  gradient-copper-gold bg-clip-text text-transparent"
+                className="text-4xl font-display font-semibold gradient-copper-text"
               >
                 ${totalTVE.toFixed(2)}
               </motion.div>
@@ -109,7 +108,7 @@ export default function TVECard() {
               <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
                 Investment Recouped
               </span>
-              <span className="text-sm font-bold gradient-copper-gold bg-clip-text text-transparent">
+              <span className="text-sm font-bold gradient-copper-text">
                 {percentRecouped.toFixed(1)}%
               </span>
             </div>
@@ -143,8 +142,7 @@ export default function TVECard() {
                   By wearing your wardrobe consistently, you can extract:
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-display font-semibold
-                    gradient-copper-gold bg-clip-text text-transparent">
+                  <span className="text-lg font-display font-semibold gradient-copper-text">
                     ${annualPotentialRange.low.toFixed(0)} - ${annualPotentialRange.high.toFixed(0)}
                   </span>
                   <span className="text-xs text-[#57534E] dark:text-[#C4BCB4]">this year</span>

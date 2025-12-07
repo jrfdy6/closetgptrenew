@@ -76,7 +76,7 @@ export default function XPNotification({
                 </>
               ) : (
                 <>
-                  <div className="text-sm font-medium gradient-copper-gold bg-clip-text text-transparent">
+                  <div className="text-sm font-medium gradient-copper-text">
                     +{xp} XP
                   </div>
                   <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-0.5">

@@ -99,7 +99,7 @@ export default function ChallengeCard({
                 <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
                   Progress
                 </span>
-                <span className="text-sm font-bold gradient-copper-gold bg-clip-text text-transparent">
+                <span className="text-sm font-bold gradient-copper-text">
                   {progress}/{target}
                 </span>
               </div>

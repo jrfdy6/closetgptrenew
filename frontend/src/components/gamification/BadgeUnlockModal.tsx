@@ -130,8 +130,7 @@ export default function BadgeUnlockModal({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.25 }}
           >
-            <h2 className="text-2xl font-display font-semibold mb-2
-              gradient-copper-gold bg-clip-text text-transparent">
+            <h2 className="text-2xl font-display font-semibold mb-2 gradient-copper-text">
               {badgeName}
             </h2>
             <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-4">

@@ -138,8 +138,7 @@ export default function AIFitScoreCard() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.3, type: "spring" }}
-                className="text-2xl font-display font-semibold
-                  gradient-copper-gold bg-clip-text text-transparent"
+                className="text-2xl font-display font-semibold gradient-copper-text"
               >
                 {Math.round(score)}
               </motion.div>

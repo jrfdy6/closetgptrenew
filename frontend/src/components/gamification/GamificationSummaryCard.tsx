@@ -65,8 +65,7 @@ export default function GamificationSummaryCard() {
         <div className="space-y-6">
           {/* Level Indicator - Typography-based */}
           <div className="text-center">
-            <h3 className="text-xl font-display font-semibold
-              gradient-copper-gold bg-clip-text text-transparent">
+            <h3 className="text-xl font-display font-semibold gradient-copper-text">
               Level {level?.level || 1}
             </h3>
             <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] uppercase tracking-wider mt-1">
@@ -80,7 +79,7 @@ export default function GamificationSummaryCard() {
               <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
                 Experience Points
               </span>
-              <span className="text-sm font-bold gradient-copper-gold bg-clip-text text-transparent">
+              <span className="text-sm font-bold gradient-copper-text">
                 {xp} XP
               </span>
             </div>
