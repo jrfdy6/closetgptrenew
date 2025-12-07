@@ -410,15 +410,12 @@ export default function WardrobeInsightsHub({
                           </div>
                           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div 
-                              className="h-2 rounded-full transition-all duration-300"
-                              style={{ 
-                                background: isSummer 
-                                  ? 'linear-gradient(90deg, #D4A574 0%, #C9956F 50%, #B8860B 100%)'
-                                  : 'linear-gradient(90deg, #3B82F6 0%, #6366F1 100%)',
-                                width: `${requiredCount && requiredCount > 0 
-                                  ? Math.min((currentCount / requiredCount) * 100, 100) 
-                                  : 0}%` 
-                              }}
+                              className={`h-2 rounded-full transition-all duration-300 ${
+                                isSummer ? 'gradient-copper-gold' : 'bg-gradient-to-r from-blue-500 to-indigo-500'
+                              }`}
+                              style={{ width: `${requiredCount && requiredCount > 0 
+                                ? Math.min((currentCount / requiredCount) * 100, 100) 
+                                : 0}%` }}
                             />
                           </div>
                         </div>
@@ -512,13 +509,10 @@ export default function WardrobeInsightsHub({
                                 </div>
                               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                 <div 
-                                  className="h-2 rounded-full transition-all duration-300"
-                                  style={{ 
-                                    background: 'linear-gradient(90deg, #D4A574 0%, #C9956F 50%, #B8860B 100%)',
-                                    width: `${requiredCount && requiredCount > 0 
-                                      ? Math.min((currentCount / requiredCount) * 100, 100) 
-                                      : 0}%` 
-                                  }}
+                                  className="h-2 rounded-full transition-all duration-300 gradient-copper-gold"
+                                  style={{ width: `${requiredCount && requiredCount > 0 
+                                    ? Math.min((currentCount / requiredCount) * 100, 100) 
+                                    : 0}%` }}
                                 />
                               </div>
                               </div>

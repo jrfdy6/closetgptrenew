@@ -287,6 +287,11 @@
     /* Surface elevation */
     --surface: 0 0% 100%;               /* White elevated surface */
     --surface-variant: 38 30% 96%;      /* #F5F0E8 - Cream variant */
+    
+    /* Copper-Rose Gold - Logo Color Palette */
+    --copper-light: #D4A574;            /* Light champagne gold */
+    --copper-mid: #C9956F;              /* Mid copper-rose gold */
+    --copper-dark: #B8860B;             /* Dark copper */
   }
  
   .dark {
@@ -554,6 +559,19 @@
   
   .gradient-accent {
     background: linear-gradient(135deg, #FFCC66 0%, #FFB84C 100%);
+  }
+  
+  /* Copper-Rose Gold Gradient - Logo Color Palette */
+  .gradient-copper-gold {
+    background: linear-gradient(90deg, #D4A574 0%, #C9956F 50%, #B8860B 100%);
+  }
+  
+  .gradient-copper-gold-vertical {
+    background: linear-gradient(180deg, #D4A574 0%, #C9956F 50%, #B8860B 100%);
+  }
+  
+  .gradient-copper-gold-diagonal {
+    background: linear-gradient(135deg, #D4A574 0%, #C9956F 50%, #B8860B 100%);
   }
   
   /* Page backgrounds */
