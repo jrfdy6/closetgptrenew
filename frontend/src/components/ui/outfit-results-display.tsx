@@ -514,7 +514,7 @@ export default function OutfitResultsDisplay({
             </div>
           )}
 
-          {/* 🎵 LEARNING INSIGHTS SECTION - Spotify-Style */}
+          {/* 🎯 UNIFIED "WHY THIS OUTFIT WORKS" SECTION */}
           {(() => {
             // Debug logging
             console.log('🔍 OUTFIT METADATA CHECK:', {
@@ -524,100 +524,127 @@ export default function OutfitResultsDisplay({
               hasItemIntel: !!outfit.metadata?.item_intelligence,
               metadataKeys: outfit.metadata ? Object.keys(outfit.metadata) : []
             });
-            return outfit.metadata && (outfit.metadata.user_learning_insights || outfit.metadata.user_stats || outfit.metadata.item_intelligence);
+            return outfit.metadata && (outfit.metadata.user_learning_insights || outfit.metadata.user_stats || outfit.metadata.item_intelligence || outfit.metadata.diversity_info);
           })() && (
             <div className="border-t pt-6 space-y-4">
-              {/* AI Learning Header */}
-              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
-                <div className="flex items-start gap-3">
-                  <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-1">
-                      🎵 Based on your preferences...
-                    </h4>
-                    <p className="text-sm text-purple-800 dark:text-purple-200 leading-relaxed">
-                      {outfit.metadata.user_learning_insights || 
-                        `We've analyzed your style history to create this personalized outfit. Your ratings help us learn your unique taste!`}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Learning Stats Bar */}
-                {outfit.metadata.user_stats && (
-                  <div className="mt-3 pt-3 border-t border-purple-200/50 dark:border-purple-700/50">
-                    <div className="grid grid-cols-3 gap-3 text-center">
-                      <div>
-                        <div className="text-xl font-bold text-purple-900 dark:text-purple-100">
-                          {outfit.metadata.user_stats.total_ratings || 0}
-                        </div>
-                        <div className="text-xs text-purple-700 dark:text-purple-300">
-                          Outfits Rated
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xl font-bold text-purple-900 dark:text-purple-100">
-                          {outfit.metadata.user_stats.favorite_styles || 'Learning'}
-                        </div>
-                        <div className="text-xs text-purple-700 dark:text-purple-300">
-                          Top Style
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xl font-bold text-purple-900 dark:text-purple-100">
-                          {outfit.metadata.user_stats.diversity_score ? `${outfit.metadata.user_stats.diversity_score}%` : 'Fresh'}
-                        </div>
-                        <div className="text-xs text-purple-700 dark:text-purple-300">
-                          Variety
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+              {/* Main Header */}
+              <div className="flex items-center gap-3 mb-2">
+                <Sparkles className="h-6 w-6 text-[#B8860B] dark:text-[#E8C8A0]" />
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  Why This Outfit Works
+                </h3>
               </div>
 
-              {/* Item-Level Intelligence Cards */}
+              {/* Item-Level Insights - Your Picks */}
               {outfit.metadata.item_intelligence && outfit.metadata.item_intelligence.length > 0 && (
-                <div className="space-y-2">
-                  <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                    <Target className="h-4 w-4" />
-                    Why We Picked These Items
-                  </h5>
-                  <div className="space-y-2">
-                    {outfit.metadata.item_intelligence.slice(0, 3).map((insight: any, idx: number) => (
+                <div className="bg-gradient-to-br from-[#E8C8A0]/30 to-orange-50/30 dark:from-[#B8860B]/20 dark:to-[#C9956F]/20 rounded-2xl p-5 border-2 border-[#E8C8A0]/50 dark:border-[#B8860B]/50">
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    <Target className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
+                    Your Picks 🎯
+                  </h4>
+                  <div className="space-y-3">
+                    {outfit.metadata.item_intelligence.map((insight: any, idx: number) => (
                       <div 
                         key={idx}
-                        className="bg-gradient-to-r from-[#E8C8A0]/50 to-orange-50/50 dark:from-[#B8860B]/10 dark:to-[#C9956F]/10 rounded-lg p-3 border border-[#E8C8A0]/40 dark:border-[#B8860B]/60"
+                        className="flex items-start gap-3 p-3 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-[#E8C8A0]/30 dark:border-[#B8860B]/30"
                       >
-                        <div className="flex items-start gap-2">
-                          <div className="text-lg">{insight.icon || '✨'}</div>
-                          <div className="flex-1">
-                            <div className="font-medium text-sm text-gray-900 dark:text-white">
-                              {insight.item_name}
-                            </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                              {insight.reason}
-                            </div>
+                        <div className="text-2xl flex-shrink-0">{insight.icon || '✨'}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {insight.item_name}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            {insight.reason}
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
+
+                  {/* Fresh Picks Indicator integrated */}
+                  {outfit.metadata.diversity_info && (
+                    <div className="mt-4 pt-4 border-t border-[#E8C8A0]/30 dark:border-[#B8860B]/30">
+                      <div className="flex items-start gap-2">
+                        <RefreshCw className="h-5 w-5 text-teal-600 dark:text-teal-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="text-sm font-semibold text-teal-900 dark:text-teal-100">
+                            Fresh Picks 🎯
+                          </span>
+                          <p className="text-xs text-teal-800 dark:text-teal-200 mt-1">
+                            {outfit.metadata.diversity_info.message || 
+                              `🎯 Super fresh! This outfit introduces new combinations you haven't tried before.`}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Diversity & Freshness Indicator */}
-              {outfit.metadata.diversity_info && (
-                <div className="bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 rounded-lg p-3 border border-teal-200 dark:border-teal-800">
-                  <div className="flex items-center gap-2 mb-2">
-                    <RefreshCw className="h-4 w-4 text-teal-600 dark:text-teal-400" />
-                    <span className="text-sm font-semibold text-teal-900 dark:text-teal-100">
-                      Fresh Picks 🎯
-                    </span>
+              {/* Personalization Section */}
+              {(outfit.metadata.user_learning_insights || outfit.metadata.user_stats) && (
+                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-2xl p-5 border-2 border-purple-200 dark:border-purple-800">
+                  <div className="flex items-start gap-3 mb-3">
+                    <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">
+                        Personalized for You 💜
+                      </h4>
+                      <p className="text-sm text-purple-800 dark:text-purple-200 leading-relaxed">
+                        {outfit.metadata.user_learning_insights || 
+                          `This outfit is tailored to your style preferences.`}
+                      </p>
+                      <ul className="mt-2 space-y-1 text-sm text-purple-800 dark:text-purple-200">
+                        <li className="flex items-start gap-2">
+                          <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
+                          <span>Based on your personal style profile</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
+                          <span>Combines items you love wearing</span>
+                        </li>
+                      </ul>
+                    </div>
                   </div>
-                  <p className="text-xs text-teal-800 dark:text-teal-200">
-                    {outfit.metadata.diversity_info.message || 
-                      `We're introducing new combinations to keep your style fresh and diverse!`}
-                  </p>
+
+                  {/* Learning Stats */}
+                  {outfit.metadata.user_stats && (
+                    <div className="mt-4 pt-4 border-t border-purple-200/50 dark:border-purple-700/50">
+                      <div className="grid grid-cols-3 gap-3 text-center">
+                        <div>
+                          <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
+                            {outfit.metadata.user_stats.total_ratings || 0}
+                          </div>
+                          <div className="text-xs text-purple-700 dark:text-purple-300">
+                            Rated
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
+                            {outfit.metadata.user_stats.favorite_styles || 'Learning'}
+                          </div>
+                          <div className="text-xs text-purple-700 dark:text-purple-300">
+                            Top Style
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
+                            {outfit.metadata.user_stats.diversity_score ? `${outfit.metadata.user_stats.diversity_score}%` : 'Fresh'}
+                          </div>
+                          <div className="text-xs text-purple-700 dark:text-purple-300">
+                            Variety
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-4 p-3 bg-purple-100/50 dark:bg-purple-900/30 rounded-lg">
+                    <p className="text-xs text-purple-800 dark:text-purple-200 flex items-start gap-2">
+                      <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                      <span>💡 Rate outfits to unlock Spotify-style personalization! Each rating helps us learn: colors, styles, patterns you prefer</span>
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
