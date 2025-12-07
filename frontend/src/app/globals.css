@@ -289,9 +289,9 @@
     --surface-variant: 38 30% 96%;      /* #F5F0E8 - Cream variant */
     
     /* Copper-Rose Gold - Logo Color Palette */
-    --copper-light: #C9956F;            /* Light copper-rose gold */
-    --copper-mid: #A67C52;              /* Mid copper-bronze */
-    --copper-dark: #8B6914;             /* Dark golden copper - better contrast */
+    --copper-light: #D4A574;            /* Light champagne gold */
+    --copper-mid: #C9956F;              /* Mid copper-rose gold */
+    --copper-dark: #B8860B;             /* Dark copper */
   }
  
   .dark {
