@@ -17,7 +17,8 @@ import {
   Shirt,
   Heart,
   RefreshCw,
-  ArrowLeft
+  ArrowLeft,
+  Shuffle
 } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase-context';
 import Navigation from '@/components/Navigation';
@@ -30,7 +31,7 @@ import type { WeatherData } from '@/types/weather';
 import { subscriptionService, SUBSCRIPTION_TIERS } from '@/lib/services/subscriptionService';
 
 // Import new enhanced components
-import OutfitGenerationForm from '@/components/ui/outfit-generation-form';
+import OutfitGenerationBottomSheet from '@/components/outfits/OutfitGenerationBottomSheet';
 import OutfitResultsDisplay from '@/components/ui/outfit-results-display';
 import { OutfitGenerating, WardrobeLoading } from '@/components/ui/outfit-loading';
 import StyleEducationModule from '@/components/ui/style-education-module';
@@ -38,6 +39,7 @@ import StyleEducationModule from '@/components/ui/style-education-module';
 import OutfitRevealAnimation from '@/components/OutfitRevealAnimation';
 import { useToast } from '@/components/ui/use-toast';
 import LearningConfirmation from '@/components/LearningConfirmation';
+import { motion } from 'framer-motion';
 
 interface OutfitGenerationForm {
   occasion: string;
@@ -260,6 +262,7 @@ export default function OutfitGenerationPage() {
     description: ''
   });
   const shuffleOverrideRef = useRef<{ occasion: string; style: string; mood: string } | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<GeneratedOutfit | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -415,7 +418,17 @@ export default function OutfitGenerationPage() {
   };
 
   // ✅ Direct shuffle handler - uses ref to bypass state delay
-  const handleShuffleAndGenerate = (shuffledData: { occasion: string; style: string; mood: string }) => {
+  const handleShuffleAndGenerate = (shuffledData?: { occasion: string; style: string; mood: string }) => {
+    // If no data provided, auto-generate random values
+    if (!shuffledData) {
+      const availableStyles = filteredStyles.length > 0 ? filteredStyles : styles;
+      shuffledData = {
+        occasion: occasions[Math.floor(Math.random() * occasions.length)],
+        style: availableStyles[Math.floor(Math.random() * availableStyles.length)],
+        mood: moods[Math.floor(Math.random() * moods.length)]
+      };
+    }
+    
     console.log('🎲 [Direct Shuffle] Received shuffled values:', shuffledData);
     
     // Store in ref for immediate access
@@ -424,12 +437,34 @@ export default function OutfitGenerationPage() {
     // Update state for UI display
     setFormData(prev => ({
       ...prev,
-      ...shuffledData
+      ...shuffledData!
     }));
     
     console.log('🎲 [Direct Shuffle] Stored in ref, triggering generation...');
     
+    // Close sheet if open
+    setSheetOpen(false);
+    
     // Call generation immediately - it will use ref values
+    handleGenerateOutfit();
+  };
+  
+  const handleGenerateFromSheet = (options: { occasion: string; style: string; mood: string }) => {
+    console.log('🎨 [Bottom Sheet] Received values:', options);
+    
+    // Store in ref for immediate access
+    shuffleOverrideRef.current = options;
+    
+    // Update state for UI display
+    setFormData(prev => ({
+      ...prev,
+      ...options
+    }));
+    
+    // Close sheet
+    setSheetOpen(false);
+    
+    // Call generation immediately
     handleGenerateOutfit();
   };
 
@@ -1311,32 +1346,61 @@ export default function OutfitGenerationPage() {
           </div>
         </div>
 
+        {/* Action Buttons - Modern Mobile-First */}
+        {!generatedOutfit && !generating && (
+          <div className="max-w-md mx-auto mb-8 space-y-4">
+            <Button
+              onClick={() => setSheetOpen(true)}
+              disabled={wardrobeLoading}
+              className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] hover:shadow-lg hover:shadow-[#FFB84C]/30 transition-all rounded-2xl"
+            >
+              <Sparkles className="h-5 w-5 mr-2" />
+              Generate Outfit
+            </Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-          {/* Enhanced Outfit Generation Form */}
-          <OutfitGenerationForm
-            formData={formData}
-            onFormChange={(field, value) => handleInputChange(field, value)}
-            onGenerate={handleGenerateOutfit}
-            onShuffleAndGenerate={handleShuffleAndGenerate}
-            generating={generating}
-            wardrobeLoading={wardrobeLoading}
-            occasions={occasions}
-            styles={filteredStyles.length > 0 ? filteredStyles : styles}
-            moods={moods}
-            weatherOptions={weatherOptions}
-            baseItem={baseItem}
-            freshWeatherData={freshWeatherData}
-            userGender={userProfile?.gender}
-            onRemoveBaseItem={() => {
-              setBaseItem(null);
-              const url = new URL(window.location.href);
-              url.searchParams.delete('baseItem');
-              window.history.replaceState({}, '', url.toString());
-            }}
-          />
+            <motion.div
+              whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.01 }}
+            >
+              <Button 
+                onClick={() => handleShuffleAndGenerate()}
+                disabled={wardrobeLoading}
+                variant="outline"
+                className="w-full h-12 text-base font-semibold border-2 border-amber-500/50 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all duration-200 relative overflow-hidden group rounded-2xl"
+                size="lg"
+              >
+                <Shuffle className="h-5 w-5 mr-2 flex-shrink-0" />
+                <span>Surprise Me! (Shuffle)</span>
+                <Sparkles className="h-4 w-4 ml-2 text-amber-500 group-hover:text-amber-600" />
+                
+                {/* Shimmer effect */}
+                {!wardrobeLoading && (
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-400/20 to-transparent"
+                    animate={{
+                      x: ['-100%', '200%']
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "linear",
+                      repeatDelay: 1.5
+                    }}
+                  />
+                )}
+              </Button>
+            </motion.div>
 
-          {/* Enhanced Generated Outfit Display */}
+            {wardrobeLoading && (
+              <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
+                Loading your wardrobe...
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Generated Outfit Display */}
+        <div className="max-w-4xl mx-auto">
           <div className="space-y-6">
             {generatedOutfit ? (
               <>
@@ -1409,7 +1473,36 @@ export default function OutfitGenerationPage() {
         </div>
       </div>
 
+      {/* Modern Bottom Sheet for Generation */}
+      <OutfitGenerationBottomSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        onGenerate={handleGenerateFromSheet}
+        onShuffle={() => handleShuffleAndGenerate()}
+        generating={generating}
+        weather={freshWeatherData || weather}
+        occasions={occasions}
+        styles={filteredStyles.length > 0 ? filteredStyles : styles}
+        moods={moods}
+        baseItem={baseItem}
+        onRemoveBaseItem={() => {
+          setBaseItem(null);
+          const url = new URL(window.location.href);
+          url.searchParams.delete('baseItem');
+          window.history.replaceState({}, '', url.toString());
+        }}
+        userGender={userProfile?.gender}
+      />
+
       <ClientOnlyNav />
+      
+      {/* Learning Confirmation (Spotify-style feedback) */}
+      {learningData && (
+        <LearningConfirmation
+          learning={learningData}
+          onClose={() => setLearningData(null)}
+        />
+      )}
     </div>
   );
 }
