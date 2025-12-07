@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import ClientOnlyNav from '@/components/ClientOnlyNav';
 import OutfitGrid from '@/components/OutfitGrid';
-import MinimalOutfitDefault from '@/components/outfits/MinimalOutfitDefault';
-import { useRouter } from 'next/navigation';
-import { useAutoWeather } from '@/hooks/useWeather';
+import { Button } from '@/components/ui/button';
+import { Sparkles, Plus } from 'lucide-react';
 
 type OutfitsPageProps = {
   searchParams?: {
@@ -18,40 +17,9 @@ type OutfitsPageProps = {
 
 // ===== MAIN PAGE COMPONENT =====
 export default function OutfitsPage({ searchParams }: OutfitsPageProps) {
-  const router = useRouter();
-  const { weather } = useAutoWeather();
   const initialFavoritesOnly =
     searchParams?.view === 'favorites' ||
     searchParams?.favorites === 'true';
-  const [generating, setGenerating] = useState(false);
-
-  const handleShuffle = () => {
-    // Navigate to generate page with shuffle params
-    router.push('/outfits/generate?shuffle=true');
-  };
-
-  const handleExpand = (options: {
-    occasion: string;
-    mood?: string;
-    style?: string;
-    baseItemId?: string;
-  }) => {
-    // Navigate to generate page with options
-    const params = new URLSearchParams({
-      occasion: options.occasion,
-    });
-    if (options.mood) params.append('mood', options.mood);
-    if (options.style) params.append('style', options.style);
-    if (options.baseItemId) params.append('baseItem', options.baseItemId);
-    
-    router.push(`/outfits/generate?${params.toString()}`);
-  };
-
-  const weatherData = weather ? {
-    temperature: Math.round(weather.temperature),
-    condition: weather.condition || 'Clear',
-    location: weather.location,
-  } : undefined;
 
   return (
     <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#0D0D0D]">
@@ -67,24 +35,31 @@ export default function OutfitsPage({ searchParams }: OutfitsPageProps) {
                 Save the fits you love, remix them for new occasions, and generate fresh looks whenever inspiration hits.
               </p>
             </div>
+            
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <Link href="/outfits/generate">
+                <Button className="w-full sm:w-auto h-12 px-6 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] hover:shadow-lg hover:shadow-[#FFB84C]/30 transition-all">
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Generate Outfit
+                </Button>
+              </Link>
+              
+              <Link href="/outfits/create">
+                <Button variant="outline" className="w-full sm:w-auto h-12 px-6 border-2 border-[#3D2F24] text-[#1C1917] dark:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2E2E2E] transition-all">
+                  <Plus className="w-5 h-5 mr-2" />
+                  Create Outfit
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
       
       {/* Main Content - Bottom padding for nav */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
-        {/* Minimal Default State - Phase 2 Blueprint */}
-        <div className="mb-8">
-          <MinimalOutfitDefault
-            onShuffle={handleShuffle}
-            onExpand={handleExpand}
-            weather={weatherData}
-            generating={generating}
-          />
-        </div>
-
         {/* Saved Outfits Grid */}
-        <div className="mt-12">
+        <div>
           <h2 className="text-2xl font-display font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-6">
             Saved Outfits
           </h2>

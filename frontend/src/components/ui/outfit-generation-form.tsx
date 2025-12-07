@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Chip } from '@/components/ui/chip';
 import { 
   Sparkles, 
   Palette, 
@@ -282,18 +283,19 @@ export default function OutfitGenerationForm({
               <Calendar className="h-4 w-4" />
               Occasion *
             </label>
-            <Select value={formData.occasion} onValueChange={(value) => onFormChange('occasion', value)}>
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="Select an occasion..." />
-              </SelectTrigger>
-              <SelectContent>
-                {occasions.map((occasion) => (
-                  <SelectItem key={occasion} value={occasion}>
-                    {occasion}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-wrap gap-2">
+              {occasions.map((occasion) => (
+                <Chip
+                  key={occasion}
+                  variant="default"
+                  size="default"
+                  selected={formData.occasion === occasion}
+                  onClick={() => onFormChange('occasion', occasion)}
+                >
+                  {occasion}
+                </Chip>
+              ))}
+            </div>
           </div>
 
           {/* Style Selection */}
@@ -302,18 +304,19 @@ export default function OutfitGenerationForm({
               <Palette className="h-4 w-4" />
               Style *
             </label>
-            <Select value={formData.style} onValueChange={(value) => onFormChange('style', value)}>
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="Choose your style..." />
-              </SelectTrigger>
-              <SelectContent>
-                {styles.map((style) => (
-                  <SelectItem key={style} value={style}>
-                    {style}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-wrap gap-2">
+              {styles.map((style) => (
+                <Chip
+                  key={style}
+                  variant="style"
+                  size="style"
+                  selected={formData.style === style}
+                  onClick={() => onFormChange('style', style)}
+                >
+                  {style}
+                </Chip>
+              ))}
+            </div>
           </div>
 
           {/* Mood Selection */}
@@ -322,18 +325,19 @@ export default function OutfitGenerationForm({
               <Smile className="h-4 w-4" />
               Mood *
             </label>
-            <Select value={formData.mood} onValueChange={(value) => onFormChange('mood', value)}>
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="How are you feeling?" />
-              </SelectTrigger>
-              <SelectContent>
-                {moods.map((mood) => (
-                  <SelectItem key={mood} value={mood}>
-                    {mood}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-wrap gap-2">
+              {moods.map((mood) => (
+                <Chip
+                  key={mood}
+                  variant="mood"
+                  size="mood"
+                  selected={formData.mood === mood}
+                  onClick={() => onFormChange('mood', mood)}
+                >
+                  {mood}
+                </Chip>
+              ))}
+            </div>
           </div>
 
           {/* Current Weather Display */}
