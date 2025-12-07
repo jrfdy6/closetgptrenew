@@ -91,7 +91,7 @@ export default function AIFitScoreCard() {
             </Tooltip>
           </TooltipProvider>
         </CardTitle>
-        <CardDescription className="text-[#78716C] dark:text-[#C4BCB4]">
+        <CardDescription className="text-[#57534E] dark:text-[#C4BCB4]">
           {getScoreLabel(score)}
         </CardDescription>
       </CardHeader>
@@ -154,7 +154,7 @@ export default function AIFitScoreCard() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 + index * 0.1 }}
-                className="text-xs text-[#78716C] dark:text-[#C4BCB4] flex items-start gap-1"
+                className="text-xs text-[#57534E] dark:text-[#C4BCB4] flex items-start gap-1"
               >
                 <Star className="w-3 h-3 mt-0.5 flex-shrink-0 text-[var(--copper-dark)]" />
                 <span>{explanation}</span>
@@ -173,7 +173,7 @@ export default function AIFitScoreCard() {
               <div className="text-xs font-medium text-[#1C1917] dark:text-[#F8F5F1] mb-1">
                 Next Milestone
               </div>
-              <div className="text-xs text-[#78716C] dark:text-[#C4BCB4]">
+              <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
                 {nextMilestone.message}
               </div>
               <div className="mt-2 h-1 bg-[#F5F0E8] dark:bg-[#262626] rounded-full overflow-hidden">
@@ -186,7 +186,7 @@ export default function AIFitScoreCard() {
                   transition={{ duration: 0.3, ease: "easeOut" }}
                 />
               </div>
-              <div className="text-xs text-[#78716C] dark:text-[#C4BCB4] mt-1">
+              <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-1">
                 {nextMilestone.current} / {nextMilestone.target}
               </div>
             </motion.div>
