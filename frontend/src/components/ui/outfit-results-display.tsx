@@ -408,73 +408,7 @@ export default function OutfitResultsDisplay({
 
             {/* RIGHT COLUMN: Rating & Actions (Desktop) / Stacked below (Mobile) */}
             <div className="space-y-4">
-              {/* Rating Section with Enhanced Context */}
-              <div className="border-t border-[#E8C8A0]/30 dark:border-[#B8860B]/30 lg:border-t-0 pt-6 lg:pt-0">
-          {outfit.reasoning && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Info className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0] mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Outfit Advisory</h4>
-                  <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
-                    {outfit.reasoning}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Score Breakdown */}
-          {showDetails && outfit.score_breakdown && (
-            <div className="space-y-4">
-              <h4 className="font-semibold text-gray-900 dark:text-white">Outfit Analysis</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Star className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Overall Score</span>
-                  </div>
-                  <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
-                    {outfit.score_breakdown.total_score}
-                  </div>
-                  <div className="text-xs text-[#B8860B] dark:text-[#E8C8A0]">
-                    Grade: {outfit.score_breakdown.grade}
-                  </div>
-                </div>
-                <div className="bg-gradient-to-r from-[#E8C8A0]/50 to-[#E8C8A0]/10 dark:from-[#B8860B]/20 dark:to-[#B8860B]/10 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="h-4 w-4 text-[#B8860B]" />
-                    <span className="text-sm font-medium text-[#B8860B] dark:text-[#E8C8A0]">Confidence</span>
-                  </div>
-                   <div className="text-2xl font-bold text-[#B8860B] dark:text-[#DDB896]">
-                    {Math.round(outfit.confidence_score * 100)}%
-                  </div>
-                  <div className="text-xs text-[#B8860B] dark:text-[#E8C8A0]">
-                    {getConfidenceText(outfit.confidence_score)}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Component Scores */}
-              <div className="space-y-2">
-                {Object.entries(outfit.score_breakdown).map(([key, value]) => {
-                  if (key === 'total_score' || key === 'grade' || key === 'score_interpretation') return null;
-                  return (
-                    <div key={key} className="flex justify-between items-center text-sm py-2 px-3 bg-[#F5F0E8]/70 dark:bg-[#1A1A1A]/80 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-xl">
-                      <span className="capitalize text-gray-700 dark:text-gray-300">
-                        {key.replace(/_/g, ' ')}
-                      </span>
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {value}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* 🎯 UNIFIED "WHY THIS OUTFIT WORKS" SECTION - COLLAPSIBLE */}
+              {/* 🎯 UNIFIED "WHY THIS OUTFIT WORKS" SECTION - COLLAPSIBLE */}
           {(() => {
             // Debug logging
             console.log('🔍 OUTFIT METADATA CHECK:', {
@@ -743,6 +677,8 @@ export default function OutfitResultsDisplay({
             </div>
           )}
 
+              {/* Rating Section with Enhanced Context */}
+              <div>
                 <div className="flex items-center justify-between mb-2">
               <h4 className="font-semibold text-gray-900 dark:text-white">Rate This Outfit</h4>
               <Badge variant="outline" className="text-xs">
@@ -897,6 +833,70 @@ export default function OutfitResultsDisplay({
           {/* End Two-Column Layout */}
 
           {/* Weather-Informed Advisory Text - Always Visible */}
+          {outfit.reasoning && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0] mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Outfit Advisory</h4>
+                  <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
+                    {outfit.reasoning}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Score Breakdown */}
+          {showDetails && outfit.score_breakdown && (
+            <div className="space-y-4">
+              <h4 className="font-semibold text-gray-900 dark:text-white">Outfit Analysis</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Star className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Overall Score</span>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+                    {outfit.score_breakdown.total_score}
+                  </div>
+                  <div className="text-xs text-[#B8860B] dark:text-[#E8C8A0]">
+                    Grade: {outfit.score_breakdown.grade}
+                  </div>
+                </div>
+                <div className="bg-gradient-to-r from-[#E8C8A0]/50 to-[#E8C8A0]/10 dark:from-[#B8860B]/20 dark:to-[#B8860B]/10 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="h-4 w-4 text-[#B8860B]" />
+                    <span className="text-sm font-medium text-[#B8860B] dark:text-[#E8C8A0]">Confidence</span>
+                  </div>
+                   <div className="text-2xl font-bold text-[#B8860B] dark:text-[#DDB896]">
+                    {Math.round(outfit.confidence_score * 100)}%
+                  </div>
+                  <div className="text-xs text-[#B8860B] dark:text-[#E8C8A0]">
+                    {getConfidenceText(outfit.confidence_score)}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Component Scores */}
+              <div className="space-y-2">
+                {Object.entries(outfit.score_breakdown).map(([key, value]) => {
+                  if (key === 'total_score' || key === 'grade' || key === 'score_interpretation') return null;
+                  return (
+                    <div key={key} className="flex justify-between items-center text-sm py-2 px-3 bg-[#F5F0E8]/70 dark:bg-[#1A1A1A]/80 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-xl">
+                      <span className="capitalize text-gray-700 dark:text-gray-300">
+                        {key.replace(/_/g, ' ')}
+                      </span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {value}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </CardContent>
       </Card>
 
       {/* Integrated Style Education - Now part of "Why This Outfit Works" */}
