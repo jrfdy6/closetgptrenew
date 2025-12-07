@@ -352,13 +352,13 @@ export default function OutfitResultsDisplay({
 
         <CardContent className="space-y-6">
           {/* HERO: Flat Lay Image (Primary Display) */}
-          <div className="mb-6 p-6 bg-gradient-to-br from-[#E8C8A0]/30 to-[#C9956F]/30 dark:from-[#B8860B]/40 dark:to-[#C9956F]/40 rounded-2xl border-4 border-[#D4A574] dark:border-[#C9956F]">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-                <Eye className="h-6 w-6 text-[#B8860B] dark:text-[#E8C8A0]" />
-                Complete Outfit Preview
+          <div className="mb-4 p-4 bg-gradient-to-br from-[#E8C8A0]/30 to-[#C9956F]/30 dark:from-[#B8860B]/40 dark:to-[#C9956F]/40 rounded-xl border-2 border-[#D4A574] dark:border-[#C9956F]">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+                <Eye className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
+                Your Outfit
               </h4>
-              <Badge className="bg-[#B8860B] text-white dark:bg-[#E8C8A0]/100">
+              <Badge className="bg-[#B8860B] text-white dark:bg-[#E8C8A0]/100 text-xs">
                 Flat Lay
               </Badge>
             </div>
@@ -401,55 +401,6 @@ export default function OutfitResultsDisplay({
                 <Share2 className="w-4 h-4 mr-2" />
                 Share
               </Button>
-            </div>
-          </div>
-
-          {/* Outfit Items Grid (Secondary - Detailed View) */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Shirt className="h-5 w-5 text-[#B8860B]" />
-              Outfit Details ({outfit.items.length} pieces)
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {outfit.items.map((item, index) => (
-                <div 
-                  key={index} 
-                  className="group relative bg-white/85 dark:bg-[#0D0D0D]/85 rounded-2xl p-4 border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 hover:shadow-xl transition-all duration-200"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-16 h-16 bg-[#F5F0E8] dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 rounded-xl overflow-hidden flex-shrink-0">
-                      {item.imageUrl ? (
-                        <img 
-                          src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl} 
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = '/placeholder.jpg';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Shirt className="h-8 w-8 text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h5 className="font-medium text-gray-900 dark:text-white truncate">
-                        {item.name}
-                      </h5>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 capitalize">
-                        {item.type} • {item.color}
-                      </p>
-                      {item.reason && (
-                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 line-clamp-2">
-                          {item.reason}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
 
