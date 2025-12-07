@@ -8293,6 +8293,11 @@ class RobustOutfitGenerationService:
             body_score = item_score_data.get('body_type_score', 0.5)
             composite_score = item_score_data.get('composite_score', 0)
             
+            # PRIORITY 0: Never worn before = brand new discovery
+            wear_count = getattr(item, 'wearCount', None)
+            if wear_count is not None and wear_count == 0:
+                return "Brand new to your rotation! Let's give this a try 🆕"
+            
             # PRIORITY 1: High diversity score = fresh pick (most interesting to user)
             if diversity_score > 1.15:
                 days_since_worn = int((diversity_score - 1.0) * 30)  # Rough estimate
