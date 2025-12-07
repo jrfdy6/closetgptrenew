@@ -284,7 +284,7 @@ export default function OutfitGenerationForm({
               Occasion *
             </label>
             <div className="flex flex-wrap gap-2">
-              {occasions.map((occasion) => (
+                {occasions.map((occasion) => (
                 <Chip
                   key={occasion}
                   variant="default"
@@ -292,9 +292,9 @@ export default function OutfitGenerationForm({
                   selected={formData.occasion === occasion}
                   onClick={() => onFormChange('occasion', occasion)}
                 >
-                  {occasion}
+                    {occasion}
                 </Chip>
-              ))}
+                ))}
             </div>
           </div>
 
@@ -305,7 +305,7 @@ export default function OutfitGenerationForm({
               Style *
             </label>
             <div className="flex flex-wrap gap-2">
-              {styles.map((style) => (
+                {styles.map((style) => (
                 <Chip
                   key={style}
                   variant="style"
@@ -313,9 +313,9 @@ export default function OutfitGenerationForm({
                   selected={formData.style === style}
                   onClick={() => onFormChange('style', style)}
                 >
-                  {style}
+                    {style}
                 </Chip>
-              ))}
+                ))}
             </div>
           </div>
 
@@ -326,7 +326,7 @@ export default function OutfitGenerationForm({
               Mood *
             </label>
             <div className="flex flex-wrap gap-2">
-              {moods.map((mood) => (
+                {moods.map((mood) => (
                 <Chip
                   key={mood}
                   variant="mood"
@@ -334,9 +334,9 @@ export default function OutfitGenerationForm({
                   selected={formData.mood === mood}
                   onClick={() => onFormChange('mood', mood)}
                 >
-                  {mood}
+                    {mood}
                 </Chip>
-              ))}
+                ))}
             </div>
           </div>
 

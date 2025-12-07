@@ -351,7 +351,7 @@ export default function FlatLayViewer({
     return (
       <div className="relative">
         <div
-          className={`aspect-[9/16] bg-gray-50 dark:bg-gray-900 rounded-lg p-4 overflow-y-auto transition-all duration-200 ${
+          className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-4 transition-all duration-200 ${
             showConsentOverlay ? 'pointer-events-none blur-sm brightness-50' : ''
           }`}
         >

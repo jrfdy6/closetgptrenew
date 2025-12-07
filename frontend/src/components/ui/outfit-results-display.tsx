@@ -554,12 +554,12 @@ export default function OutfitResultsDisplay({
                 <div className="bg-gradient-to-r from-[#E8C8A0]/30 to-orange-50/30 dark:from-[#B8860B]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[#E8C8A0]/50 dark:border-[#B8860B]/50">
                   <div className="flex items-start gap-3 mb-3">
                     <Sparkles className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0] mt-0.5 flex-shrink-0" />
-                    <div className="flex-1">
+                  <div className="flex-1">
                       <h4 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2">
                         Personalized for You 💜
-                      </h4>
+                    </h4>
                       <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] leading-relaxed">
-                        {outfit.metadata.user_learning_insights || 
+                      {outfit.metadata.user_learning_insights || 
                           `This outfit is tailored to your style preferences.`}
                       </p>
                       <ul className="mt-2 space-y-1 text-sm text-[#57534E] dark:text-[#C4BCB4]">
@@ -572,48 +572,48 @@ export default function OutfitResultsDisplay({
                           <span>Combines items you love wearing</span>
                         </li>
                       </ul>
-                    </div>
                   </div>
+                </div>
 
                   {/* Learning Stats */}
-                  {outfit.metadata.user_stats && (
+                {outfit.metadata.user_stats && (
                     <div className="mt-4 pt-4 border-t border-[#E8C8A0]/30 dark:border-[#B8860B]/30">
-                      <div className="grid grid-cols-3 gap-3 text-center">
-                        <div>
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div>
                           <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
-                            {outfit.metadata.user_stats.total_ratings || 0}
-                          </div>
+                          {outfit.metadata.user_stats.total_ratings || 0}
+                        </div>
                           <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
                             Rated
-                          </div>
                         </div>
-                        <div>
+                      </div>
+                      <div>
                           <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
-                            {outfit.metadata.user_stats.favorite_styles || 'Learning'}
-                          </div>
-                          <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
-                            Top Style
-                          </div>
+                          {outfit.metadata.user_stats.favorite_styles || 'Learning'}
                         </div>
-                        <div>
-                          <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
-                            {outfit.metadata.user_stats.diversity_score ? `${outfit.metadata.user_stats.diversity_score}%` : 'Fresh'}
-                          </div>
                           <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
-                            Variety
-                          </div>
+                          Top Style
+                        </div>
+                      </div>
+                      <div>
+                          <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
+                          {outfit.metadata.user_stats.diversity_score ? `${outfit.metadata.user_stats.diversity_score}%` : 'Fresh'}
+                        </div>
+                          <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
+                          Variety
                         </div>
                       </div>
                     </div>
-                  )}
+                  </div>
+                )}
 
                   <div className="mt-4 p-3 bg-[#E8C8A0]/20 dark:bg-[#B8860B]/20 rounded-lg">
                     <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] flex items-start gap-2">
                       <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
                       <span>💡 Rate outfits to unlock Spotify-style personalization! Each rating helps us learn: colors, styles, patterns you prefer</span>
                     </p>
-                  </div>
-                </div>
+                            </div>
+                            </div>
               )}
 
               {/* Style Analysis Insights - Integrated from StyleEducationModule */}
@@ -645,7 +645,7 @@ export default function OutfitResultsDisplay({
                           )}
                         </ul>
                       )}
-                    </div>
+                  </div>
                   )}
 
                   {/* Silhouette Balance */}
@@ -658,8 +658,8 @@ export default function OutfitResultsDisplay({
                       <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
                         Fitted + loose pieces create a flattering, proportioned silhouette
                       </p>
-                    </div>
-                  )}
+                </div>
+              )}
 
                   {/* Style Harmony */}
                   {outfit.style && (
@@ -690,7 +690,7 @@ export default function OutfitResultsDisplay({
                               <span>Easy to accessorize up or down as needed</span>
                             </li>
                           </ul>
-                        </div>
+                  </div>
                       )}
                     </div>
                   )}
@@ -895,19 +895,19 @@ export default function OutfitResultsDisplay({
       {/* Integrated Style Education - Now part of "Why This Outfit Works" */}
       <div className="hidden">
         {/* Keep StyleEducationModule for any backend dependencies but hide it */}
-        <StyleEducationModule 
-          outfitStyle={outfit.style}
-          outfitMood={outfit.mood}
-          outfitOccasion={outfit.occasion}
-          outfitItems={outfit.items}
-          outfitReasoning={outfit.reasoning}
-          styleStrategy={outfit.metadata?.generation_strategy}
-          outfitAnalysis={outfit.outfitAnalysis}
-          structuredExplanation={outfit.metadata?.structuredExplanation || outfit.metadata?.explanation}
-          weather={outfit.metadata?.weather || (outfit as any).weather}
-          personalizationInsights={outfit.metadata?.personalization_insights}
-          className="mt-8"
-        />
+      <StyleEducationModule 
+        outfitStyle={outfit.style}
+        outfitMood={outfit.mood}
+        outfitOccasion={outfit.occasion}
+        outfitItems={outfit.items}
+        outfitReasoning={outfit.reasoning}
+        styleStrategy={outfit.metadata?.generation_strategy}
+        outfitAnalysis={outfit.outfitAnalysis}
+        structuredExplanation={outfit.metadata?.structuredExplanation || outfit.metadata?.explanation}
+        weather={outfit.metadata?.weather || (outfit as any).weather}
+        personalizationInsights={outfit.metadata?.personalization_insights}
+        className="mt-8"
+      />
       </div>
     </div>
   );
