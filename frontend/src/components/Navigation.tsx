@@ -146,7 +146,7 @@ export default function Navigation() {
                 onClick={handleSignOut}
                 variant="outline"
                 size="sm"
-                className="rounded-xl border-[#F5F0E8]/70 dark:border-[#2E2E2E]/80 text-[#57534E] dark:text-[#C4BCB4] hover:text-red-600 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-600 transition-colors"
+                className="rounded-xl border-2 border-[var(--copper-dark)] text-[var(--copper-dark)] dark:text-[var(--copper-light)] hover:bg-[var(--copper-dark)] hover:text-white dark:hover:bg-[var(--copper-light)] dark:hover:text-[#1A1510] transition-all"
               >
                 Sign Out
               </Button>

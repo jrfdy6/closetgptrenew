@@ -115,7 +115,7 @@ export default function GamificationSummaryCard() {
 
           {/* CTA */}
           <Link href="/challenges">
-            <Button variant="outline" className="w-full border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#57534E] dark:text-[#C4BCB4] hover:bg-[#F5F0E8] dark:hover:bg-[#262626]" size="sm">
+            <Button variant="outline" className="w-full border-2 border-[var(--copper-dark)] text-[var(--copper-dark)] dark:text-[var(--copper-light)] hover:bg-[var(--copper-dark)] hover:text-white dark:hover:bg-[var(--copper-light)] dark:hover:text-[#1A1510] transition-all" size="sm">
               <Target className="w-4 h-4 mr-2" />
               View All Challenges
             </Button>

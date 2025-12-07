@@ -274,7 +274,7 @@ export default function WardrobeInsightsHub({
             </CardDescription>
           </div>
           {onRefresh && (
-            <Button variant="outline" size="sm" onClick={onRefresh}>
+            <Button variant="outline" size="sm" onClick={onRefresh} className="border-2 border-[var(--copper-dark)] text-[var(--copper-dark)] dark:text-[var(--copper-light)] hover:bg-[var(--copper-dark)] hover:text-white dark:hover:bg-[var(--copper-light)] dark:hover:text-[#1A1510] transition-all">
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>

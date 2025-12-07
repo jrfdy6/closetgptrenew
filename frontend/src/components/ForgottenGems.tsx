@@ -175,7 +175,7 @@ export default function ForgottenGems() {
               "Backend data endpoints are still being configured. This is normal for new deployments."
             }
           </p>
-          <Button onClick={fetchForgottenGems} variant="outline">
+          <Button onClick={fetchForgottenGems} variant="outline" className="border-2 border-[var(--copper-dark)] text-[var(--copper-dark)] dark:text-[var(--copper-light)] hover:bg-[var(--copper-dark)] hover:text-white dark:hover:bg-[var(--copper-light)] dark:hover:text-[#1A1510] transition-all">
             <RefreshCw className="w-4 h-4 mr-2" />
             {data ? "Refresh Analysis" : "Check Again"}
           </Button>
@@ -194,7 +194,7 @@ export default function ForgottenGems() {
             Rediscover {data.rediscoveryOpportunities} items with high potential
           </p>
         </div>
-        <Button onClick={fetchForgottenGems} variant="outline">
+        <Button onClick={fetchForgottenGems} variant="outline" className="border-2 border-[var(--copper-dark)] text-[var(--copper-dark)] dark:text-[var(--copper-light)] hover:bg-[var(--copper-dark)] hover:text-white dark:hover:bg-[var(--copper-light)] dark:hover:text-[#1A1510] transition-all">
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh Analysis
         </Button>
