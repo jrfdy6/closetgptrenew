@@ -824,7 +824,7 @@ export default function Dashboard() {
           <div className="p-4 sm:p-6 lg:p-8">
             <div className="space-y-4 sm:space-y-6">
               {/* Overall Progress */}
-              <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-[#FFF7E6] to-[#FFE0B2] dark:from-[#2C2119]/85 dark:to-[#3D2F24]/80 rounded-xl sm:rounded-2xl border border-[#F5F0E8]/50 dark:border-[#2E2E2E]/60">
+              <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-[#FFF7E6] to-[#FFE0B2] dark:from-[#1A1A1A]/85 dark:to-[#262626]/80 rounded-xl sm:rounded-2xl border border-[#F5F0E8]/50 dark:border-[#2E2E2E]/60">
                 <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent mb-2">
                   {dashboardData?.overallProgress || 0}%
                 </div>
