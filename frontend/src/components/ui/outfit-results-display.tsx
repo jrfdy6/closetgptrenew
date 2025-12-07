@@ -24,7 +24,9 @@ import {
   Eye,
   Share2,
   Download,
-  Cloud
+  Cloud,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import StyleEducationModule from './style-education-module';
 import FlatLayViewer from '../FlatLayViewer';
@@ -163,6 +165,7 @@ export default function OutfitResultsDisplay({
   hasFlatLayCredits = false
 }: OutfitResultsDisplayProps) {
   const [showDetails, setShowDetails] = useState(false);
+  const [showWhyItWorks, setShowWhyItWorks] = useState(false);
   const [showReasoning, setShowReasoning] = useState(false);
   const [flatLayState, setFlatLayState] = useState<FlatLayState>(() =>
     extractFlatLayState(outfit)
@@ -515,7 +518,7 @@ export default function OutfitResultsDisplay({
             </div>
           )}
 
-          {/* 🎯 UNIFIED "WHY THIS OUTFIT WORKS" SECTION */}
+          {/* 🎯 UNIFIED "WHY THIS OUTFIT WORKS" SECTION - COLLAPSIBLE */}
           {(() => {
             // Debug logging
             console.log('🔍 OUTFIT METADATA CHECK:', {
@@ -527,14 +530,28 @@ export default function OutfitResultsDisplay({
             });
             return outfit.metadata && (outfit.metadata.user_learning_insights || outfit.metadata.user_stats || outfit.metadata.item_intelligence || outfit.metadata.diversity_info);
           })() && (
-            <div className="border-t pt-6 space-y-4">
-              {/* Main Header */}
-              <div className="flex items-center gap-3 mb-2">
-                <Sparkles className="h-6 w-6 text-[#B8860B] dark:text-[#E8C8A0]" />
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  Why This Outfit Works
-                </h3>
-              </div>
+            <div className="border-t border-[#E8C8A0]/30 dark:border-[#B8860B]/30 pt-6">
+              {/* Collapsible Header Button */}
+              <button
+                onClick={() => setShowWhyItWorks(!showWhyItWorks)}
+                className="w-full flex items-center justify-between gap-3 mb-4 p-4 rounded-2xl bg-gradient-to-r from-[#E8C8A0]/20 to-orange-50/20 dark:from-[#B8860B]/20 dark:to-orange-900/20 hover:from-[#E8C8A0]/30 hover:to-orange-50/30 dark:hover:from-[#B8860B]/30 dark:hover:to-orange-900/30 border-2 border-[#E8C8A0]/40 dark:border-[#B8860B]/40 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <Sparkles className="h-6 w-6 text-[#B8860B] dark:text-[#E8C8A0]" />
+                  <h3 className="text-xl font-bold text-[#1C1917] dark:text-[#F8F5F1]">
+                    Why This Outfit Works
+                  </h3>
+                </div>
+                {showWhyItWorks ? (
+                  <ChevronUp className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
+                ) : (
+                  <ChevronDown className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
+                )}
+              </button>
+
+              {/* Collapsible Content */}
+              {showWhyItWorks && (
+                <div className="space-y-4"
 
               {/* Item-Level Insights - Your Picks */}
               {outfit.metadata.item_intelligence && outfit.metadata.item_intelligence.length > 0 && (
@@ -547,14 +564,14 @@ export default function OutfitResultsDisplay({
                     {outfit.metadata.item_intelligence.map((insight: any, idx: number) => (
                       <div 
                         key={idx}
-                        className="flex items-start gap-3 p-3 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-[#E8C8A0]/30 dark:border-[#B8860B]/30"
+                        className="flex items-start gap-3 p-3 bg-[#E8C8A0]/20 dark:bg-[#B8860B]/20 rounded-xl border border-[#E8C8A0]/40 dark:border-[#B8860B]/40"
                       >
                         <div className="text-2xl flex-shrink-0">{insight.icon || '✨'}</div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-gray-900 dark:text-white">
+                          <div className="font-medium text-[#1C1917] dark:text-[#F8F5F1]">
                             {insight.item_name}
                           </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          <div className="text-sm text-[#57534E] dark:text-[#C4BCB4] mt-1">
                             {insight.reason}
                           </div>
                         </div>
@@ -566,12 +583,12 @@ export default function OutfitResultsDisplay({
                   {outfit.metadata.diversity_info && (
                     <div className="mt-4 pt-4 border-t border-[#E8C8A0]/30 dark:border-[#B8860B]/30">
                       <div className="flex items-start gap-2">
-                        <RefreshCw className="h-5 w-5 text-teal-600 dark:text-teal-400 mt-0.5 flex-shrink-0" />
+                        <RefreshCw className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0] mt-0.5 flex-shrink-0" />
                         <div>
-                          <span className="text-sm font-semibold text-teal-900 dark:text-teal-100">
+                          <span className="text-sm font-semibold text-[#1C1917] dark:text-[#F8F5F1]">
                             Fresh Picks 🎯
                           </span>
-                          <p className="text-xs text-teal-800 dark:text-teal-200 mt-1">
+                          <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-1">
                             {outfit.metadata.diversity_info.message || 
                               `🎯 Super fresh! This outfit introduces new combinations you haven't tried before.`}
                           </p>
@@ -584,24 +601,24 @@ export default function OutfitResultsDisplay({
 
               {/* Personalization Section */}
               {(outfit.metadata.user_learning_insights || outfit.metadata.user_stats) && (
-                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-2xl p-5 border-2 border-purple-200 dark:border-purple-800">
+                <div className="bg-gradient-to-r from-[#E8C8A0]/30 to-orange-50/30 dark:from-[#B8860B]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[#E8C8A0]/50 dark:border-[#B8860B]/50">
                   <div className="flex items-start gap-3 mb-3">
-                    <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                    <Sparkles className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0] mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">
+                      <h4 className="font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2">
                         Personalized for You 💜
                       </h4>
-                      <p className="text-sm text-purple-800 dark:text-purple-200 leading-relaxed">
+                      <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] leading-relaxed">
                         {outfit.metadata.user_learning_insights || 
                           `This outfit is tailored to your style preferences.`}
                       </p>
-                      <ul className="mt-2 space-y-1 text-sm text-purple-800 dark:text-purple-200">
+                      <ul className="mt-2 space-y-1 text-sm text-[#57534E] dark:text-[#C4BCB4]">
                         <li className="flex items-start gap-2">
-                          <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
+                          <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
                           <span>Based on your personal style profile</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
+                          <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
                           <span>Combines items you love wearing</span>
                         </li>
                       </ul>
@@ -610,29 +627,29 @@ export default function OutfitResultsDisplay({
 
                   {/* Learning Stats */}
                   {outfit.metadata.user_stats && (
-                    <div className="mt-4 pt-4 border-t border-purple-200/50 dark:border-purple-700/50">
+                    <div className="mt-4 pt-4 border-t border-[#E8C8A0]/30 dark:border-[#B8860B]/30">
                       <div className="grid grid-cols-3 gap-3 text-center">
                         <div>
-                          <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
+                          <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
                             {outfit.metadata.user_stats.total_ratings || 0}
                           </div>
-                          <div className="text-xs text-purple-700 dark:text-purple-300">
+                          <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
                             Rated
                           </div>
                         </div>
                         <div>
-                          <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
+                          <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
                             {outfit.metadata.user_stats.favorite_styles || 'Learning'}
                           </div>
-                          <div className="text-xs text-purple-700 dark:text-purple-300">
+                          <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
                             Top Style
                           </div>
                         </div>
                         <div>
-                          <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
+                          <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
                             {outfit.metadata.user_stats.diversity_score ? `${outfit.metadata.user_stats.diversity_score}%` : 'Fresh'}
                           </div>
-                          <div className="text-xs text-purple-700 dark:text-purple-300">
+                          <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">
                             Variety
                           </div>
                         </div>
@@ -640,8 +657,8 @@ export default function OutfitResultsDisplay({
                     </div>
                   )}
 
-                  <div className="mt-4 p-3 bg-purple-100/50 dark:bg-purple-900/30 rounded-lg">
-                    <p className="text-xs text-purple-800 dark:text-purple-200 flex items-start gap-2">
+                  <div className="mt-4 p-3 bg-[#E8C8A0]/20 dark:bg-[#B8860B]/20 rounded-lg">
+                    <p className="text-xs text-[#57534E] dark:text-[#C4BCB4] flex items-start gap-2">
                       <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
                       <span>💡 Rate outfits to unlock Spotify-style personalization! Each rating helps us learn: colors, styles, patterns you prefer</span>
                     </p>
@@ -654,25 +671,25 @@ export default function OutfitResultsDisplay({
                 <div className="space-y-3">
                   {/* Color Strategy */}
                   {outfit.outfitAnalysis.colorStrategy && (
-                    <div className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-2xl p-5 border-2 border-pink-200 dark:border-pink-800">
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                        <Palette className="h-5 w-5 text-pink-600 dark:text-pink-400" />
+                    <div className="bg-gradient-to-br from-[#E8C8A0]/30 to-orange-50/30 dark:from-[#B8860B]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[#E8C8A0]/50 dark:border-[#B8860B]/50">
+                      <h4 className="text-lg font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2 flex items-center gap-2">
+                        <Palette className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
                         Color Strategy
                       </h4>
-                      <p className="text-sm text-gray-800 dark:text-gray-200 mb-2">
+                      <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-2">
                         {outfit.outfitAnalysis.colorStrategy.insight}
                       </p>
                       {outfit.items && outfit.items.length > 0 && (
-                        <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-1 mt-2">
+                        <ul className="text-xs text-[#57534E] dark:text-[#C4BCB4] space-y-1 mt-2">
                           {outfit.items.slice(0, 2).map((item, idx) => (
                             <li key={idx} className="flex items-start gap-2">
-                              <span className="text-pink-600 dark:text-pink-400 mt-1">•</span>
+                              <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
                               <span>{item.color} serves as {idx === 0 ? 'your base color' : 'accent and depth'}</span>
                             </li>
                           ))}
                           {outfit.items.length > 2 && (
                             <li className="flex items-start gap-2">
-                              <span className="text-pink-600 dark:text-pink-400 mt-1">•</span>
+                              <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
                               <span>Multiple colors add visual interest—keep accessories simple</span>
                             </li>
                           )}
@@ -683,12 +700,12 @@ export default function OutfitResultsDisplay({
 
                   {/* Silhouette Balance */}
                   {outfit.items && outfit.items.length >= 2 && (
-                    <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-2xl p-5 border-2 border-blue-200 dark:border-blue-800">
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                        <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <div className="bg-gradient-to-br from-[#E8C8A0]/30 to-orange-50/30 dark:from-[#B8860B]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[#E8C8A0]/50 dark:border-[#B8860B]/50">
+                      <h4 className="text-lg font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2 flex items-center gap-2">
+                        <Target className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
                         Silhouette Balance
                       </h4>
-                      <p className="text-sm text-gray-800 dark:text-gray-200">
+                      <p className="text-sm text-[#57534E] dark:text-[#C4BCB4]">
                         Fitted + loose pieces create a flattering, proportioned silhouette
                       </p>
                     </div>
@@ -696,30 +713,30 @@ export default function OutfitResultsDisplay({
 
                   {/* Style Harmony */}
                   {outfit.style && (
-                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-amber-200 dark:border-amber-800">
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                    <div className="bg-gradient-to-br from-[#E8C8A0]/30 to-orange-50/30 dark:from-[#B8860B]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[#E8C8A0]/50 dark:border-[#B8860B]/50">
+                      <h4 className="text-lg font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2 flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
                         Style Harmony
                       </h4>
-                      <p className="text-sm text-gray-800 dark:text-gray-200 mb-2">
+                      <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-2">
                         {outfit.style} style creates personal expression
                       </p>
                       {outfit.occasion && (
-                        <div className="mt-3 pt-3 border-t border-amber-200/50 dark:border-amber-700/50">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                        <div className="mt-3 pt-3 border-t border-[#E8C8A0]/30 dark:border-[#B8860B]/30">
+                          <p className="text-sm font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-1">
                             Perfect for {outfit.occasion}
                           </p>
-                          <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                          <ul className="text-xs text-[#57534E] dark:text-[#C4BCB4] space-y-1">
                             <li className="flex items-start gap-2">
-                              <span className="text-amber-600 dark:text-amber-400 mt-1">•</span>
+                              <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
                               <span>{outfit.style} style matches the event's vibe</span>
                             </li>
                             <li className="flex items-start gap-2">
-                              <span className="text-amber-600 dark:text-amber-400 mt-1">•</span>
+                              <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
                               <span>Comfortable enough to wear confidently</span>
                             </li>
                             <li className="flex items-start gap-2">
-                              <span className="text-amber-600 dark:text-amber-400 mt-1">•</span>
+                              <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
                               <span>Easy to accessorize up or down as needed</span>
                             </li>
                           </ul>
@@ -730,9 +747,9 @@ export default function OutfitResultsDisplay({
 
                   {/* Weather Appropriateness */}
                   {(outfit.metadata?.weather || (outfit as any).weather) && (
-                    <div className="bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20 rounded-2xl p-5 border-2 border-sky-200 dark:border-sky-800">
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                        <Cloud className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+                    <div className="bg-gradient-to-br from-[#E8C8A0]/30 to-orange-50/30 dark:from-[#B8860B]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[#E8C8A0]/50 dark:border-[#B8860B]/50">
+                      <h4 className="text-lg font-semibold text-[#1C1917] dark:text-[#F8F5F1] mb-2 flex items-center gap-2">
+                        <Cloud className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
                         Weather Appropriateness
                       </h4>
                       {(() => {
@@ -740,21 +757,21 @@ export default function OutfitResultsDisplay({
                         const temp = weatherData?.temperature || 70;
                         return (
                           <>
-                            <p className="text-sm text-gray-800 dark:text-gray-200 mb-2">
+                            <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-2">
                               Warm layers appropriate for {temp}°F weather - cozy and protective.
                             </p>
-                            <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                            <ul className="text-xs text-[#57534E] dark:text-[#C4BCB4] space-y-1">
                               <li className="flex items-start gap-2">
-                                <span className="text-sky-600 dark:text-sky-400 mt-1">•</span>
+                                <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
                                 <span>Temperature-appropriate for {temp}°F conditions</span>
                               </li>
                               <li className="flex items-start gap-2">
-                                <span className="text-sky-600 dark:text-sky-400 mt-1">•</span>
+                                <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
                                 <span>Layering allows you to adjust throughout the day</span>
                               </li>
                               {temp < 60 && (
                                 <li className="flex items-start gap-2">
-                                  <span className="text-sky-600 dark:text-sky-400 mt-1">•</span>
+                                  <span className="text-[#B8860B] dark:text-[#E8C8A0] mt-1">•</span>
                                   <span>Materials chosen for weather comfort</span>
                                 </li>
                               )}
@@ -764,6 +781,8 @@ export default function OutfitResultsDisplay({
                       })()}
                     </div>
                   )}
+                </div>
+              )}
                 </div>
               )}
             </div>
