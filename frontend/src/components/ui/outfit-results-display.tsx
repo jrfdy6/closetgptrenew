@@ -304,7 +304,7 @@ export default function OutfitResultsDisplay({
   return (
     <div className="space-y-6">
       {/* Main Outfit Card */}
-      <Card className="overflow-hidden border-2 border-[#E8C8A0]/40 dark:border-[#B8860B]/60 bg-gradient-to-br from-[#E8C8A0]/50 to-orange-50 dark:from-[#B8860B]/40/20 dark:to-[#C9956F]/40/20">
+      <Card className="overflow-hidden border-2 border-[#E8C8A0]/40 dark:border-[#B8860B]/60 bg-gradient-to-br from-[#E8C8A0]/50 to-orange-50 dark:from-[#B8860B]/20 dark:to-[#C9956F]/20">
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -348,7 +348,7 @@ export default function OutfitResultsDisplay({
 
         <CardContent className="space-y-6">
           {/* HERO: Flat Lay Image (Primary Display) */}
-          <div className="mb-6 p-6 bg-gradient-to-br from-[#E8C8A0]/30 to-[#C9956F]/30 dark:from-[#B8860B]/40/40 dark:to-[#C9956F]/40/40 rounded-2xl border-4 border-[#D4A574] dark:border-[#C9956F]">
+          <div className="mb-6 p-6 bg-gradient-to-br from-[#E8C8A0]/30 to-[#C9956F]/30 dark:from-[#B8860B]/40 dark:to-[#C9956F]/40 rounded-2xl border-4 border-[#D4A574] dark:border-[#C9956F]">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
                 <Eye className="h-6 w-6 text-[#B8860B] dark:text-[#E8C8A0]" />
@@ -481,12 +481,12 @@ export default function OutfitResultsDisplay({
                     Grade: {outfit.score_breakdown.grade}
                   </div>
                 </div>
-                <div className="bg-gradient-to-r from-[#E8C8A0]/50 to-rose-gold-100 dark:from-[#B8860B]/40/20 dark:to-rose-gold-800/20 p-4 rounded-lg">
+                <div className="bg-gradient-to-r from-[#E8C8A0]/50 to-[#E8C8A0]/10 dark:from-[#B8860B]/20 dark:to-[#B8860B]/10 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <CheckCircle className="h-4 w-4 text-[#B8860B]" />
                     <span className="text-sm font-medium text-[#B8860B] dark:text-[#E8C8A0]">Confidence</span>
                   </div>
-                  <div className="text-2xl font-bold text-rose-gold-800 dark:text-[#DDB896]">
+                   <div className="text-2xl font-bold text-[#B8860B] dark:text-[#DDB896]">
                     {Math.round(outfit.confidence_score * 100)}%
                   </div>
                   <div className="text-xs text-[#B8860B] dark:text-[#E8C8A0]">
@@ -586,7 +586,7 @@ export default function OutfitResultsDisplay({
                     {outfit.metadata.item_intelligence.slice(0, 3).map((insight: any, idx: number) => (
                       <div 
                         key={idx}
-                        className="bg-gradient-to-r from-[#E8C8A0]/50/50 to-orange-50/50 dark:from-[#B8860B]/40/10 dark:to-[#C9956F]/40/10 rounded-lg p-3 border border-[#E8C8A0]/40/50 dark:border-[#B8860B]/60/50"
+                        className="bg-gradient-to-r from-[#E8C8A0]/50 to-orange-50/50 dark:from-[#B8860B]/10 dark:to-[#C9956F]/10 rounded-lg p-3 border border-[#E8C8A0]/40 dark:border-[#B8860B]/60"
                       >
                         <div className="flex items-start gap-2">
                           <div className="text-lg">{insight.icon || '✨'}</div>
@@ -675,11 +675,11 @@ export default function OutfitResultsDisplay({
                 size="sm"
                 onClick={onLikeToggle}
                 disabled={ratingSubmitted}
-                className={`flex items-center gap-2 ${
-                  rating.isLiked 
-                    ? 'bg-[#B8860B] hover:bg-rose-gold-700 text-white' 
-                    : 'hover:bg-green-50 hover:text-[#B8860B]'
-                } ${ratingSubmitted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  className={`flex items-center gap-2 ${
+                    rating.isLiked 
+                     ? 'bg-[#B8860B] hover:bg-[#A0744F] text-white' 
+                     : 'hover:bg-green-50 hover:text-[#B8860B]'
+                  } ${ratingSubmitted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <ThumbsUp className="h-4 w-4" />
                 {rating.isLiked ? 'Liked' : 'Like'}

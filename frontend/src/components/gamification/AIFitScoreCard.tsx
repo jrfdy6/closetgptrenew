@@ -139,7 +139,7 @@ export default function AIFitScoreCard() {
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.3, type: "spring" }}
                 className="text-2xl font-display font-semibold
-                  bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent"
+                  gradient-copper-gold bg-clip-text text-transparent"
               >
                 {Math.round(score)}
               </motion.div>
@@ -178,7 +178,7 @@ export default function AIFitScoreCard() {
               </div>
               <div className="mt-2 h-1 bg-[#F5F0E8] dark:bg-[#262626] rounded-full overflow-hidden">
                 <motion.div
-                  className="h-full bg-gradient-to-r from-[#FFB84C] to-[#FF9400]"
+                  className="h-full gradient-copper-gold"
                   initial={{ width: 0 }}
                   animate={{ 
                     width: `${(nextMilestone.current / nextMilestone.target) * 100}%` 

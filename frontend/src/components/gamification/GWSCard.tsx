@@ -149,7 +149,7 @@ export default function GWSCard() {
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20">
+      <CardHeader className="bg-gradient-to-br from-[#E8C8A0]/10 to-[#C9956F]/10 dark:from-[#B8860B]/10 dark:to-[#C9956F]/10">
         <CardTitle className="flex items-center gap-2">
           <Trophy className="w-5 h-5 text-amber-600 dark:text-amber-400" />
           Global Wardrobe Score

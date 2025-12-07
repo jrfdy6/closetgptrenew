@@ -18,7 +18,7 @@ const Progress = React.forwardRef<
     {...props}
   >
     <motion.div
-      className="h-full w-full bg-gradient-to-r from-[#FFB84C] to-[#FF9400]"
+      className="h-full w-full gradient-copper-gold"
       initial={{ width: 0 }}
       animate={{ width: `${value || 0}%` }}
       transition={{ duration: 0.3, ease: "easeOut" }}
