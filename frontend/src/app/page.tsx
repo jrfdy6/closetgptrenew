@@ -47,13 +47,13 @@ export default function Home() {
             
             {/* Feature badges - Better mobile spacing */}
             <div className="flex flex-wrap gap-2 sm:gap-3 justify-center mb-6 sm:mb-8 px-2">
-              <span className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold text-amber-900 dark:text-amber-100 border border-amber-200/50 dark:border-amber-700/50 shadow-sm backdrop-blur-sm">
+              <span className="bg-gradient-to-r from-[var(--copper-light)]/20 to-[var(--copper-mid)]/20 dark:from-[var(--copper-dark)]/30 dark:to-[var(--copper-mid)]/30 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold text-[var(--copper-dark)] dark:text-[var(--copper-light)] border border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50 shadow-sm backdrop-blur-sm">
                 ✨ AI-Powered
               </span>
-              <span className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold text-amber-900 dark:text-amber-100 border border-amber-200/50 dark:border-amber-700/50 shadow-sm backdrop-blur-sm">
+              <span className="bg-gradient-to-r from-[var(--copper-light)]/20 to-[var(--copper-mid)]/20 dark:from-[var(--copper-dark)]/30 dark:to-[var(--copper-mid)]/30 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold text-[var(--copper-dark)] dark:text-[var(--copper-light)] border border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50 shadow-sm backdrop-blur-sm">
                 👔 Personalized
               </span>
-              <span className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold text-amber-900 dark:text-amber-100 border border-amber-200/50 dark:border-amber-700/50 shadow-sm backdrop-blur-sm">
+              <span className="bg-gradient-to-r from-[var(--copper-light)]/20 to-[var(--copper-mid)]/20 dark:from-[var(--copper-dark)]/30 dark:to-[var(--copper-mid)]/30 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold text-[var(--copper-dark)] dark:text-[var(--copper-light)] border border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50 shadow-sm backdrop-blur-sm">
                 🎨 Style Smart
               </span>
             </div>
@@ -62,18 +62,18 @@ export default function Home() {
             <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mb-6 sm:mb-8 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               <div className="flex items-center gap-1.5">
                 <div className="flex -space-x-1">
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 border-2 border-white dark:border-gray-900"></div>
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-orange-400 to-red-500 border-2 border-white dark:border-gray-900"></div>
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 border-2 border-white dark:border-gray-900"></div>
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-[var(--copper-light)] to-[var(--copper-dark)] border-2 border-white dark:border-gray-900"></div>
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-[var(--copper-mid)] to-[var(--copper-dark)] border-2 border-white dark:border-gray-900"></div>
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-[var(--copper-light)] to-[var(--copper-mid)] border-2 border-white dark:border-gray-900"></div>
                 </div>
                 <span className="font-medium">1000+ Users</span>
               </div>
               <div className="flex items-center gap-1">
-                <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-                <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-                <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-                <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-                <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                <Star className="w-4 h-4 fill-[var(--copper-dark)] text-[var(--copper-dark)]" />
+                <Star className="w-4 h-4 fill-[var(--copper-dark)] text-[var(--copper-dark)]" />
+                <Star className="w-4 h-4 fill-[var(--copper-dark)] text-[var(--copper-dark)]" />
+                <Star className="w-4 h-4 fill-[var(--copper-dark)] text-[var(--copper-dark)]" />
+                <Star className="w-4 h-4 fill-[var(--copper-dark)] text-[var(--copper-dark)]" />
                 <span className="ml-1 font-medium">5.0</span>
               </div>
             </div>
@@ -84,7 +84,7 @@ export default function Home() {
             <Link href="/signin" className="w-full sm:w-auto">
               <Button 
                 size="lg" 
-                className="w-full sm:w-auto bg-gradient-to-r from-[#FFB84C] to-[#FF9400] hover:from-[#FFB84C] hover:to-[#FF7700] text-[#1A1510] dark:text-white px-8 sm:px-12 py-5 sm:py-6 rounded-2xl font-semibold text-base sm:text-lg shadow-xl shadow-amber-500/25 hover:shadow-2xl hover:shadow-amber-500/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] border-0"
+                className="w-full sm:w-auto gradient-copper-gold hover:opacity-90 text-[#1A1510] dark:text-white px-8 sm:px-12 py-5 sm:py-6 rounded-2xl font-semibold text-base sm:text-lg shadow-xl shadow-[var(--copper-dark)]/25 hover:shadow-2xl hover:shadow-[var(--copper-dark)]/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] border-0"
               >
                 Generate Today&apos;s Fit
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -94,7 +94,7 @@ export default function Home() {
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="w-full sm:w-auto bg-white/65 dark:bg-[#1A1A1A]/65 hover:bg-white/80 dark:hover:bg-[#3D2F24]/80 backdrop-blur-xl border-2 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/80 text-amber-900 dark:text-[#FFCC66] hover:text-amber-950 dark:hover:text-[#FFB84C] px-8 sm:px-12 py-5 sm:py-6 rounded-2xl font-semibold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full sm:w-auto bg-white/65 dark:bg-[#1A1A1A]/65 hover:bg-white/80 dark:hover:bg-[#3D2F24]/80 backdrop-blur-xl border-2 border-[#F5F0E8]/60 dark:border-[#2E2E2E]/80 text-[var(--copper-dark)] dark:text-[var(--copper-light)] hover:text-[#A0744F] dark:hover:text-[var(--copper-mid)] px-8 sm:px-12 py-5 sm:py-6 rounded-2xl font-semibold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
               >
                 Start the 2-minute style quiz
                 <Sparkles className="ml-2 h-5 w-5" />
