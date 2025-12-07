@@ -23,7 +23,8 @@ import {
   ArrowRight,
   Eye,
   Share2,
-  Download
+  Download,
+  Cloud
 } from 'lucide-react';
 import StyleEducationModule from './style-education-module';
 import FlatLayViewer from '../FlatLayViewer';
@@ -647,6 +648,124 @@ export default function OutfitResultsDisplay({
                   </div>
                 </div>
               )}
+
+              {/* Style Analysis Insights - Integrated from StyleEducationModule */}
+              {outfit.outfitAnalysis && (
+                <div className="space-y-3">
+                  {/* Color Strategy */}
+                  {outfit.outfitAnalysis.colorStrategy && (
+                    <div className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-2xl p-5 border-2 border-pink-200 dark:border-pink-800">
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <Palette className="h-5 w-5 text-pink-600 dark:text-pink-400" />
+                        Color Strategy
+                      </h4>
+                      <p className="text-sm text-gray-800 dark:text-gray-200 mb-2">
+                        {outfit.outfitAnalysis.colorStrategy.insight}
+                      </p>
+                      {outfit.items && outfit.items.length > 0 && (
+                        <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-1 mt-2">
+                          {outfit.items.slice(0, 2).map((item, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-pink-600 dark:text-pink-400 mt-1">•</span>
+                              <span>{item.color} serves as {idx === 0 ? 'your base color' : 'accent and depth'}</span>
+                            </li>
+                          ))}
+                          {outfit.items.length > 2 && (
+                            <li className="flex items-start gap-2">
+                              <span className="text-pink-600 dark:text-pink-400 mt-1">•</span>
+                              <span>Multiple colors add visual interest—keep accessories simple</span>
+                            </li>
+                          )}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Silhouette Balance */}
+                  {outfit.items && outfit.items.length >= 2 && (
+                    <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-2xl p-5 border-2 border-blue-200 dark:border-blue-800">
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        Silhouette Balance
+                      </h4>
+                      <p className="text-sm text-gray-800 dark:text-gray-200">
+                        Fitted + loose pieces create a flattering, proportioned silhouette
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Style Harmony */}
+                  {outfit.style && (
+                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-amber-200 dark:border-amber-800">
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                        Style Harmony
+                      </h4>
+                      <p className="text-sm text-gray-800 dark:text-gray-200 mb-2">
+                        {outfit.style} style creates personal expression
+                      </p>
+                      {outfit.occasion && (
+                        <div className="mt-3 pt-3 border-t border-amber-200/50 dark:border-amber-700/50">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                            Perfect for {outfit.occasion}
+                          </p>
+                          <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                            <li className="flex items-start gap-2">
+                              <span className="text-amber-600 dark:text-amber-400 mt-1">•</span>
+                              <span>{outfit.style} style matches the event's vibe</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-amber-600 dark:text-amber-400 mt-1">•</span>
+                              <span>Comfortable enough to wear confidently</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-amber-600 dark:text-amber-400 mt-1">•</span>
+                              <span>Easy to accessorize up or down as needed</span>
+                            </li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Weather Appropriateness */}
+                  {(outfit.metadata?.weather || (outfit as any).weather) && (
+                    <div className="bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20 rounded-2xl p-5 border-2 border-sky-200 dark:border-sky-800">
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <Cloud className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+                        Weather Appropriateness
+                      </h4>
+                      {(() => {
+                        const weatherData = outfit.metadata?.weather || (outfit as any).weather;
+                        const temp = weatherData?.temperature || 70;
+                        return (
+                          <>
+                            <p className="text-sm text-gray-800 dark:text-gray-200 mb-2">
+                              Warm layers appropriate for {temp}°F weather - cozy and protective.
+                            </p>
+                            <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                              <li className="flex items-start gap-2">
+                                <span className="text-sky-600 dark:text-sky-400 mt-1">•</span>
+                                <span>Temperature-appropriate for {temp}°F conditions</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-sky-600 dark:text-sky-400 mt-1">•</span>
+                                <span>Layering allows you to adjust throughout the day</span>
+                              </li>
+                              {temp < 60 && (
+                                <li className="flex items-start gap-2">
+                                  <span className="text-sky-600 dark:text-sky-400 mt-1">•</span>
+                                  <span>Materials chosen for weather comfort</span>
+                                </li>
+                              )}
+                            </ul>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -804,21 +923,23 @@ export default function OutfitResultsDisplay({
         </CardContent>
       </Card>
 
-      {/* Style Education Module */}
-      <StyleEducationModule 
-        outfitStyle={outfit.style}
-        outfitMood={outfit.mood}
-        outfitOccasion={outfit.occasion}
-        outfitItems={outfit.items}
-        outfitReasoning={outfit.reasoning}
-        styleStrategy={outfit.metadata?.generation_strategy}
-        outfitAnalysis={outfit.outfitAnalysis}
-        structuredExplanation={outfit.metadata?.structuredExplanation || outfit.metadata?.explanation}
-        weather={outfit.metadata?.weather || (outfit as any).weather}
-        personalizationInsights={outfit.metadata?.personalization_insights}
-        className="mt-8"
-        className="mt-8"
-      />
+      {/* Integrated Style Education - Now part of "Why This Outfit Works" */}
+      <div className="hidden">
+        {/* Keep StyleEducationModule for any backend dependencies but hide it */}
+        <StyleEducationModule 
+          outfitStyle={outfit.style}
+          outfitMood={outfit.mood}
+          outfitOccasion={outfit.occasion}
+          outfitItems={outfit.items}
+          outfitReasoning={outfit.reasoning}
+          styleStrategy={outfit.metadata?.generation_strategy}
+          outfitAnalysis={outfit.outfitAnalysis}
+          structuredExplanation={outfit.metadata?.structuredExplanation || outfit.metadata?.explanation}
+          weather={outfit.metadata?.weather || (outfit as any).weather}
+          personalizationInsights={outfit.metadata?.personalization_insights}
+          className="mt-8"
+        />
+      </div>
     </div>
   );
 }
