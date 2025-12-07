@@ -51,7 +51,7 @@ const RarityBorderColors: Record<string, string> = {
   'common': 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70',
   'rare': 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70',
   'epic': 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70',
-  'legendary': 'border-[#FFB84C]',
+  'legendary': 'border-copper-light',
 };
 
 interface BadgeDisplayProps {
@@ -102,8 +102,8 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
                 stiffness: 200
               }}
             >
-              <Badge className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#1C1917] dark:text-[#F8F5F1] hover:border-[#FFB84C]">
-                <IconComponent className="w-3 h-3 mr-1 text-[#FFB84C]" />
+              <Badge className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 text-[#1C1917] dark:text-[#F8F5F1] hover:border-copper-mid">
+                <IconComponent className="w-3 h-3 mr-1 text-copper-dark" />
                 {badge.name}
               </Badge>
             </motion.div>
@@ -148,13 +148,13 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
                     whileTap={{ scale: 0.95 }}
                     className={`w-16 h-16 bg-white dark:bg-[#1A1A1A] border ${
                       badge.rarity === 'legendary' 
-                        ? 'border-[#FFB84C] animate-shimmer' 
+                        ? 'border-copper-light animate-shimmer' 
                         : 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70'
                     } rounded-2xl
                       flex flex-col items-center justify-center gap-2 transition-all
-                      hover:border-[#FFB84C] cursor-pointer`}
+                      hover:border-copper-mid cursor-pointer`}
                   >
-                    <IconComponent className="w-6 h-6 text-[#FFB84C]" />
+                    <IconComponent className="w-6 h-6 text-copper-dark" />
                     <span className="text-xs font-medium text-center text-[#1C1917] dark:text-[#F8F5F1]">
                       {badge.name}
                     </span>
@@ -164,7 +164,7 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-3">
                       <div className={`p-3 rounded-lg bg-white dark:bg-[#1A1A1A] border ${RarityBorderColors[badge.rarity]}`}>
-                        <IconComponent className="w-6 h-6 text-[#FFB84C]" />
+                        <IconComponent className="w-6 h-6 text-copper-dark" />
                       </div>
                       {badge.name}
                     </DialogTitle>

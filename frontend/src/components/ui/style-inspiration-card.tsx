@@ -196,7 +196,7 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Sparkles className="w-5 h-5 text-amber-500" />
+              <Sparkles className="w-5 h-5 text-copper-dark" />
               Style Inspiration
             </CardTitle>
             <Badge
@@ -222,7 +222,7 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
         <div className="relative rounded-3xl overflow-hidden bg-[#F5F0E8] dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 h-48 sm:h-64 w-full shadow-lg">
           {imageLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-[#F5F0E8] dark:bg-[#1A1A1A] z-10">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB84C]"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-copper-dark"></div>
             </div>
           )}
           <Image
@@ -284,7 +284,7 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
                   <span className="text-xs text-[#57534E] dark:text-[#C4BCB4] w-24 capitalize">{style}</span>
                   <div className="flex-1 h-2 bg-[#E7DDCF] dark:bg-[#262626] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-amber-500 to-orange-500"
+                      className="h-full gradient-copper-gold"
                       style={{ width: `${score * 100}%` }}
                     />
                   </div>

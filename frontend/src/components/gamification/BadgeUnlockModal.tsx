@@ -45,7 +45,7 @@ function ShimmerEffect() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       <motion.div
-        className="absolute inset-0 bg-gradient-to-r from-transparent via-[#FFB84C]/20 to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-copper-dark/20 to-transparent"
         animate={{
           x: ['-100%', '200%']
         }}
@@ -72,7 +72,7 @@ export default function BadgeUnlockModal({
   const getRarityBorder = (rarity: string) => {
     switch (rarity) {
       case 'legendary':
-        return 'border-[#FFB84C]';
+        return 'border-copper-light';
       case 'epic':
         return 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70';
       case 'rare':
@@ -120,7 +120,7 @@ export default function BadgeUnlockModal({
               className={`w-24 h-24 mx-auto rounded-2xl bg-[#F5F0E8] dark:bg-[#262626] border-2 ${getRarityBorder(rarity)}
                 flex items-center justify-center relative animate-shimmer`}
             >
-              <IconComponent className="w-12 h-12 text-[#FFB84C] relative z-10" />
+              <IconComponent className="w-12 h-12 text-copper-dark relative z-10" />
             </motion.div>
           </motion.div>
 
@@ -131,7 +131,7 @@ export default function BadgeUnlockModal({
             transition={{ delay: 0.2, duration: 0.25 }}
           >
             <h2 className="text-2xl font-display font-semibold mb-2
-              bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
+              gradient-copper-gold bg-clip-text text-transparent">
               {badgeName}
             </h2>
             <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] mb-4">
@@ -165,7 +165,7 @@ export default function BadgeUnlockModal({
             <Button
               onClick={onClose}
               size="lg"
-              className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-white hover:opacity-90"
+              className="gradient-copper-gold text-white hover:opacity-90"
             >
               Awesome!
             </Button>

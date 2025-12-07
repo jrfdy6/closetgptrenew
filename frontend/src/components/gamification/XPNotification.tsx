@@ -53,7 +53,7 @@ export default function XPNotification({
           className={`fixed top-4 right-4 z-50 pointer-events-auto min-w-[240px] max-w-[320px]
             rounded-xl p-3 shadow-lg ${
               levelUp
-                ? 'bg-gradient-to-r from-[#FFB84C] to-[#FF9400] border-none'
+                ? 'gradient-copper-gold border-none'
                 : 'bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70'
             }`}
         >
@@ -61,7 +61,7 @@ export default function XPNotification({
             {levelUp ? (
               <Award className="w-5 h-5 text-white" />
             ) : (
-              <Sparkles className="w-5 h-5 text-[#FFB84C]" />
+              <Sparkles className="w-5 h-5 text-copper-dark" />
             )}
             
             <div className="flex-1">
@@ -76,7 +76,7 @@ export default function XPNotification({
                 </>
               ) : (
                 <>
-                  <div className="text-sm font-medium bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
+                  <div className="text-sm font-medium gradient-copper-gold bg-clip-text text-transparent">
                     +{xp} XP
                   </div>
                   <div className="text-xs text-[#57534E] dark:text-[#C4BCB4] mt-0.5">

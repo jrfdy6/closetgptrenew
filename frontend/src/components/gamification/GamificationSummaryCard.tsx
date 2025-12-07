@@ -17,7 +17,7 @@ export default function GamificationSummaryCard() {
       <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-            <Sparkles className="w-5 h-5 text-[#FFB84C]" />
+            <Sparkles className="w-5 h-5 text-copper-dark" />
             Your Progress
           </CardTitle>
         </CardHeader>
@@ -37,7 +37,7 @@ export default function GamificationSummaryCard() {
       <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-            <Sparkles className="w-5 h-5 text-[#FFB84C]" />
+            <Sparkles className="w-5 h-5 text-copper-dark" />
             Your Progress
           </CardTitle>
         </CardHeader>
@@ -66,7 +66,7 @@ export default function GamificationSummaryCard() {
           {/* Level Indicator - Typography-based */}
           <div className="text-center">
             <h3 className="text-xl font-display font-semibold
-              bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
+              gradient-copper-gold bg-clip-text text-transparent">
               Level {level?.level || 1}
             </h3>
             <p className="text-sm text-[#57534E] dark:text-[#C4BCB4] uppercase tracking-wider mt-1">
@@ -80,7 +80,7 @@ export default function GamificationSummaryCard() {
               <span className="text-sm font-medium text-[#57534E] dark:text-[#C4BCB4]">
                 Experience Points
               </span>
-              <span className="text-sm font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
+              <span className="text-sm font-bold gradient-copper-gold bg-clip-text text-transparent">
                 {xp} XP
               </span>
             </div>
@@ -93,7 +93,7 @@ export default function GamificationSummaryCard() {
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F0E8] dark:bg-[#262626]">
-              <Award className="w-4 h-4 text-[#FFB84C]" />
+              <Award className="w-4 h-4 text-copper-dark" />
               <div>
                 <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">Badges</div>
                 <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
@@ -103,7 +103,7 @@ export default function GamificationSummaryCard() {
             </div>
 
             <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F0E8] dark:bg-[#262626]">
-              <Target className="w-4 h-4 text-[#FFB84C]" />
+              <Target className="w-4 h-4 text-copper-dark" />
               <div>
                 <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">Active</div>
                 <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">

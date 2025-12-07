@@ -20,7 +20,7 @@ export default function AIFitScoreCard() {
       <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-            <Brain className="w-5 h-5 text-[#FFB84C]" />
+            <Brain className="w-5 h-5 text-copper-dark" />
             AI Fit Score
           </CardTitle>
         </CardHeader>
@@ -39,7 +39,7 @@ export default function AIFitScoreCard() {
       <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-            <Brain className="w-5 h-5 text-[#FFB84C]" />
+            <Brain className="w-5 h-5 text-copper-dark" />
             AI Fit Score
           </CardTitle>
         </CardHeader>
@@ -112,16 +112,16 @@ export default function AIFitScoreCard() {
               />
               {/* Progress circle - Amber gradient */}
               <defs>
-                <linearGradient id="amber-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#FFB84C" />
-                  <stop offset="100%" stopColor="#FF9400" />
+                <linearGradient id="copper-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="var(--copper-light)" />
+                  <stop offset="100%" stopColor="var(--copper-dark)" />
                 </linearGradient>
               </defs>
               <motion.circle
                 cx="64"
                 cy="64"
                 r="56"
-                stroke="url(#amber-gradient)"
+                stroke="url(#copper-gradient)"
                 strokeWidth="8"
                 fill="none"
                 strokeLinecap="round"
@@ -156,7 +156,7 @@ export default function AIFitScoreCard() {
                 transition={{ delay: 0.4 + index * 0.1 }}
                 className="text-xs text-[#57534E] dark:text-[#C4BCB4] flex items-start gap-1"
               >
-                <Star className="w-3 h-3 mt-0.5 flex-shrink-0 text-[#FFB84C]" />
+                <Star className="w-3 h-3 mt-0.5 flex-shrink-0 text-copper-dark" />
                 <span>{explanation}</span>
               </motion.div>
             ))}
