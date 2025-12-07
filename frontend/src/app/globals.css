@@ -331,6 +331,11 @@
     --surface: 0 0% 10%;                 /* #1A1A1A - Cards */
     --surface-variant: 0 0% 15%;         /* #262626 - Hover/active */
     
+    /* Copper-Rose Gold - Logo Color Palette (Dark Mode - Brighter for visibility) */
+    --copper-light: #E8C8A0;             /* Brighter champagne gold for dark mode */
+    --copper-mid: #DDB896;               /* Brighter mid copper-rose gold */
+    --copper-dark: #D4A574;              /* Brighter dark copper */
+    
     /* Chart colors for dark mode */
     --chart-1: 38 92% 63%;
     --chart-2: 33 100% 56%;
@@ -561,17 +566,17 @@
     background: linear-gradient(135deg, #FFCC66 0%, #FFB84C 100%);
   }
   
-  /* Copper-Rose Gold Gradient - Logo Color Palette */
+  /* Copper-Rose Gold Gradient - Logo Color Palette (Theme-Aware) */
   .gradient-copper-gold {
-    background: linear-gradient(90deg, #D4A574 0%, #C9956F 50%, #B8860B 100%);
+    background: linear-gradient(90deg, var(--copper-light) 0%, var(--copper-mid) 50%, var(--copper-dark) 100%);
   }
   
   .gradient-copper-gold-vertical {
-    background: linear-gradient(180deg, #D4A574 0%, #C9956F 50%, #B8860B 100%);
+    background: linear-gradient(180deg, var(--copper-light) 0%, var(--copper-mid) 50%, var(--copper-dark) 100%);
   }
   
   .gradient-copper-gold-diagonal {
-    background: linear-gradient(135deg, #D4A574 0%, #C9956F 50%, #B8860B 100%);
+    background: linear-gradient(135deg, var(--copper-light) 0%, var(--copper-mid) 50%, var(--copper-dark) 100%);
   }
   
   /* Page backgrounds */
