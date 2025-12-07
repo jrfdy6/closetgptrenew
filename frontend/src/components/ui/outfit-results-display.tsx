@@ -351,8 +351,10 @@ export default function OutfitResultsDisplay({
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* HERO: Flat Lay Image (Primary Display) */}
-          <div className="mb-4 p-4 bg-gradient-to-br from-[#E8C8A0]/30 to-[#C9956F]/30 dark:from-[#B8860B]/40 dark:to-[#C9956F]/40 rounded-xl border-2 border-[#D4A574] dark:border-[#C9956F]">
+          {/* Desktop Two-Column Layout / Mobile Stack */}
+          <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
+            {/* LEFT COLUMN: Flat Lay Image (Primary Display) */}
+            <div className="mb-4 lg:mb-0 p-4 bg-gradient-to-br from-[#E8C8A0]/30 to-[#C9956F]/30 dark:from-[#B8860B]/40 dark:to-[#C9956F]/40 rounded-xl border-2 border-[#D4A574] dark:border-[#C9956F]">
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-white">
                 <Eye className="h-5 w-5 text-[#B8860B] dark:text-[#E8C8A0]" />
@@ -402,9 +404,12 @@ export default function OutfitResultsDisplay({
                 Share
               </Button>
             </div>
-          </div>
+            </div>
 
-          {/* Weather-Informed Advisory Text - Always Visible */}
+            {/* RIGHT COLUMN: Rating & Actions (Desktop) / Stacked below (Mobile) */}
+            <div className="space-y-4">
+              {/* Rating Section with Enhanced Context */}
+              <div className="border-t border-[#E8C8A0]/30 dark:border-[#B8860B]/30 lg:border-t-0 pt-6 lg:pt-0">
           {outfit.reasoning && (
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <div className="flex items-start gap-3">
@@ -738,9 +743,7 @@ export default function OutfitResultsDisplay({
             </div>
           )}
 
-          {/* Rating Section with Enhanced Context */}
-          <div className="border-t pt-6">
-            <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-2">
               <h4 className="font-semibold text-gray-900 dark:text-white">Rate This Outfit</h4>
               <Badge variant="outline" className="text-xs">
                 <Star className="h-3 w-3 mr-1" />
@@ -849,10 +852,10 @@ export default function OutfitResultsDisplay({
                 </p>
               </div>
             )}
-          </div>
+              </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
             {isWorn ? (
               <Button 
                 onClick={onViewOutfits} 
@@ -888,8 +891,12 @@ export default function OutfitResultsDisplay({
                 </Button>
               </>
             )}
+              </div>
+            </div>
           </div>
-        </CardContent>
+          {/* End Two-Column Layout */}
+
+          {/* Weather-Informed Advisory Text - Always Visible */}
       </Card>
 
       {/* Integrated Style Education - Now part of "Why This Outfit Works" */}
