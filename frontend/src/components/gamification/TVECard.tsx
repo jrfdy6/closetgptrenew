@@ -21,7 +21,7 @@ export default function TVECard() {
       <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-            <DollarSign className="w-5 h-5 text-copper-dark" />
+            <DollarSign className="w-5 h-5 text-[var(--copper-dark)]" />
             Total Value Unlocked
           </CardTitle>
         </CardHeader>
@@ -40,7 +40,7 @@ export default function TVECard() {
       <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-            <DollarSign className="w-5 h-5 text-copper-dark" />
+            <DollarSign className="w-5 h-5 text-[var(--copper-dark)]" />
             Total Value Unlocked
           </CardTitle>
         </CardHeader>
@@ -63,7 +63,7 @@ export default function TVECard() {
     <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70 overflow-hidden">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-          <DollarSign className="w-5 h-5 text-copper-dark" />
+          <DollarSign className="w-5 h-5 text-[var(--copper-dark)]" />
           Total Value Extracted
           <TooltipProvider>
             <Tooltip>

@@ -20,7 +20,7 @@ export default function AIFitScoreCard() {
       <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-            <Brain className="w-5 h-5 text-copper-dark" />
+            <Brain className="w-5 h-5 text-[var(--copper-dark)]" />
             AI Fit Score
           </CardTitle>
         </CardHeader>
@@ -39,7 +39,7 @@ export default function AIFitScoreCard() {
       <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-            <Brain className="w-5 h-5 text-copper-dark" />
+            <Brain className="w-5 h-5 text-[var(--copper-dark)]" />
             AI Fit Score
           </CardTitle>
         </CardHeader>
@@ -156,7 +156,7 @@ export default function AIFitScoreCard() {
                 transition={{ delay: 0.4 + index * 0.1 }}
                 className="text-xs text-[#57534E] dark:text-[#C4BCB4] flex items-start gap-1"
               >
-                <Star className="w-3 h-3 mt-0.5 flex-shrink-0 text-copper-dark" />
+                <Star className="w-3 h-3 mt-0.5 flex-shrink-0 text-[var(--copper-dark)]" />
                 <span>{explanation}</span>
               </motion.div>
             ))}

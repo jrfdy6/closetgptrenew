@@ -112,7 +112,7 @@ export default function ChallengesPage() {
         {/* Badge Showcase */}
         <div className="mt-12">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-copper-dark" />
+            <Sparkles className="w-6 h-6 text-[var(--copper-dark)]" />
             Your Badges
           </h2>
           <BadgeDisplay />

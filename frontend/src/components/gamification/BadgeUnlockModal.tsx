@@ -72,7 +72,7 @@ export default function BadgeUnlockModal({
   const getRarityBorder = (rarity: string) => {
     switch (rarity) {
       case 'legendary':
-        return 'border-copper-light';
+        return 'border-[var(--copper-light)]';
       case 'epic':
         return 'border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70';
       case 'rare':
@@ -120,7 +120,7 @@ export default function BadgeUnlockModal({
               className={`w-24 h-24 mx-auto rounded-2xl bg-[#F5F0E8] dark:bg-[#262626] border-2 ${getRarityBorder(rarity)}
                 flex items-center justify-center relative animate-shimmer`}
             >
-              <IconComponent className="w-12 h-12 text-copper-dark relative z-10" />
+              <IconComponent className="w-12 h-12 text-[var(--copper-dark)] relative z-10" />
             </motion.div>
           </motion.div>
 

@@ -17,7 +17,7 @@ export default function GamificationSummaryCard() {
       <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-            <Sparkles className="w-5 h-5 text-copper-dark" />
+            <Sparkles className="w-5 h-5 text-[var(--copper-dark)]" />
             Your Progress
           </CardTitle>
         </CardHeader>
@@ -37,7 +37,7 @@ export default function GamificationSummaryCard() {
       <Card className="bg-white dark:bg-[#1A1A1A] border border-[#F5F0E8]/60 dark:border-[#2E2E2E]/70">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[#1C1917] dark:text-[#F8F5F1]">
-            <Sparkles className="w-5 h-5 text-copper-dark" />
+            <Sparkles className="w-5 h-5 text-[var(--copper-dark)]" />
             Your Progress
           </CardTitle>
         </CardHeader>
@@ -93,7 +93,7 @@ export default function GamificationSummaryCard() {
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F0E8] dark:bg-[#262626]">
-              <Award className="w-4 h-4 text-copper-dark" />
+              <Award className="w-4 h-4 text-[var(--copper-dark)]" />
               <div>
                 <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">Badges</div>
                 <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">
@@ -103,7 +103,7 @@ export default function GamificationSummaryCard() {
             </div>
 
             <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F0E8] dark:bg-[#262626]">
-              <Target className="w-4 h-4 text-copper-dark" />
+              <Target className="w-4 h-4 text-[var(--copper-dark)]" />
               <div>
                 <div className="text-xs text-[#57534E] dark:text-[#C4BCB4]">Active</div>
                 <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8F5F1]">

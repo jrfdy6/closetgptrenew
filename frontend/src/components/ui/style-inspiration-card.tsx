@@ -196,7 +196,7 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Sparkles className="w-5 h-5 text-copper-dark" />
+              <Sparkles className="w-5 h-5 text-[var(--copper-dark)]" />
               Style Inspiration
             </CardTitle>
             <Badge

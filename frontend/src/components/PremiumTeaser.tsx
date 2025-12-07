@@ -214,7 +214,7 @@ export default function PremiumTeaser({
   // Compact variant
   if (variant === 'compact') {
     return (
-      <Card className={`border-primary/20 bg-gradient-to-br from-copper-light/10 to-copper-mid/10 dark:from-[#1A1A1A] dark:to-[#262626] ${className}`}>
+      <Card className={`border-primary/20 bg-gradient-to-br from-[var(--copper-light)]/10 to-[var(--copper-mid)]/10 dark:from-[#1A1A1A] dark:to-[#262626] ${className}`}>
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -244,7 +244,7 @@ export default function PremiumTeaser({
           exit={{ opacity: 0, scale: 0.95 }}
           className={className}
         >
-          <Card className="border-primary/20 bg-gradient-to-br from-copper-light/10 to-copper-mid/10 dark:from-[#1A1A1A] dark:to-[#262626] overflow-hidden">
+          <Card className="border-primary/20 bg-gradient-to-br from-[var(--copper-light)]/10 to-[var(--copper-mid)]/10 dark:from-[#1A1A1A] dark:to-[#262626] overflow-hidden">
             {dismissible && (
               <div className="absolute top-2 right-2 z-10">
                 <Button
@@ -321,7 +321,7 @@ export default function PremiumTeaser({
                     >
                       <div className="flex items-center gap-1 mb-1">
                         {[...Array(TESTIMONIALS[currentTestimonial].rating)].map((_, i) => (
-                          <Star key={i} className="h-3 w-3 fill-copper-dark text-copper-dark" />
+                          <Star key={i} className="h-3 w-3 fill-[var(--copper-dark)] text-[var(--copper-dark)]" />
                         ))}
                       </div>
                       <p className="text-sm italic">"{TESTIMONIALS[currentTestimonial].text}"</p>

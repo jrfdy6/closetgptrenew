@@ -61,7 +61,7 @@ export default function XPNotification({
             {levelUp ? (
               <Award className="w-5 h-5 text-white" />
             ) : (
-              <Sparkles className="w-5 h-5 text-copper-dark" />
+              <Sparkles className="w-5 h-5 text-[var(--copper-dark)]" />
             )}
             
             <div className="flex-1">
