@@ -295,41 +295,41 @@
   }
  
   .dark {
-    /* Pure Black Luxury - Rich true black with amber gold accents */
-    --background: 0 0% 5%;               /* #0D0D0D - Almost pure black */
+    /* Deep Warm Brown Luxury - Rich warm dark with rose-gold accents */
+    --background: 18 27% 9%;             /* #1A1410 - Very dark warm brown */
     --foreground: 30 10% 97%;            /* #F8F5F1 - Warm light */
- 
-    --card: 0 0% 10%;                    /* #1A1A1A - Rich charcoal-black */
+
+    --card: 24 28% 15%;                  /* #251D18 - Warm charcoal-brown */
     --card-foreground: 30 10% 97%;
- 
-    --popover: 0 0% 10%;
+
+    --popover: 24 28% 15%;
     --popover-foreground: 30 10% 97%;
- 
-    /* Primary: Amber (vibrant on dark) */
-    --primary: 38 92% 63%;               /* #FFB84C - Signature amber */
+
+    /* Primary: Rose-Gold (vibrant on dark warm) */
+    --primary: 27 50% 55%;               /* #D4A574 - Rose-gold primary */
     --primary-foreground: 0 0% 5%;
- 
-    /* Secondary: Darker charcoal */
-    --secondary: 0 0% 15%;               /* #262626 - Charcoal variant */
+
+    /* Secondary: Medium warm brown */
+    --secondary: 25 22% 20%;             /* #332B25 - Warm brown variant */
     --secondary-foreground: 30 10% 97%;
- 
-    --muted: 0 0% 15%;
+
+    --muted: 25 22% 20%;
     --muted-foreground: 30 8% 75%;      /* #D4CCC0 - Warm muted text */
- 
-    /* Accent: Orange (vibrant on dark) */
-    --accent: 33 100% 56%;               /* #FF9400 - Orange */
+
+    /* Accent: Rose-Gold accent (vibrant on dark warm) */
+    --accent: 27 50% 55%;                /* #D4A574 - Rose-gold accent */
     --accent-foreground: 0 0% 5%;
- 
+
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
- 
-    --border: 0 0% 18%;                  /* #2E2E2E - Subtle border */
-    --input: 0 0% 15%;
-    --ring: 38 92% 63%;
+
+    --border: 25 20% 20%;                /* #322925 - Subtle warm border */
+    --input: 25 22% 20%;
+    --ring: 27 50% 55%;
     
     /* Surface elevation for cards */
-    --surface: 0 0% 10%;                 /* #1A1A1A - Cards */
-    --surface-variant: 0 0% 15%;         /* #262626 - Hover/active */
+    --surface: 24 28% 15%;               /* #251D18 - Cards */
+    --surface-variant: 25 22% 20%;       /* #332B25 - Hover/active */
     
     /* Copper-Rose Gold - Logo Color Palette (Dark Mode - Brighter for visibility) */
     --copper-light: #E8C8A0;             /* Brighter champagne gold for dark mode */
