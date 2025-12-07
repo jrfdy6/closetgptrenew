@@ -568,15 +568,15 @@
   
   /* Copper-Rose Gold Gradient - Logo Color Palette (Theme-Aware) */
   .gradient-copper-gold {
-    background: linear-gradient(90deg, var(--copper-light) 0%, var(--copper-mid) 50%, var(--copper-dark) 100%);
+    background: linear-gradient(90deg, var(--copper-light) 0%, var(--copper-mid) 50%, var(--copper-dark) 100%) !important;
   }
   
   .gradient-copper-gold-vertical {
-    background: linear-gradient(180deg, var(--copper-light) 0%, var(--copper-mid) 50%, var(--copper-dark) 100%);
+    background: linear-gradient(180deg, var(--copper-light) 0%, var(--copper-mid) 50%, var(--copper-dark) 100%) !important;
   }
   
   .gradient-copper-gold-diagonal {
-    background: linear-gradient(135deg, var(--copper-light) 0%, var(--copper-mid) 50%, var(--copper-dark) 100%);
+    background: linear-gradient(135deg, var(--copper-light) 0%, var(--copper-mid) 50%, var(--copper-dark) 100%) !important;
   }
   
   /* Page backgrounds */
