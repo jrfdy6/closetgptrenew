@@ -1186,6 +1186,23 @@
      DARK MODE: Override hardcoded amber/orange colors
      ============================================ */
   
+  /* Dark Mode: Override button gradients to use solid rose-gold - CRITICAL FIX */
+  html.dark button.bg-gradient-to-r.from-primary.to-accent,
+  html.dark button[class*="from-primary"][class*="to-accent"],
+  html.dark .bg-gradient-to-r.from-primary.to-accent,
+  html.dark button[class*="bg-gradient"][class*="from-primary"],
+  html.dark button[class*="bg-gradient"][class*="to-accent"] {
+    background: hsl(var(--primary)) !important; /* Solid rose-gold, not gradient */
+    background-image: none !important;
+    background-color: hsl(var(--primary)) !important;
+  }
+  
+  /* Dark Mode: Override ALL buttons with gradient classes */
+  html.dark button[class*="gradient"] {
+    background: hsl(var(--primary)) !important;
+    background-image: none !important;
+  }
+  
   /* Dark Mode: Override hardcoded amber shadows with rose-gold - High specificity */
   html.dark .shadow-amber-500\/20,
   html.dark .shadow-amber-500\/30,
@@ -1195,6 +1212,22 @@
   html.dark [class*="shadow-orange-"] {
     --tw-shadow-color: hsl(var(--primary) / 0.2) !important;
     box-shadow: 0 10px 15px -3px hsl(var(--primary) / 0.2), 0 4px 6px -2px hsl(var(--primary) / 0.1) !important;
+  }
+  
+  /* Dark Mode: Override primary color gradient classes - Force rose-gold */
+  html.dark .from-primary,
+  html.dark .to-accent,
+  html.dark [class*="from-primary"],
+  html.dark [class*="to-accent"] {
+    --tw-gradient-from: hsl(var(--primary)) !important;
+    --tw-gradient-to: hsl(var(--primary)) !important;
+    --tw-gradient-stops: hsl(var(--primary)) !important;
+  }
+  
+  /* Dark Mode: Override hover shadow on buttons */
+  html.dark button:hover[class*="shadow-primary"],
+  html.dark button[class*="hover:shadow-primary"]:hover {
+    box-shadow: 0 10px 15px -3px hsl(var(--primary) / 0.3) !important;
   }
   
   /* Dark Mode: Override hardcoded amber backgrounds - High specificity */
