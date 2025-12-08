@@ -364,8 +364,8 @@
   
   html.dark,
   .dark html {
-    /* Dark Mode: Deep espresso gradient - anchors page in luxurious dark tone */
-    background: linear-gradient(to bottom right, #451A03 0%, #78350F 50%, #431407 100%) !important;
+    /* Dark Mode: Deep espresso gradient - darker, less warm/amber */
+    background: linear-gradient(to bottom right, #1A1410 0%, #2D1F18 50%, #1A1410 100%) !important;
     background-attachment: fixed;
     background-repeat: no-repeat;
     background-size: cover;
@@ -387,8 +387,8 @@
   
   body.dark,
   .dark body {
-    /* Dark Mode: Deep espresso gradient - anchors page in luxurious dark tone */
-    background: linear-gradient(to bottom right, #451A03 0%, #78350F 50%, #431407 100%) !important;
+    /* Dark Mode: Deep espresso gradient - darker, less warm/amber */
+    background: linear-gradient(to bottom right, #1A1410 0%, #2D1F18 50%, #1A1410 100%) !important;
     background-attachment: fixed;
     background-repeat: no-repeat;
     background-size: cover;
