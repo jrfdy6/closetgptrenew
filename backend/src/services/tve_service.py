@@ -103,10 +103,84 @@ class TVEService:
     def __init__(self):
         self.db = db
     
+    def get_items_per_year(self, gender: Optional[str] = None) -> Dict[str, int]:
+        """
+        Get average items purchased per year by category, gender-aware
+        Based on U.S. consumer research and industry averages
+        
+        Args:
+            gender: User's gender from onboarding ('Female', 'Male', 'Non-binary', 'Prefer not to say') or None
+            
+        Returns:
+            Dictionary of items per year by category
+        """
+        # Base numbers for women (U.S. industry averages from research)
+        women_items_per_year = {
+            "tops": 25,          # 20-25 range, using upper end
+            "pants": 12,         # 8-12 range, using upper end
+            "shoes": 8,          # 5-8 range, using upper end
+            "jackets": 4,        # 3-5 range, using midpoint
+            "dresses": 6,        # 4-6 range, using upper end
+            "activewear": 13,    # Keep as specified by user
+            "accessories": 8     # 5-8 range, using upper end
+        }
+        
+        # Normalize gender string (handle onboarding values)
+        if gender:
+            gender_normalized = gender.strip()
+        else:
+            gender_normalized = None
+        
+        # Female - use women's numbers
+        if gender_normalized in ['Female', 'female', 'F', 'f', 'Women', 'women', 'Woman', 'woman']:
+            return women_items_per_year
+        
+        # Male - use men's numbers
+        if gender_normalized in ['Male', 'male', 'M', 'm', 'Men', 'men', 'Man', 'man']:
+            return {
+                "tops": 20,          # 15-20 range, using upper end
+                "pants": 8,          # 5-8 range, using upper end
+                "shoes": 5,          # 3-5 range, using upper end
+                "jackets": 3,        # 2-3 range, using upper end
+                "dresses": 0,        # Men rarely buy dresses
+                "activewear": 13,    # Keep as specified by user
+                "accessories": 5     # 3-5 range, using upper end
+            }
+        
+        # Non-binary - use average of men/women
+        if gender_normalized in ['Non-binary', 'non-binary', 'Nonbinary', 'nonbinary', 'Non-Binary', 
+                                'NB', 'nb', 'Enby', 'enby']:
+            return {
+                "tops": 22,          # Average of 20 and 25
+                "pants": 10,         # Average of 8 and 12
+                "shoes": 6,          # Average of 5 and 8
+                "jackets": 3,        # Average of 3 and 4 (rounded down)
+                "dresses": 3,        # Average of 0 and 6
+                "activewear": 13,    # Keep as specified
+                "accessories": 6     # Average of 5 and 8
+            }
+        
+        # Prefer not to say - use average of men/women (same as non-binary)
+        if gender_normalized in ['Prefer not to say', 'prefer not to say', 'Prefer Not to Say',
+                                'prefer-not-to-say', 'Not specified', 'not specified', 'Unspecified', 'unspecified']:
+            return {
+                "tops": 22,          # Average of 20 and 25
+                "pants": 10,         # Average of 8 and 12
+                "shoes": 6,          # Average of 5 and 8
+                "jackets": 3,        # Average of 3 and 4 (rounded down)
+                "dresses": 3,        # Average of 0 and 6
+                "activewear": 13,    # Keep as specified
+                "accessories": 6     # Average of 5 and 8
+            }
+        
+        # Default to women's numbers for unknown/unrecognized values
+        return women_items_per_year
+
     def estimate_item_cost(
         self,
         item_type: str,
-        spending_ranges: Dict[str, str]
+        spending_ranges: Dict[str, str],
+        gender: Optional[str] = None
     ) -> float:
         """
         Estimate the cost of an item based on user's spending ranges
@@ -114,6 +188,7 @@ class TVEService:
         Args:
             item_type: Type of clothing item
             spending_ranges: User's spending ranges by category (annual spending, not per-item)
+            gender: User's gender for gender-aware item estimates
             
         Returns:
             Estimated cost in dollars (C)
@@ -148,17 +223,8 @@ class TVEService:
                 annual_budget_midpoint = RANGE_MIDPOINTS.get(annual_total, 2000)
                 annual_spending_midpoint = annual_budget_midpoint * category_percentages.get(spending_key, 0.20)
         
-        # Estimate average items purchased per year for this category
-        items_per_year = {
-            "tops": 8,
-            "pants": 5,
-            "shoes": 4,
-            "jackets": 2,
-            "dresses": 4,
-            "activewear": 6,
-            "accessories": 10
-        }
-        
+        # Get gender-aware items per year
+        items_per_year = self.get_items_per_year(gender)
         avg_items = items_per_year.get(spending_key, 5)
         
         # ✅ FIX: Calculate per-item cost by dividing annual spending by items per year
@@ -264,7 +330,7 @@ class TVEService:
             # ✅ CRITICAL FIX: Preserve existing TVE before recalculation
             existing_tve = item_data.get('current_tve', 0.0)
             
-            # Get user's spending ranges
+            # Get user's spending ranges and gender
             user_ref = self.db.collection('users').document(user_id)
             user_doc = user_ref.get()
             
@@ -274,9 +340,10 @@ class TVEService:
             
             user_data = user_doc.to_dict()
             spending_ranges = user_data.get('spending_ranges', {})
+            user_gender = user_data.get('gender', None)
             
             # Calculate estimated item cost (C)
-            estimated_cost = self.estimate_item_cost(item_type, spending_ranges)
+            estimated_cost = self.estimate_item_cost(item_type, spending_ranges, user_gender)
             
             # Get category
             item_type_lower = item_type.lower().replace(" ", "_")
@@ -390,13 +457,15 @@ class TVEService:
             total_wardrobe_cost = 0
             tve_by_category = {}
             
-            # Get user's spending ranges for cost estimation
+            # Get user's spending ranges AND gender for cost estimation
             user_ref = self.db.collection('users').document(user_id)
             user_doc = user_ref.get()
             spending_ranges = {}
+            user_gender = None
             if user_doc.exists:
                 user_data = user_doc.to_dict()
                 spending_ranges = user_data.get('spending_ranges', {})
+                user_gender = user_data.get('gender', None)
             
             items_initialized = 0
             items_recalculated = 0
@@ -438,10 +507,10 @@ class TVEService:
                 item_type_lower = item_type.lower().replace(" ", "_")
                 category = CATEGORY_TO_SPENDING_KEY.get(item_type_lower, "tops")
                 
-                # ✅ Recalculate estimated_cost based on current spending ranges
+                # ✅ Recalculate estimated_cost based on current spending ranges and gender
                 # Only update database if cost actually changed (to avoid performance issues)
                 try:
-                    new_estimated_cost = self.estimate_item_cost(item_type, spending_ranges)
+                    new_estimated_cost = self.estimate_item_cost(item_type, spending_ranges, user_gender)
                 except Exception as e:
                     logger.error(f"❌ TVE: Failed to estimate cost for item {item_id}: {e}")
                     new_estimated_cost = old_estimated_cost if old_estimated_cost is not None else 0.0
@@ -673,7 +742,7 @@ class TVEService:
                 "total_tve_after": 0.0
             }
             
-            # Get user's spending ranges
+            # Get user's spending ranges and gender
             user_ref = self.db.collection('users').document(user_id)
             user_doc = user_ref.get()
             
@@ -686,6 +755,7 @@ class TVEService:
             
             user_data = user_doc.to_dict()
             spending_ranges = user_data.get('spending_ranges', {})
+            user_gender = user_data.get('gender', None)
             
             for doc in items:
                 try:
@@ -701,7 +771,7 @@ class TVEService:
                     wear_count = item_data.get('wearCount', 0)
                     
                     # Calculate new estimated cost
-                    estimated_cost = self.estimate_item_cost(item_type, spending_ranges)
+                    estimated_cost = self.estimate_item_cost(item_type, spending_ranges, user_gender)
                     
                     # Get category
                     item_type_lower = item_type.lower().replace(" ", "_")
