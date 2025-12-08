@@ -365,31 +365,25 @@ class DashboardService {
       const token = await user.getIdToken();
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
       
-      // Quick health check first (5s timeout) - fail fast if backend is down
+      // Quick health check first (3s timeout) - non-blocking, just for logging
+      // Don't block profile request if health check fails - actual API calls will handle errors gracefully
       const healthCheckController = new AbortController();
-      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 5000);
+      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 3000);
       try {
-        const healthResponse = await fetch(`${backendUrl}/health`, {
+        const healthResponse = await fetch(`${backendUrl}/health/simple`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
           signal: healthCheckController.signal,
         });
         clearTimeout(healthCheckTimeout);
         if (!healthResponse.ok) {
-          console.warn('⚠️ DEBUG: Backend health check failed - backend may be down');
-          return { stylePersona: null };
+          console.warn('⚠️ DEBUG: Backend health check returned non-OK status - proceeding anyway');
         }
       } catch (healthError) {
         clearTimeout(healthCheckTimeout);
-        // On mobile, health check CORS failures are common - don't block the main request
-        const isMobileProfile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-        if (isMobileProfile) {
-          console.warn('⚠️ DEBUG: Mobile health check failed (likely CORS) - proceeding with main request anyway');
-          // Don't return early on mobile - proceed with profile request
-        } else {
-          console.warn('⚠️ DEBUG: Backend health check failed - backend may be down:', healthError);
-          return { stylePersona: null };
-        }
+        // Health check failures are non-blocking - just log and continue
+        // The actual API calls will handle errors gracefully
+        console.warn('⚠️ DEBUG: Backend health check failed (non-blocking):', healthError);
       }
       
       // If health check passes, try profile with timeout (longer on mobile for slow networks)
@@ -444,36 +438,29 @@ class DashboardService {
       // Declare response variable that will be used in both paths
       let response: any;
       
-      // Quick health check first (5s timeout) - fail fast if backend is down
+      // Quick health check first (3s timeout) - non-blocking, just for logging
+      // Don't block dashboard loading if health check fails - actual API calls will handle errors gracefully
       const healthCheckController = new AbortController();
-      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 5000);
-      let backendHealthy = false;
+      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 3000);
       try {
-        const healthResponse = await fetch(`${backendUrl}/health`, {
+        const healthResponse = await fetch(`${backendUrl}/health/simple`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
           signal: healthCheckController.signal,
         });
         clearTimeout(healthCheckTimeout);
-        backendHealthy = healthResponse.ok;
-        if (!backendHealthy) {
-          console.warn('⚠️ DEBUG: Backend health check failed - backend may be down');
+        if (!healthResponse.ok) {
+          console.warn('⚠️ DEBUG: Backend health check returned non-OK status - proceeding anyway');
         }
       } catch (healthError) {
         clearTimeout(healthCheckTimeout);
-        // On mobile, health check CORS failures are common - don't block the main request
-        if (isMobile) {
-          console.warn('⚠️ DEBUG: Mobile health check failed (likely CORS) - proceeding with main request anyway');
-          backendHealthy = true; // Don't block on mobile
-        } else {
-          console.warn('⚠️ DEBUG: Backend health check failed - backend may be down:', healthError);
-          backendHealthy = false;
-        }
+        // Health check failures are non-blocking - just log and continue
+        // The actual API calls will handle errors gracefully
+        console.warn('⚠️ DEBUG: Backend health check failed (non-blocking):', healthError);
       }
       
-      // If backend is not healthy (and not mobile), return empty data immediately
-      if (!backendHealthy) {
-        console.warn('⚠️ DEBUG: Backend appears to be down - returning empty wardrobe data');
+      // Always proceed with API calls - don't block on health check failures
+      // The individual API calls will handle errors gracefully
         return {
           success: false,
           items: [],
