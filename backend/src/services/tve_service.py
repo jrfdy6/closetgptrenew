@@ -113,7 +113,7 @@ class TVEService:
         
         Args:
             item_type: Type of clothing item
-            spending_ranges: User's spending ranges by category
+            spending_ranges: User's spending ranges by category (annual spending, not per-item)
             
         Returns:
             Estimated cost in dollars (C)
@@ -126,6 +126,9 @@ class TVEService:
         
         # Get user's spending range for that category
         spending_range = spending_ranges.get(spending_key, "unknown")
+        
+        # Get the annual spending midpoint for this category
+        annual_spending_midpoint = RANGE_MIDPOINTS.get(spending_range, 100)
         
         # If not sure, try to infer from annual total
         if spending_range == "unknown" or spending_range == "Not sure — estimate for me based on my wardrobe":
@@ -143,26 +146,26 @@ class TVEService:
                 }
                 
                 annual_budget_midpoint = RANGE_MIDPOINTS.get(annual_total, 2000)
-                category_budget = annual_budget_midpoint * category_percentages.get(spending_key, 0.20)
-                
-                # Estimate average items purchased per year
-                items_per_year = {
-                    "tops": 8,
-                    "pants": 5,
-                    "shoes": 4,
-                    "jackets": 2,
-                    "dresses": 4,
-                    "activewear": 6,
-                    "accessories": 10
-                }
-                
-                avg_items = items_per_year.get(spending_key, 5)
-                estimated_cost = category_budget / avg_items if avg_items > 0 else 100
-                
-                return round(estimated_cost, 2)
+                annual_spending_midpoint = annual_budget_midpoint * category_percentages.get(spending_key, 0.20)
         
-        # Use the midpoint of the range
-        return RANGE_MIDPOINTS.get(spending_range, 100)
+        # Estimate average items purchased per year for this category
+        items_per_year = {
+            "tops": 8,
+            "pants": 5,
+            "shoes": 4,
+            "jackets": 2,
+            "dresses": 4,
+            "activewear": 6,
+            "accessories": 10
+        }
+        
+        avg_items = items_per_year.get(spending_key, 5)
+        
+        # ✅ FIX: Calculate per-item cost by dividing annual spending by items per year
+        # The spending ranges represent ANNUAL spending, not per-item cost
+        estimated_cost = annual_spending_midpoint / avg_items if avg_items > 0 else 100
+        
+        return round(estimated_cost, 2)
     
     async def calculate_dynamic_cpw_target(
         self,
@@ -545,15 +548,30 @@ class TVEService:
                     lowest_category = category
             
             # Calculate annual potential range
-            # Based on target wear rates: 50-75% of total wardrobe cost represents realistic annual extraction
-            # This means you can extract 50-75% of your wardrobe's value per year with consistent rotation
+            # Based on actual value_per_wear × target wear rates for each item
+            # Low: 50% of target wear rate (baseline weekly rotation)
+            # High: 75% of target wear rate (active rotation, 2x/week)
+            annual_potential_low = 0.0
+            annual_potential_high = 0.0
+            
+            for item in processed_items:
+                category = item['category']
+                value_per_wear = item['value_per_wear']
+                target_wear_rate = TARGET_WEAR_RATES.get(category, 52)  # Default to tops standard
+                
+                # Calculate annual potential: value_per_wear × target_wear_rate × utilization_factor
+                # Low: 50% utilization (baseline rotation)
+                # High: 75% utilization (active rotation)
+                annual_potential_low += value_per_wear * target_wear_rate * 0.50
+                annual_potential_high += value_per_wear * target_wear_rate * 0.75
+            
             annual_potential_range = {
-                "low": round(total_wardrobe_cost * 0.50, 2),   # 50% = baseline weekly rotation
-                "high": round(total_wardrobe_cost * 0.75, 2)    # 75% = active rotation (2x/week)
+                "low": round(annual_potential_low, 2),
+                "high": round(annual_potential_high, 2)
             }
             
             logger.info(f"📊 TVE: Annual potential: ${annual_potential_range['low']:.2f}-${annual_potential_range['high']:.2f} "
-                       f"(50-75% of ${total_wardrobe_cost:.2f} wardrobe)")
+                       f"(based on 50-75% of target wear rates across {len(processed_items)} items)")
             
             result = {
                 "total_tve": round(total_tve, 2),

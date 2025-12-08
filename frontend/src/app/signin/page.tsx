@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
-import { signIn, signInWithGoogle, getSignInMethods } from "@/lib/auth";
+import { signIn, signInWithGoogle } from "@/lib/auth";
 import PasswordLinkPrompt from "@/components/PasswordLinkPrompt";
 import PasswordLinkBanner from "@/components/PasswordLinkBanner";
 
@@ -24,8 +24,6 @@ export default function SignIn() {
   const [googleSignInEmail, setGoogleSignInEmail] = useState("");
   const [showPasswordLinkBanner, setShowPasswordLinkBanner] = useState(false);
   const [googleSignInSuccess, setGoogleSignInSuccess] = useState(false);
-  const [hasBothMethods, setHasBothMethods] = useState(false);
-  const [checkedEmail, setCheckedEmail] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -34,59 +32,8 @@ export default function SignIn() {
     }
   }, []);
 
-  // Check if email has both password and Google methods
-  useEffect(() => {
-    const checkEmailMethods = async () => {
-      if (email && email.includes("@") && email !== checkedEmail) {
-        try {
-          const methodsResult = await getSignInMethods(email);
-          if (methodsResult.success && methodsResult.methods) {
-            const methods = methodsResult.methods;
-            const hasPassword = methods.includes("password");
-            const hasGoogle = methods.includes("google.com");
-            
-            // Hide form if both methods exist, OR if methods array is empty (Google account not linked)
-            // Empty array indicates Google account exists but password isn't linked
-            if ((hasPassword && hasGoogle) || (methods.length === 0)) {
-              setHasBothMethods(true);
-              setCheckedEmail(email);
-              setError(""); // Clear any error when both methods detected
-            } else {
-              setHasBothMethods(false);
-              setCheckedEmail(email);
-            }
-          } else {
-            // If methods check fails, assume it might be a Google account
-            // We'll let the error handler catch it if password sign-in fails
-            setHasBothMethods(false);
-            setCheckedEmail(email);
-          }
-        } catch (error) {
-          setHasBothMethods(false);
-          setCheckedEmail(email);
-        }
-      } else if (!email) {
-        setHasBothMethods(false);
-        setCheckedEmail("");
-      }
-    };
-
-    // Debounce the check
-    const timeoutId = setTimeout(() => {
-      checkEmailMethods();
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [email, checkedEmail]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Prevent submission if both methods are detected
-    if (hasBothMethods) {
-      setError("Please use Google sign-in for this account. After signing in, you can link your password in your profile settings.");
-      return;
-    }
     
     setIsLoading(true);
     setError("");
@@ -132,13 +79,6 @@ export default function SignIn() {
           router.push("/dashboard");
         }
       } else {
-        // Check if error indicates Google account - if so, hide the form
-        if (result.error && (
-          result.error.includes('Google account') || 
-          result.error.includes('sign in with Google')
-        )) {
-          setHasBothMethods(true);
-        }
         setError(result.error || "Sign in failed");
         console.error("Signin error:", result.error);
       }
@@ -234,18 +174,8 @@ export default function SignIn() {
             Welcome back
           </CardTitle>
           <CardDescription className="text-muted-foreground font-light text-lg">
-            {hasBothMethods 
-              ? "Your account is connected with Google. Please sign in with Google to continue."
-              : "Sign in to your Easy Outfit account"
-            }
+            Sign in to your Easy Outfit account
           </CardDescription>
-          {hasBothMethods && (
-            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-              <p className="text-xs text-amber-800 dark:text-amber-200 text-center">
-                After signing in with Google, you can link your password in your profile settings to use both sign-in methods.
-              </p>
-            </div>
-          )}
         </CardHeader>
         <CardContent>
           {error && (
@@ -307,14 +237,6 @@ export default function SignIn() {
             </div>
           )}
 
-          {hasBothMethods && (
-            <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                Your account is connected with Google. Please use the Google sign-in button above to continue.
-              </p>
-            </div>
-          )}
-          
           <Button
             type="button"
             variant="outline"
@@ -343,20 +265,18 @@ export default function SignIn() {
             Sign in with Google
           </Button>
 
-          {!hasBothMethods && (
-            <>
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-gray-300 dark:border-gray-600" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card/85 dark:bg-card/85 px-2 text-muted-foreground">
-                    Or continue with email
-                  </span>
-                </div>
-              </div>
-              
-              <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-gray-300 dark:border-gray-600" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card/85 dark:bg-card/85 px-2 text-muted-foreground">
+                Or continue with email
+              </span>
+            </div>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Email
@@ -435,8 +355,6 @@ export default function SignIn() {
               </Link>
             </p>
           </div>
-          </>
-          )}
         </CardContent>
       </Card>
 
