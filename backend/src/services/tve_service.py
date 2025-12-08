@@ -408,85 +408,56 @@ class TVEService:
                 item_data = doc.to_dict()
                 item_id = doc.id
                 
-                # Get TVE and cost - if missing, initialize them
+                # Get TVE and cost
                 current_tve = item_data.get('current_tve', None)
                 estimated_cost = item_data.get('estimated_cost', None)
                 wear_count = item_data.get('wearCount', 0) or 0
+                item_type = item_data.get('type', 'other')
                 
-                # If fields are missing, initialize them
-                needs_initialization = current_tve is None or estimated_cost is None
+                # ✅ Always recalculate estimated_cost based on current spending ranges
+                # This ensures costs are accurate if spending ranges changed or calculation method was updated
+                try:
+                    estimated_cost = self.estimate_item_cost(item_type, spending_ranges)
+                except Exception as e:
+                    logger.error(f"❌ TVE: Failed to estimate cost for item {item_id}: {e}")
+                    estimated_cost = estimated_cost if estimated_cost is not None else 0.0
                 
-                if needs_initialization:
-                    try:
-                        item_type = item_data.get('type', 'other')
-                        
-                        # Calculate estimated cost
-                        if estimated_cost is None:
-                            estimated_cost = self.estimate_item_cost(item_type, spending_ranges)
-                        
-                        # Get category
-                        item_type_lower = item_type.lower().replace(" ", "_")
-                        category = CATEGORY_TO_SPENDING_KEY.get(item_type_lower, "tops")
-                        
-                        # Calculate value_per_wear
-                        value_per_wear = await self.calculate_dynamic_cpw_target(user_id, category)
-                        if value_per_wear is None:
-                            value_per_wear = 1.0  # Default fallback
-                        
-                        # Calculate current_tve based on wearCount
-                        if current_tve is None:
-                            current_tve = wear_count * value_per_wear
-                        
-                        # Calculate target wears
-                        target_wears = round(estimated_cost / value_per_wear) if value_per_wear > 0 else round(estimated_cost / 0.50)
-                        
-                        # Update item with TVE fields
-                        item_ref = self.db.collection('wardrobe').document(item_id)
-                        item_ref.update({
-                            'estimated_cost': estimated_cost,
-                            'value_per_wear': value_per_wear,
-                            'target_wears': target_wears,
-                            'current_tve': round(current_tve, 2)
-                        })
-                        
-                        items_initialized += 1
-                        logger.info(f"✅ TVE: Initialized fields for item {item_id}: cost=${estimated_cost}, tve=${current_tve:.2f}, wears={wear_count}")
-                        
-                    except Exception as e:
-                        logger.error(f"❌ TVE: Failed to initialize item {item_id}: {e}")
-                        # Use defaults if initialization fails
-                        current_tve = current_tve if current_tve is not None else 0.0
-                        estimated_cost = estimated_cost if estimated_cost is not None else 0.0
+                # Get category
+                item_type_lower = item_type.lower().replace(" ", "_")
+                category = CATEGORY_TO_SPENDING_KEY.get(item_type_lower, "tops")
+                
+                # Calculate value_per_wear
+                value_per_wear = await self.calculate_dynamic_cpw_target(user_id, category)
+                if value_per_wear is None:
+                    value_per_wear = item_data.get('value_per_wear', 1.0)  # Use existing if available
+                    if value_per_wear is None or value_per_wear == 0:
+                        value_per_wear = 1.0  # Default fallback
+                
+                # Calculate current_tve based on wearCount if missing or seems wrong
+                if current_tve is None or (wear_count > 0 and current_tve == 0.0):
+                    current_tve = wear_count * value_per_wear
+                    items_recalculated += 1
                 else:
-                    # Fields exist, but recalculate current_tve based on wearCount if it seems wrong
-                    # (e.g., if wearCount > 0 but current_tve is 0)
-                    item_type = item_data.get('type', 'other')
-                    item_type_lower = item_type.lower().replace(" ", "_")
-                    category = CATEGORY_TO_SPENDING_KEY.get(item_type_lower, "tops")
-                    
-                    # Recalculate if wearCount suggests TVE should be higher
-                    if wear_count > 0 and current_tve == 0.0:
-                        try:
-                            value_per_wear = await self.calculate_dynamic_cpw_target(user_id, category)
-                            if value_per_wear is None:
-                                value_per_wear = item_data.get('value_per_wear', 1.0)
-                            
-                            # Recalculate current_tve
-                            new_tve = wear_count * value_per_wear
-                            
-                            # Update item
-                            item_ref = self.db.collection('wardrobe').document(item_id)
-                            item_ref.update({
-                                'current_tve': round(new_tve, 2)
-                            })
-                            
-                            current_tve = new_tve
-                            items_recalculated += 1
-                            logger.info(f"✅ TVE: Recalculated item {item_id}: wearCount={wear_count}, new_tve=${new_tve:.2f}")
-                        except Exception as e:
-                            logger.error(f"❌ TVE: Failed to recalculate item {item_id}: {e}")
+                    # Preserve existing current_tve (it's based on actual wears)
+                    current_tve = float(current_tve) if current_tve is not None else 0.0
                 
-                # Ensure we have valid numbers
+                # Calculate target wears
+                target_wears = round(estimated_cost / value_per_wear) if value_per_wear > 0 else round(estimated_cost / 0.50)
+                
+                # Update item with recalculated TVE fields
+                item_ref = self.db.collection('wardrobe').document(item_id)
+                item_ref.update({
+                    'estimated_cost': round(estimated_cost, 2),
+                    'value_per_wear': round(value_per_wear, 2),
+                    'target_wears': target_wears,
+                    'current_tve': round(current_tve, 2)
+                })
+                
+                if estimated_cost != item_data.get('estimated_cost'):
+                    items_initialized += 1
+                    logger.info(f"✅ TVE: Updated item {item_id}: cost=${estimated_cost:.2f} (was ${item_data.get('estimated_cost', 0):.2f}), tve=${current_tve:.2f}, wears={wear_count}")
+                
+                # Ensure we have valid numbers for aggregation
                 current_tve = float(current_tve) if current_tve is not None else 0.0
                 estimated_cost = float(estimated_cost) if estimated_cost is not None else 0.0
                 
