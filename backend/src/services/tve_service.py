@@ -410,21 +410,25 @@ class TVEService:
                 
                 # Get TVE and cost
                 current_tve = item_data.get('current_tve', None)
-                estimated_cost = item_data.get('estimated_cost', None)
+                old_estimated_cost = item_data.get('estimated_cost', None)
                 wear_count = item_data.get('wearCount', 0) or 0
                 item_type = item_data.get('type', 'other')
-                
-                # ✅ Always recalculate estimated_cost based on current spending ranges
-                # This ensures costs are accurate if spending ranges changed or calculation method was updated
-                try:
-                    estimated_cost = self.estimate_item_cost(item_type, spending_ranges)
-                except Exception as e:
-                    logger.error(f"❌ TVE: Failed to estimate cost for item {item_id}: {e}")
-                    estimated_cost = estimated_cost if estimated_cost is not None else 0.0
                 
                 # Get category
                 item_type_lower = item_type.lower().replace(" ", "_")
                 category = CATEGORY_TO_SPENDING_KEY.get(item_type_lower, "tops")
+                
+                # ✅ Recalculate estimated_cost based on current spending ranges
+                # Only update database if cost actually changed (to avoid performance issues)
+                try:
+                    new_estimated_cost = self.estimate_item_cost(item_type, spending_ranges)
+                except Exception as e:
+                    logger.error(f"❌ TVE: Failed to estimate cost for item {item_id}: {e}")
+                    new_estimated_cost = old_estimated_cost if old_estimated_cost is not None else 0.0
+                
+                # Use new cost for calculations, but only update DB if it changed
+                estimated_cost = new_estimated_cost
+                cost_changed = abs(round(estimated_cost, 2) - round(old_estimated_cost or 0, 2)) > 0.01
                 
                 # Calculate value_per_wear
                 value_per_wear = await self.calculate_dynamic_cpw_target(user_id, category)
@@ -434,7 +438,8 @@ class TVEService:
                         value_per_wear = 1.0  # Default fallback
                 
                 # Calculate current_tve based on wearCount if missing or seems wrong
-                if current_tve is None or (wear_count > 0 and current_tve == 0.0):
+                needs_tve_recalc = current_tve is None or (wear_count > 0 and current_tve == 0.0)
+                if needs_tve_recalc:
                     current_tve = wear_count * value_per_wear
                     items_recalculated += 1
                 else:
@@ -444,48 +449,34 @@ class TVEService:
                 # Calculate target wears
                 target_wears = round(estimated_cost / value_per_wear) if value_per_wear > 0 else round(estimated_cost / 0.50)
                 
-                # Update item with recalculated TVE fields
-                item_ref = self.db.collection('wardrobe').document(item_id)
-                item_ref.update({
-                    'estimated_cost': round(estimated_cost, 2),
-                    'value_per_wear': round(value_per_wear, 2),
-                    'target_wears': target_wears,
-                    'current_tve': round(current_tve, 2)
-                })
-                
-                if estimated_cost != item_data.get('estimated_cost'):
-                    items_initialized += 1
-                    logger.info(f"✅ TVE: Updated item {item_id}: cost=${estimated_cost:.2f} (was ${item_data.get('estimated_cost', 0):.2f}), tve=${current_tve:.2f}, wears={wear_count}")
+                # Only update database if something actually changed
+                if cost_changed or needs_tve_recalc or item_data.get('value_per_wear') != round(value_per_wear, 2):
+                    item_ref = self.db.collection('wardrobe').document(item_id)
+                    update_data = {}
+                    if cost_changed:
+                        update_data['estimated_cost'] = round(estimated_cost, 2)
+                        items_initialized += 1
+                        logger.info(f"✅ TVE: Updated item {item_id}: cost=${estimated_cost:.2f} (was ${old_estimated_cost or 0:.2f})")
+                    if needs_tve_recalc:
+                        update_data['current_tve'] = round(current_tve, 2)
+                    # Always update value_per_wear and target_wears if cost changed (they depend on it)
+                    if cost_changed or item_data.get('value_per_wear') != round(value_per_wear, 2):
+                        update_data['value_per_wear'] = round(value_per_wear, 2)
+                        update_data['target_wears'] = target_wears
+                    
+                    if update_data:
+                        item_ref.update(update_data)
                 
                 # Ensure we have valid numbers for aggregation
                 current_tve = float(current_tve) if current_tve is not None else 0.0
                 estimated_cost = float(estimated_cost) if estimated_cost is not None else 0.0
-                
-                # Get category and value_per_wear for annual potential calculation
-                item_type = item_data.get('type', '').lower().replace(" ", "_")
-                category = CATEGORY_TO_SPENDING_KEY.get(item_type, "tops")
-                
-                # Get value_per_wear (may have been calculated/updated above)
-                value_per_wear = item_data.get('value_per_wear', None)
-                if value_per_wear is None or value_per_wear == 0:
-                    # Calculate from estimated_cost and target_wears
-                    target_wears = item_data.get('target_wears', 0) or 0
-                    if target_wears > 0 and estimated_cost > 0:
-                        value_per_wear = estimated_cost / target_wears
-                    else:
-                        # Fallback: calculate from category target wear rate
-                        target_wear_rate = TARGET_WEAR_RATES.get(category, 52)
-                        if estimated_cost > 0 and target_wear_rate > 0:
-                            value_per_wear = estimated_cost / target_wear_rate
-                        else:
-                            value_per_wear = 1.0  # Default $1/wear
                 
                 # Store processed item data for annual potential calculation
                 processed_items.append({
                     'category': category,
                     'estimated_cost': estimated_cost,
                     'value_per_wear': value_per_wear,
-                    'target_wears': item_data.get('target_wears', 0) or 0
+                    'target_wears': target_wears
                 })
                 
                 # Aggregate
