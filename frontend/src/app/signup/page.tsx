@@ -157,7 +157,7 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-card/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-3xl shadow-2xl shadow-amber-500/10 backdrop-blur-xl">
         <CardHeader className="text-center space-y-4 pb-8">
           <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6 font-medium transition-colors">

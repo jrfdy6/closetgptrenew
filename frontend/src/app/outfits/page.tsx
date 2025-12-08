@@ -22,7 +22,7 @@ export default function OutfitsPage({ searchParams }: OutfitsPageProps) {
     searchParams?.favorites === 'true';
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Navigation />
       
       {/* Header */}

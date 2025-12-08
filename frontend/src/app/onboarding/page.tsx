@@ -1641,7 +1641,7 @@ function OnboardingContent() {
   // Show loading state while authenticating
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-body text-muted-foreground">Authenticating...</p>
@@ -1653,7 +1653,7 @@ function OnboardingContent() {
   // Redirect if not authenticated
   if (!modeResolved) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-body text-muted-foreground">Loading your experience...</p>
@@ -1664,7 +1664,7 @@ function OnboardingContent() {
 
   if (!user && !isGuestFlow) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center space-y-4">
           <p className="text-lg text-muted-foreground">Redirecting you back home...</p>
         </div>
@@ -1696,7 +1696,7 @@ function OnboardingContent() {
   // Show loading state while redirecting after upload completion
   if (uploadComplete) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Redirecting to your style persona...</p>

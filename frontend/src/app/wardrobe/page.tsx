@@ -261,7 +261,7 @@ export default function WardrobePage() {
   // Loading state
   if (authLoading || wardrobeLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <Navigation />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
@@ -276,7 +276,7 @@ export default function WardrobePage() {
   // Error state
   if (wardrobeError) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <Navigation />
         <div className="flex items-center justify-center min-h-[60vh] px-4">
           <div className="max-w-md w-full text-center bg-card/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-2xl p-6 backdrop-blur-xl">

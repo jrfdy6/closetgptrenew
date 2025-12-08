@@ -7,7 +7,7 @@ import { ArrowRight, Sparkles, Star } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden">
       {/* Modern minimal geometric elements - lighter on mobile */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-35 md:opacity-55">
         <div className="pointer-events-none absolute top-10 md:top-20 left-5 md:left-10 w-24 md:w-32 h-24 md:h-32 bg-primary/25 dark:bg-primary/20 rounded-full blur-3xl"></div>
