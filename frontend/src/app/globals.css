@@ -379,11 +379,6 @@
     color: hsl(var(--foreground));
   }
   
-  /* Ensure no white backgrounds override the gradient */
-  #main-content,
-  #__next {
-    background: transparent !important;
-  }
   
   /* Enhanced mobile touch targets - WCAG AAA compliance */
   button, 
