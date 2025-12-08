@@ -401,6 +401,26 @@ class TVEService:
             items_initialized = 0
             items_recalculated = 0
             
+            # ✅ PERFORMANCE FIX: Pre-calculate value_per_wear for each category once
+            # This avoids calling calculate_dynamic_cpw_target 145+ times (once per item)
+            category_value_per_wear_cache = {}
+            unique_categories = set()
+            
+            # First pass: collect all unique categories
+            for doc in items:
+                item_data = doc.to_dict()
+                item_type = item_data.get('type', 'other').lower().replace(" ", "_")
+                category = CATEGORY_TO_SPENDING_KEY.get(item_type, "tops")
+                unique_categories.add(category)
+            
+            # Pre-calculate value_per_wear for each category
+            for category in unique_categories:
+                value_per_wear = await self.calculate_dynamic_cpw_target(user_id, category)
+                if value_per_wear is None:
+                    value_per_wear = 1.0  # Default fallback
+                category_value_per_wear_cache[category] = value_per_wear
+                logger.info(f"📊 TVE: Pre-calculated {category} value_per_wear: ${value_per_wear:.2f}")
+            
             # Store processed items with their calculated values for annual potential calculation
             processed_items = []
             
@@ -430,10 +450,11 @@ class TVEService:
                 estimated_cost = new_estimated_cost
                 cost_changed = abs(round(estimated_cost, 2) - round(old_estimated_cost or 0, 2)) > 0.01
                 
-                # Calculate value_per_wear
-                value_per_wear = await self.calculate_dynamic_cpw_target(user_id, category)
-                if value_per_wear is None:
-                    value_per_wear = item_data.get('value_per_wear', 1.0)  # Use existing if available
+                # ✅ PERFORMANCE FIX: Use pre-calculated value_per_wear from cache
+                value_per_wear = category_value_per_wear_cache.get(category)
+                if value_per_wear is None or value_per_wear == 0:
+                    # Fallback to existing value if cache miss (shouldn't happen)
+                    value_per_wear = item_data.get('value_per_wear', 1.0)
                     if value_per_wear is None or value_per_wear == 0:
                         value_per_wear = 1.0  # Default fallback
                 
