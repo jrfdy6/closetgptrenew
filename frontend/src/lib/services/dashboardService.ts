@@ -461,13 +461,6 @@ class DashboardService {
       
       // Always proceed with API calls - don't block on health check failures
       // The individual API calls will handle errors gracefully
-        return {
-          success: false,
-          items: [],
-          count: 0,
-          error: 'Backend health check failed'
-        };
-      }
       
       // SECURITY NOTE: Calling backend directly (bypassing Vercel API route)
       // - Backend URL is already public (NEXT_PUBLIC_BACKEND_URL in client bundle)
