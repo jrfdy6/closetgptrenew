@@ -387,11 +387,12 @@
   
   body.dark,
   .dark body {
-    /* Dark Mode: Warm amber-orange gradient matching outfit generate page */
+    /* Dark Mode: Deep espresso gradient - anchors page in luxurious dark tone */
     background: linear-gradient(to bottom right, #451A03 0%, #78350F 50%, #431407 100%) !important;
     background-attachment: fixed;
     background-repeat: no-repeat;
     background-size: cover;
+    color: hsl(var(--foreground)); /* #F8F5F1 - Warm Light */
   }
   
   /* Ensure no white backgrounds override the gradient */
@@ -420,9 +421,39 @@
     @apply outline-none ring-2 ring-amber-500/50 ring-offset-2 ring-offset-background;
   }
   
+  /* Dark Mode: Focus ring uses rose-gold, not amber */
+  .dark *:focus-visible,
+  *:focus-visible.dark {
+    --tw-ring-color: hsl(var(--ring)); /* #D4A574 - Rose-gold */
+  }
+  
   /* Smooth image transitions for background-removed images (stealth mode) */
   img {
     transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+  }
+  
+  /* Dark Mode: Fix white square image problem - contain white backgrounds */
+  .dark img,
+  img.dark {
+    border: 1px solid hsl(var(--border)); /* #322925 - Subtle warm border */
+    border-radius: 0.5rem;
+  }
+  
+  /* Dark Mode: Item cards with proper elevation */
+  .dark .item-card,
+  .item-card.dark {
+    background-color: hsl(var(--card)); /* #251D18 - Warm charcoal-brown */
+    border: 1px solid hsl(var(--border)); /* #322925 - Subtle warm border */
+    border-radius: var(--radius);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  }
+  
+  /* Dark Mode: Wardrobe container - proper elevation above background */
+  .dark .wardrobe-container,
+  .wardrobe-container.dark {
+    background-color: hsl(var(--card)); /* #251D18 - Lighter than background for elevation */
+    border: 1px solid hsl(var(--border)); /* #322925 */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
   }
   
   ::selection {
@@ -500,6 +531,19 @@
   
   .card-mobile-hover {
     @apply card-mobile hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-200 hover:scale-[1.01];
+  }
+  
+  /* Dark Mode: Mobile cards with proper depth */
+  .dark .card-mobile,
+  .card-mobile.dark {
+    background-color: hsl(var(--card)); /* #251D18 - Lighter than background for elevation */
+    border-color: hsl(var(--border)); /* #322925 */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  }
+  
+  .dark .card-mobile-hover:hover,
+  .card-mobile-hover.dark:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
   }
   
   /* Display + Sans Typography System */
@@ -634,6 +678,17 @@
     @apply bg-secondary;
   }
   
+  /* Dark Mode: Ensure card surfaces use proper variables */
+  .dark .card-surface,
+  .card-surface.dark {
+    background-color: hsl(var(--card)); /* #251D18 */
+  }
+  
+  .dark .card-surface-variant,
+  .card-surface-variant.dark {
+    background-color: hsl(var(--surface-variant)); /* #332B25 - Hover/active states */
+  }
+  
   /* Enhanced typography scale */
   .text-hero {
     @apply text-3xl font-bold tracking-tight;
@@ -682,6 +737,21 @@
     @apply card-enhanced bg-gradient-to-br from-white via-emerald-50/20 to-rose-50/20 dark:from-gray-900 dark:via-emerald-950/5 dark:to-rose-950/5;
   }
   
+  /* Dark Mode: Card styles with proper elevation and depth */
+  .dark .card-enhanced,
+  .card-enhanced.dark {
+    background-color: hsl(var(--card)); /* #251D18 - Warm charcoal-brown */
+    color: hsl(var(--card-foreground)); /* #F8F5F1 - Warm light */
+    border: 1px solid hsl(var(--border)); /* #322925 - Subtle warm border */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  }
+  
+  .dark .card-hover:hover,
+  .card-hover.dark:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+    transform: scale(1.02);
+  }
+  
   /* Animation utilities */
   .animate-fade-in {
     @apply animate-in fade-in duration-500;
@@ -695,7 +765,7 @@
     @apply animate-in zoom-in duration-300;
   }
   
-  /* Premium button styles with amber */
+  /* Premium button styles with amber (Light Mode) */
   .btn-premium {
     @apply bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white shadow-md hover:shadow-lg hover:shadow-amber-500/30 transition-all duration-200;
   }
@@ -706,6 +776,67 @@
   
   .btn-accent-premium {
     @apply bg-gradient-to-r from-orange-600 to-amber-700 hover:from-orange-700 hover:to-amber-800 text-white shadow-md hover:shadow-lg hover:shadow-amber-500/30 transition-all duration-200;
+  }
+  
+  /* Dark Mode: Switch to Rose Gold for buttons (not amber/orange) */
+  .dark .btn-premium,
+  .btn-premium.dark {
+    background-color: hsl(var(--primary)); /* #D4A574 - Rose-gold primary */
+    color: hsl(var(--primary-foreground)); /* #0D0D0D - Dark text for contrast */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease-out;
+  }
+  
+  .dark .btn-premium:hover,
+  .btn-premium.dark:hover {
+    background-color: hsl(27 50% 60%); /* Slightly lighter rose-gold on hover */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  }
+  
+  .dark .btn-secondary-premium,
+  .btn-secondary-premium.dark {
+    background-color: hsl(var(--secondary)); /* #332B25 - Warm brown variant */
+    color: hsl(var(--secondary-foreground)); /* #F8F5F1 - Warm light text */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease-out;
+  }
+  
+  .dark .btn-secondary-premium:hover,
+  .btn-secondary-premium.dark:hover {
+    background-color: hsl(25 22% 25%); /* Slightly lighter on hover */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  }
+  
+  /* Dark Mode: Primary button class using Rose Gold */
+  .dark .btn-primary,
+  .btn-primary.dark {
+    background-color: hsl(var(--primary)); /* #D4A574 - Rose-gold */
+    color: hsl(var(--primary-foreground)); /* #0D0D0D - Dark text */
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease-out;
+  }
+  
+  .dark .btn-primary:hover,
+  .btn-primary.dark:hover {
+    background-color: hsl(27 50% 60%); /* Slightly lighter rose-gold */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  }
+  
+  /* Dark Mode: Secondary button class */
+  .dark .btn-secondary,
+  .btn-secondary.dark {
+    background-color: hsl(var(--secondary)); /* #332B25 */
+    color: hsl(var(--secondary-foreground)); /* #F8F5F1 */
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease-out;
+  }
+  
+  .dark .btn-secondary:hover,
+  .btn-secondary.dark:hover {
+    background-color: hsl(25 22% 25%); /* Slightly lighter */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
   }
 } 
 
@@ -756,7 +887,16 @@
     @apply card-enhanced card-hover;
   }
   
-  /* Button animations with amber shadow */
+  /* Dark Mode: Override card-enhanced to use proper dark mode colors */
+  .dark .card-enhanced,
+  .card-enhanced.dark {
+    background-color: hsl(var(--card)); /* #251D18 */
+    border-color: hsl(var(--border)); /* #322925 */
+    color: hsl(var(--card-foreground)); /* #F8F5F1 */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  }
+  
+  /* Button animations with amber shadow (Light Mode) */
   .btn-premium {
     @apply transition-all duration-200 ease-out hover:shadow-lg hover:shadow-amber-500/20 hover:-translate-y-0.5 active:scale-[0.98];
   }
@@ -767,6 +907,34 @@
   
   .btn-accent-premium {
     @apply transition-all duration-200 ease-out hover:shadow-md hover:shadow-orange-500/20 hover:-translate-y-0.5 active:scale-[0.98];
+  }
+  
+  /* Dark Mode: Button animations use rose-gold shadows, not amber */
+  .dark .btn-premium,
+  .btn-premium.dark {
+    transition: all 0.2s ease-out;
+  }
+  
+  .dark .btn-premium:hover,
+  .btn-premium.dark:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    transform: translateY(-2px);
+  }
+  
+  .dark .btn-premium:active,
+  .btn-premium.dark:active {
+    transform: scale(0.98);
+  }
+  
+  .dark .btn-secondary-premium,
+  .btn-secondary-premium.dark {
+    transition: all 0.2s ease-out;
+  }
+  
+  .dark .btn-secondary-premium:hover,
+  .btn-secondary-premium.dark:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    transform: translateY(-2px);
   }
   
   /* Page transitions */
@@ -851,13 +1019,28 @@
     @apply transition-transform duration-200 ease-out hover:animate-pulse;
   }
   
-  /* Text animations with amber */
+  /* Text animations with amber (Light Mode) */
   .text-glow {
     @apply transition-all duration-200 ease-out hover:text-amber-600 dark:hover:text-amber-400;
   }
   
   .text-gradient-hover {
     @apply transition-all duration-300 ease-out hover:bg-gradient-to-r hover:from-amber-600 hover:to-orange-600 hover:bg-clip-text hover:text-transparent;
+  }
+  
+  /* Dark Mode: Text glow uses rose-gold, not amber */
+  .dark .text-glow:hover,
+  .text-glow.dark:hover {
+    color: hsl(var(--primary)); /* #D4A574 - Rose-gold */
+  }
+  
+  /* Dark Mode: Text gradient hover uses rose-gold */
+  .dark .text-gradient-hover:hover,
+  .text-gradient-hover.dark:hover {
+    background: linear-gradient(to right, hsl(var(--primary)), hsl(27 50% 60%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
   
   /* Liquid Glass / Glassmorphism Effects */
@@ -881,6 +1064,12 @@
     @apply glass-card hover:bg-white/60 dark:hover:bg-gray-800/60 hover:shadow-2xl hover:shadow-amber-500/20 hover:scale-[1.02] hover:-translate-y-1;
   }
   
+  /* Dark Mode: Glass card hover uses rose-gold shadow, not amber */
+  .dark .glass-card-hover:hover,
+  .glass-card-hover.dark:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(212, 165, 116, 0.2);
+  }
+  
   .glass-navbar {
     @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl border-b border-white/20 dark:border-white/10 shadow-xl shadow-black/5;
   }
@@ -895,6 +1084,14 @@
   
   .glass-button {
     @apply bg-white/30 dark:bg-gray-800/30 backdrop-blur-xl border border-white/40 dark:border-white/20 hover:bg-amber-50/50 dark:hover:bg-amber-900/30 hover:border-amber-300/40 dark:hover:border-amber-700/40 hover:shadow-amber-500/20 transition-all duration-200;
+  }
+  
+  /* Dark Mode: Glass button hover uses rose-gold, not amber */
+  .dark .glass-button:hover,
+  .glass-button.dark:hover {
+    background-color: rgba(212, 165, 116, 0.2); /* Rose-gold tint */
+    border-color: rgba(212, 165, 116, 0.4); /* Rose-gold border */
+    box-shadow: 0 4px 6px -1px rgba(212, 165, 116, 0.2);
   }
   
   /* Glass gradient variations for fashion app */
@@ -926,6 +1123,12 @@
   
   .glass-float-hover {
     @apply glass-float hover:shadow-2xl hover:shadow-amber-500/20 hover:-translate-y-1 hover:scale-[1.01];
+  }
+  
+  /* Dark Mode: Glass float hover uses rose-gold shadow */
+  .dark .glass-float-hover:hover,
+  .glass-float-hover.dark:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(212, 165, 116, 0.2);
   }
   
   /* Glass Transitions */
@@ -969,4 +1172,11 @@
   
   .glass-button-secondary {
     @apply glass-button hover:bg-amber-50/60 dark:hover:bg-amber-900/60 shadow-md hover:shadow-lg hover:shadow-amber-500/20;
+  }
+  
+  /* Dark Mode: Glass button secondary uses rose-gold */
+  .dark .glass-button-secondary:hover,
+  .glass-button-secondary.dark:hover {
+    background-color: rgba(212, 165, 116, 0.15); /* Subtle rose-gold */
+    box-shadow: 0 4px 6px -1px rgba(212, 165, 116, 0.15);
   } 
