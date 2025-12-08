@@ -365,10 +365,11 @@ class DashboardService {
       const token = await user.getIdToken();
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
       
-      // Quick health check first (3s timeout) - non-blocking, just for logging
+      // Quick health check first (5s timeout) - non-blocking, just for logging
       // Don't block profile request if health check fails - actual API calls will handle errors gracefully
+      // Increased timeout to 5s to account for network latency and CORS preflight
       const healthCheckController = new AbortController();
-      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 3000);
+      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 5000);
       try {
         const healthResponse = await fetch(`${backendUrl}/health/simple`, {
           method: 'GET',
@@ -438,10 +439,11 @@ class DashboardService {
       // Declare response variable that will be used in both paths
       let response: any;
       
-      // Quick health check first (3s timeout) - non-blocking, just for logging
+      // Quick health check first (5s timeout) - non-blocking, just for logging
       // Don't block dashboard loading if health check fails - actual API calls will handle errors gracefully
+      // Increased timeout to 5s to account for network latency and CORS preflight
       const healthCheckController = new AbortController();
-      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 3000);
+      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 5000);
       try {
         const healthResponse = await fetch(`${backendUrl}/health/simple`, {
           method: 'GET',
