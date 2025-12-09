@@ -1544,9 +1544,17 @@
   }
   
   /* Dark Mode: Cards and containers should use proper elevation - High specificity */
-  html.dark [class*="bg-card"],
-  html.dark .bg-white {
+  /* BUT: component-card should use #0F0B08, not the brown --card variable */
+  html.dark [class*="bg-card"]:not(.component-card),
+  html.dark .bg-white:not(.component-card) {
     background-color: hsl(var(--card)) !important;
+  }
+  
+  /* Ensure component-card NEVER uses the brown --card variable in dark mode */
+  html.dark .component-card[class*="bg-card"],
+  .dark .component-card[class*="bg-card"] {
+    background: #0F0B08 !important;
+    background-color: #0F0B08 !important;
   }
   
   /* Dark Mode: Ensure main content areas use proper background */
@@ -1587,4 +1595,18 @@
   html.dark .text-orange-300,
   html.dark .text-orange-400 {
     color: hsl(var(--primary)) !important;
+  }
+  
+  /* FINAL OVERRIDE: Ensure component-card ALWAYS uses #0F0B08 in dark mode - Maximum specificity */
+  html.dark div.component-card.component-card,
+  html[class~="dark"] div.component-card.component-card,
+  .dark div.component-card.component-card,
+  html.dark .component-card.component-card,
+  html[class~="dark"] .component-card.component-card,
+  .dark .component-card.component-card {
+    background: #0F0B08 !important;
+    background-color: #0F0B08 !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   } 
