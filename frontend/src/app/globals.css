@@ -855,13 +855,17 @@
   }
 
   /* Dark Mode: Enhanced elevation with proper layering - Use darker background */
+  /* Multiple selectors to ensure it applies regardless of how dark mode is detected */
   html.dark .component-card,
-  .component-card.dark,
+  html[class~="dark"] .component-card,
   .dark .component-card,
-  html[class*="dark"] .component-card,
-  [class*="dark"] .component-card {
+  .component-card.dark,
+  [class*="dark"] .component-card,
+  body.dark .component-card,
+  .dark body .component-card {
     background: #0F0B08 !important; /* Match the body gradient - Almost black with subtle warm tone */
     background-color: #0F0B08 !important;
+    background-image: none !important;
     border-color: hsl(var(--border) / 0.7) !important; /* #322925 with opacity */
     box-shadow: 
       0 10px 15px -3px rgba(0, 0, 0, 0.5),
@@ -870,10 +874,21 @@
     color: hsl(var(--card-foreground)) !important; /* #F8F5F1 */
   }
   
-  /* Force dark mode card background - highest specificity */
+  /* Force dark mode card background - highest specificity with element selector */
   html.dark div.component-card,
+  html[class~="dark"] div.component-card,
   .dark div.component-card,
-  div.component-card.dark {
+  div.component-card.dark,
+  body.dark div.component-card,
+  .dark body div.component-card {
+    background: #0F0B08 !important;
+    background-color: #0F0B08 !important;
+    background-image: none !important;
+  }
+  
+  /* Override any Tailwind bg- utilities in dark mode */
+  html.dark .component-card[class*="bg-"],
+  .dark .component-card[class*="bg-"] {
     background: #0F0B08 !important;
     background-color: #0F0B08 !important;
   }
