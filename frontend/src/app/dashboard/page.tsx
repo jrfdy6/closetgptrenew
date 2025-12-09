@@ -883,10 +883,6 @@ export default function Dashboard() {
 
         {/* Forgotten Gems - Mobile Optimized */}
         <div className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl">
-          <div className="p-4 sm:p-6 lg:p-8 border-b border-border/60 dark:border-border/70">
-            <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Forgotten gems</h2>
-            <p className="text-sm sm:text-base text-muted-foreground">Rediscover items you haven’t worn in a while</p>
-          </div>
           <div className="p-4 sm:p-6 lg:p-8">
             <ForgottenGems />
           </div>

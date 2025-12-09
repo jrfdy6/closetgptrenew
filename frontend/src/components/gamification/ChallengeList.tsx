@@ -118,7 +118,7 @@ export default function ChallengeList({ featured = false }: ChallengeListProps) 
 
       <TabsContent value="active" className="mt-6">
         {activeChallenges.length === 0 ? (
-          <div className="text-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div className="text-center p-8 bg-gradient-to-br from-[#D4A574]/30 to-[#C9956F]/30 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               No active challenges. Start one to begin earning rewards!
             </p>
