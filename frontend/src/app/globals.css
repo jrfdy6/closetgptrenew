@@ -1550,6 +1550,15 @@
     background-color: hsl(var(--secondary)) !important;
   }
   
+  /* Dark Mode: Override bg-secondary and bg-muted to use dark black */
+  html.dark .bg-secondary,
+  html.dark .dark\:bg-muted,
+  .dark .bg-secondary,
+  .dark .dark\:bg-muted {
+    background-color: #0F0B08 !important;
+    background: #0F0B08 !important;
+  }
+  
   /* Dark Mode: Cards and containers should use proper elevation - High specificity */
   /* BUT: component-card should use #0F0B08, not the brown --card variable */
   html.dark [class*="bg-card"]:not(.component-card),
