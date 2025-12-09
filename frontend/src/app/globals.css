@@ -839,6 +839,176 @@
     background-color: hsl(25 22% 25%); /* Slightly lighter */
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
   }
+  
+  /* ============================================
+     GLOBAL DARK MODE COMPONENT SYSTEM
+     Based on Wardrobe Insights Hub pattern
+     ============================================ */
+
+  /* Base Card - Layered Elevation System */
+  .component-card {
+    @apply rounded-2xl backdrop-blur-xl border transition-all duration-300 ease-out relative;
+    /* Light Mode */
+    background: hsl(var(--card) / 0.4);
+    border-color: hsl(var(--border) / 0.3);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  }
+
+  /* Dark Mode: Enhanced elevation with proper layering */
+  html.dark .component-card,
+  .component-card.dark {
+    background: hsl(var(--card) / 0.95); /* #251D18 with high opacity for depth */
+    border-color: hsl(var(--border) / 0.7); /* #322925 with opacity */
+    box-shadow: 
+      0 10px 15px -3px rgba(0, 0, 0, 0.5),
+      0 4px 6px -2px rgba(0, 0, 0, 0.3),
+      0 0 0 1px hsl(var(--border) / 0.2) inset; /* Subtle inner highlight */
+    color: hsl(var(--card-foreground)); /* #F8F5F1 */
+  }
+
+  /* Card Hover State */
+  .component-card:hover {
+    @apply -translate-y-1;
+    box-shadow: 
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04),
+      0 0 0 1px hsl(var(--primary) / 0.2);
+  }
+
+  html.dark .component-card:hover,
+  .component-card.dark:hover {
+    box-shadow: 
+      0 20px 25px -5px rgba(0, 0, 0, 0.6),
+      0 10px 10px -5px rgba(0, 0, 0, 0.4),
+      0 0 0 1px hsl(var(--primary) / 0.2), /* Rose-gold highlight */
+      0 0 20px hsl(var(--primary) / 0.1); /* Subtle glow */
+  }
+
+  /* Nested Card (for inner content areas) */
+  .component-card-nested {
+    @apply rounded-xl backdrop-blur-sm border;
+    background: hsl(var(--secondary) / 0.75);
+    border-color: hsl(var(--border) / 0.6);
+  }
+
+  html.dark .component-card-nested,
+  .component-card-nested.dark {
+    background: hsl(var(--card) / 0.8); /* Slightly more transparent */
+    border-color: hsl(var(--border) / 0.7);
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.3),
+      0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Button Outline Style (like the Refresh button) */
+  .component-button-outline {
+    @apply border-2 rounded-xl transition-all duration-200;
+    border-color: hsl(var(--primary));
+    color: hsl(var(--primary));
+    background: transparent;
+  }
+
+  html.dark .component-button-outline,
+  .component-button-outline.dark {
+    border-color: hsl(var(--primary)); /* Rose-gold */
+    color: hsl(var(--primary));
+    background: transparent;
+  }
+
+  .component-button-outline:hover {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    box-shadow: 0 4px 6px -1px hsl(var(--primary) / 0.3);
+  }
+
+  html.dark .component-button-outline:hover,
+  .component-button-outline.dark:hover {
+    background: hsl(var(--primary)); /* Rose-gold fill */
+    color: hsl(var(--primary-foreground)); /* Dark text */
+    box-shadow: 0 4px 6px -1px hsl(var(--primary) / 0.4);
+  }
+
+  /* Text Hierarchy */
+  .component-text-primary {
+    @apply text-card-foreground;
+  }
+
+  html.dark .component-text-primary,
+  .component-text-primary.dark {
+    color: hsl(var(--card-foreground)); /* #F8F5F1 - Warm light */
+  }
+
+  .component-text-secondary {
+    @apply text-muted-foreground;
+  }
+
+  html.dark .component-text-secondary,
+  .component-text-secondary.dark {
+    color: hsl(var(--muted-foreground)); /* #D4CCC0 - Warm muted text */
+  }
+
+  /* Subtle Highlight Under Card (the glow effect) */
+  .component-card::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, 
+      hsl(var(--primary) / 0.1) 0%, 
+      transparent 50%, 
+      hsl(var(--primary) / 0.05) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+  }
+
+  html.dark .component-card::before,
+  .component-card.dark::before {
+    opacity: 1; /* Show the subtle highlight in dark mode */
+  }
+
+  .component-card:hover::before {
+    opacity: 1;
+    background: linear-gradient(135deg, 
+      hsl(var(--primary) / 0.2) 0%, 
+      transparent 50%, 
+      hsl(var(--primary) / 0.1) 100%);
+  }
+
+  /* Tab/Button Active State (like Style Inspiration tab) */
+  .component-tab-active {
+    @apply border-2 rounded-xl;
+    border-color: hsl(var(--border) / 0.6);
+    background: hsl(var(--secondary) / 0.5);
+  }
+
+  html.dark .component-tab-active,
+  .component-tab-active.dark {
+    border-color: hsl(var(--border) / 0.7);
+    background: hsl(var(--surface-variant) / 0.6); /* #332B25 */
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.1) inset;
+  }
+
+  /* Image Container (for product images) */
+  .component-image-container {
+    @apply rounded-3xl overflow-hidden border;
+    background: hsl(var(--secondary));
+    border-color: hsl(var(--border) / 0.6);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  }
+
+  html.dark .component-image-container,
+  .component-image-container.dark {
+    background: hsl(var(--card));
+    border-color: hsl(var(--border) / 0.7);
+    box-shadow: 
+      0 10px 15px -3px rgba(0, 0, 0, 0.5),
+      0 0 0 1px hsl(var(--border) / 0.3) inset;
+  }
 } 
 
   /* Enhanced animation utilities */
