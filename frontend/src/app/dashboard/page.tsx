@@ -574,117 +574,123 @@ export default function Dashboard() {
 
         {/* Today's Outfit Section - Only show if we have backend suggestion data AND no weather generator outfit */}
         {dashboardData?.todaysOutfit && (dashboardData.todaysOutfit as any)?.suggestionId && (
-        <Card className="mb-12 sm:rounded-3xl">
-          <CardHeader className="pb-6">
-            <CardTitle>Today's outfit suggestion</CardTitle>
-            <CardDescription>Powered by your Easy Outfit stylist</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl">
+          <div className="p-4 sm:p-6 lg:p-8 border-b border-border/60 dark:border-border/70">
+            <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Today&apos;s outfit suggestion</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">Powered by your Easy Outfit stylist</p>
+          </div>
+          <div className="p-4 sm:p-6 lg:p-8">
             {dashboardData?.todaysOutfit ? (
-              <div className="space-y-4">
-                <div className="text-center mb-4">
-                  <p className="text-lg component-text-secondary mb-2">
+              <div className="space-y-4 sm:space-y-6">
+                {/* Outfit Header */}
+                <div className="component-card-nested text-center p-4 sm:p-6 rounded-xl sm:rounded-2xl">
+                  <p className="text-sm sm:text-base font-medium text-muted-foreground mb-2">
                     {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                   </p>
-                  <Badge variant="secondary" className="mb-3 uppercase tracking-wide">
+                  <Badge variant="secondary" className="text-xs sm:text-sm font-bold uppercase tracking-wide mb-3 sm:mb-4">
                     {dashboardData.todaysOutfit.occasion}
                   </Badge>
                 </div>
-                
-                <div className="space-y-4">
-                  <div className="component-card-nested flex items-center space-x-4 p-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-[var(--copper-light)]/35 to-[var(--copper-mid)]/35 dark:from-[var(--copper-mid)]/25 dark:to-[var(--copper-mid)]/25 rounded-xl flex items-center justify-center">
-                      <Shirt className="w-8 h-8 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold component-text-primary text-lg">
-                        {dashboardData.todaysOutfit.outfitName}
-                      </h4>
-                      <p className="text-sm component-text-secondary">
-                        Mood: {dashboardData.todaysOutfit.mood}
-                      </p>
-                      {dashboardData.todaysOutfit.weather && dashboardData.todaysOutfit.weather.condition && (
-                        <p className="text-sm component-text-secondary">
-                          Weather: {dashboardData.todaysOutfit.weather.condition}, {dashboardData.todaysOutfit.weather.temperature}°C
+
+                {/* Outfit Details */}
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="component-card-nested rounded-xl sm:rounded-2xl p-4 sm:p-5">
+                    <div className="flex items-center space-x-4 mb-3">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-[var(--copper-mid)]/35 to-[var(--copper-mid)]/40 dark:from-[var(--copper-light)]/20 dark:to-[var(--copper-mid)]/25 rounded-xl flex items-center justify-center shadow-inner flex-shrink-0">
+                        <Shirt className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--copper-mid)] dark:text-[var(--copper-light)]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm sm:text-base font-semibold text-card-foreground mb-1">
+                          {dashboardData.todaysOutfit.outfitName}
+                        </h4>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          Mood: {dashboardData.todaysOutfit.mood}
                         </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      {(dashboardData.todaysOutfit as any).isSuggestion && !(dashboardData.todaysOutfit as any).isWorn ? (
-                        <Button 
-                          onClick={handleMarkAsWorn}
-                          disabled={markingAsWorn}
-                          className="gradient-copper-gold text-primary-foreground"
-                          size="sm"
-                        >
-                          {markingAsWorn ? (
-                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                          )}
-                          {markingAsWorn ? 'Marking...' : 'Wear This'}
-                        </Button>
-                      ) : (dashboardData.todaysOutfit as any).isWorn ? (
-                        <Badge variant="default" className="bg-[var(--copper-light)]/20 text-[var(--copper-dark)] dark:bg-[var(--copper-dark)]/30 dark:text-[var(--copper-light)]">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Worn Today
-                        </Badge>
-                      ) : (
-                        <Button size="sm" className="component-button-outline">
-                          <Calendar className="w-4 h-4 mr-2" />
-                          View Details
-                        </Button>
-                      )}
+                        {dashboardData.todaysOutfit.weather && dashboardData.todaysOutfit.weather.condition && (
+                          <p className="text-xs sm:text-sm text-muted-foreground">
+                            Weather: {dashboardData.todaysOutfit.weather.condition}, {dashboardData.todaysOutfit.weather.temperature}°C
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        {(dashboardData.todaysOutfit as any).isSuggestion && !(dashboardData.todaysOutfit as any).isWorn ? (
+                          <Button 
+                            onClick={handleMarkAsWorn}
+                            disabled={markingAsWorn}
+                            className="gradient-copper-gold text-primary-foreground"
+                            size="sm"
+                          >
+                            {markingAsWorn ? (
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                            )}
+                            {markingAsWorn ? 'Marking...' : 'Wear This'}
+                          </Button>
+                        ) : (dashboardData.todaysOutfit as any).isWorn ? (
+                          <Badge variant="default" className="bg-[var(--copper-light)]/20 text-[var(--copper-dark)] dark:bg-[var(--copper-dark)]/30 dark:text-[var(--copper-light)]">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Worn Today
+                          </Badge>
+                        ) : (
+                          <Button size="sm" className="component-button-outline">
+                            <Calendar className="w-4 h-4 mr-2" />
+                            View Details
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Outfit Items */}
                   {(dashboardData.todaysOutfit as any).items && (dashboardData.todaysOutfit as any).items.length > 0 && (
-                    <div className="space-y-3">
-                      <h5 className="font-medium component-text-primary text-sm uppercase tracking-wide">Outfit items</h5>
-                      <div className="grid gap-2">
+                    <div className="space-y-3 sm:space-y-4">
+                      <h3 className="text-base sm:text-lg font-display font-semibold text-card-foreground">Outfit items</h3>
+                      <div className="space-y-2">
                         {(dashboardData.todaysOutfit as any).items.map((item: any, index: number) => (
-                          <div key={index} className="component-card-nested flex items-center space-x-3 p-3">
-                            {item.imageUrl ? (
-                              <div className="component-image-container w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                                <img 
-                                  src={item.imageUrl} 
-                                  alt={item.name || 'Wardrobe item'}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                    const parent = target.parentElement;
-                                    if (parent) {
-                                      parent.innerHTML = `
-                                        <div class="w-12 h-12 bg-gradient-to-br from-[#E8C8A0]/30 to-[#C9956F]/30 dark:from-[#B8860B]/30 dark:to-[#C9956F]/30 rounded-md flex items-center justify-center">
-                                          <svg class="w-6 h-6 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                                          </svg>
-                                        </div>
-                                      `;
-                                    }
-                                  }}
-                                />
+                          <div key={index} className="component-card-nested rounded-xl sm:rounded-2xl p-4 sm:p-5">
+                            <div className="flex items-center space-x-3">
+                              {item.imageUrl ? (
+                                <div className="component-image-container w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                                  <img 
+                                    src={item.imageUrl} 
+                                    alt={item.name || 'Wardrobe item'}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const parent = target.parentElement;
+                                      if (parent) {
+                                        parent.innerHTML = `
+                                          <div class="w-12 h-12 bg-gradient-to-br from-[#E8C8A0]/30 to-[#C9956F]/30 dark:from-[#B8860B]/30 dark:to-[#C9956F]/30 rounded-md flex items-center justify-center">
+                                            <svg class="w-6 h-6 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                            </svg>
+                                          </div>
+                                        `;
+                                      }
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-12 h-12 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/25 rounded-lg flex items-center justify-center flex-shrink-0">
+                                  <Shirt className="w-6 h-6 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm sm:text-base font-semibold text-card-foreground mb-1">
+                                  {item.name || 'Wardrobe Item'}
+                                </h4>
+                                <p className="text-xs sm:text-sm text-muted-foreground">
+                                  {item.type || 'clothing'} {item.color && `• ${item.color}`}
+                                </p>
                               </div>
-                            ) : (
-                              <div className="w-12 h-12 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/25 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <Shirt className="w-6 h-6 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
-                              </div>
-                            )}
-                            <div className="flex-1">
-                              <p className="font-medium component-text-primary text-sm">
-                                {item.name || 'Wardrobe Item'}
-                              </p>
-                              <p className="text-xs component-text-secondary">
-                                {item.type || 'clothing'} {item.color && `• ${item.color}`}
-                              </p>
+                              {item.brand && (
+                                <Badge variant="outline" className="text-xs sm:text-sm flex-shrink-0">
+                                  {item.brand}
+                                </Badge>
+                              )}
                             </div>
-                            {item.brand && (
-                              <Badge variant="outline" className="text-xs">
-                                {item.brand}
-                              </Badge>
-                            )}
                           </div>
                         ))}
                       </div>
@@ -693,8 +699,8 @@ export default function Dashboard() {
                 </div>
                 
                 {dashboardData.todaysOutfit.notes && (
-                  <div className="component-card-nested p-4">
-                    <p className="text-sm component-text-primary">
+                  <div className="component-card-nested rounded-xl sm:rounded-2xl p-4 sm:p-5">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       <span className="mr-2">💡</span>{dashboardData.todaysOutfit.notes}
                     </p>
                   </div>
@@ -702,19 +708,19 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-lg component-text-secondary mb-4">
+                <p className="text-sm sm:text-base text-muted-foreground mb-4">
                   {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                 </p>
-                <div className="w-16 h-16 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-8 h-8 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-[var(--copper-mid)]/35 to-[var(--copper-mid)]/40 dark:from-[var(--copper-light)]/20 dark:to-[var(--copper-mid)]/25 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-inner">
+                  <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--copper-mid)] dark:text-[var(--copper-light)]" />
                 </div>
-                <p className="component-text-secondary mb-2 font-medium">
+                <p className="text-sm sm:text-base text-muted-foreground mb-2 font-medium">
                   Smart weather-perfect outfits
                 </p>
-                <p className="text-sm component-text-secondary mb-6 max-w-md mx-auto">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-6 max-w-md mx-auto">
                   Use the Smart Weather Outfit Generator above for instant, weather-matched looks.
                 </p>
-                <div className="flex items-center justify-center gap-2 text-xs component-text-secondary">
+                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                   <div className="w-2 h-2 bg-[var(--copper-mid)] rounded-full"></div>
                   <span>Automatic location detection</span>
                   <div className="w-2 h-2 bg-[var(--copper-mid)] rounded-full ml-3"></div>
