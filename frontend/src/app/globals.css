@@ -892,6 +892,26 @@
     background: #0F0B08 !important;
     background-color: #0F0B08 !important;
   }
+  
+  /* Nuclear option: Force dark background on ALL component-cards in dark mode, no matter what */
+  @media (prefers-color-scheme: dark) {
+    html.dark .component-card,
+    .dark .component-card {
+      background: #0F0B08 !important;
+      background-color: #0F0B08 !important;
+      background-image: none !important;
+    }
+  }
+  
+  /* Additional specificity for nested structures */
+  html.dark main .component-card,
+  .dark main .component-card,
+  html.dark .max-w-7xl .component-card,
+  .dark .max-w-7xl .component-card {
+    background: #0F0B08 !important;
+    background-color: #0F0B08 !important;
+    background-image: none !important;
+  }
 
   /* Card Hover State */
   .component-card:hover {
