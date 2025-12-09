@@ -853,6 +853,13 @@
     border-color: hsl(var(--border) / 0.3) !important;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03) !important;
   }
+  
+  /* In dark mode, reduce backdrop-blur opacity to prevent brown bleed-through */
+  html.dark .component-card,
+  .dark .component-card {
+    backdrop-filter: blur(8px) !important; /* Reduced from xl to prevent background bleed */
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
 
   /* Dark Mode: Enhanced elevation with proper layering - Use darker background */
   /* Multiple selectors to ensure it applies regardless of how dark mode is detected */
