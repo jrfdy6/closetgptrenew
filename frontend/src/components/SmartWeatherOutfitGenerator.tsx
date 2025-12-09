@@ -21,12 +21,13 @@ import {
   Zap,
   Calendar,
   Eye,
-  Heart,
-  ChevronDown
+  Heart
 } from 'lucide-react';
 import { useAutoWeather } from '@/hooks/useWeather';
 import { formatWeatherForDisplay, getClothingRecommendations } from '@/lib/weather';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface SmartWeatherOutfitGeneratorProps {
   className?: string;
@@ -85,6 +86,17 @@ export function SmartWeatherOutfitGenerator({
   const hasTriggeredAutoGenerationRef = useRef(false);
   const [isWeatherExpanded, setIsWeatherExpanded] = useState(false);
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
+  const [isOutfitExpanded, setIsOutfitExpanded] = useState(false);
+  
+  // Default to collapsed on mobile, expanded on desktop
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsOutfitExpanded(window.innerWidth >= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Initialize today's key for daily outfit generation
   useEffect(() => {
@@ -705,18 +717,32 @@ export function SmartWeatherOutfitGenerator({
 
   const content = (
     <div className={`space-y-2 sm:space-y-3 ${noCard ? '' : ''}`}>
-        {/* Today's Outfit Section - Moved to Top */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base sm:text-lg font-display font-semibold text-card-foreground">
-              Today&apos;s Outfit
-            </h3>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-            </div>
+        {/* Today's Outfit Section - Collapsible on Mobile */}
+        <Collapsible open={isOutfitExpanded} onOpenChange={setIsOutfitExpanded}>
+          <div className="space-y-2">
+            <CollapsibleTrigger asChild>
+              <div className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity">
+                <h3 className="text-base sm:text-lg font-display font-semibold text-card-foreground">
+                  Today&apos;s Outfit
+                </h3>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Calendar className="h-3.5 w-3.5" />
+                    <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  </div>
+                  <div className="md:hidden">
+                    {isOutfitExpanded ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CollapsibleTrigger>
           </div>
-
+          
+          <CollapsibleContent>
           {generatedOutfit ? (
             <div className="card-surface backdrop-blur-xl rounded-2xl p-3 sm:p-4 lg:p-5 border border-border/60 dark:border-border/70 space-y-2 sm:space-y-3">
               {/* Outfit Header - More Compact */}
@@ -907,7 +933,8 @@ export function SmartWeatherOutfitGenerator({
               )}
             </div>
           )}
-        </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Weather Display - Compact & Modern - Moved Below Outfit */}
           {weatherLoading && !weather ? (
@@ -1010,7 +1037,6 @@ export function SmartWeatherOutfitGenerator({
               </Button>
             </div>
           )}
-
         {/* Location Permission Prompt */}
         {locationStatus === 'denied' && (
           <div className="card-surface backdrop-blur-xl rounded-2xl p-4 border border-[var(--copper-mid)]/30 dark:border-[var(--copper-mid)]/30 bg-gradient-to-r from-[var(--copper-mid)]/5 to-[var(--copper-mid)]/5 dark:from-[var(--copper-mid)]/10 dark:to-[var(--copper-mid)]/10">

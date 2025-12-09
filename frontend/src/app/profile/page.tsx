@@ -456,7 +456,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen">
       <Navigation />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-20 sm:pb-24">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-12 bg-card/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-lg">
         <div>
           <h1 className="text-4xl font-display font-semibold text-card-foreground mb-3">My profile</h1>

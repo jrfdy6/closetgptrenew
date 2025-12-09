@@ -7,6 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { 
   TrendingUp, 
   Star, 
@@ -24,7 +32,8 @@ import {
   Info,
   RefreshCw,
   Upload,
-  X
+  X,
+  ChevronDown
 } from "lucide-react";
 import Link from "next/link";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -35,6 +44,20 @@ import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerato
 import { useAutoWeather } from '@/hooks/useWeather';
 import PremiumTeaser from '@/components/PremiumTeaser';
 import { useGamificationStats } from '@/hooks/useGamificationStats';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import {
+  BottomSheet,
+  BottomSheetContent,
+  BottomSheetDescription,
+  BottomSheetHeader,
+  BottomSheetTitle,
+} from '@/components/ui/bottom-sheet';
 
 // Gamification components removed - shuffle moved to outfit generation page
 
@@ -98,6 +121,9 @@ export default function Dashboard() {
   const [showBatchUpload, setShowBatchUpload] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [windowWidth, setWindowWidth] = useState<number>(0);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showAllStats, setShowAllStats] = useState(false);
+  const [showOutfitDetails, setShowOutfitDetails] = useState(false);
   const { user, loading } = useAuthContext();
   
   // Weather hook for automatic location detection
@@ -177,22 +203,10 @@ export default function Dashboard() {
       
       if (!hasAskedForLocation) {
         console.log('🌤️ Showing location prompt');
-        // Show a simple browser prompt for location
-        const shouldGetLocation = confirm(
-          "🌤️ Get accurate weather data for better outfit recommendations?\n\n" +
-          "We need your location to provide weather-perfect outfit suggestions.\n" +
-          "Click OK to use your current location, or Cancel to skip."
-        );
-        
+        // Show custom modal for location permission
+        setShowLocationModal(true);
         // Mark that we've asked for location in this session
         sessionStorage.setItem('has-asked-for-location', 'true');
-        
-        if (shouldGetLocation) {
-          console.log('🌤️ User accepted location prompt, fetching location...');
-          fetchWeatherByLocation();
-        } else {
-          console.log('🌤️ User declined location prompt');
-        }
       } else {
         console.log('🌤️ Already asked for location in this session');
       }
@@ -388,7 +402,7 @@ export default function Dashboard() {
       <Navigation />
       
       {/* Main Content - Mobile Optimized - Bottom padding for nav */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 pb-[120px] overflow-x-hidden">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 pb-20 sm:pb-24 overflow-x-hidden">
         
         {/* Welcome Section - "Silent Luxury" Design */}
         <div className="mb-6 sm:mb-8">
@@ -424,11 +438,11 @@ export default function Dashboard() {
         </div>
 
 
-        {/* Modern Stats Cards - Mobile First Grid */}
+        {/* Modern Stats Cards - Mobile Optimized: 2 columns on mobile, 6 on desktop */}
         <div 
           className="grid gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8" 
           style={{ 
-            gridTemplateColumns: windowWidth >= 1024 ? 'repeat(6, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))' 
+            gridTemplateColumns: windowWidth >= 1024 ? 'repeat(6, minmax(0, 1fr))' : windowWidth >= 640 ? 'repeat(3, minmax(0, 1fr))' : 'repeat(2, minmax(0, 1fr))'
           }}
         >
 
@@ -501,36 +515,90 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Favorites Card */}
-          <div className="component-card p-4 sm:p-6">
-            <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--copper-mid)]/30 to-primary/35 dark:from-[var(--copper-mid)]/20 dark:to-primary/25 rounded-xl flex items-center justify-center shadow-inner">
-                <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80 dark:text-primary/70" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">Favorites</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E8A4A4] to-[#D4A574] bg-clip-text text-transparent">
-                  {dashboardData?.favorites || 0}
-                </p>
+          {/* Favorites Card - Hidden on mobile, shown in expandable section */}
+          {(showAllStats || windowWidth >= 640) && (
+            <div className="component-card p-4 sm:p-6">
+              <div className="flex flex-col space-y-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--copper-mid)]/30 to-primary/35 dark:from-[var(--copper-mid)]/20 dark:to-primary/25 rounded-xl flex items-center justify-center shadow-inner">
+                  <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80 dark:text-primary/70" />
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">Favorites</p>
+                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E8A4A4] to-[#D4A574] bg-clip-text text-transparent">
+                    {dashboardData?.favorites || 0}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* This Week Card */}
-          <div className="component-card p-4 sm:p-6">
-            <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#D4A574]/30 to-[#C9956F]/30 dark:from-[#C9956F]/25 dark:to-[#B8860B]/25 rounded-xl flex items-center justify-center shadow-inner">
-                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">This week</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#C9956F] to-[#D4A574] bg-clip-text text-transparent">
-                  {dashboardData?.outfitsThisWeek || 0}
-                </p>
+          {/* This Week Card - Hidden on mobile, shown in expandable section */}
+          {(showAllStats || windowWidth >= 640) && (
+            <div className="component-card p-4 sm:p-6">
+              <div className="flex flex-col space-y-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#D4A574]/30 to-[#C9956F]/30 dark:from-[#C9956F]/25 dark:to-[#B8860B]/25 rounded-xl flex items-center justify-center shadow-inner">
+                  <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">This week</p>
+                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#C9956F] to-[#D4A574] bg-clip-text text-transparent">
+                    {dashboardData?.outfitsThisWeek || 0}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
+        
+        {/* View All Stats Button - Mobile Only */}
+        {windowWidth < 640 && !showAllStats && (
+          <div className="mb-6 flex justify-center">
+            <Collapsible open={showAllStats} onOpenChange={setShowAllStats}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto component-button-outline"
+                >
+                  <ChevronDown className="h-4 w-4 mr-2" />
+                  View All Stats
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  {/* Favorites Card */}
+                  <div className="component-card p-4">
+                    <div className="flex flex-col space-y-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-[var(--copper-mid)]/30 to-primary/35 dark:from-[var(--copper-mid)]/20 dark:to-primary/25 rounded-xl flex items-center justify-center shadow-inner">
+                        <Heart className="h-5 w-5 text-primary/80 dark:text-primary/70" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium component-text-secondary mb-1">Favorites</p>
+                        <p className="text-2xl font-bold bg-gradient-to-r from-[#E8A4A4] to-[#D4A574] bg-clip-text text-transparent">
+                          {dashboardData?.favorites || 0}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* This Week Card */}
+                  <div className="component-card p-4">
+                    <div className="flex flex-col space-y-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-[#D4A574]/30 to-[#C9956F]/30 dark:from-[#C9956F]/25 dark:to-[#B8860B]/25 rounded-xl flex items-center justify-center shadow-inner">
+                        <Calendar className="h-5 w-5 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium component-text-secondary mb-1">This week</p>
+                        <p className="text-2xl font-bold bg-gradient-to-r from-[#C9956F] to-[#D4A574] bg-clip-text text-transparent">
+                          {dashboardData?.outfitsThisWeek || 0}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+        )}
 
           {/* Usage Indicator - Full */}
           <div className="mb-6 sm:mb-8">
@@ -645,7 +713,11 @@ export default function Dashboard() {
                             Worn Today
                           </Badge>
                         ) : (
-                          <Button size="sm" className="component-button-outline">
+                          <Button 
+                            size="sm" 
+                            className="component-button-outline"
+                            onClick={() => setShowOutfitDetails(true)}
+                          >
                             <Calendar className="w-4 h-4 mr-2" />
                             View Details
                           </Button>
@@ -746,13 +818,16 @@ export default function Dashboard() {
         </div>
         )}
 
-        {/* Wardrobe Insights - Mobile Optimized */}
-        <div className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl">
-          <div className="p-4 sm:p-6 lg:p-8 border-b border-border/60 dark:border-border/70">
-            <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Wardrobe insights</h2>
-            <p className="text-sm sm:text-base text-muted-foreground">Your top items will appear here based on:</p>
-          </div>
-          <div className="p-4 sm:p-6 lg:p-8">
+        {/* Wardrobe Insights - Mobile Optimized with Accordion */}
+        <Accordion type="single" collapsible className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl" defaultValue={isMobile ? undefined : "insights"}>
+          <AccordionItem value="insights" className="border-0">
+            <AccordionTrigger className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 hover:no-underline">
+              <div className="flex-1 text-left">
+                <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Wardrobe insights</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">Your top items will appear here based on:</p>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8">
             {topItemsByCategory.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                 {topItemsByCategory.map((item) => (
@@ -829,16 +904,20 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
-          </div>
-        </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
-        {/* Style Goals - Mobile Optimized */}
-        <div className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl">
-          <div className="p-4 sm:p-6 lg:p-8 border-b border-border/60 dark:border-border/70">
-            <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Style goals</h2>
-            <p className="text-sm sm:text-base text-muted-foreground">Personalized targets based on your look history</p>
-          </div>
-          <div className="p-4 sm:p-6 lg:p-8">
+        {/* Style Goals - Mobile Optimized with Accordion */}
+        <Accordion type="single" collapsible className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl" defaultValue={isMobile ? undefined : "goals"}>
+          <AccordionItem value="goals" className="border-0">
+            <AccordionTrigger className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 hover:no-underline">
+              <div className="flex-1 text-left">
+                <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Style goals</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">Personalized targets based on your look history</p>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8">
             <div className="space-y-4 sm:space-y-6">
               {/* Overall Progress */}
               <div className="component-card-nested text-center p-4 sm:p-6 rounded-xl sm:rounded-2xl">
@@ -869,17 +948,30 @@ export default function Dashboard() {
                 ))}
               </div>
             </div>
-          </div>
-        </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
-        {/* Wardrobe Insights Hub - Unified component with Style Expansion, Gap Analysis, and Shopping */}
-        <WardrobeInsightsHub
+        {/* Wardrobe Insights Hub - Unified component with Style Expansion, Gap Analysis, and Shopping - Collapsible */}
+        <Accordion type="single" collapsible className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl" defaultValue={isMobile ? undefined : "insights-hub"}>
+          <AccordionItem value="insights-hub" className="border-0">
+            <AccordionTrigger className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 hover:no-underline">
+              <div className="flex-1 text-left">
+                <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Advanced Insights</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">Style expansion, gap analysis, and shopping recommendations</p>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-0 pb-0">
+              <WardrobeInsightsHub
           styleExpansions={dashboardData?.styleExpansions || []}
           gaps={dashboardData?.wardrobeGaps || []}
           shoppingRecommendations={dashboardData?.shoppingRecommendations}
           onRefresh={fetchDashboardData}
-          className="mb-12"
+          className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8"
         />
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
         {/* Forgotten Gems - Mobile Optimized */}
         <div className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl">
@@ -918,6 +1010,168 @@ export default function Dashboard() {
         )}
 
       </main>
+      
+      {/* Outfit Details Bottom Sheet (Mobile) / Modal (Desktop) */}
+      {dashboardData?.todaysOutfit && (
+        <BottomSheet open={showOutfitDetails} onOpenChange={setShowOutfitDetails}>
+          <BottomSheetContent className="sm:max-w-2xl">
+            <BottomSheetHeader>
+              <BottomSheetTitle className="text-left">
+                {dashboardData.todaysOutfit.outfitName || "Outfit Details"}
+              </BottomSheetTitle>
+              <BottomSheetDescription className="text-left">
+                {dashboardData.todaysOutfit.occasion && (
+                  <Badge variant="secondary" className="mr-2">
+                    {dashboardData.todaysOutfit.occasion}
+                  </Badge>
+                )}
+                {dashboardData.todaysOutfit.mood && (
+                  <span className="text-muted-foreground">Mood: {dashboardData.todaysOutfit.mood}</span>
+                )}
+              </BottomSheetDescription>
+            </BottomSheetHeader>
+            
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-4 sm:space-y-6">
+              {/* Weather Info */}
+              {dashboardData.todaysOutfit.weather && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>🌤️</span>
+                  <span>
+                    {dashboardData.todaysOutfit.weather.condition}, {dashboardData.todaysOutfit.weather.temperature}°C
+                  </span>
+                </div>
+              )}
+
+              {/* Outfit Items */}
+              {(dashboardData.todaysOutfit as any)?.items && (dashboardData.todaysOutfit as any).items.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-base sm:text-lg font-semibold text-card-foreground">Outfit Items</h3>
+                  <div className="space-y-2">
+                    {(dashboardData.todaysOutfit as any).items.map((item: any, index: number) => (
+                      <div key={index} className="flex items-center gap-3 p-3 rounded-lg border border-border/60 dark:border-border/70">
+                        {item.imageUrl ? (
+                          <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                            <img 
+                              src={item.imageUrl} 
+                              alt={item.name || 'Wardrobe item'}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-16 h-16 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/25 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Shirt className="w-6 h-6 text-[var(--copper-mid)]" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm sm:text-base font-semibold text-card-foreground mb-1">
+                            {item.name || 'Wardrobe Item'}
+                          </h4>
+                          <p className="text-xs sm:text-sm text-muted-foreground">
+                            {item.type || 'clothing'} {item.color && `• ${item.color}`}
+                          </p>
+                          {item.brand && (
+                            <Badge variant="outline" className="text-xs mt-1">
+                              {item.brand}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {dashboardData.todaysOutfit.notes && (
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground">
+                    <span className="mr-2">💡</span>{dashboardData.todaysOutfit.notes}
+                  </p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                {(dashboardData.todaysOutfit as any)?.isSuggestion && !(dashboardData.todaysOutfit as any).isWorn && (
+                  <Button
+                    onClick={async () => {
+                      await handleMarkAsWorn();
+                      setShowOutfitDetails(false);
+                    }}
+                    disabled={markingAsWorn}
+                    className="flex-1 gradient-copper-gold text-primary-foreground"
+                  >
+                    {markingAsWorn ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Marking...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Wear This Outfit
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </BottomSheetContent>
+        </BottomSheet>
+      )}
+
+      {/* Location Permission Modal */}
+      <Dialog open={showLocationModal} onOpenChange={setShowLocationModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="text-2xl">🌤️</span>
+              Enable Location Services
+            </DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              Get accurate weather data for better outfit recommendations. We use your location to provide weather-perfect outfit suggestions tailored to your current conditions.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex items-start gap-2">
+                <span className="text-primary">✓</span>
+                <span>Real-time weather data for your area</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-primary">✓</span>
+                <span>Temperature-appropriate outfit suggestions</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-primary">✓</span>
+                <span>Automatic weather-based recommendations</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowLocationModal(false);
+                console.log('🌤️ User declined location prompt');
+              }}
+              className="w-full sm:w-auto"
+            >
+              Skip
+            </Button>
+            <Button
+              onClick={() => {
+                setShowLocationModal(false);
+                console.log('🌤️ User accepted location prompt, fetching location...');
+                fetchWeatherByLocation();
+              }}
+              className="w-full sm:w-auto gradient-copper-gold text-primary-foreground"
+            >
+              Allow Location
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Client-Only Navigation - No Props to Avoid Serialization */}
       <ClientOnlyNav />

@@ -52,7 +52,7 @@ export default function BottomNav() {
       aria-label="Bottom navigation"
     >
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-4 h-16">
+        <div className="grid grid-cols-4 h-14">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.active;

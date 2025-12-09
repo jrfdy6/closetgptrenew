@@ -89,7 +89,7 @@ const createPreviewUrl = async (file: File): Promise<string> => {
   }
 };
 
-// Helper function to compress image for AI analysis
+// Helper function to compress image for AI analysis and upload
 const compressImageForAnalysis = (file: File, maxWidth: number = 800, quality: number = 0.8): Promise<string> => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
@@ -106,6 +106,53 @@ const compressImageForAnalysis = (file: File, maxWidth: number = 800, quality: n
       ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
       const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
       resolve(compressedDataUrl);
+    };
+    
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+};
+
+// Helper function to compress image file for upload (returns File object)
+const compressImageFile = async (file: File, maxWidth: number = 1200, quality: number = 0.85): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // Calculate new dimensions while maintaining aspect ratio
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > maxWidth || height > maxWidth) {
+        const ratio = Math.min(maxWidth / width, maxWidth / height);
+        width = width * ratio;
+        height = height * ratio;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Draw and compress
+      ctx?.drawImage(img, 0, 0, width, height);
+      
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('Compression failed'));
+            return;
+          }
+          // Create new File object with compressed blob
+          const compressedFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+          resolve(compressedFile);
+        },
+        'image/jpeg',
+        quality
+      );
     };
     
     img.onerror = reject;
@@ -712,8 +759,14 @@ export default function BatchImageUpload({
         try {
           console.log(`📤 Uploading item ${i + 1}/${totalItems}: ${item.file.name}`);
 
-          // 1️⃣ Upload file to Firebase Storage first
-          const imageUrl = await uploadImageToFirebaseStorage(item.file, user.uid, user);
+          // 1️⃣ Compress image for faster mobile uploads
+          console.log(`📦 Compressing image ${i + 1} before upload (original: ${(item.file.size / 1024 / 1024).toFixed(2)}MB)...`);
+          const compressedFile = await compressImageFile(item.file, 1200, 0.85);
+          const compressionRatio = ((1 - compressedFile.size / item.file.size) * 100).toFixed(1);
+          console.log(`✅ Image compressed: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB (${compressionRatio}% reduction)`);
+          
+          // 2️⃣ Upload compressed file to Firebase Storage
+          const imageUrl = await uploadImageToFirebaseStorage(compressedFile, user.uid, user);
           console.log(`✅ Uploaded to storage: ${imageUrl}`);
 
           // 2️⃣ Trigger backend analysis
@@ -814,9 +867,14 @@ export default function BatchImageUpload({
               season: result.analysis.season
             });
             
-            // Upload image to Firebase Storage
-            console.log(`📤 Uploading image ${i + 1} to Firebase Storage...`);
-            const imageUrl = await uploadImageToFirebaseStorage(item.file, user.uid, user);
+            // Compress and upload image to Firebase Storage
+            console.log(`📦 Compressing image ${i + 1} before upload (original: ${(item.file.size / 1024 / 1024).toFixed(2)}MB)...`);
+            const compressedFile = await compressImageFile(item.file, 1200, 0.85);
+            const compressionRatio = ((1 - compressedFile.size / item.file.size) * 100).toFixed(1);
+            console.log(`✅ Image compressed: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB (${compressionRatio}% reduction)`);
+            
+            console.log(`📤 Uploading compressed image ${i + 1} to Firebase Storage...`);
+            const imageUrl = await uploadImageToFirebaseStorage(compressedFile, user.uid, user);
             console.log(`✅ Image uploaded to Firebase Storage: ${imageUrl}`);
 
             // Generate hash and metadata for the uploaded item
@@ -1063,6 +1121,26 @@ export default function BatchImageUpload({
 
   return (
     <div className="space-y-6">
+      {/* Sticky Upload Progress Indicator */}
+      {isUploading && (
+        <div className="fixed top-16 left-0 right-0 z-50 bg-card/95 dark:bg-card/95 border-b border-border/60 dark:border-border/70 backdrop-blur-xl shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <div className="flex-1">
+                <div className="flex items-center justify-between text-sm mb-1.5">
+                  <span className="font-medium text-card-foreground">
+                    Uploading {Math.round(overallProgress / (100 / uploadItems.length))} of {uploadItems.length} items
+                  </span>
+                  <span className="text-muted-foreground">{Math.round(overallProgress)}%</span>
+                </div>
+                <Progress value={overallProgress} className="h-2" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Upload Area */}
       <div>
         <div className="text-center mb-4">
@@ -1087,7 +1165,7 @@ export default function BatchImageUpload({
               : "border-gray-300 dark:border-gray-600 hover:border-emerald-400 dark:hover:border-emerald-500"
           }`}
         >
-          <input {...getInputProps()} />
+          <input {...getInputProps()} capture="environment" accept="image/*" />
           <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">
             {isDragActive

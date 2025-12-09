@@ -71,6 +71,12 @@ export const metadata: Metadata = {
     "og:image:width": "1200",
     "og:image:height": "630",
   },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
 };
 
 export default function RootLayout({

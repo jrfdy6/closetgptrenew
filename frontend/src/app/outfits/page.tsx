@@ -57,7 +57,7 @@ export default function OutfitsPage({ searchParams }: OutfitsPageProps) {
       </div>
       
       {/* Main Content - Bottom padding for nav */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 sm:pb-24">
         {/* Saved Outfits Grid */}
         <div>
           <h2 className="text-2xl font-display font-semibold text-card-foreground mb-6">
