@@ -631,6 +631,20 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Smart Weather Outfit Generator - The original component with all functionality */}
+        <div id="smart-weather-outfit" className="mb-6 sm:mb-8 lg:mb-12">
+          {user && (
+            <SmartWeatherOutfitGenerator 
+              onOutfitGenerated={(outfit) => {
+                // Refresh dashboard when outfit is generated
+                if (user) {
+                  fetchDashboardData();
+                }
+              }}
+            />
+          )}
+        </div>
+
         {/* Modern Stats Cards - Mobile Optimized: 2 columns on mobile, 6 on desktop */}
         <div 
           className="grid gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8" 
