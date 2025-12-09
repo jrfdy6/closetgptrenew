@@ -848,15 +848,16 @@
   /* Base Card - Layered Elevation System */
   .component-card {
     @apply rounded-2xl backdrop-blur-xl border transition-all duration-300 ease-out relative;
-    /* Set default background - will be overridden by light/dark specific rules */
-    background: hsl(var(--card) / 0.4) !important;
+    /* No background in base - set explicitly in light/dark rules below */
     border-color: hsl(var(--border) / 0.3) !important;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03) !important;
   }
   
-  /* Light mode background - explicit (already set in base, but keeping for clarity) */
-  html:not(.dark) .component-card {
+  /* Light mode background - only when NOT dark */
+  html:not(.dark) .component-card,
+  :root:not(.dark) .component-card {
     background: hsl(var(--card) / 0.4) !important;
+    background-color: hsl(var(--card) / 0.4) !important;
   }
   
   /* In dark mode, remove backdrop-blur completely to prevent brown bleed-through */
@@ -868,13 +869,16 @@
 
   /* Dark Mode: Enhanced elevation with proper layering - Use darker background */
   /* Multiple selectors to ensure it applies regardless of how dark mode is detected */
+  /* MUST come after light mode rule to override it */
   html.dark .component-card,
   html[class~="dark"] .component-card,
+  html[class*="dark"] .component-card,
   .dark .component-card,
   .component-card.dark,
   [class*="dark"] .component-card,
   body.dark .component-card,
-  .dark body .component-card {
+  .dark body .component-card,
+  [data-theme="dark"] .component-card {
     background: #0F0B08 !important; /* Match the body gradient - Almost black with subtle warm tone */
     background-color: #0F0B08 !important;
     background-image: none !important;
