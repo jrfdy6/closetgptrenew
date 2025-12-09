@@ -600,64 +600,19 @@ export default function Dashboard() {
           </div>
         )}
 
-          {/* Usage Indicator - Full */}
-          <div className="mb-6 sm:mb-8">
-
-          {/* Premium Teaser */}
-          <PremiumTeaser 
-            variant="default" 
-            showSocialProof={true}
-            className="mb-8"
-          />
-        </div>
-
-        {/* Smart Weather Outfit Generator */}
-        <div id="smart-weather-outfit" className="mb-6 sm:mb-12">
-                  <SmartWeatherOutfitGenerator 
-                    onOutfitGenerated={(outfit) => {
-                      console.log('🎯 Smart weather outfit generated:', outfit);
-                    }}
-                  />
-                    </div>
-
-        {/* Backend Status Message - Show when no items loaded */}
-        {dashboardData && dashboardData.totalItems === 0 && !isLoading && (
-          <Card className="mb-8">
-            <CardContent className="p-6">
-              <div className="flex items-start space-x-3">
-                <Info className="h-6 w-6 text-[var(--copper-mid)] dark:text-[var(--copper-mid)] flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="text-lg font-display font-semibold text-card-foreground mb-2">
-                    {isMobile ? 'Connection Issue' : 'Backend setup in progress'}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {isMobile 
-                      ? 'Unable to load wardrobe items. This may be due to a slow mobile connection. Please try refreshing or check your network connection.'
-                      : 'Your dashboard is live. Wardrobe data will appear as soon as the backend endpoints finish syncing.'}
-                  </p>
-                  <Button
-                    onClick={() => {
-                      fetchDashboardData();
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="border-[var(--copper-mid)]/30 text-[var(--copper-mid)] hover:bg-[var(--copper-mid)]/10"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Retry Loading
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Today's Outfit Section - Only show if we have backend suggestion data AND no weather generator outfit */}
+        {/* Today's Outfit Section - Prominently displayed right after stats */}
         {dashboardData?.todaysOutfit && (dashboardData.todaysOutfit as any)?.suggestionId && (
-        <div className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl">
+        <div className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl border-2 border-[var(--copper-mid)]/30 dark:border-[var(--copper-mid)]/30 bg-gradient-to-br from-[var(--copper-light)]/5 to-transparent dark:from-[var(--copper-dark)]/10 dark:to-transparent">
           <div className="p-4 sm:p-6 lg:p-8 border-b border-border/60 dark:border-border/70">
-            <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Today&apos;s outfit suggestion</h2>
-            <p className="text-sm sm:text-base text-muted-foreground">Powered by your Easy Outfit stylist</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Today&apos;s Outfit</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">Your personalized outfit suggestion</p>
+              </div>
+              <Badge variant="secondary" className="text-xs sm:text-sm font-bold uppercase tracking-wide bg-[var(--copper-mid)]/20 text-[var(--copper-dark)] dark:text-[var(--copper-light)]">
+                Recommended
+              </Badge>
+            </div>
           </div>
           <div className="p-4 sm:p-6 lg:p-8">
             {dashboardData?.todaysOutfit ? (
@@ -692,29 +647,34 @@ export default function Dashboard() {
                           </p>
                         )}
                       </div>
-                      <div className="text-right flex-shrink-0">
+                      <div className="flex-shrink-0">
                         {(dashboardData.todaysOutfit as any).isSuggestion && !(dashboardData.todaysOutfit as any).isWorn ? (
                           <Button 
                             onClick={handleMarkAsWorn}
                             disabled={markingAsWorn}
-                            className="gradient-copper-gold text-primary-foreground"
-                            size="sm"
+                            className="gradient-copper-gold text-primary-foreground shadow-lg shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30 transition-all"
+                            size="default"
                           >
                             {markingAsWorn ? (
-                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              <>
+                                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                Marking...
+                              </>
                             ) : (
-                              <CheckCircle className="w-4 h-4 mr-2" />
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Wear This Outfit
+                              </>
                             )}
-                            {markingAsWorn ? 'Marking...' : 'Wear This'}
                           </Button>
                         ) : (dashboardData.todaysOutfit as any).isWorn ? (
-                          <Badge variant="default" className="bg-[var(--copper-light)]/20 text-[var(--copper-dark)] dark:bg-[var(--copper-dark)]/30 dark:text-[var(--copper-light)]">
-                            <CheckCircle className="w-3 h-3 mr-1" />
+                          <Badge variant="default" className="bg-[var(--copper-light)]/20 text-[var(--copper-dark)] dark:bg-[var(--copper-dark)]/30 dark:text-[var(--copper-light)] px-3 py-1.5">
+                            <CheckCircle className="w-4 h-4 mr-1.5" />
                             Worn Today
                           </Badge>
                         ) : (
                           <Button 
-                            size="sm" 
+                            size="default" 
                             className="component-button-outline"
                             onClick={() => setShowOutfitDetails(true)}
                           >
@@ -733,9 +693,10 @@ export default function Dashboard() {
                       <div className="space-y-2">
                         {(dashboardData.todaysOutfit as any).items.map((item: any, index: number) => (
                           <div key={index} className="component-card-nested rounded-xl sm:rounded-2xl p-4 sm:p-5">
-                            <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-3 sm:space-x-4">
+                              {/* Larger thumbnail image */}
                               {item.imageUrl ? (
-                                <div className="component-image-container w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                                <div className="component-image-container w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden flex-shrink-0 border-2 border-border/40 dark:border-border/50 shadow-sm">
                                   <img 
                                     src={item.imageUrl} 
                                     alt={item.name || 'Wardrobe item'}
@@ -746,8 +707,8 @@ export default function Dashboard() {
                                       const parent = target.parentElement;
                                       if (parent) {
                                         parent.innerHTML = `
-                                          <div class="w-12 h-12 bg-gradient-to-br from-[#E8C8A0]/30 to-[#C9956F]/30 dark:from-[#B8860B]/30 dark:to-[#C9956F]/30 rounded-md flex items-center justify-center">
-                                            <svg class="w-6 h-6 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <div class="w-full h-full bg-gradient-to-br from-[#E8C8A0]/30 to-[#C9956F]/30 dark:from-[#B8860B]/30 dark:to-[#C9956F]/30 flex items-center justify-center">
+                                            <svg class="w-8 h-8 sm:w-10 sm:h-10 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                             </svg>
                                           </div>
@@ -757,8 +718,8 @@ export default function Dashboard() {
                                   />
                                 </div>
                               ) : (
-                                <div className="w-12 h-12 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/25 rounded-lg flex items-center justify-center flex-shrink-0">
-                                  <Shirt className="w-6 h-6 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
+                                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/25 rounded-lg flex items-center justify-center flex-shrink-0 border-2 border-border/40 dark:border-border/50">
+                                  <Shirt className="w-8 h-8 sm:w-10 sm:h-10 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
                                 </div>
                               )}
                               <div className="flex-1 min-w-0">
@@ -768,12 +729,12 @@ export default function Dashboard() {
                                 <p className="text-xs sm:text-sm text-muted-foreground">
                                   {item.type || 'clothing'} {item.color && `• ${item.color}`}
                                 </p>
+                                {item.brand && (
+                                  <Badge variant="outline" className="text-xs mt-1.5">
+                                    {item.brand}
+                                  </Badge>
+                                )}
                               </div>
-                              {item.brand && (
-                                <Badge variant="outline" className="text-xs sm:text-sm flex-shrink-0">
-                                  {item.brand}
-                                </Badge>
-                              )}
                             </div>
                           </div>
                         ))}
@@ -973,12 +934,20 @@ export default function Dashboard() {
           </AccordionItem>
         </Accordion>
 
-        {/* Forgotten Gems - Mobile Optimized */}
-        <div className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl">
-          <div className="p-4 sm:p-6 lg:p-8">
-            <ForgottenGems />
-          </div>
-        </div>
+        {/* Forgotten Gems - Mobile Optimized with Accordion */}
+        <Accordion type="single" collapsible className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl" defaultValue={isMobile ? undefined : "forgotten-gems"}>
+          <AccordionItem value="forgotten-gems" className="border-0">
+            <AccordionTrigger className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 hover:no-underline">
+              <div className="flex-1 text-left">
+                <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Forgotten Gems</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">Rediscover items you haven't worn recently</p>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8">
+              <ForgottenGems />
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
         {/* Batch Upload Modal */}
         {showBatchUpload && (
@@ -1048,18 +1017,33 @@ export default function Dashboard() {
                   <h3 className="text-base sm:text-lg font-semibold text-card-foreground">Outfit Items</h3>
                   <div className="space-y-2">
                     {(dashboardData.todaysOutfit as any).items.map((item: any, index: number) => (
-                      <div key={index} className="flex items-center gap-3 p-3 rounded-lg border border-border/60 dark:border-border/70">
+                      <div key={index} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border border-border/60 dark:border-border/70 bg-card/50">
+                        {/* Larger thumbnail in bottom sheet */}
                         {item.imageUrl ? (
-                          <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden flex-shrink-0 border-2 border-border/40 dark:border-border/50 shadow-sm">
                             <img 
                               src={item.imageUrl} 
                               alt={item.name || 'Wardrobe item'}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `
+                                    <div class="w-full h-full bg-gradient-to-br from-[#E8C8A0]/30 to-[#C9956F]/30 dark:from-[#B8860B]/30 dark:to-[#C9956F]/30 flex items-center justify-center">
+                                      <svg class="w-8 h-8 sm:w-10 sm:h-10 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                      </svg>
+                                    </div>
+                                  `;
+                                }
+                              }}
                             />
                           </div>
                         ) : (
-                          <div className="w-16 h-16 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/25 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Shirt className="w-6 h-6 text-[var(--copper-mid)]" />
+                          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/25 rounded-lg flex items-center justify-center flex-shrink-0 border-2 border-border/40 dark:border-border/50">
+                            <Shirt className="w-8 h-8 sm:w-10 sm:h-10 text-[var(--copper-mid)]" />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
@@ -1070,7 +1054,7 @@ export default function Dashboard() {
                             {item.type || 'clothing'} {item.color && `• ${item.color}`}
                           </p>
                           {item.brand && (
-                            <Badge variant="outline" className="text-xs mt-1">
+                            <Badge variant="outline" className="text-xs mt-1.5">
                               {item.brand}
                             </Badge>
                           )}
