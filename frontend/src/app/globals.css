@@ -848,12 +848,13 @@
   /* Base Card - Layered Elevation System */
   .component-card {
     @apply rounded-2xl backdrop-blur-xl border transition-all duration-300 ease-out relative;
-    /* Background removed from base - set in light/dark specific rules below */
+    /* Set default background - will be overridden by light/dark specific rules */
+    background: hsl(var(--card) / 0.4) !important;
     border-color: hsl(var(--border) / 0.3) !important;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03) !important;
   }
   
-  /* Light mode background - only apply when NOT in dark mode */
+  /* Light mode background - explicit (already set in base, but keeping for clarity) */
   html:not(.dark) .component-card {
     background: hsl(var(--card) / 0.4) !important;
   }
