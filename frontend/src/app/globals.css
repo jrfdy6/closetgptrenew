@@ -860,8 +860,8 @@
   .dark .component-card,
   html[class*="dark"] .component-card,
   [class*="dark"] .component-card {
-    background: hsl(var(--background) / 0.98) !important; /* #0F0B08 - Almost black with subtle warm tone */
-    background-color: hsl(var(--background) / 0.98) !important;
+    background: #0F0B08 !important; /* Match the body gradient - Almost black with subtle warm tone */
+    background-color: #0F0B08 !important;
     border-color: hsl(var(--border) / 0.7) !important; /* #322925 with opacity */
     box-shadow: 
       0 10px 15px -3px rgba(0, 0, 0, 0.5),
@@ -874,8 +874,8 @@
   html.dark div.component-card,
   .dark div.component-card,
   div.component-card.dark {
-    background: hsl(var(--background) / 0.98) !important;
-    background-color: hsl(var(--background) / 0.98) !important;
+    background: #0F0B08 !important;
+    background-color: #0F0B08 !important;
   }
 
   /* Card Hover State */
@@ -907,7 +907,8 @@
   html.dark .component-card-nested,
   .component-card-nested.dark,
   .dark .component-card-nested {
-    background: hsl(var(--background) / 0.95) !important; /* Slightly lighter than main card but still very dark */
+    background: #1A1410 !important; /* Slightly lighter than main card (#0F0B08) but still very dark */
+    background-color: #1A1410 !important;
     border-color: hsl(var(--border) / 0.7) !important;
     box-shadow: 
       0 4px 6px -1px rgba(0, 0, 0, 0.3),
