@@ -542,7 +542,7 @@ export default function Dashboard() {
 
         {/* Backend Status Message - Show when no items loaded */}
         {dashboardData && dashboardData.totalItems === 0 && !isLoading && (
-          <Card className="component-card mb-8">
+          <Card className="mb-8">
             <CardContent className="p-6">
               <div className="flex items-start space-x-3">
                 <Info className="h-6 w-6 text-[var(--copper-mid)] dark:text-[var(--copper-mid)] flex-shrink-0 mt-0.5" />
@@ -574,7 +574,7 @@ export default function Dashboard() {
 
         {/* Today's Outfit Section - Only show if we have backend suggestion data AND no weather generator outfit */}
         {dashboardData?.todaysOutfit && (dashboardData.todaysOutfit as any)?.suggestionId && (
-        <Card className="component-card mb-12 sm:rounded-3xl">
+        <Card className="mb-12 sm:rounded-3xl">
           <CardHeader className="pb-6">
             <CardTitle>Today's outfit suggestion</CardTitle>
             <CardDescription>Powered by your Easy Outfit stylist</CardDescription>
