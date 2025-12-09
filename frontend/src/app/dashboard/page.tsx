@@ -928,6 +928,18 @@ export default function Dashboard() {
           </AccordionItem>
         </Accordion>
 
+        {/* Smart Weather Outfit Generator - The original component with all functionality */}
+        <div id="smart-weather-outfit" className="mb-6 sm:mb-8 lg:mb-12">
+          <SmartWeatherOutfitGenerator 
+            onOutfitGenerated={(outfit) => {
+              // Refresh dashboard when outfit is generated
+              if (user) {
+                fetchDashboardData();
+              }
+            }}
+          />
+        </div>
+
         {/* Wardrobe Insights Hub - Unified component with Style Expansion, Gap Analysis, and Shopping - Collapsible */}
         <Accordion type="single" collapsible className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl" defaultValue={isMobile ? undefined : "insights-hub"}>
           <AccordionItem value="insights-hub" className="border-0">
