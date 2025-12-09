@@ -854,11 +854,11 @@
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03) !important;
   }
 
-  /* Dark Mode: Enhanced elevation with proper layering */
+  /* Dark Mode: Enhanced elevation with proper layering - Use darker background */
   html.dark .component-card,
   .component-card.dark,
   .dark .component-card {
-    background: hsl(var(--card) / 0.95) !important; /* #251D18 with high opacity for depth */
+    background: hsl(var(--background) / 0.98) !important; /* #0F0B08 - Almost black with subtle warm tone */
     border-color: hsl(var(--border) / 0.7) !important; /* #322925 with opacity */
     box-shadow: 
       0 10px 15px -3px rgba(0, 0, 0, 0.5),
@@ -896,7 +896,7 @@
   html.dark .component-card-nested,
   .component-card-nested.dark,
   .dark .component-card-nested {
-    background: hsl(var(--card) / 0.8) !important; /* Slightly more transparent */
+    background: hsl(var(--background) / 0.95) !important; /* Slightly lighter than main card but still very dark */
     border-color: hsl(var(--border) / 0.7) !important;
     box-shadow: 
       0 4px 6px -1px rgba(0, 0, 0, 0.3),
