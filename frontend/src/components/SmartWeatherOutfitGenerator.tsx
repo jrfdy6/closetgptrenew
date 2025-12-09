@@ -702,7 +702,7 @@ export function SmartWeatherOutfitGenerator({
   const formattedWeather = weather ? formatWeatherForDisplay(weather) : null;
   const recommendations = weather ? getClothingRecommendations(weather) : [];
 
-  // Get weather icon based on condition
+  // Get weather icon based on condition - moved outside for use in weather section
   const getWeatherIcon = () => {
     if (!weather) return null;
     const condition = weather.condition.toLowerCase();
@@ -723,7 +723,7 @@ export function SmartWeatherOutfitGenerator({
           <div className="space-y-2">
             <CollapsibleTrigger asChild>
               <div className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity">
-                <h3 className="text-base sm:text-lg font-display font-semibold text-card-foreground">
+                <h3 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground">
                   Today&apos;s Outfit
                 </h3>
                 <div className="flex items-center gap-2">
@@ -746,26 +746,92 @@ export function SmartWeatherOutfitGenerator({
           <CollapsibleContent>
           {generatedOutfit ? (
             <div className="card-surface backdrop-blur-xl rounded-2xl p-2 sm:p-4 lg:p-5 border border-border/60 dark:border-border/70 space-y-1.5 sm:space-y-3">
-              {/* Outfit Header - More Compact */}
-              <div className="flex items-start gap-2 sm:gap-3">
-                <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-[var(--copper-light)]/35 to-[var(--copper-mid)]/35 dark:from-[var(--copper-mid)]/20 dark:to-[var(--copper-mid)]/20 rounded-lg sm:rounded-2xl flex items-center justify-center shadow-inner flex-shrink-0">
-                  <Shirt className="h-5 w-5 sm:h-7 sm:w-7 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-display font-semibold text-xs sm:text-base text-card-foreground mb-0.5">
-                    {generatedOutfit.name}
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    Perfect for {generatedOutfit.weather.temperature}°F {generatedOutfit.weather.condition.toLowerCase()}
-                  </p>
-                </div>
-                {generatedOutfit.isWorn && (
+              {/* Weather Section - Collapsed by default, above items */}
+              {weather && (
+                <Collapsible open={isWeatherExpanded} onOpenChange={setIsWeatherExpanded}>
+                  <CollapsibleTrigger asChild>
+                    <div className="card-surface backdrop-blur-xl rounded-xl p-2 sm:p-4 border border-border/60 dark:border-border/70 cursor-pointer hover:opacity-80 transition-opacity">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                          <div className="w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-br from-[#D4A574]/30 to-[#C9956F]/30 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-lg sm:rounded-2xl flex items-center justify-center flex-shrink-0">
+                            {getWeatherIcon()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#D4A574] to-[#C9956F] bg-clip-text text-transparent">
+                              {formattedWeather?.temperature}
+                            </div>
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                              {formattedWeather?.condition}
+                            </p>
+                          </div>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform flex-shrink-0 ${isWeatherExpanded ? 'rotate-180' : ''}`} />
+                      </div>
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="mt-2 pt-2 border-t border-border/60 dark:border-border/60 space-y-1.5 sm:space-y-2">
+                      <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                        <MapPin className="h-3.5 w-3.5 text-[var(--copper-mid)]" />
+                        <span className="font-medium">{weather.location}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Droplets className="h-3 w-3 text-blue-500" />
+                          <span>{weather.humidity}%</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Wind className="h-3 w-3 text-[var(--copper-mid)]" />
+                          <span>{weather.wind_speed} mph</span>
+                        </div>
+                      </div>
+                      {(weather.fallback || weatherIsStale || weatherLoading) && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {weather.fallback && (
+                            <Badge variant="secondary" className="text-xs bg-[var(--copper-light)]/20 dark:bg-[var(--copper-dark)]/20 text-[var(--copper-dark)] dark:text-[var(--copper-light)] border-0">
+                              Fallback Data
+                            </Badge>
+                          )}
+                          {weatherIsStale && (
+                            <Badge variant="secondary" className="text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border-0">
+                              Outdated
+                            </Badge>
+                          )}
+                          {weatherLoading && (
+                            <Badge variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-0 flex items-center gap-1">
+                              <RefreshCw className="h-3 w-3 animate-spin" />
+                              Updating
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                      {recommendations.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {recommendations.slice(0, 3).map((rec, index) => (
+                            <Badge 
+                              key={index} 
+                              variant="secondary" 
+                              className="text-xs bg-secondary/60 dark:bg-muted/60 text-muted-foreground border-0"
+                            >
+                              {rec}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+              
+              {/* Worn Badge - If outfit is worn */}
+              {generatedOutfit.isWorn && (
+                <div className="flex justify-end">
                   <Badge className="bg-[var(--copper-mid)] text-white border-0 flex items-center gap-1.5 flex-shrink-0 text-xs">
                     <CheckCircle className="h-3 w-3" />
                     Worn
                   </Badge>
-                )}
-              </div>
+                </div>
+              )}
               
               {/* Outfit Items Grid - 3 columns, pictures only */}
               {generatedOutfit.items && generatedOutfit.items.length > 0 ? (
