@@ -603,27 +603,29 @@ export default function Dashboard() {
                 )}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-sm sm:text-base text-muted-foreground mb-4">
-                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-                </p>
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-[var(--copper-mid)]/35 to-[var(--copper-mid)]/40 dark:from-[var(--copper-light)]/20 dark:to-[var(--copper-mid)]/25 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-inner">
-                  <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--copper-mid)] dark:text-[var(--copper-light)]" />
+              <div className="text-center py-6 sm:py-8">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[var(--copper-mid)]/35 to-[var(--copper-mid)]/40 dark:from-[var(--copper-light)]/20 dark:to-[var(--copper-mid)]/25 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-inner">
+                  <Shirt className="h-8 w-8 sm:h-10 sm:w-10 text-[var(--copper-mid)] dark:text-[var(--copper-light)]" />
                 </div>
-                <p className="text-sm sm:text-base text-muted-foreground mb-2 font-medium">
-                  Smart weather-perfect outfits
+                <h3 className="text-lg sm:text-xl font-display font-semibold text-card-foreground mb-2">
+                  No outfit suggestion yet
+                </h3>
+                <p className="text-sm sm:text-base text-muted-foreground mb-4 max-w-md mx-auto">
+                  Generate your personalized outfit for today using the Smart Weather Outfit Generator below.
                 </p>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-                  Use the Smart Weather Outfit Generator below for instant, weather-matched looks.
-                </p>
-                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                  <div className="w-2 h-2 bg-[var(--copper-mid)] rounded-full"></div>
-                  <span>Automatic location detection</span>
-                  <div className="w-2 h-2 bg-[var(--copper-mid)] rounded-full ml-3"></div>
-                  <span>Real weather data</span>
-                  <div className="w-2 h-2 bg-[var(--copper-mid)] rounded-full ml-3"></div>
-                  <span>Perfect outfit matching</span>
-                </div>
+                <Button
+                  onClick={() => {
+                    const element = document.getElementById('smart-weather-outfit');
+                    if (element) {
+                      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                  className="gradient-copper-gold text-primary-foreground"
+                  size="default"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Generate Today&apos;s Outfit
+                </Button>
               </div>
             )}
           </div>
