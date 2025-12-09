@@ -679,12 +679,12 @@
     @apply bg-secondary;
   }
   
-  /* Dark Mode: Ensure card surfaces match component-card-nested color */
+  /* Dark Mode: Ensure card surfaces match main component-card color */
   html.dark .card-surface,
   .dark .card-surface,
   .card-surface.dark {
-    background-color: #1A1410 !important; /* Match component-card-nested - slightly lighter than main card */
-    background: #1A1410 !important;
+    background-color: #0F0B08 !important; /* Match component-card - dark black */
+    background: #0F0B08 !important;
   }
   
   .dark .card-surface-variant,
