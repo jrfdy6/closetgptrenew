@@ -848,10 +848,14 @@
   /* Base Card - Layered Elevation System */
   .component-card {
     @apply rounded-2xl backdrop-blur-xl border transition-all duration-300 ease-out relative;
-    /* Light Mode */
-    background: hsl(var(--card) / 0.4) !important;
+    /* Background removed from base - set in light/dark specific rules below */
     border-color: hsl(var(--border) / 0.3) !important;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03) !important;
+  }
+  
+  /* Light mode background - only apply when NOT in dark mode */
+  html:not(.dark) .component-card {
+    background: hsl(var(--card) / 0.4) !important;
   }
   
   /* In dark mode, reduce backdrop-blur opacity to prevent brown bleed-through */
@@ -870,10 +874,9 @@
   [class*="dark"] .component-card,
   body.dark .component-card,
   .dark body .component-card {
-    background: #0F0B08 !important; /* Match the body gradient - Almost black with subtle warm tone - FULLY OPAQUE */
+    background: #0F0B08 !important; /* Match the body gradient - Almost black with subtle warm tone */
     background-color: #0F0B08 !important;
     background-image: none !important;
-    opacity: 1 !important; /* Ensure full opacity */
     border-color: hsl(var(--border) / 0.7) !important; /* #322925 with opacity */
     box-shadow: 
       0 10px 15px -3px rgba(0, 0, 0, 0.5),
@@ -892,7 +895,6 @@
     background: #0F0B08 !important;
     background-color: #0F0B08 !important;
     background-image: none !important;
-    opacity: 1 !important; /* Ensure full opacity */
   }
   
   /* Override any Tailwind bg- utilities in dark mode */
