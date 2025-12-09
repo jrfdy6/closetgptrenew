@@ -939,8 +939,9 @@
   }
 
   html.dark .component-text-primary,
-  .component-text-primary.dark {
-    color: hsl(var(--card-foreground)); /* #F8F5F1 - Warm light */
+  .component-text-primary.dark,
+  .dark .component-text-primary {
+    color: hsl(var(--card-foreground)) !important; /* #F8F5F1 - Warm light */
   }
 
   .component-text-secondary {
@@ -948,8 +949,9 @@
   }
 
   html.dark .component-text-secondary,
-  .component-text-secondary.dark {
-    color: hsl(var(--muted-foreground)); /* #D4CCC0 - Warm muted text */
+  .component-text-secondary.dark,
+  .dark .component-text-secondary {
+    color: hsl(var(--muted-foreground)) !important; /* #D4CCC0 - Warm muted text */
   }
 
   /* Subtle Highlight Under Card (the glow effect) */

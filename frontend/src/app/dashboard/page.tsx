@@ -576,8 +576,8 @@ export default function Dashboard() {
         {dashboardData?.todaysOutfit && (dashboardData.todaysOutfit as any)?.suggestionId && (
         <Card className="component-card mb-12 sm:rounded-3xl">
           <CardHeader className="pb-6">
-            <CardTitle className="text-2xl font-display component-text-primary">Today's outfit suggestion</CardTitle>
-            <CardDescription className="text-sm component-text-secondary">Powered by your Easy Outfit stylist</CardDescription>
+            <CardTitle>Today's outfit suggestion</CardTitle>
+            <CardDescription>Powered by your Easy Outfit stylist</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboardData?.todaysOutfit ? (
