@@ -88,10 +88,11 @@ export function SmartWeatherOutfitGenerator({
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
   const [isOutfitExpanded, setIsOutfitExpanded] = useState(false);
   
-  // Default to collapsed on mobile, expanded on desktop
+  // Default to expanded on all devices for better visibility
   useEffect(() => {
     const checkMobile = () => {
-      setIsOutfitExpanded(window.innerWidth >= 768);
+      // Always expanded by default for better UX
+      setIsOutfitExpanded(true);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);

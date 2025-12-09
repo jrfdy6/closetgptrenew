@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import {
+import { 
   Dialog,
   DialogContent,
   DialogDescription,
@@ -508,12 +508,12 @@ export default function Dashboard() {
                           >
                             {markingAsWorn ? (
                               <>
-                                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                                 Marking...
                               </>
                             ) : (
                               <>
-                                <CheckCircle className="w-4 h-4 mr-2" />
+                              <CheckCircle className="w-4 h-4 mr-2" />
                                 Wear This Outfit
                               </>
                             )}
@@ -580,11 +580,11 @@ export default function Dashboard() {
                                 <p className="text-xs sm:text-sm text-muted-foreground">
                                   {item.type || 'clothing'} {item.color && `• ${item.color}`}
                                 </p>
-                                {item.brand && (
+                              {item.brand && (
                                   <Badge variant="outline" className="text-xs mt-1.5">
-                                    {item.brand}
-                                  </Badge>
-                                )}
+                                  {item.brand}
+                                </Badge>
+                              )}
                               </div>
                             </div>
                           </div>
@@ -626,7 +626,7 @@ export default function Dashboard() {
                   <Sparkles className="w-4 h-4 mr-2" />
                   Generate Today&apos;s Outfit
                 </Button>
-              </div>
+                </div>
             )}
           </div>
         </div>
@@ -721,9 +721,9 @@ export default function Dashboard() {
                     {dashboardData?.favorites || 0}
                   </p>
                 </div>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* This Week Card - Hidden on mobile, shown in expandable section */}
           {(showAllStats || windowWidth >= 640) && (
@@ -738,9 +738,9 @@ export default function Dashboard() {
                     {dashboardData?.outfitsThisWeek || 0}
                   </p>
                 </div>
-              </div>
-            </div>
-          )}
+          </div>
+        </div>
+        )}
         </div>
         
         {/* View All Stats Button - Mobile Only */}
@@ -799,9 +799,9 @@ export default function Dashboard() {
           <AccordionItem value="insights" className="border-0">
             <AccordionTrigger className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 hover:no-underline">
               <div className="flex-1 text-left">
-                <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Wardrobe insights</h2>
-                <p className="text-sm sm:text-base text-muted-foreground">Your top items will appear here based on:</p>
-              </div>
+            <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Wardrobe insights</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">Your top items will appear here based on:</p>
+          </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8">
             {topItemsByCategory.length > 0 ? (
@@ -889,9 +889,9 @@ export default function Dashboard() {
           <AccordionItem value="goals" className="border-0">
             <AccordionTrigger className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 hover:no-underline">
               <div className="flex-1 text-left">
-                <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Style goals</h2>
-                <p className="text-sm sm:text-base text-muted-foreground">Personalized targets based on your look history</p>
-              </div>
+            <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Style goals</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">Personalized targets based on your look history</p>
+          </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8">
             <div className="space-y-4 sm:space-y-6">
@@ -930,14 +930,16 @@ export default function Dashboard() {
 
         {/* Smart Weather Outfit Generator - The original component with all functionality */}
         <div id="smart-weather-outfit" className="mb-6 sm:mb-8 lg:mb-12">
-          <SmartWeatherOutfitGenerator 
-            onOutfitGenerated={(outfit) => {
-              // Refresh dashboard when outfit is generated
-              if (user) {
-                fetchDashboardData();
-              }
-            }}
-          />
+          {user && (
+            <SmartWeatherOutfitGenerator 
+              onOutfitGenerated={(outfit) => {
+                // Refresh dashboard when outfit is generated
+                if (user) {
+                  fetchDashboardData();
+                }
+              }}
+            />
+          )}
         </div>
 
         {/* Wardrobe Insights Hub - Unified component with Style Expansion, Gap Analysis, and Shopping - Collapsible */}
@@ -950,7 +952,7 @@ export default function Dashboard() {
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-0 pb-0">
-              <WardrobeInsightsHub
+        <WardrobeInsightsHub
           styleExpansions={dashboardData?.styleExpansions || []}
           gaps={dashboardData?.wardrobeGaps || []}
           shoppingRecommendations={dashboardData?.shoppingRecommendations}
@@ -968,7 +970,7 @@ export default function Dashboard() {
               <div className="flex-1 text-left">
                 <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Forgotten Gems</h2>
                 <p className="text-sm sm:text-base text-muted-foreground">Rediscover items you haven't worn recently</p>
-              </div>
+          </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8">
               <ForgottenGems />
