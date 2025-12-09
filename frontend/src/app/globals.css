@@ -857,14 +857,25 @@
   /* Dark Mode: Enhanced elevation with proper layering - Use darker background */
   html.dark .component-card,
   .component-card.dark,
-  .dark .component-card {
+  .dark .component-card,
+  html[class*="dark"] .component-card,
+  [class*="dark"] .component-card {
     background: hsl(var(--background) / 0.98) !important; /* #0F0B08 - Almost black with subtle warm tone */
+    background-color: hsl(var(--background) / 0.98) !important;
     border-color: hsl(var(--border) / 0.7) !important; /* #322925 with opacity */
     box-shadow: 
       0 10px 15px -3px rgba(0, 0, 0, 0.5),
       0 4px 6px -2px rgba(0, 0, 0, 0.3),
       0 0 0 1px hsl(var(--border) / 0.2) inset !important; /* Subtle inner highlight */
     color: hsl(var(--card-foreground)) !important; /* #F8F5F1 */
+  }
+  
+  /* Force dark mode card background - highest specificity */
+  html.dark div.component-card,
+  .dark div.component-card,
+  div.component-card.dark {
+    background: hsl(var(--background) / 0.98) !important;
+    background-color: hsl(var(--background) / 0.98) !important;
   }
 
   /* Card Hover State */
