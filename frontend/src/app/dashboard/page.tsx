@@ -97,6 +97,7 @@ export default function Dashboard() {
   const [markingAsWorn, setMarkingAsWorn] = useState(false);
   const [showBatchUpload, setShowBatchUpload] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [windowWidth, setWindowWidth] = useState<number>(0);
   const { user, loading } = useAuthContext();
   
   // Weather hook for automatic location detection
@@ -155,6 +156,15 @@ export default function Dashboard() {
     const handler = (event: MediaQueryListEvent) => update(event);
     query.addEventListener('change', handler);
     return () => query.removeEventListener('change', handler);
+  }, []);
+
+  // Track window width for responsive grid
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const updateWidth = () => setWindowWidth(window.innerWidth);
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
   // Automatic location prompt when dashboard loads
@@ -415,7 +425,12 @@ export default function Dashboard() {
 
 
         {/* Modern Stats Cards - Mobile First Grid */}
-        <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8`}>
+        <div 
+          className="grid gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8" 
+          style={{ 
+            gridTemplateColumns: windowWidth >= 1024 ? 'repeat(6, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))' 
+          }}
+        >
 
           {/* Style Goals Card */}
           <div className="component-card p-4 sm:p-6">
@@ -440,11 +455,8 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">Your Progress</p>
-                <p className="text-lg sm:text-xl font-bold component-text-primary mb-0.5">
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-copper-text component-text-primary">
                   Level {gamificationStats?.level?.level || 1}
-                </p>
-                <p className="text-xs sm:text-sm component-text-secondary capitalize">
-                  {gamificationStats?.level?.tier || 'Novice'}
                 </p>
               </div>
             </div>
@@ -459,7 +471,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">AI Fit Score</p>
                 <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E8A4A4] to-[#D4A574] bg-clip-text text-transparent mb-0.5">
-                  {gamificationStats?.ai_fit_score?.total_score || 0}
+                  {Math.round(gamificationStats?.ai_fit_score?.total_score || 0)}
                 </p>
                 <p className="text-xs sm:text-sm component-text-secondary">
                   {gamificationStats?.ai_fit_score?.total_score === undefined || gamificationStats?.ai_fit_score?.total_score === 0 
