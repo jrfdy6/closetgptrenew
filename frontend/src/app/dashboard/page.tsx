@@ -452,8 +452,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Today's Outfit Section - Prominently displayed ABOVE stats cards */}
-        {dashboardData?.todaysOutfit && (
+        {/* Today's Outfit Section - Always visible ABOVE stats cards */}
         <div className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl border-2 border-[var(--copper-mid)]/30 dark:border-[var(--copper-mid)]/30 bg-gradient-to-br from-[var(--copper-light)]/5 to-transparent dark:from-[var(--copper-dark)]/10 dark:to-transparent">
           <div className="p-4 sm:p-6 lg:p-8 border-b border-border/60 dark:border-border/70">
             <div className="flex items-center justify-between">
@@ -629,7 +628,6 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-        )}
 
         {/* Modern Stats Cards - Mobile Optimized: 2 columns on mobile, 6 on desktop */}
         <div 
