@@ -870,9 +870,10 @@
   [class*="dark"] .component-card,
   body.dark .component-card,
   .dark body .component-card {
-    background: #0F0B08 !important; /* Match the body gradient - Almost black with subtle warm tone */
+    background: #0F0B08 !important; /* Match the body gradient - Almost black with subtle warm tone - FULLY OPAQUE */
     background-color: #0F0B08 !important;
     background-image: none !important;
+    opacity: 1 !important; /* Ensure full opacity */
     border-color: hsl(var(--border) / 0.7) !important; /* #322925 with opacity */
     box-shadow: 
       0 10px 15px -3px rgba(0, 0, 0, 0.5),
@@ -891,6 +892,7 @@
     background: #0F0B08 !important;
     background-color: #0F0B08 !important;
     background-image: none !important;
+    opacity: 1 !important; /* Ensure full opacity */
   }
   
   /* Override any Tailwind bg- utilities in dark mode */
