@@ -745,17 +745,17 @@ export function SmartWeatherOutfitGenerator({
           
           <CollapsibleContent>
           {generatedOutfit ? (
-            <div className="card-surface backdrop-blur-xl rounded-2xl p-3 sm:p-4 lg:p-5 border border-border/60 dark:border-border/70 space-y-2 sm:space-y-3">
+            <div className="card-surface backdrop-blur-xl rounded-2xl p-2 sm:p-4 lg:p-5 border border-border/60 dark:border-border/70 space-y-1.5 sm:space-y-3">
               {/* Outfit Header - More Compact */}
-              <div className="flex items-start gap-3">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-[var(--copper-light)]/35 to-[var(--copper-mid)]/35 dark:from-[var(--copper-mid)]/20 dark:to-[var(--copper-mid)]/20 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-inner flex-shrink-0">
-                  <Shirt className="h-6 w-6 sm:h-7 sm:w-7 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
+              <div className="flex items-start gap-2 sm:gap-3">
+                <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-[var(--copper-light)]/35 to-[var(--copper-mid)]/35 dark:from-[var(--copper-mid)]/20 dark:to-[var(--copper-mid)]/20 rounded-lg sm:rounded-2xl flex items-center justify-center shadow-inner flex-shrink-0">
+                  <Shirt className="h-5 w-5 sm:h-7 sm:w-7 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-display font-semibold text-sm sm:text-base text-card-foreground mb-0.5">
+                  <h4 className="font-display font-semibold text-xs sm:text-base text-card-foreground mb-0.5">
                     {generatedOutfit.name}
                   </h4>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Perfect for {generatedOutfit.weather.temperature}°F {generatedOutfit.weather.condition.toLowerCase()}
                   </p>
                 </div>
@@ -767,45 +767,29 @@ export function SmartWeatherOutfitGenerator({
                 )}
               </div>
               
-              {/* Outfit Items Grid - Compact with Prominent Photos */}
+              {/* Outfit Items Grid - 3 columns, pictures only */}
               {generatedOutfit.items && generatedOutfit.items.length > 0 ? (
-                <div className="space-y-2">
-                  <h5 className="text-xs sm:text-sm font-semibold text-muted-foreground">
+                <div className="space-y-1 sm:space-y-2">
+                  <h5 className="text-xs font-semibold text-muted-foreground">
                     Items ({generatedOutfit.items.length})
                   </h5>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
                     {generatedOutfit.items.map((item, index) => (
                       <div 
                         key={index} 
-                        className="card-surface backdrop-blur-xl rounded-lg sm:rounded-xl p-2 sm:p-3 border border-border/60 dark:border-border/70"
+                        className="card-surface backdrop-blur-xl rounded-lg sm:rounded-xl p-1 sm:p-3 border border-border/60 dark:border-border/70"
                       >
-                        <div className="space-y-2">
-                          {/* Prominent Photo */}
-                          <div className="w-full aspect-square bg-secondary dark:bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                            {item.imageUrl || item.image ? (
-                              <img 
-                                src={item.imageUrl || item.image} 
-                                alt={item.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <Shirt className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-                            )}
-                          </div>
-                          {/* Compact Info */}
-                          <div className="space-y-0.5">
-                            <div className="font-medium text-xs text-card-foreground truncate">
-                              {item.name}
-                            </div>
-                            <div className="text-xs text-muted-foreground truncate">
-                              {item.type} • {item.color}
-                            </div>
-                            {item.brand && (
-                              <div className="text-xs text-muted-foreground/70 truncate">
-                                {item.brand}
-                              </div>
-                            )}
-                          </div>
+                        {/* Photo Only - No Text */}
+                        <div className="w-full aspect-square bg-secondary dark:bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                          {item.imageUrl || item.image ? (
+                            <img 
+                              src={item.imageUrl || item.image} 
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Shirt className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
+                          )}
                         </div>
                       </div>
                     ))}
@@ -827,24 +811,24 @@ export function SmartWeatherOutfitGenerator({
                 </div>
               )}
               
-              {/* Reasoning/Advisory - Truncated with Read More */}
+              {/* Reasoning/Advisory - Collapsed by default on mobile */}
               {generatedOutfit.reasoning && (
-                <div className="card-surface backdrop-blur-xl rounded-xl p-2.5 sm:p-3 border border-border/60 dark:border-border/70 bg-card/85 dark:bg-card/85">
+                <div className="card-surface backdrop-blur-xl rounded-xl p-2 sm:p-3 border border-border/60 dark:border-border/70 bg-card/85 dark:bg-card/85">
                   <div className="flex items-start gap-2 sm:gap-3">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-[#D4A574]/30 to-[#C9956F]/30 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="w-5 h-5 sm:w-8 sm:h-8 bg-gradient-to-br from-[#D4A574]/30 to-[#C9956F]/30 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-lg flex items-center justify-center flex-shrink-0">
                       <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
                   </div>
                     <div className="flex-1 min-w-0">
-                      <h6 className="text-xs sm:text-sm font-semibold text-card-foreground mb-1">
+                      <h6 className="text-xs sm:text-sm font-semibold text-card-foreground mb-0.5 sm:mb-1">
                         Why this outfit?
                     </h6>
-                      <p className={`text-xs text-muted-foreground leading-relaxed ${!isReasoningExpanded ? 'line-clamp-2' : ''}`}>
+                      <p className={`text-xs text-muted-foreground leading-relaxed ${!isReasoningExpanded ? 'line-clamp-1 sm:line-clamp-2' : ''}`}>
                       {generatedOutfit.reasoning}
                     </p>
-                      {generatedOutfit.reasoning.length > 100 && (
+                      {generatedOutfit.reasoning.length > 50 && (
                         <button
                           onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}
-                          className="text-xs text-[var(--copper-mid)] dark:text-[var(--copper-mid)] mt-1 font-medium hover:underline"
+                          className="text-xs text-[var(--copper-mid)] dark:text-[var(--copper-mid)] mt-0.5 sm:mt-1 font-medium hover:underline"
                         >
                           {isReasoningExpanded ? 'Read less' : 'Read more'}
                         </button>
@@ -855,7 +839,7 @@ export function SmartWeatherOutfitGenerator({
               )}
               
               {/* Action Buttons - Removed Confidence */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 sm:pt-3 border-t border-border/60 dark:border-border/60">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-1.5 sm:gap-2 pt-1.5 sm:pt-3 border-t border-border/60 dark:border-border/60">
                 <div className="flex items-center gap-2">
                   <Button 
                     onClick={() => {
