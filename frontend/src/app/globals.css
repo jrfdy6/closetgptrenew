@@ -679,10 +679,12 @@
     @apply bg-secondary;
   }
   
-  /* Dark Mode: Ensure card surfaces use proper variables */
+  /* Dark Mode: Ensure card surfaces use dark black, not brown */
+  html.dark .card-surface,
   .dark .card-surface,
   .card-surface.dark {
-    background-color: hsl(var(--card)); /* #251D18 */
+    background-color: #0F0B08 !important; /* Match component-card - dark black, not brown */
+    background: #0F0B08 !important;
   }
   
   .dark .card-surface-variant,
