@@ -576,14 +576,14 @@ export default function Dashboard() {
         {dashboardData?.todaysOutfit && (dashboardData.todaysOutfit as any)?.suggestionId && (
         <Card className="component-card mb-12 sm:rounded-3xl">
           <CardHeader className="pb-6">
-            <CardTitle className="text-2xl font-display text-card-foreground">Today’s outfit suggestion</CardTitle>
-            <CardDescription className="text-sm text-muted-foreground">Powered by your Easy Outfit stylist</CardDescription>
+            <CardTitle className="text-2xl font-display component-text-primary">Today's outfit suggestion</CardTitle>
+            <CardDescription className="text-sm component-text-secondary">Powered by your Easy Outfit stylist</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboardData?.todaysOutfit ? (
               <div className="space-y-4">
                 <div className="text-center mb-4">
-                  <p className="text-lg text-muted-foreground mb-2">
+                  <p className="text-lg component-text-secondary mb-2">
                     {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                   </p>
                   <Badge variant="secondary" className="mb-3 uppercase tracking-wide">
@@ -597,14 +597,14 @@ export default function Dashboard() {
                       <Shirt className="w-8 h-8 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-card-foreground text-lg">
+                      <h4 className="font-semibold component-text-primary text-lg">
                         {dashboardData.todaysOutfit.outfitName}
                       </h4>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm component-text-secondary">
                         Mood: {dashboardData.todaysOutfit.mood}
                       </p>
                       {dashboardData.todaysOutfit.weather && dashboardData.todaysOutfit.weather.condition && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm component-text-secondary">
                           Weather: {dashboardData.todaysOutfit.weather.condition}, {dashboardData.todaysOutfit.weather.temperature}°C
                         </p>
                       )}
@@ -614,7 +614,7 @@ export default function Dashboard() {
                         <Button 
                           onClick={handleMarkAsWorn}
                           disabled={markingAsWorn}
-                          className="bg-gradient-to-r from-[#B8860B] to-[#C9956F] hover:from-[#A0744F] hover:to-[#B87840] text-white"
+                          className="gradient-copper-gold text-primary-foreground"
                           size="sm"
                         >
                           {markingAsWorn ? (
@@ -641,12 +641,12 @@ export default function Dashboard() {
                   {/* Outfit Items */}
                   {(dashboardData.todaysOutfit as any).items && (dashboardData.todaysOutfit as any).items.length > 0 && (
                     <div className="space-y-3">
-                      <h5 className="font-medium text-card-foreground text-sm uppercase tracking-wide">Outfit items</h5>
+                      <h5 className="font-medium component-text-primary text-sm uppercase tracking-wide">Outfit items</h5>
                       <div className="grid gap-2">
                         {(dashboardData.todaysOutfit as any).items.map((item: any, index: number) => (
                           <div key={index} className="component-card-nested flex items-center space-x-3 p-3">
                             {item.imageUrl ? (
-                              <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 border border-border/60 dark:border-border/70">
+                              <div className="component-image-container w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
                                 <img 
                                   src={item.imageUrl} 
                                   alt={item.name || 'Wardrobe item'}
@@ -673,15 +673,15 @@ export default function Dashboard() {
                               </div>
                             )}
                             <div className="flex-1">
-                              <p className="font-medium text-card-foreground text-sm">
+                              <p className="font-medium component-text-primary text-sm">
                                 {item.name || 'Wardrobe Item'}
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs component-text-secondary">
                                 {item.type || 'clothing'} {item.color && `• ${item.color}`}
                               </p>
                             </div>
                             {item.brand && (
-                              <Badge variant="outline" className="text-xs border-border/60 dark:border-border/70">
+                              <Badge variant="outline" className="text-xs">
                                 {item.brand}
                               </Badge>
                             )}
@@ -694,7 +694,7 @@ export default function Dashboard() {
                 
                 {dashboardData.todaysOutfit.notes && (
                   <div className="component-card-nested p-4">
-                    <p className="text-sm text-card-foreground">
+                    <p className="text-sm component-text-primary">
                       <span className="mr-2">💡</span>{dashboardData.todaysOutfit.notes}
                     </p>
                   </div>
@@ -702,19 +702,19 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-lg text-muted-foreground mb-4">
+                <p className="text-lg component-text-secondary mb-4">
                   {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                 </p>
                 <div className="w-16 h-16 bg-gradient-to-br from-[#E8C8A0]/35 to-[#C9956F]/35 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <Sparkles className="w-8 h-8 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
                 </div>
-                <p className="text-muted-foreground mb-2 font-medium">
+                <p className="component-text-secondary mb-2 font-medium">
                   Smart weather-perfect outfits
                 </p>
-                <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                <p className="text-sm component-text-secondary mb-6 max-w-md mx-auto">
                   Use the Smart Weather Outfit Generator above for instant, weather-matched looks.
                 </p>
-                <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+                <div className="flex items-center justify-center gap-2 text-xs component-text-secondary">
                   <div className="w-2 h-2 bg-[var(--copper-mid)] rounded-full"></div>
                   <span>Automatic location detection</span>
                   <div className="w-2 h-2 bg-[var(--copper-mid)] rounded-full ml-3"></div>
