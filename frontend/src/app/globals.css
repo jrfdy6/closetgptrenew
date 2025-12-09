@@ -858,11 +858,11 @@
     background: hsl(var(--card) / 0.4) !important;
   }
   
-  /* In dark mode, reduce backdrop-blur opacity to prevent brown bleed-through */
+  /* In dark mode, remove backdrop-blur completely to prevent brown bleed-through */
   html.dark .component-card,
   .dark .component-card {
-    backdrop-filter: blur(8px) !important; /* Reduced from xl to prevent background bleed */
-    -webkit-backdrop-filter: blur(8px) !important;
+    backdrop-filter: none !important; /* Remove blur to prevent brown gradient bleed-through */
+    -webkit-backdrop-filter: none !important;
   }
 
   /* Dark Mode: Enhanced elevation with proper layering - Use darker background */
