@@ -879,7 +879,7 @@ export function SmartWeatherOutfitGenerator({
               
               {/* Reasoning/Advisory - Collapsed by default on mobile */}
               {generatedOutfit.reasoning && (
-                <div className="card-surface backdrop-blur-xl rounded-xl p-2 sm:p-3 border border-border/60 dark:border-border/70 bg-card/85 dark:bg-card/85">
+                <div className="card-surface backdrop-blur-xl rounded-xl p-2 sm:p-3 border border-border/60 dark:border-border/70 bg-card/95 dark:bg-card/95">
                   <div className="flex items-start gap-2 sm:gap-3">
                     <div className="w-5 h-5 sm:w-8 sm:h-8 bg-gradient-to-br from-[#D4A574]/30 to-[#C9956F]/30 dark:from-[#D4A574]/20 dark:to-[#C9956F]/20 rounded-lg flex items-center justify-center flex-shrink-0">
                       <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-[var(--copper-mid)] dark:text-[var(--copper-mid)]" />
