@@ -32,31 +32,43 @@ async def get_user_status(
         
         addiction_state = await addiction_service.get_user_addiction_state(user_id)
         role_data = addiction_state.get('role', {})
-        current_role_str = role_data.get('current_role', 'lurker')
+        current_role_str = role_data.get('current_role', 'starter')
         
         try:
             current_role = UserRole(current_role_str)
         except:
-            current_role = UserRole.LURKER
+            current_role = UserRole.STARTER
         
         role_meta = {
-            "lurker": {
-                "title": "Closet Lurker",
-                "icon": "👀",
+            "starter": {
+                "title": "Starter",
+                "icon": "🌱",
                 "color": "gray",
                 "perks_desc": ["Basic App Access"]
             },
-            "scout": {
-                "title": "Style Scout",
+            "explorer": {
+                "title": "Explorer",
                 "icon": "🧭",
                 "color": "blue",
-                "perks_desc": ["1.2x Token Earnings", "+5% Gacha Luck"]
+                "perks_desc": ["1.15x Token Earnings", "+3% Gacha Luck"]
             },
-            "trendsetter": {
-                "title": "Trendsetter",
+            "stylist": {
+                "title": "Stylist",
+                "icon": "✨",
+                "color": "purple",
+                "perks_desc": ["1.3x Token Earnings", "+6% Gacha Luck"]
+            },
+            "curator": {
+                "title": "Curator",
+                "icon": "🎨",
+                "color": "indigo",
+                "perks_desc": ["1.5x Token Earnings", "+8% Gacha Luck", "Priority AI"]
+            },
+            "master": {
+                "title": "Master",
                 "icon": "👑",
                 "color": "gold",
-                "perks_desc": ["1.5x Token Earnings", "Exclusive Gacha Pool", "Priority AI"]
+                "perks_desc": ["1.75x Token Earnings", "+12% Gacha Luck", "Exclusive Gacha Pool", "Priority AI"]
             }
         }
         

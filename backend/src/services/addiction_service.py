@@ -44,46 +44,67 @@ class AddictionService:
     
     # Role maintenance requirements
     ROLE_MAINTENANCE = {
-        UserRole.TRENDSETTER: {
+        UserRole.MASTER: {
             "outfits_per_week": 5,
             "grace_period_days": 7
         }
     }
     
-    # Role configuration
+    # Role configuration - 5 levels with progressive perks
     ROLE_CONFIG = {
-        UserRole.LURKER: {
-            "next_role": UserRole.SCOUT,
+        UserRole.STARTER: {
+            "next_role": UserRole.EXPLORER,
             "promotion_req": {"total_outfits_logged": 10},
             "perks": {
                 "token_multiplier": 1.0,
                 "xp_multiplier": 1.0,
                 "gacha_luck_boost": 0.0
             },
-            "description": "Basic app access"
+            "description": "Starter - Basic app access"
         },
-        UserRole.SCOUT: {
-            "next_role": UserRole.TRENDSETTER,
-            "promotion_req": {"total_outfits_logged": 30, "streak_days": 7},
+        UserRole.EXPLORER: {
+            "next_role": UserRole.STYLIST,
+            "promotion_req": {"total_outfits_logged": 25, "streak_days": 5},
             "perks": {
-                "token_multiplier": 1.2,  # 20% bonus
-                "xp_multiplier": 1.1,
-                "gacha_luck_boost": 0.05  # +5% to rare/legendary rates
+                "token_multiplier": 1.15,  # 15% bonus
+                "xp_multiplier": 1.05,
+                "gacha_luck_boost": 0.03  # +3% to rare/legendary rates
             },
-            "description": "Style Scout - Early access, token bonuses"
+            "description": "Explorer - Early access, token bonuses"
         },
-        UserRole.TRENDSETTER: {
-            "next_role": None,  # Top tier
-            "maintenance_req": {"outfits_per_week": 5},
-            "decay_role": UserRole.SCOUT,
+        UserRole.STYLIST: {
+            "next_role": UserRole.CURATOR,
+            "promotion_req": {"total_outfits_logged": 50, "streak_days": 10},
+            "perks": {
+                "token_multiplier": 1.3,  # 30% bonus
+                "xp_multiplier": 1.1,
+                "gacha_luck_boost": 0.06  # +6% to rare/legendary rates
+            },
+            "description": "Stylist - Enhanced perks and bonuses"
+        },
+        UserRole.CURATOR: {
+            "next_role": UserRole.MASTER,
+            "promotion_req": {"total_outfits_logged": 100, "streak_days": 14},
             "perks": {
                 "token_multiplier": 1.5,  # 50% bonus
-                "xp_multiplier": 1.2,
-                "gacha_luck_boost": 0.10,  # +10% to rare/legendary rates
+                "xp_multiplier": 1.15,
+                "gacha_luck_boost": 0.08,  # +8% to rare/legendary rates
+                "priority_ai": True
+            },
+            "description": "Curator - Premium features and priority access"
+        },
+        UserRole.MASTER: {
+            "next_role": None,  # Top tier
+            "maintenance_req": {"outfits_per_week": 5},
+            "decay_role": UserRole.CURATOR,
+            "perks": {
+                "token_multiplier": 1.75,  # 75% bonus
+                "xp_multiplier": 1.25,
+                "gacha_luck_boost": 0.12,  # +12% to rare/legendary rates
                 "exclusive_gacha_pool": True,
                 "priority_ai": True
             },
-            "description": "Trendsetter - Premium perks, exclusive features"
+            "description": "Master - Top tier with exclusive features"
         }
     }
     
@@ -261,11 +282,11 @@ class AddictionService:
             
             user_data = user_doc.to_dict()
             role_data = user_data.get('role', {})
-            current_role_str = role_data.get('current_role', 'lurker')
+            current_role_str = role_data.get('current_role', 'starter')
             
             try:
                 current_role = UserRole(current_role_str)
-                role_config = self.ROLE_CONFIG.get(current_role, self.ROLE_CONFIG[UserRole.LURKER])
+                role_config = self.ROLE_CONFIG.get(current_role, self.ROLE_CONFIG[UserRole.STARTER])
                 token_multiplier = role_config['perks']['token_multiplier']
             except:
                 token_multiplier = 1.0  # Default if role is invalid/not set
@@ -358,11 +379,11 @@ class AddictionService:
             
             user_data = user_doc.to_dict()
             role_data = user_data.get('role', {})
-            current_role_str = role_data.get('current_role', 'lurker')
+            current_role_str = role_data.get('current_role', 'starter')
             
             try:
                 current_role = UserRole(current_role_str)
-                role_config = self.ROLE_CONFIG.get(current_role, self.ROLE_CONFIG[UserRole.LURKER])
+                role_config = self.ROLE_CONFIG.get(current_role, self.ROLE_CONFIG[UserRole.STARTER])
                 token_multiplier = role_config['perks']['token_multiplier']
             except:
                 token_multiplier = 1.0
@@ -423,11 +444,11 @@ class AddictionService:
             
             # Get user role for luck boost
             role_data = user_data.get('role', {})
-            current_role_str = role_data.get('current_role', 'lurker')
+            current_role_str = role_data.get('current_role', 'starter')
             
             try:
                 current_role = UserRole(current_role_str)
-                role_config = self.ROLE_CONFIG.get(current_role, self.ROLE_CONFIG[UserRole.LURKER])
+                role_config = self.ROLE_CONFIG.get(current_role, self.ROLE_CONFIG[UserRole.STARTER])
                 luck_boost = role_config['perks'].get('gacha_luck_boost', 0.0)
             except:
                 luck_boost = 0.0
@@ -561,20 +582,33 @@ class AddictionService:
             
             user_data = user_doc.to_dict()
             role_data = user_data.get('role', {})
-            current_role_str = role_data.get('current_role', 'lurker')
+            current_role_str = role_data.get('current_role', 'starter')
+            
+            # Migration: Convert old role names to new ones
+            role_migration = {
+                'lurker': 'starter',
+                'scout': 'explorer',
+                'trendsetter': 'master'
+            }
+            if current_role_str in role_migration:
+                current_role_str = role_migration[current_role_str]
+                # Update the user's role in database
+                role_data['current_role'] = current_role_str
+                user_ref.update({'role': role_data})
+                logger.info(f"🔄 Migrated user {user_id} role from old name to {current_role_str}")
             
             try:
                 current_role = UserRole(current_role_str)
             except:
-                current_role = UserRole.LURKER
+                current_role = UserRole.STARTER
             
             # Check for promotion
             promotion_result = await self.check_for_promotion(user_id)
             
-            # Check for demotion (only for Trendsetter)
+            # Check for demotion (only for Master)
             demotion_result = None
-            if current_role == UserRole.TRENDSETTER:
-                demotion_result = await self.check_trendsetter_decay(user_id)
+            if current_role == UserRole.MASTER:
+                demotion_result = await self.check_master_decay(user_id)
             
             return {
                 "current_role": current_role.value,
@@ -597,12 +631,12 @@ class AddictionService:
             
             user_data = user_doc.to_dict()
             role_data = user_data.get('role', {})
-            current_role_str = role_data.get('current_role', 'lurker')
+            current_role_str = role_data.get('current_role', 'starter')
             
             try:
                 current_role = UserRole(current_role_str)
             except:
-                current_role = UserRole.LURKER
+                current_role = UserRole.STARTER
             
             config = self.ROLE_CONFIG.get(current_role)
             if not config or not config.get('next_role'):
@@ -625,11 +659,12 @@ class AddictionService:
             
             if meets_outfits and meets_streak:
                 # PROMOTE!
+                next_role_config = self.ROLE_CONFIG.get(next_role)
                 new_role_data = {
                     'current_role': next_role.value,
                     'role_earned_at': datetime.now().isoformat(),
                     'role_decay_checks_remaining': 0,
-                    'privileges': config['perks']
+                    'privileges': next_role_config['perks'] if next_role_config else config['perks']
                 }
                 
                 user_ref.update({'role': new_role_data})
@@ -653,8 +688,8 @@ class AddictionService:
             logger.error(f"Error checking promotion for user {user_id}: {e}", exc_info=True)
             return {"promoted": False, "error": str(e)}
     
-    async def check_trendsetter_decay(self, user_id: str) -> Dict[str, Any]:
-        """Check if Trendsetter needs to be demoted due to inactivity"""
+    async def check_master_decay(self, user_id: str) -> Dict[str, Any]:
+        """Check if Master needs to be demoted due to inactivity"""
         try:
             user_ref = self.db.collection('users').document(user_id)
             user_doc = user_ref.get()
@@ -665,7 +700,7 @@ class AddictionService:
             user_data = user_doc.to_dict()
             role_data = user_data.get('role', {})
             
-            maintenance_req = self.ROLE_MAINTENANCE[UserRole.TRENDSETTER]
+            maintenance_req = self.ROLE_MAINTENANCE[UserRole.MASTER]
             outfits_per_week = maintenance_req['outfits_per_week']
             grace_period_days = maintenance_req['grace_period_days']
             
@@ -691,15 +726,15 @@ class AddictionService:
                             return {
                                 "demoted": False,
                                 "warning": True,
-                                "message": f"Only {outfits_count}/{outfits_per_week} outfits this week. Maintain your Trendsetter status!",
+                                "message": f"Only {outfits_count}/{outfits_per_week} outfits this week. Maintain your Master status!",
                                 "days_remaining": grace_period_days - days_since_promotion
                             }
                     except:
                         pass
                 
-                # DEMOTE to Scout and start recovery tracking
-                decay_role = UserRole.SCOUT
-                scout_config = self.ROLE_CONFIG[decay_role]
+                # DEMOTE to Curator and start recovery tracking
+                decay_role = UserRole.CURATOR
+                curator_config = self.ROLE_CONFIG[decay_role]
                 
                 # Initialize recovery tracking
                 recovery_data = {
@@ -715,21 +750,21 @@ class AddictionService:
                     'current_role': decay_role.value,
                     'role_earned_at': datetime.now().isoformat(),
                     'role_decay_checks_remaining': 0,
-                    'privileges': scout_config['perks'],
+                    'privileges': curator_config['perks'],
                     'recovery': recovery_data
                 }
                 
                 user_ref.update({'role': new_role_data})
-                logger.warning(f"⚠️ Demoted user {user_id} from Trendsetter to Scout (inactivity). Recovery mode started.")
+                logger.warning(f"⚠️ Demoted user {user_id} from Master to Curator (inactivity). Recovery mode started.")
                 
                 return {
                     "demoted": True,
                     "new_role": decay_role.value,
-                    "message": "You've been demoted to Scout. Complete 2 weeks of 5 outfits each to regain Trendsetter status!",
+                    "message": "You've been demoted to Curator. Complete 2 weeks of 5 outfits each to regain Master status!",
                     "recovery_mode": True
                 }
             
-            # Check if user is in recovery mode (easier path back to Trendsetter)
+            # Check if user is in recovery mode (easier path back to Master)
             recovery_data = role_data.get('recovery', {})
             if recovery_data.get('in_recovery'):
                 recovery_result = await self.check_role_recovery(user_id, recovery_data, outfits_count)
@@ -737,8 +772,8 @@ class AddictionService:
                     return {
                         "demoted": False,
                         "recovered": True,
-                        "new_role": UserRole.TRENDSETTER.value,
-                        "message": "Congratulations! You've regained Trendsetter status!"
+                        "new_role": UserRole.MASTER.value,
+                        "message": "Congratulations! You've regained Master status!"
                     }
                 return {
                     "demoted": False,
@@ -757,12 +792,12 @@ class AddictionService:
             }
             
         except Exception as e:
-            logger.error(f"Error checking Trendsetter decay for user {user_id}: {e}", exc_info=True)
+            logger.error(f"Error checking Master decay for user {user_id}: {e}", exc_info=True)
             return None
     
     async def check_role_recovery(self, user_id: str, recovery_data: Dict[str, Any], outfits_this_week: int) -> Dict[str, Any]:
         """
-        Check if user in recovery mode has completed requirements to regain Trendsetter status.
+        Check if user in recovery mode has completed requirements to regain Master status.
         Recovery requires: 2 weeks of 5 outfits each (10 total, easier than normal maintenance).
         """
         try:
@@ -800,20 +835,20 @@ class AddictionService:
                     
                     # Check if recovery complete (2 weeks done)
                     if weeks_completed >= 2:
-                        # Promote back to Trendsetter
-                        trendsetter_config = self.ROLE_CONFIG[UserRole.TRENDSETTER]
+                        # Promote back to Master
+                        master_config = self.ROLE_CONFIG[UserRole.MASTER]
                         new_role_data = {
-                            'current_role': UserRole.TRENDSETTER.value,
+                            'current_role': UserRole.MASTER.value,
                             'role_earned_at': datetime.now().isoformat(),
                             'role_decay_checks_remaining': 0,
-                            'privileges': trendsetter_config['perks'],
+                            'privileges': master_config['perks'],
                             'recovery': {}  # Clear recovery data
                         }
                         
                         user_ref = self.db.collection('users').document(user_id)
                         user_ref.update({'role': new_role_data})
                         
-                        logger.info(f"✅ User {user_id} recovered Trendsetter status after 2 weeks of recovery")
+                        logger.info(f"✅ User {user_id} recovered Master status after 2 weeks of recovery")
                         
                         return {
                             "recovered": True,

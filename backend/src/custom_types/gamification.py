@@ -75,9 +75,11 @@ class LevelTier(str, Enum):
 
 class UserRole(str, Enum):
     """Internal Status Roles - Power User Tiers"""
-    LURKER = "lurker"              # Default - basic access
-    SCOUT = "scout"                # Early access, token bonuses
-    TRENDSETTER = "trendsetter"    # Premium perks, exclusive features
+    STARTER = "starter"            # Level 1 - Basic access
+    EXPLORER = "explorer"          # Level 2 - Early access, token bonuses
+    STYLIST = "stylist"            # Level 3 - Enhanced perks
+    CURATOR = "curator"            # Level 4 - Premium features
+    MASTER = "master"              # Level 5 - Top tier, exclusive features
 
 
 class GachaRarity(str, Enum):
@@ -195,7 +197,7 @@ class StyleTokens(BaseModel):
 
 class UserRoleData(BaseModel):
     """User role and privilege information"""
-    current_role: str = "lurker"
+    current_role: str = "starter"
     role_earned_at: Optional[str] = None
     role_decay_checks_remaining: int = 0
     privileges: Dict[str, Any] = Field(default_factory=dict)
