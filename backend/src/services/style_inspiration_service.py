@@ -315,11 +315,43 @@ class StyleInspirationService:
         # Filter by gender and style preferences FIRST
         filtered_catalog = self._filter_by_gender_and_preferences(self.catalog, user_profile)
         
+        # If no items match after filtering, try a more lenient approach
         if not filtered_catalog:
-            logger.warning("⚠️ No items match user's gender and style preferences")
+            logger.warning("⚠️ No items match user's gender and style preferences, trying lenient filtering")
+            # Fallback: only filter by gender, ignore style preferences
+            user_gender = user_profile.get('gender', '').lower()
+            filtered_catalog = []
+            
+            for item in self.catalog:
+                if item['id'] in excluded_ids:
+                    continue
+                    
+                # Only apply gender filtering (more lenient)
+                if user_gender:
+                    item_categories = [cat.lower() for cat in item.get('categories', [])]
+                    item_tags = [tag.lower() for tag in item.get('tags', [])]
+                    
+                    if user_gender in ['male', 'man', 'men']:
+                        feminine_keywords = ['dress', 'skirt', 'bra', 'heels', 'makeup']
+                        if any(kw in ' '.join(item_categories + item_tags) for kw in feminine_keywords):
+                            continue
+                    elif user_gender in ['female', 'woman', 'women']:
+                        masculine_keywords = ['mens', 'masculine']
+                        if any(kw in ' '.join(item_categories + item_tags) for kw in masculine_keywords):
+                            continue
+                
+                filtered_catalog.append(item)
+            
+            # If still no items, return any item (last resort)
+            if not filtered_catalog:
+                logger.warning("⚠️ No items after lenient filtering, returning any available item")
+                filtered_catalog = [item for item in self.catalog if item['id'] not in excluded_ids]
+        
+        if not filtered_catalog:
+            logger.warning("⚠️ No items available after all filtering attempts")
             return None
         
-        logger.info(f"✅ Filtered catalog: {len(filtered_catalog)}/{len(self.catalog)} items match user preferences")
+        logger.info(f"✅ Filtered catalog: {len(filtered_catalog)}/{len(self.catalog)} items available")
         
         # Get user's style vector
         user_style_vector = self._user_style_vector_from_profile(user_profile)
