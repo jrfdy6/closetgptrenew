@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { shoppingService, ShoppingRecommendationsResponse } from '@/lib/services/shoppingService';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -38,7 +39,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import PremiumTeaser from '@/components/PremiumTeaser';
 
 // Types
 interface StyleExpansion {
@@ -141,6 +141,7 @@ export default function WardrobeInsightsHub({
   className = ""
 }: WardrobeInsightsHubProps) {
   const { user } = useAuthContext();
+  const router = useRouter();
   const [selectedBudget, setSelectedBudget] = useState<string>('medium');
   const [expandedGaps, setExpandedGaps] = useState<Set<string>>(new Set());
   const [shoppingRecommendations, setShoppingRecommendations] = useState<ShoppingRecommendationsResponse | null>(initialShoppingRecommendations || null);
@@ -319,28 +320,23 @@ export default function WardrobeInsightsHub({
           </TabsContent>
 
           {/* Tab 2: Wardrobe Gap Analysis */}
-          <TabsContent value="gap-analysis" className="space-y-6">
-            {!canAccessGapAnalysis ? (
-              <div className="py-8">
-                <PremiumTeaser variant="compact" />
-              </div>
-            ) : (
-              <>
-                {!hasRealGaps && (
-                  <Card className="border border-emerald-200 bg-emerald-50 dark:border-emerald-800/60 dark:bg-emerald-900/20">
-                    <CardContent className="py-10 text-center space-y-3">
-                      <Sparkles className="w-10 h-10 mx-auto text-emerald-500" />
-                      <h3 className="text-xl font-semibold text-emerald-700 dark:text-emerald-300">
-                        You've hit all of your style goals!
-                      </h3>
-                      <p className="text-sm text-emerald-600 dark:text-emerald-200/80 max-w-md mx-auto">
-                        Keep exploring new looks or revisit your wardrobe anytime to maintain your perfect balance.
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
+          <TabsContent value="gap-analysis" className="space-y-6 relative">
+            <div className={`${!canAccessGapAnalysis ? 'blur-sm pointer-events-none select-none' : ''}`}>
+              {!hasRealGaps && (
+                <Card className="border border-emerald-200 bg-emerald-50 dark:border-emerald-800/60 dark:bg-emerald-900/20">
+                  <CardContent className="py-10 text-center space-y-3">
+                    <Sparkles className="w-10 h-10 mx-auto text-emerald-500" />
+                    <h3 className="text-xl font-semibold text-emerald-700 dark:text-emerald-300">
+                      You've hit all of your style goals!
+                    </h3>
+                    <p className="text-sm text-emerald-600 dark:text-emerald-200/80 max-w-md mx-auto">
+                      Keep exploring new looks or revisit your wardrobe anytime to maintain your perfect balance.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
 
-                {/* Seasonal Essentials Section */}
+              {/* Seasonal Essentials Section */}
             {seasonalGaps.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
@@ -535,16 +531,47 @@ export default function WardrobeInsightsHub({
               </div>
             )}
 
-                {gaps.length === 0 && (
-                  <div className="text-center py-12 border border-dashed border-stone-300 dark:border-stone-700 rounded-lg">
-                    <CheckCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-                    <p className="text-stone-500 dark:text-stone-400 mb-2">No wardrobe gaps found!</p>
-                    <p className="text-sm text-stone-600 dark:text-stone-500">
-                      Your wardrobe is well-balanced. Great job!
+              {gaps.length === 0 && (
+                <div className="text-center py-12 border border-dashed border-stone-300 dark:border-stone-700 rounded-lg">
+                  <CheckCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+                  <p className="text-stone-500 dark:text-stone-400 mb-2">No wardrobe gaps found!</p>
+                  <p className="text-sm text-stone-600 dark:text-stone-500">
+                    Your wardrobe is well-balanced. Great job!
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            {/* Blur Overlay with Upgrade CTA */}
+            {!canAccessGapAnalysis && (
+              <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
+                <Card className="border-2 border-primary/20 bg-background/95 backdrop-blur-sm shadow-2xl max-w-md mx-4">
+                  <CardContent className="p-6 text-center space-y-4">
+                    <div className="flex justify-center">
+                      <div className="rounded-full bg-primary/10 p-3">
+                        <AlertCircle className="h-8 w-8 text-primary" />
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold mb-2">Unlock Gap Analysis</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Get detailed insights into your wardrobe gaps and personalized shopping recommendations
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => router.push('/pricing')}
+                      className="w-full gradient-copper-gold hover:opacity-90"
+                      size="lg"
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Upgrade to PRO
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Start your 30-day free trial
                     </p>
-                  </div>
-                )}
-              </>
+                  </CardContent>
+                </Card>
+              </div>
             )}
           </TabsContent>
         </Tabs>

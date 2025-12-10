@@ -36,6 +36,7 @@ import {
   ChevronDown
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/AuthContext";
 import dynamic from 'next/dynamic';
 import { dashboardService, DashboardData, TopItem } from "@/lib/services/dashboardService";
@@ -130,6 +131,7 @@ export default function Dashboard() {
   const [showOutfitDetails, setShowOutfitDetails] = useState(false);
   const { toast } = useToast();
   const { user, loading } = useAuthContext();
+  const router = useRouter();
   
   // Weather hook for automatic location detection
   const { weather, fetchWeatherByLocation } = useAutoWeather();
@@ -766,55 +768,81 @@ export default function Dashboard() {
           </AccordionItem>
         </Accordion>
 
-        {/* Style Goals - Mobile Optimized with Accordion - PRO/PREMIUM ONLY */}
-        {canAccessPro ? (
-          <Accordion type="single" collapsible className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl" defaultValue={isMobile ? undefined : "goals"}>
-            <AccordionItem value="goals" className="border-0">
-              <AccordionTrigger className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 hover:no-underline">
-                <div className="flex-1 text-left">
-              <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Style goals</h2>
-              <p className="text-sm sm:text-base text-muted-foreground">Personalized targets based on your look history</p>
-            </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8">
-            <div className="space-y-4 sm:space-y-6">
-              {/* Overall Progress */}
-              <div className="component-card-nested text-center p-4 sm:p-6 rounded-xl sm:rounded-2xl">
-                <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-[#D4A574] to-[#C9956F] bg-clip-text text-transparent mb-2">
-                  {dashboardData?.overallProgress || 0}%
-                </div>
-                <p className="text-sm sm:text-base font-medium text-muted-foreground mb-3 sm:mb-4">Overall progress</p>
-                <Progress value={dashboardData?.overallProgress || 0} className="w-full max-w-md mx-auto h-2 sm:h-3" />
+        {/* Style Goals - Mobile Optimized with Accordion - Blurred for free users */}
+        <Accordion type="single" collapsible className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl relative" defaultValue={isMobile ? undefined : "goals"}>
+          <AccordionItem value="goals" className="border-0">
+            <AccordionTrigger className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 hover:no-underline">
+              <div className="flex-1 text-left">
+                <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Style goals</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">Personalized targets based on your look history</p>
               </div>
-
-              {/* Style Collections */}
-              <div className="space-y-3 sm:space-y-4">
-                <h3 className="text-base sm:text-lg font-display font-semibold text-card-foreground">Style collections</h3>
-                {dashboardData?.styleCollections.map((collection, index) => (
-                  <div key={index} className="component-card-nested rounded-xl sm:rounded-2xl p-4 sm:p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm sm:text-base font-semibold text-card-foreground">{collection.name}</h4>
-                      <Badge variant="secondary" className="text-xs sm:text-sm font-bold uppercase tracking-wide">
-                        {collection.progress}/{collection.target}
-                      </Badge>
-                    </div>
-                    <Progress 
-                      value={(collection.progress / collection.target) * 100} 
-                      className="mb-2 sm:mb-3 h-2 sm:h-2.5" 
-                    />
-                    <p className="text-xs sm:text-sm text-muted-foreground">{collection.status}</p>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8 relative">
+              <div className={`space-y-4 sm:space-y-6 ${!canAccessPro ? 'blur-sm pointer-events-none select-none' : ''}`}>
+                {/* Overall Progress */}
+                <div className="component-card-nested text-center p-4 sm:p-6 rounded-xl sm:rounded-2xl">
+                  <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-[#D4A574] to-[#C9956F] bg-clip-text text-transparent mb-2">
+                    {dashboardData?.overallProgress || 0}%
                   </div>
-                ))}
+                  <p className="text-sm sm:text-base font-medium text-muted-foreground mb-3 sm:mb-4">Overall progress</p>
+                  <Progress value={dashboardData?.overallProgress || 0} className="w-full max-w-md mx-auto h-2 sm:h-3" />
+                </div>
+
+                {/* Style Collections */}
+                <div className="space-y-3 sm:space-y-4">
+                  <h3 className="text-base sm:text-lg font-display font-semibold text-card-foreground">Style collections</h3>
+                  {dashboardData?.styleCollections.map((collection, index) => (
+                    <div key={index} className="component-card-nested rounded-xl sm:rounded-2xl p-4 sm:p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm sm:text-base font-semibold text-card-foreground">{collection.name}</h4>
+                        <Badge variant="secondary" className="text-xs sm:text-sm font-bold uppercase tracking-wide">
+                          {collection.progress}/{collection.target}
+                        </Badge>
+                      </div>
+                      <Progress 
+                        value={(collection.progress / collection.target) * 100} 
+                        className="mb-2 sm:mb-3 h-2 sm:h-2.5" 
+                      />
+                      <p className="text-xs sm:text-sm text-muted-foreground">{collection.status}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        ) : (
-          <div className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl">
-            <PremiumTeaser variant="compact" />
-          </div>
-        )}
+              
+              {/* Blur Overlay with Upgrade CTA */}
+              {!canAccessPro && (
+                <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-auto">
+                  <Card className="border-2 border-primary/20 bg-background/95 backdrop-blur-sm shadow-2xl max-w-md mx-4">
+                    <CardContent className="p-6 text-center space-y-4">
+                      <div className="flex justify-center">
+                        <div className="rounded-full bg-primary/10 p-3">
+                          <Target className="h-8 w-8 text-primary" />
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold mb-2">Unlock Style Goals</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Track your style progress with personalized goals and collections
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => router.push('/pricing')}
+                        className="w-full gradient-copper-gold hover:opacity-90"
+                        size="lg"
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Upgrade to PRO
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        Start your 30-day free trial
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
         {/* Wardrobe Insights Hub - Style Inspiration available to all, Gap Analysis gated */}
         <Accordion type="single" collapsible className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl" defaultValue={isMobile ? undefined : "insights-hub"}>
