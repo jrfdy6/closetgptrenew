@@ -39,9 +39,29 @@ export default function ChallengeCard({
 }: ChallengeCardProps) {
   const isActive = variant === 'active';
   const isCompleted = variant === 'completed';
-  const progress = challenge.progress || 0;
-  const target = challenge.target || 1;
-  const progressPercentage = (progress / target) * 100;
+  
+  // Handle annual challenge progress structure (object) vs regular (number)
+  let progress: number;
+  let target: number;
+  let progressDisplay: string;
+  
+  if (challenge.challenge_id === 'annual_wardrobe_master') {
+    // Annual challenge: progress is an object
+    const progressData = typeof challenge.progress === 'object' && challenge.progress !== null
+      ? challenge.progress as { total_outfits?: number; weeks_completed?: number; current_week_outfits?: number }
+      : { total_outfits: 0, weeks_completed: 0 };
+    progress = progressData.total_outfits || 0;
+    target = 260; // 52 weeks * 5 outfits
+    const weeks = progressData.weeks_completed || 0;
+    progressDisplay = `${progress}/260 outfits, ${weeks}/52 weeks`;
+  } else {
+    // Regular challenge: progress is a number
+    progress = typeof challenge.progress === 'number' ? challenge.progress : 0;
+    target = typeof challenge.target === 'number' ? challenge.target : 1;
+    progressDisplay = `${progress}/${target}`;
+  }
+  
+  const progressPercentage = target > 0 ? Math.min((progress / target) * 100, 100) : 0;
 
   const IconComponent = IconMap[challenge.icon || 'Target'] || Target;
 
@@ -100,7 +120,7 @@ export default function ChallengeCard({
                   Progress
                 </span>
                 <span className="text-sm font-bold gradient-copper-text">
-                  {progress}/{target}
+                  {progressDisplay}
                 </span>
               </div>
               <Progress value={progressPercentage} className="h-1" />

@@ -1165,7 +1165,7 @@ export default function BatchImageUpload({
               : "border-gray-300 dark:border-gray-600 hover:border-emerald-400 dark:hover:border-emerald-500"
           }`}
         >
-          <input {...getInputProps()} capture="environment" accept="image/*" />
+          <input {...getInputProps()} accept="image/*" />
           <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">
             {isDragActive

@@ -1462,21 +1462,24 @@ function OnboardingContent() {
 
     return (
       <div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
-        <div className="text-center mb-12">
-          <h2 className="heading-lg text-card-foreground mb-8">
-            {question.question}
-          </h2>
-          {question.type === "visual" && (
-            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
-              Select the option that best represents your style
-            </p>
-          )}
-          {question.type === "rgb_slider" && (
-            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
-              Drag the slider to select your skin tone
-            </p>
-          )}
-        </div>
+        {/* Hide question text for visual_yesno questions */}
+        {question.type !== "visual_yesno" && (
+          <div className="text-center mb-12">
+            <h2 className="heading-lg text-card-foreground mb-8">
+              {question.question}
+            </h2>
+            {question.type === "visual" && (
+              <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                Select the option that best represents your style
+              </p>
+            )}
+            {question.type === "rgb_slider" && (
+              <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                Drag the slider to select your skin tone
+              </p>
+            )}
+          </div>
+        )}
         
         {question.type === "visual" && question.images ? (
           <div className="space-y-2 sm:space-y-4">
