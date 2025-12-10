@@ -1,6 +1,6 @@
 """
 Addiction Service - Handles Ecosystem Engineering mechanics:
-Streaks, Style Tokens (Gacha), Role Decay, and Battle Pass
+Streaks, Style Tokens (Gacha), and Role Decay
 """
 
 import logging
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class AddictionService:
-    """Manages the 'Dark Pattern' mechanics: Streaks, Variable Rewards, Role Decay, and Battle Pass"""
+    """Manages the 'Dark Pattern' mechanics: Streaks, Variable Rewards, and Role Decay"""
     
     def __init__(self):
         self.db = db
@@ -535,220 +535,150 @@ class AddictionService:
             return {
                 "streak": user_data.get('streak', {}),
                 "style_tokens": user_data.get('style_tokens', {}),
-                "role": user_data.get('role', {}),
-                "battle_pass": user_data.get('battle_pass', {})
+                "role": user_data.get('role', {})
             }
             
         except Exception as e:
             logger.error(f"Error getting addiction state for user {user_id}: {e}", exc_info=True)
             return {"error": str(e)}
     
-    async def get_battle_pass_claimed_rewards(self, user_id: str) -> List[str]:
-        """Get list of claimed battle pass reward IDs"""
-        try:
-            user_ref = self.db.collection('users').document(user_id)
-            user_doc = user_ref.get()
-            
-            if not user_doc.exists:
-                return []
-            
-            user_data = user_doc.to_dict()
-            battle_pass_data = user_data.get('battle_pass', {})
-            return battle_pass_data.get('claimed_rewards', [])
-            
-        except Exception as e:
-            logger.error(f"Error getting claimed rewards for user {user_id}: {e}")
-            return []
-    
-    async def get_user_battle_pass_state(self, user_id: str) -> Dict[str, Any]:
-        """Get user's battle pass progress"""
-        try:
-            user_ref = self.db.collection('users').document(user_id)
-            user_doc = user_ref.get()
-            
-            if not user_doc.exists:
-                return {"error": "User not found"}
-            
-            user_data = user_doc.to_dict()
-            battle_pass_data = user_data.get('battle_pass', {})
-            
-            # Default values
-            current_level = battle_pass_data.get('current_level', 1)
-            current_xp = battle_pass_data.get('current_xp', 0)
-            premium_unlocked = battle_pass_data.get('premium_unlocked', False)
-            claimed_rewards = battle_pass_data.get('claimed_rewards', [])
-            
-            return {
-                "season_id": battle_pass_data.get('season_id', 'S1_ECO_ENGINEERING'),
-                "current_level": current_level,
-                "current_xp": current_xp,
-                "premium_unlocked": premium_unlocked,
-                "claimed_rewards": claimed_rewards
-            }
-            
-        except Exception as e:
-            logger.error(f"Error getting battle pass state for user {user_id}: {e}", exc_info=True)
-            return {"error": str(e)}
-    
-    async def claim_battle_pass_reward(self, user_id: str, reward_id: str) -> Dict[str, Any]:
-        """Claim a battle pass reward"""
-        try:
-            # Check if already claimed
-            claimed = await self.get_battle_pass_claimed_rewards(user_id)
-            if reward_id in claimed:
-                return {"error": "Reward already claimed"}
-            
-            # Award reward (stub - implement reward logic)
-            result = await self._award_battle_pass_reward(user_id, reward_id)
-            
-            if result.get('error'):
-                return result
-            
-            # Mark as claimed
-            user_ref = self.db.collection('users').document(user_id)
-            user_doc = user_ref.get()
-            
-            if not user_doc.exists:
-                return {"error": "User not found"}
-            
-            user_data = user_doc.to_dict()
-            battle_pass_data = user_data.get('battle_pass', {})
-            claimed_rewards = battle_pass_data.get('claimed_rewards', [])
-            claimed_rewards.append(reward_id)
-            
-            battle_pass_data['claimed_rewards'] = claimed_rewards
-            user_ref.update({'battle_pass': battle_pass_data})
-            
-            return {
-                "success": True,
-                "reward_id": reward_id,
-                "reward_data": result.get('reward_data', {})
-            }
-            
-        except Exception as e:
-            logger.error(f"Error claiming battle pass reward for user {user_id}: {e}", exc_info=True)
-            return {"error": str(e)}
-    
-    async def _award_battle_pass_reward(self, user_id: str, reward_id: str) -> Dict[str, Any]:
-        """Internal method to award battle pass reward"""
-        # Stub - implement reward logic based on reward_id
-        return {
-            "success": True,
-            "reward_data": {"type": "unknown", "description": "Reward claimed"}
-        }
-    
-    async def unlock_premium_battle_pass(self, user_id: str, method: str = "streak") -> Dict[str, Any]:
-        """Unlock premium battle pass via 30-day streak or purchase"""
-        try:
-            user_ref = self.db.collection('users').document(user_id)
-            user_doc = user_ref.get()
-            
-            if not user_doc.exists:
-                return {"error": "User not found"}
-            
-            user_data = user_doc.to_dict()
-            battle_pass_data = user_data.get('battle_pass', {})
-            
-            if method == "streak":
-                streak_data = user_data.get('streak', {})
-                current_streak = streak_data.get('current_streak', 0)
-                
-                if current_streak < 30:
-                    return {
-                        "error": "Need 30-day streak to unlock premium battle pass",
-                        "current_streak": current_streak,
-                        "required": 30
-                    }
-            
-            # Unlock premium
-            battle_pass_data['premium_unlocked'] = True
-            user_ref.update({'battle_pass': battle_pass_data})
-            
-            logger.info(f"✅ Unlocked premium battle pass for user {user_id} via {method}")
-            
-            return {
-                "success": True,
-                "method": method,
-                "premium_unlocked": True
-            }
-            
-        except Exception as e:
-            logger.error(f"Error unlocking premium battle pass for user {user_id}: {e}", exc_info=True)
-            return {"error": str(e)}
-    
-    async def fulfill_purchase(
-        self,
-        user_id: str,
-        item_id: str,
-        item_config: Dict[str, Any],
-        purchase_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def get_user_audit_state(self, user_id: str, season_id: str = "current") -> Dict[str, Any]:
         """
-        Fulfill an in-app purchase.
-        ONLY supports Premium Battle Pass unlock.
-        Tokens CANNOT be purchased - they are earned through gameplay only!
+        Get the Wardrobe Audit state for a user.
+        ROI-focused audit that helps users understand wardrobe utilization.
+        Access is gated by subscription plan (FREE/PRO/PREMIUM).
         """
         try:
-            item_type = item_config.get('type', '').upper()
-            transaction_id = purchase_data.get('transaction_id') or purchase_data.get('receipt_id', f"mock_{datetime.now().timestamp()}")
+            user_ref = self.db.collection('users').document(user_id)
+            user_doc = user_ref.get()
             
-            # PREVENT token purchases - hard reject
-            if item_type == "TOKENS" or "TOKEN" in item_id.upper():
-                logger.warning(f"🚫 Token purchase attempt blocked for user {user_id}: {item_id}")
-                return {
-                    "error": "Tokens cannot be purchased. They are earned exclusively through gameplay: logging outfits, completing challenges, and maintaining streaks!"
-                }
+            if not user_doc.exists:
+                return {"error": "User not found"}
             
-            # Handle Premium Battle Pass unlock
-            if item_type == "PREMIUM_BP" or "BP_PREMIUM" in item_id.upper():
-                result = await self.unlock_premium_battle_pass(user_id, method="purchase")
-                
-                if result.get('error'):
-                    return result
-                
-                # Store purchase history
-                purchase_history_entry = {
-                    'user_id': user_id,
-                    'item_id': item_id,
-                    'item_type': item_type,
-                    'transaction_id': transaction_id,
-                    'purchased_at': datetime.now(),
-                    'amount': item_config.get('price', 0),
-                    'currency': item_config.get('currency', 'USD')
-                }
-                
-                self.db.collection('users').document(user_id).collection('purchases').add(purchase_history_entry)
-                
-                return {
-                    "success": True,
-                    "item_id": item_id,
-                    "item_type": item_type,
-                    "premium_unlocked": True
-                }
+            user_data = user_doc.to_dict()
             
-            return {
-                "error": f"Unknown item type: {item_type}"
+            # 1. Access Control - Check subscription plan
+            plan = user_data.get('subscription_plan', 'FREE')
+            
+            # 2. Get wardrobe size
+            from google.cloud.firestore_v1 import FieldFilter
+            wardrobe_query = self.db.collection('wardrobe').where(filter=FieldFilter('user_id', '==', user_id))
+            wardrobe_docs = list(wardrobe_query.stream())
+            total_items = len(wardrobe_docs)
+            
+            # 3. Get worn items this season
+            outfit_history_query = self.db.collection('outfit_history').where(filter=FieldFilter('user_id', '==', user_id))
+            worn_item_ids = set()
+            
+            for doc in outfit_history_query.stream():
+                entry = doc.to_dict()
+                items = entry.get('items', [])
+                for item in items:
+                    if isinstance(item, dict):
+                        worn_item_ids.add(item.get('id'))
+                    elif isinstance(item, str):
+                        worn_item_ids.add(item)
+            
+            # 4. Calculate WUR (Wardrobe Utilization Rate)
+            wur = (len(worn_item_ids) / total_items * 100) if total_items > 0 else 0
+            
+            # 5. Calculate unused items (potential donation candidates)
+            unused_items = total_items - len(worn_item_ids)
+            
+            # 6. Estimate potential savings (using spending ranges)
+            estimated_cost_per_item = 0
+            if plan in ['PRO', 'PREMIUM']:
+                spending_ranges = user_data.get('spending_ranges', {})
+                annual_total = spending_ranges.get('annual_total', '$2,500-$5,000')
+                # Parse spending range and estimate
+                if annual_total:
+                    # Simple estimation: extract number and divide by typical items
+                    try:
+                        # Extract digits from range (e.g., "$2,500-$5,000" → ~$3,750 avg)
+                        import re
+                        numbers = re.findall(r'\d+', annual_total.replace(',', ''))
+                        if numbers:
+                            avg_spend = (int(numbers[0]) + int(numbers[-1]) if len(numbers) > 1 else int(numbers[0])) / 2
+                            estimated_cost_per_item = avg_spend / max(total_items, 1)
+                    except:
+                        estimated_cost_per_item = 50  # Default estimate
+            
+            estimated_waste = unused_items * estimated_cost_per_item if plan in ['PRO', 'PREMIUM'] else 0
+            
+            # 7. Build response based on plan
+            base_response = {
+                "plan": plan,
+                "season_id": season_id,
+                "metrics": {
+                    "total_items": total_items,
+                    "items_worn": len(worn_item_ids),
+                    "items_unworn": unused_items,
+                }
             }
             
+            if plan == 'FREE':
+                # Show ghost report - numbers only, no dollar values
+                base_response["wur"] = None  # Locked
+                base_response["estimated_waste"] = None  # Locked
+                base_response["lock_message"] = "🔒 Unlock PRO to see your Wardrobe Utilization Rate"
+                base_response["donation_manifest"] = None
+            
+            elif plan == 'PRO':
+                # Show WUR and utilization
+                base_response["wur"] = round(wur, 1)
+                base_response["estimated_waste"] = None  # Still locked
+                base_response["lock_message"] = None
+                base_response["donation_manifest"] = None
+            
+            elif plan == 'PREMIUM':
+                # Full access - show everything including donation list
+                base_response["wur"] = round(wur, 1)
+                base_response["estimated_waste"] = round(estimated_waste, 2)
+                base_response["lock_message"] = None
+                base_response["donation_manifest"] = await self.generate_donation_manifest(user_id, list(worn_item_ids))
+            
+            return base_response
+            
         except Exception as e:
-            logger.error(f"Error fulfilling purchase: {e}", exc_info=True)
+            logger.error(f"Error getting audit state for user {user_id}: {e}", exc_info=True)
             return {"error": str(e)}
     
-    async def get_purchase_history(self, user_id: str) -> List[Dict[str, Any]]:
-        """Get user's purchase history"""
+    async def generate_donation_manifest(self, user_id: str, worn_item_ids: List[str]) -> List[Dict[str, Any]]:
+        """
+        Generate a list of items recommended for donation.
+        Only called if user has PREMIUM subscription.
+        """
         try:
-            purchases_ref = self.db.collection('users').document(user_id).collection('purchases')
-            purchases = []
+            from google.cloud.firestore_v1 import FieldFilter
             
-            for doc in purchases_ref.stream():
-                purchase_data = doc.to_dict()
-                purchase_data['id'] = doc.id
-                purchases.append(purchase_data)
+            # Get all wardrobe items
+            wardrobe_query = self.db.collection('wardrobe').where(filter=FieldFilter('user_id', '==', user_id))
+            wardrobe_docs = list(wardrobe_query.stream())
             
-            return purchases
+            donation_candidates = []
+            
+            for doc in wardrobe_docs.stream():
+                item_data = doc.to_dict()
+                item_id = doc.id
+                
+                # Add to donation list if never worn
+                if item_id not in worn_item_ids:
+                    donation_candidates.append({
+                        "item_id": item_id,
+                        "name": item_data.get('name', 'Unknown'),
+                        "type": item_data.get('type', 'Unknown'),
+                        "color": item_data.get('color', 'Unknown'),
+                        "reason": "Never worn this season",
+                        "wear_count": item_data.get('wearCount', 0)
+                    })
+            
+            # Sort by wear count (never worn first, then least worn)
+            donation_candidates.sort(key=lambda x: x['wear_count'])
+            
+            return donation_candidates[:20]  # Return top 20 candidates
             
         except Exception as e:
-            logger.error(f"Error getting purchase history for user {user_id}: {e}", exc_info=True)
+            logger.error(f"Error generating donation manifest for user {user_id}: {e}", exc_info=True)
             return []
 
 

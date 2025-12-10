@@ -229,8 +229,7 @@ ROUTERS = [
     ("src.routes.admin_migration", "/api"),  # Admin migration endpoint
     ("src.routes.gacha", "/api"),  # Gacha & Style Tokens (Variable Ratio Reinforcement)
     ("src.routes.roles", "/api"),  # Internal Status Roles (Status & Power)
-    ("src.routes.battlepass", "/api"),  # Battle Pass (Seasonal Urgency)
-    ("src.routes.store", "/api"),  # Store (Premium Battle Pass only - NO token purchases)
+    ("src.routes.audit", "/api"),  # Wardrobe Audit (ROI-focused, subscription-gated)
 ]
 
 def include_router_safe(module_name: str, prefix: str):

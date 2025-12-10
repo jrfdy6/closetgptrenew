@@ -17,6 +17,7 @@ export { default as TVECard } from './TVECard';
 export { default as AIFitScoreCard } from './AIFitScoreCard';
 export { default as UtilizationCard } from './UtilizationCard';
 export { default as GWSCard } from './GWSCard';
+export { AuditReportCard } from './AuditReportCard';
 
 // Challenge Components
 export { default as ChallengeCard } from './ChallengeCard';
