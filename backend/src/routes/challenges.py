@@ -5,6 +5,7 @@ Endpoints for managing and interacting with gamification challenges
 
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any, List
+from datetime import datetime
 import logging
 
 from ..auth.auth_service import get_current_user
