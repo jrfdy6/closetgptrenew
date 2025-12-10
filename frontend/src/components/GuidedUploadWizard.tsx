@@ -56,7 +56,7 @@ const PERSONA_SUGGESTIONS: Record<string, CategorySuggestion[]> = {
 
 export default function GuidedUploadWizard({
   userId,
-  targetCount = 5,
+  targetCount = 10,
   onComplete,
   stylePersona = "default",
   gender = "Male"
@@ -200,6 +200,14 @@ export default function GuidedUploadWizard({
           <CardDescription className="text-lg mt-4 text-muted-foreground">
             We need {targetCount} items to start creating amazing outfits for you.
           </CardDescription>
+          <div className="mt-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
+              💡 Optimal Capsule Wardrobe:
+            </p>
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              Upload a capsule wardrobe to test functionality and create great outfits: <strong>3 jackets, 3 shirts, 3 pants, and 1 pair of shoes</strong>. This mix will help you generate diverse outfit combinations!
+            </p>
+          </div>
           <div className="mt-2 text-sm text-muted-foreground">
             ⏱️ This takes about 5 minutes
           </div>

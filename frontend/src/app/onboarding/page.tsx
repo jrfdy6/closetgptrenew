@@ -1368,7 +1368,7 @@ function OnboardingContent() {
             const wardrobeData = await wardrobeResponse.json();
             const itemCount = wardrobeData.items?.length || 0;
             
-            if (itemCount >= 5) {
+            if (itemCount >= 10) {
               console.log(`✅ User has ${itemCount} items, skipping upload phase`);
               router.push('/style-persona?from=quiz');
               return;
@@ -1378,7 +1378,7 @@ function OnboardingContent() {
           console.warn('Could not check wardrobe, proceeding to upload:', wardrobeError);
         }
         
-        // Start upload phase for new users or users with < 5 items
+        // Start upload phase for new users or users with < 10 items
         console.log('🎯 [Quiz] Starting upload phase for new/incomplete wardrobe');
         setUploadPhase(true);
       } else {
@@ -1418,21 +1418,21 @@ function OnboardingContent() {
           }
         });
         
-        if (wardrobeResponse.ok) {
-          const wardrobeData = await wardrobeResponse.json();
-          const itemCount = wardrobeData.items?.length || 0;
-          
-          if (itemCount >= 5) {
-            console.log(`✅ User has ${itemCount} items, skipping upload phase`);
-            router.push('/style-persona?from=quiz');
-            return;
+          if (wardrobeResponse.ok) {
+            const wardrobeData = await wardrobeResponse.json();
+            const itemCount = wardrobeData.items?.length || 0;
+            
+            if (itemCount >= 10) {
+              console.log(`✅ User has ${itemCount} items, skipping upload phase`);
+              router.push('/style-persona?from=quiz');
+              return;
+            }
           }
+        } catch (wardrobeError) {
+          console.warn('Could not check wardrobe:', wardrobeError);
         }
-      } catch (wardrobeError) {
-        console.warn('Could not check wardrobe:', wardrobeError);
-      }
-      
-      setUploadPhase(true);
+        
+        setUploadPhase(true);
     } finally {
       setIsLoading(false);
     }
@@ -1681,7 +1681,7 @@ function OnboardingContent() {
     return (
       <GuidedUploadWizard
         userId={user?.uid || ''}
-        targetCount={5}
+        targetCount={10}
         stylePersona={quizResults?.stylePersona || 'default'}
         gender={userGender || 'Male'}
         onComplete={(itemCount) => {
