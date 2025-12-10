@@ -2064,9 +2064,6 @@ function OnboardingContent() {
           <h1 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-4 leading-tight">
             Let's Discover Your Style
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            Answer a few questions to unlock your unique style personality and get personalized recommendations
-          </p>
         </div>
 
         <div className="glass-float p-4 flex-1 flex flex-col min-h-0 glass-shadow overflow-hidden">

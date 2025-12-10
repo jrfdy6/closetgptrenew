@@ -57,16 +57,23 @@ export interface Challenge {
   challenge_id: string;
   title: string;
   description: string;
-  progress: number;
+  progress: number | {
+    total_outfits?: number;
+    weeks_completed?: number;
+    current_week_outfits?: number;
+    current_week_start?: string;
+  };
   target: number;
   status: string;
   rewards: {
     xp: number;
     badge?: string;
+    tokens?: number;
   };
   icon?: string;
   started_at?: string;
   expires_at?: string;
+  featured?: boolean;
 }
 
 export interface GamificationStats {
