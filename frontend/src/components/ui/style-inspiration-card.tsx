@@ -143,6 +143,10 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
   }
 
   if (error) {
+    // Check if it's a "no items" error vs a real error
+    const isNoItemsError = error.toLowerCase().includes('no inspiration') || 
+                          error.toLowerCase().includes('not available');
+    
     return (
       <Card className={`w-full max-w-sm sm:max-w-md ${className}`}>
         <CardHeader>
@@ -151,12 +155,30 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
             Style Inspiration
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-red-600 mb-4">{error}</p>
-          <Button onClick={handleRefresh} variant="outline" size="sm">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Try Again
-          </Button>
+        <CardContent className="text-center py-6">
+          <div className="space-y-4">
+            <div className="flex justify-center">
+              <div className="rounded-full bg-muted p-4">
+                <Sparkles className="w-8 h-8 text-muted-foreground" />
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-card-foreground mb-2">
+                {isNoItemsError 
+                  ? "More inspiration coming soon!" 
+                  : "Unable to load inspiration"}
+              </p>
+              <p className="text-xs text-muted-foreground mb-4">
+                {isNoItemsError
+                  ? "We're working on adding personalized style recommendations for you."
+                  : error}
+              </p>
+            </div>
+            <Button onClick={handleRefresh} variant="outline" size="sm" className="w-full">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
