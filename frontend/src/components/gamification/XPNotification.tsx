@@ -51,17 +51,17 @@ export default function XPNotification({
             ease: "easeOut"
           }}
           className={`fixed top-4 right-4 z-50 pointer-events-auto min-w-[240px] max-w-[320px]
-            rounded-xl p-3 shadow-lg ${
+            rounded-xl p-3 shadow-lg backdrop-blur-sm ${
               levelUp
-                ? 'gradient-copper-gold border-none'
-                : 'bg-card dark:bg-card border border-border/60 dark:border-border/70'
+                ? 'bg-gradient-to-r from-[#C9956F] to-[#D4A574] border-2 border-[#C9956F]/40'
+                : 'bg-[#F5F0E8] dark:bg-[#251D18] border-2 border-[#C9956F]/30'
             }`}
         >
           <div className="flex items-center gap-3">
             {levelUp ? (
               <Award className="w-5 h-5 text-white" />
             ) : (
-              <Sparkles className="w-5 h-5 text-[var(--copper-dark)]" />
+              <Sparkles className="w-5 h-5 text-[#C9956F] dark:text-[#D4A574]" />
             )}
             
             <div className="flex-1">
@@ -76,10 +76,10 @@ export default function XPNotification({
                 </>
               ) : (
                 <>
-                  <div className="text-sm font-medium gradient-copper-text">
+                  <div className="text-sm font-medium text-[#C9956F] dark:text-[#D4A574]">
                     +{xp} XP
                   </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
+                  <div className="text-xs text-[#B8860B] dark:text-[#C9956F] mt-0.5">
                     {reason}
                   </div>
                 </>

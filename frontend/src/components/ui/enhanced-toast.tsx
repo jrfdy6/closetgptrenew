@@ -25,33 +25,39 @@ const toastVariants = {
 const toastTypes = {
   success: {
     icon: CheckCircle,
-    className: 'bg-gradient-to-r from-green-500 to-green-600 text-white border-green-400',
-    iconClassName: 'text-green-100'
+    // Creme background with rosegold text
+    className: 'bg-[#F5F0E8] dark:bg-[#251D18] border-[#C9956F]/30 text-[#C9956F]',
+    iconClassName: 'text-[#C9956F]'
   },
   error: {
     icon: AlertCircle,
-    className: 'bg-gradient-to-r from-red-500 to-red-600 text-white border-red-400',
-    iconClassName: 'text-red-100'
+    // Espresso with lighter rosegold (still warm, not red)
+    className: 'bg-[#F5F0E8] dark:bg-[#1A1410] border-[#B8860B]/40 text-[#B8860B]',
+    iconClassName: 'text-[#B8860B]'
   },
   warning: {
     icon: AlertCircle,
-    className: 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white border-yellow-400',
-    iconClassName: 'text-yellow-100'
+    // Creme with dark copper (warm warning, not yellow)
+    className: 'bg-[#F5F0E8] dark:bg-[#251D18] border-[#B8860B]/40 text-[#B8860B]',
+    iconClassName: 'text-[#B8860B]'
   },
   info: {
     icon: Info,
-    className: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-400',
-    iconClassName: 'text-blue-100'
+    // Creme background with rosegold text (no blue)
+    className: 'bg-[#F5F0E8] dark:bg-[#251D18] border-[#C9956F]/30 text-[#C9956F]',
+    iconClassName: 'text-[#C9956F]'
   },
   favorite: {
     icon: Heart,
-    className: 'bg-gradient-to-r from-pink-500 to-rose-600 text-white border-pink-400',
-    iconClassName: 'text-pink-100'
+    // Creme with rosegold (warm, not pink)
+    className: 'bg-[#F5F0E8] dark:bg-[#251D18] border-[#D4A574]/40 text-[#D4A574]',
+    iconClassName: 'text-[#D4A574]'
   },
   achievement: {
     icon: Sparkles,
-    className: 'bg-gradient-to-r from-purple-500 to-violet-600 text-white border-violet-400',
-    iconClassName: 'text-violet-100'
+    // Creme background with rosegold text (no purple)
+    className: 'bg-[#F5F0E8] dark:bg-[#251D18] border-[#C9956F]/40 text-[#C9956F]',
+    iconClassName: 'text-[#C9956F]'
   }
 };
 
@@ -85,13 +91,14 @@ export function EnhancedToast({
         className={cn(
           'relative overflow-hidden rounded-xl shadow-lg border-2',
           'min-w-[320px] max-w-[420px]',
+          'backdrop-blur-sm',
           toastType.className
         )}
       >
         {/* Background pattern */}
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full -translate-y-16 translate-x-16" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/20 rounded-full translate-y-12 -translate-x-12" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#C9956F]/20 rounded-full -translate-y-16 translate-x-16" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#C9956F]/20 rounded-full translate-y-12 -translate-x-12" />
         </div>
 
         <div className="relative p-4">
@@ -102,7 +109,7 @@ export function EnhancedToast({
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", stiffness: 260, damping: 20 }}
               className={cn(
-                'flex-shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center',
+                'flex-shrink-0 w-8 h-8 rounded-full bg-[#C9956F]/10 dark:bg-[#C9956F]/20 flex items-center justify-center',
                 toastType.iconClassName
               )}
             >
@@ -115,7 +122,7 @@ export function EnhancedToast({
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
-                className="font-semibold text-sm leading-tight"
+                className="font-semibold text-sm leading-tight text-[#C9956F] dark:text-[#D4A574]"
               >
                 {title}
               </motion.h4>
@@ -125,7 +132,7 @@ export function EnhancedToast({
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="mt-1 text-sm opacity-90 leading-relaxed"
+                  className="mt-1 text-sm opacity-80 leading-relaxed text-[#B8860B] dark:text-[#C9956F]"
                 >
                   {description}
                 </motion.p>
@@ -138,7 +145,7 @@ export function EnhancedToast({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
                   onClick={action.onClick}
-                  className="mt-3 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors"
+                  className="mt-3 px-3 py-1.5 bg-[#C9956F]/10 hover:bg-[#C9956F]/20 dark:bg-[#C9956F]/20 dark:hover:bg-[#C9956F]/30 rounded-lg text-sm font-medium transition-colors text-[#C9956F] dark:text-[#D4A574]"
                 >
                   {action.label}
                 </motion.button>
@@ -151,9 +158,9 @@ export function EnhancedToast({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.1 }}
               onClick={() => onClose(id)}
-              className="flex-shrink-0 w-6 h-6 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+              className="flex-shrink-0 w-6 h-6 rounded-full bg-[#C9956F]/10 hover:bg-[#C9956F]/20 dark:bg-[#C9956F]/20 dark:hover:bg-[#C9956F]/30 flex items-center justify-center transition-colors"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 text-[#C9956F] dark:text-[#D4A574]" />
             </motion.button>
           </div>
         </div>
@@ -163,7 +170,7 @@ export function EnhancedToast({
           initial={{ scaleX: 1 }}
           animate={{ scaleX: 0 }}
           transition={{ duration: duration / 1000, ease: "linear" }}
-          className="absolute bottom-0 left-0 right-0 h-1 bg-white/30 origin-left"
+          className="absolute bottom-0 left-0 right-0 h-1 bg-[#C9956F]/30 dark:bg-[#D4A574]/30 origin-left"
         />
       </motion.div>
     </AnimatePresence>

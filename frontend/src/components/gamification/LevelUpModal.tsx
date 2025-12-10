@@ -23,7 +23,8 @@ function Confetti() {
     delay: Math.random() * 0.5,
     duration: 2 + Math.random() * 2,
     rotation: Math.random() * 360,
-    color: ['#FFB84C', '#FF9400', '#A855F7', '#EC4899', '#10B981'][Math.floor(Math.random() * 5)]
+    // Only rosegold/copper colors - NO purple/pink
+    color: ['#D4A574', '#C9956F', '#B8860B', '#FFB84C', '#FF9400'][Math.floor(Math.random() * 5)]
   }));
 
   return (
@@ -72,17 +73,18 @@ export default function LevelUpModal({
   }, [isOpen]);
 
   const getTierColor = (tier: string) => {
+    // All tiers use rosegold variations - NO blue/purple
     switch (tier.toLowerCase()) {
       case 'novice':
-        return 'from-gray-400 to-gray-600';
+        return 'from-[#D4A574] to-[#C9956F]'; // Light rosegold
       case 'stylist':
-        return 'from-blue-400 to-blue-600';
+        return 'from-[#C9956F] to-[#B8860B]'; // Mid rosegold
       case 'curator':
-        return 'from-purple-400 to-purple-600';
+        return 'from-[#B8860B] to-[#C9956F]'; // Dark copper to mid
       case 'connoisseur':
-        return 'from-amber-400 to-amber-600';
+        return 'from-[#FFB84C] to-[#FF9400]'; // Amber/copper gradient
       default:
-        return 'from-purple-400 to-pink-600';
+        return 'from-[#C9956F] to-[#D4A574]'; // Default rosegold
     }
   };
 
@@ -105,7 +107,7 @@ export default function LevelUpModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md overflow-hidden border-none bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950">
+      <DialogContent className="sm:max-w-md overflow-hidden border-none bg-[#F5F0E8] dark:bg-[#1A1410] border-2 border-[#C9956F]/30">
         {/* Confetti */}
         {showConfetti && <Confetti />}
 
@@ -135,10 +137,10 @@ export default function LevelUpModal({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <h2 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <h2 className="text-4xl font-bold mb-2 bg-gradient-to-r from-[#C9956F] to-[#D4A574] bg-clip-text text-transparent">
               Level Up!
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 text-lg mb-4">
+            <p className="text-[#B8860B] dark:text-[#C9956F] text-lg mb-4">
               You've reached Level {newLevel}
             </p>
           </motion.div>
@@ -154,7 +156,7 @@ export default function LevelUpModal({
             }}
             className="mb-6"
           >
-            <Badge className={`text-lg px-6 py-2 bg-gradient-to-r ${getTierColor(tier)} text-white border-none`}>
+            <Badge className={`text-lg px-6 py-2 bg-gradient-to-r ${getTierColor(tier)} text-white border-none shadow-lg`}>
               {tier}
             </Badge>
           </motion.div>
@@ -166,9 +168,9 @@ export default function LevelUpModal({
             transition={{ delay: 0.8 }}
             className="mb-8"
           >
-            <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/50 dark:bg-black/30 backdrop-blur">
-              <Sparkles className="w-5 h-5 text-amber-500" />
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/50 dark:bg-[#251D18]/50 backdrop-blur border border-[#C9956F]/20">
+              <Sparkles className="w-5 h-5 text-[#C9956F] dark:text-[#D4A574]" />
+              <span className="text-2xl font-bold text-[#C9956F] dark:text-[#D4A574]">
                 {xp} XP
               </span>
             </div>
@@ -181,7 +183,7 @@ export default function LevelUpModal({
             transition={{ delay: 1 }}
             className="mb-6 space-y-2"
           >
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <p className="text-sm font-medium text-[#B8860B] dark:text-[#C9956F]">
               {newLevel === 5 && "Unlocked: Advanced challenge types"}
               {newLevel === 10 && "Unlocked: Curator insights & analytics"}
               {newLevel === 15 && "Unlocked: Exclusive connoisseur features"}
@@ -198,7 +200,7 @@ export default function LevelUpModal({
             <Button
               onClick={onClose}
               size="lg"
-              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
+              className="bg-gradient-to-r from-[#C9956F] to-[#D4A574] text-white hover:from-[#B8860B] hover:to-[#C9956F] shadow-lg border-none"
             >
               Continue
             </Button>
