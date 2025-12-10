@@ -190,6 +190,15 @@ class ChallengeService:
             for doc in active_docs:
                 challenge_data = doc.to_dict()
                 challenge_id = challenge_data.get('challenge_id')
+                
+                # Handle annual challenge separately
+                if challenge_id == 'annual_wardrobe_master':
+                    annual_result = await self.check_annual_challenge_progress(user_id, outfit_data)
+                    if annual_result.get('challenge_completed'):
+                        completed_challenges.append(challenge_id)
+                    continue
+                
+                # Handle other challenge types (existing logic)
                 challenge_items = challenge_data.get('items', [])
                 outfit_items = outfit_data.get('items', [])
                 
@@ -274,6 +283,8 @@ class ChallengeService:
             
             # Award XP
             from .gamification_service import gamification_service
+            from .addiction_service import AddictionService
+            
             xp_reward = challenge_def.rewards.get('xp', 0)
             if xp_reward > 0:
                 await gamification_service.award_xp(
@@ -282,6 +293,17 @@ class ChallengeService:
                     reason=f"Completed challenge: {challenge_def.title}",
                     metadata={"challenge_id": challenge_id}
                 )
+            
+            # Award tokens (matching XP amount, with role multiplier applied)
+            token_reward = challenge_def.rewards.get('tokens', xp_reward)  # Default to XP amount if not specified
+            if token_reward > 0:
+                addiction_service = AddictionService()
+                token_result = await addiction_service.award_style_tokens(
+                    user_id=user_id,
+                    action_type="challenge_completed",
+                    amount=token_reward  # Role multiplier will be applied internally
+                )
+                logger.info(f"✅ Awarded {token_result.get('tokens_awarded', 0)} tokens for challenge completion")
             
             # Award badge if specified
             badge_id = challenge_def.rewards.get('badge')
@@ -315,6 +337,212 @@ class ChallengeService:
         except Exception as e:
             logger.error(f"Error completing challenge: {e}", exc_info=True)
             return {"success": False, "error": str(e)}
+    
+    def calculate_annual_challenge_cycle(self, user_signup_date: datetime, current_date: datetime) -> int:
+        """
+        Calculates which 52-week cycle user is in.
+        Formula: floor((current_date - signup_date).days / 7 / 52) + 1
+        """
+        days_since_signup = (current_date - user_signup_date).days
+        weeks_since_signup = days_since_signup / 7
+        cycle_number = int(weeks_since_signup / 52) + 1
+        return cycle_number
+    
+    def get_cycle_start_date(self, user_signup_date: datetime, cycle_number: int) -> datetime:
+        """
+        Returns start date for specific cycle.
+        Cycle 1 starts at signup, cycle 2 starts 52 weeks later, etc.
+        """
+        weeks_offset = (cycle_number - 1) * 52
+        cycle_start = user_signup_date + timedelta(weeks=weeks_offset)
+        return cycle_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    def is_in_grace_period(self, user_signup_date: datetime, current_date: datetime, cycle_number: int) -> bool:
+        """
+        Checks if user is in 1-week grace period after cycle end.
+        """
+        cycle_start = self.get_cycle_start_date(user_signup_date, cycle_number)
+        cycle_end = cycle_start + timedelta(weeks=52)
+        grace_end = cycle_end + timedelta(weeks=1)
+        
+        return cycle_end <= current_date <= grace_end
+    
+    async def auto_start_annual_challenge(self, user_id: str) -> Dict[str, Any]:
+        """
+        Auto-start annual challenge on first outfit log (or sign-up).
+        Gets user signup date, calculates current cycle, creates challenge.
+        """
+        try:
+            # Get user profile to find signup date
+            user_ref = self.db.collection('users').document(user_id)
+            user_doc = user_ref.get()
+            
+            if not user_doc.exists:
+                return {"success": False, "error": "User not found"}
+            
+            user_data = user_doc.to_dict()
+            signup_timestamp = user_data.get('createdAt', 0)
+            
+            # Convert timestamp to datetime
+            if isinstance(signup_timestamp, int):
+                signup_date = datetime.fromtimestamp(signup_timestamp / 1000)
+            else:
+                signup_date = datetime.now()  # Fallback
+            
+            current_date = datetime.now()
+            cycle_number = self.calculate_annual_challenge_cycle(signup_date, current_date)
+            
+            # Check if challenge already exists for this cycle
+            active_ref = self.db.collection('user_challenges').document(user_id).collection('active')
+            existing_docs = list(active_ref.where('challenge_id', '==', 'annual_wardrobe_master').stream())
+            
+            # Check if any existing challenge is for current cycle
+            for doc in existing_docs:
+                challenge_data = doc.to_dict()
+                if challenge_data.get('cycle_number') == cycle_number:
+                    logger.info(f"Annual challenge already exists for user {user_id}, cycle {cycle_number}")
+                    return {"success": True, "already_exists": True, "challenge_id": doc.id}
+            
+            # Get challenge definition
+            challenge_def = CHALLENGE_CATALOG.get('annual_wardrobe_master')
+            if not challenge_def:
+                return {"success": False, "error": "Annual challenge not found in catalog"}
+            
+            # Calculate cycle start and end dates
+            cycle_start = self.get_cycle_start_date(signup_date, cycle_number)
+            cycle_end = cycle_start + timedelta(weeks=52)
+            
+            # Create challenge with cycle-specific badge name
+            badge_id = f"annual_master_cycle_{cycle_number}"
+            
+            challenge_data = {
+                'challenge_id': 'annual_wardrobe_master',
+                'user_id': user_id,
+                'started_at': cycle_start,
+                'expires_at': cycle_end,
+                'cycle_number': cycle_number,
+                'progress': {
+                    'total_outfits': 0,
+                    'weeks_completed': 0,
+                    'current_week_outfits': 0,
+                    'current_week_start': None
+                },
+                'status': ChallengeStatus.IN_PROGRESS.value,
+                'metadata': {
+                    'badge_id': badge_id,
+                    'outfits_per_week': challenge_def.rules.get('outfits_per_week', 5),
+                    'weeks_required': challenge_def.rules.get('weeks_required', 52)
+                }
+            }
+            
+            # Save to Firestore
+            doc_ref = active_ref.add(challenge_data)
+            challenge_id = doc_ref[1].id
+            
+            logger.info(f"✅ Auto-started annual challenge for user {user_id}, cycle {cycle_number}")
+            
+            return {
+                "success": True,
+                "challenge_id": challenge_id,
+                "cycle_number": cycle_number,
+                "start_date": cycle_start.isoformat(),
+                "end_date": cycle_end.isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error auto-starting annual challenge: {e}", exc_info=True)
+            return {"success": False, "error": str(e)}
+    
+    async def check_annual_challenge_progress(self, user_id: str, outfit_data: Dict) -> Dict[str, Any]:
+        """
+        Tracks progress for annual challenge: 5 outfits per week.
+        Checks if weekly goal met, if cycle complete, awards milestones.
+        """
+        try:
+            # Get active annual challenge
+            active_ref = self.db.collection('user_challenges').document(user_id).collection('active')
+            annual_docs = list(active_ref.where('challenge_id', '==', 'annual_wardrobe_master').stream())
+            
+            if not annual_docs:
+                return {"progress_updated": False}
+            
+            challenge_doc = annual_docs[0]
+            challenge_data = challenge_doc.to_dict()
+            progress = challenge_data.get('progress', {})
+            metadata = challenge_data.get('metadata', {})
+            
+            outfits_per_week = metadata.get('outfits_per_week', 5)
+            weeks_required = metadata.get('weeks_required', 52)
+            
+            # Get outfit date
+            outfit_date_ts = outfit_data.get('date')
+            if isinstance(outfit_date_ts, int):
+                outfit_date = datetime.fromtimestamp(outfit_date_ts / 1000)
+            else:
+                outfit_date = datetime.now()
+            
+            # Determine current week start (Monday)
+            days_since_monday = outfit_date.weekday()
+            week_start = outfit_date - timedelta(days=days_since_monday)
+            week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            # Update progress
+            current_week_start = progress.get('current_week_start')
+            if current_week_start:
+                # Convert to datetime if it's a timestamp
+                if isinstance(current_week_start, int):
+                    current_week_start = datetime.fromtimestamp(current_week_start / 1000)
+                elif isinstance(current_week_start, str):
+                    current_week_start = datetime.fromisoformat(current_week_start)
+            
+            # Check if this is a new week
+            if not current_week_start or week_start > current_week_start:
+                # New week - check if previous week goal was met
+                if current_week_start:
+                    prev_week_outfits = progress.get('current_week_outfits', 0)
+                    if prev_week_outfits >= outfits_per_week:
+                        # Week goal met - increment weeks_completed
+                        progress['weeks_completed'] = progress.get('weeks_completed', 0) + 1
+                        logger.info(f"✅ Week goal met for user {user_id}: {prev_week_outfits} outfits")
+                
+                # Start new week
+                progress['current_week_start'] = week_start.isoformat()
+                progress['current_week_outfits'] = 1
+            else:
+                # Same week - increment outfit count
+                progress['current_week_outfits'] = progress.get('current_week_outfits', 0) + 1
+            
+            # Increment total outfits
+            progress['total_outfits'] = progress.get('total_outfits', 0) + 1
+            
+            # Check if cycle complete (52 weeks with 5 outfits each)
+            weeks_completed = progress.get('weeks_completed', 0)
+            if progress.get('current_week_outfits', 0) >= outfits_per_week:
+                # Current week also counts if goal is met
+                effective_weeks = weeks_completed + 1
+            else:
+                effective_weeks = weeks_completed
+            
+            challenge_completed = False
+            if effective_weeks >= weeks_required:
+                challenge_completed = True
+                # Complete the challenge
+                await self.complete_challenge(user_id, challenge_doc.id, 'annual_wardrobe_master')
+            
+            # Update Firestore
+            challenge_doc.reference.update({'progress': progress})
+            
+            return {
+                "progress_updated": True,
+                "total_outfits": progress['total_outfits'],
+                "weeks_completed": weeks_completed,
+                "current_week_outfits": progress.get('current_week_outfits', 0),
+                "challenge_completed": challenge_completed
+            }
+            
+        except Exception as e:
+            logger.error(f"Error checking annual challenge progress: {e}", exc_info=True)
+            return {"progress_updated": False, "error": str(e)}
     
     async def get_active_challenges(self, user_id: str) -> List[Dict[str, Any]]:
         """Get user's active challenges"""

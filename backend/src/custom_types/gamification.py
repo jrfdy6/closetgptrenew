@@ -25,6 +25,7 @@ class ChallengeType(str, Enum):
     THEMED_EVENT = "themed_event"
     SUSTAINABILITY_CHAMPION = "sustainability_champion"
     PATTERN_MASTER = "pattern_master"
+    ANNUAL = "annual"
 
 
 class ChallengeStatus(str, Enum):
@@ -210,13 +211,6 @@ class GachaPull(BaseModel):
     cost: int
 
 
-class BattlePassProgress(BaseModel):
-    """Battle Pass progression data"""
-    season_id: str
-    current_level: int = 1
-    current_xp: int = 0
-    premium_unlocked: bool = False
-    claimed_rewards: List[str] = Field(default_factory=list)
 
 
 # Predefined challenges catalog
@@ -290,6 +284,25 @@ CHALLENGE_CATALOG = {
         cadence="always",
         featured=False,
         icon="Upload"
+    ),
+    "annual_wardrobe_master": Challenge(
+        id="annual_wardrobe_master",
+        type=ChallengeType.ANNUAL,
+        title="Wardrobe Master",
+        description="Log 5 outfits per week for 52 weeks (260 total)",
+        rules={
+            "outfits_per_week": 5,
+            "weeks_required": 52,
+            "total_outfits": 260
+        },
+        rewards={
+            "xp": 5000,
+            "tokens": 5000,
+            "badge": "annual_master_cycle_1"  # Cycle number will be appended dynamically
+        },
+        cadence="annual",
+        featured=True,
+        icon="Crown"
     ),
 }
 
@@ -444,7 +457,6 @@ __all__ = [
     'StyleTokens',
     'UserRoleData',
     'GachaPull',
-    'BattlePassProgress',
     'CHALLENGE_CATALOG',
     'BADGE_DEFINITIONS',
     'LEVEL_TIERS',

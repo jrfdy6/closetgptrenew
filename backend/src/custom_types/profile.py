@@ -123,6 +123,18 @@ class UserProfile(BaseModel):
         "swimwear": "unknown"
     })
     
+    # Location and timezone data (from weather API)
+    location_data: Optional[Dict[str, Any]] = Field(default_factory=lambda: {
+        "timezone_offset": None,  # Seconds from UTC
+        "timezone": None,  # IANA timezone (e.g., "America/New_York")
+        "coordinates": None,  # {"lat": float, "lon": float}
+        "country": None,
+        "city_name": None,
+        "last_location": None,
+        "last_weather_fetch": None,
+        "updated_at": None
+    })
+    
     # Timestamps
     createdAt: int
     updatedAt: int
@@ -277,6 +289,22 @@ class UserProfile(BaseModel):
                 "accessories": "unknown",
                 "undergarments": "unknown",
                 "swimwear": "unknown"
+            }
+        return v
+
+    @field_validator('location_data', mode='before')
+    def validate_location_data(cls, v, info):
+        """Validate location data dict."""
+        if v is None:
+            return {
+                "timezone_offset": None,
+                "timezone": None,
+                "coordinates": None,
+                "country": None,
+                "city_name": None,
+                "last_location": None,
+                "last_weather_fetch": None,
+                "updated_at": None
             }
         return v
 

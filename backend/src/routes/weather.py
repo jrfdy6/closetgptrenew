@@ -1,9 +1,17 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 import os
 import logging
 import httpx
 from dotenv import load_dotenv
+from datetime import datetime
+from typing import Optional, Dict, Any
+
+# Import custom types and services
+from ..custom_types.weather import WeatherData
+from ..auth.auth_service import get_current_user_optional
+from ..custom_types.profile import UserProfile
+from ..services.profile_service import update_user_location_data
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -14,25 +22,29 @@ load_dotenv()
 
 router = APIRouter(prefix="/api", tags=["weather"])
 
+# Try to import timezonefinder for IANA timezone conversion
+try:
+    from timezonefinder import TimezoneFinder
+    TF = TimezoneFinder()
+    HAS_TIMEZONEFINDER = True
+except ImportError:
+    HAS_TIMEZONEFINDER = False
+    logger.warning("timezonefinder not installed - will use offset only")
+
 # Weather API models
 class WeatherRequest(BaseModel):
     location: str
 
-class WeatherData(BaseModel):
-    temperature: float
-    condition: str
-    humidity: int
-    wind_speed: float
-    location: str
-    precipitation: float = 0.0
-    fallback: bool = False
-    error: str | None = None
-
 @router.post("/weather")
-async def get_weather(request: WeatherRequest):
+async def get_weather(
+    request: WeatherRequest,
+    current_user: Optional[UserProfile] = Depends(get_current_user_optional)
+):
     """
     Get current weather data for a location.
     Location can be a city name or coordinates (latitude,longitude).
+    
+    If user is authenticated, stores location/timezone data in their profile.
     """
     try:
         def build_fallback(error_msg: str) -> WeatherData:
@@ -45,7 +57,13 @@ async def get_weather(request: WeatherRequest):
                 location=request.location or "Unknown Location",
                 precipitation=0.0,
                 fallback=True,
-                error=error_msg
+                error=error_msg,
+                timezone_offset=None,
+                timezone=None,
+                coordinates=None,
+                country=None,
+                city_name=None,
+                last_updated=datetime.now().isoformat()
             )
 
         # Get OpenWeather API key from environment
@@ -142,17 +160,72 @@ async def get_weather(request: WeatherRequest):
                 logger.error(f"Network error while fetching weather: {str(e)}")
                 return build_fallback("Network error while fetching weather data")
 
-        # Extract relevant weather data
+        # Extract ALL relevant data from OpenWeather response
+        timezone_offset = data.get('timezone')  # Offset in seconds from UTC
+        coordinates = None
+        iana_timezone = None
+        
+        # Extract coordinates
+        if 'coord' in data:
+            lat = data['coord'].get('lat')
+            lon = data['coord'].get('lon')
+            if lat is not None and lon is not None:
+                coordinates = {"lat": float(lat), "lon": float(lon)}
+                
+                # Convert coordinates to IANA timezone
+                if HAS_TIMEZONEFINDER:
+                    try:
+                        iana_timezone = TF.timezone_at(lat=lat, lng=lon)
+                        logger.info(f"Detected IANA timezone: {iana_timezone} for coordinates ({lat}, {lon})")
+                    except Exception as e:
+                        logger.warning(f"Could not determine IANA timezone: {e}")
+        
+        # Extract country
+        country = None
+        if 'sys' in data:
+            country = data['sys'].get('country')
+        
+        # Extract official city name
+        city_name = data.get('name')
+        
+        # Build WeatherData with all extracted information
         weather_data = WeatherData(
             temperature=round((data["main"]["temp"] * 9/5) + 32, 1),  # Convert Celsius to Fahrenheit
             condition=data["weather"][0]["main"],
             humidity=data["main"]["humidity"],
             wind_speed=data["wind"]["speed"],
-            location=data["name"],
-            precipitation=(data.get("rain", {}) if data else {}).get("1h", 0.0),  # Get 1h rain if available
+            location=city_name or request.location,
+            precipitation=(data.get("rain", {}) if data else {}).get("1h", 0.0),
             fallback=False,
-            error=None
+            error=None,
+            timezone_offset=timezone_offset,
+            timezone=iana_timezone,
+            coordinates=coordinates,
+            country=country,
+            city_name=city_name,
+            last_updated=datetime.now().isoformat()
         )
+
+        # Store location/timezone data in user profile if authenticated
+        if current_user:
+            try:
+                # Update user profile with location/timezone data
+                await update_user_location_data(
+                    user_id=current_user.id,
+                    location_data={
+                        'timezone_offset': timezone_offset,
+                        'timezone': iana_timezone,
+                        'coordinates': coordinates,
+                        'country': country,
+                        'city_name': city_name,
+                        'last_location': request.location,
+                        'last_weather_fetch': datetime.now().isoformat()
+                    }
+                )
+                logger.info(f"✅ Updated location/timezone data for user {current_user.id}")
+            except Exception as e:
+                logger.warning(f"Could not update user location data: {e}")
+                # Don't fail the request if profile update fails
 
         return weather_data
 
@@ -168,5 +241,11 @@ async def get_weather(request: WeatherRequest):
             location=request.location or "Unknown Location",
             precipitation=0.0,
             fallback=True,
-            error="Unexpected server error"
+            error="Unexpected server error",
+            timezone_offset=None,
+            timezone=None,
+            coordinates=None,
+            country=None,
+            city_name=None,
+            last_updated=datetime.now().isoformat()
         )

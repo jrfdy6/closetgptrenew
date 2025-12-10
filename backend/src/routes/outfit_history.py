@@ -409,27 +409,39 @@ async def mark_outfit_as_worn(
             logger.error(f"❌ Firestore error details: {str(firestore_error)}")
             raise HTTPException(status_code=500, detail="Failed to save outfit history entry")
         
-        # ============== GAMIFICATION INTEGRATION ==============
-        # Award XP for logging outfit
-        xp_result = {}
+        # ============== GAMIFICATION INTEGRATION (AWAITED) ==============
+        # Initialize at function scope so it's accessible throughout
+        gamification_result = {"tokens_awarded": 0, "xp_awarded": 0, "level_up": False, "new_level": 1, "current_streak": 0}
         completed_challenges = []
         milestone_results = []
         
         try:
-            from ..services.gamification_service import gamification_service
+            from ..services.addiction_service import AddictionService
             from ..services.challenge_service import challenge_service
             from ..services.tve_service import tve_service, CATEGORY_TO_SPENDING_KEY
             
-            # 1. Award XP for outfit logging
-            xp_result = await gamification_service.award_xp(
-                user_id=current_user.id,
-                amount=10,
-                reason="outfit_logged",
-                metadata={"outfit_id": outfit_id, "occasion": occasion}
-            )
-            logger.info(f"✅ Awarded 10 XP for outfit log: {xp_result}")
+            addiction_service = AddictionService()
             
-            # 2. Check for challenge progress
+            # Get current timestamp for the log
+            log_timestamp_ms = int(datetime.now().timestamp() * 1000)
+            
+            # Process gamification (tokens, XP, streak) - AWAITED for immediate consistency
+            gamification_result = await addiction_service.process_outfit_log(
+                user_id=current_user.id,
+                log_timestamp=log_timestamp_ms
+            )
+            
+            logger.info(f"✅ Gamification processed: {gamification_result}")
+            
+            # 2. Auto-start annual challenge if not already active
+            try:
+                annual_start_result = await challenge_service.auto_start_annual_challenge(current_user.id)
+                if annual_start_result.get('success') and not annual_start_result.get('already_exists'):
+                    logger.info(f"✅ Auto-started annual challenge for user {current_user.id}")
+            except Exception as annual_error:
+                logger.warning(f"⚠️ Could not auto-start annual challenge: {annual_error}")
+            
+            # 3. Check for challenge progress
             completed_challenges = await challenge_service.check_challenge_progress(
                 user_id=current_user.id,
                 outfit_data={"items": item_ids, "date": date_timestamp}
@@ -437,7 +449,7 @@ async def mark_outfit_as_worn(
             if completed_challenges:
                 logger.info(f"🎉 Completed challenges: {completed_challenges}")
             
-            # 3. Check for 30-wears milestones on each worn item
+            # 4. Check for 30-wears milestones on each worn item
             for item_id in item_ids:
                 item_ref = db.collection('wardrobe').document(item_id)
                 item_doc = item_ref.get()
@@ -498,8 +510,10 @@ async def mark_outfit_as_worn(
                 logger.info("💡 User TVE cache will be updated on next stats fetch")
             
         except Exception as gamification_error:
-            # Don't fail the whole request if gamification fails
+            # Non-critical failure logging (must not stop the primary request)
             logger.error(f"Gamification error (non-critical): {gamification_error}", exc_info=True)
+            # Ensure the result structure is still valid for the response model
+            gamification_result = {"tokens_awarded": 0, "xp_awarded": 0, "error": "Gamification failed"}
         # ====================================================
         
         # Update user_stats for dashboard counter
@@ -521,6 +535,8 @@ async def mark_outfit_as_worn(
         
         # ============== GAMIFICATION INTEGRATION ==============
         # Award XP and track challenges
+        # NOTE: This is a duplicate block - gamification is already handled above
+        # Keeping for backward compatibility but should be removed in future cleanup
         xp_result = {}
         completed_challenges = []
         milestone_results = []
@@ -530,14 +546,10 @@ async def mark_outfit_as_worn(
             from ..services.challenge_service import challenge_service
             from ..services.cpw_service import cpw_service
             
-            # 1. Award XP for outfit logging
-            xp_result = await gamification_service.award_xp(
-                user_id=current_user.id,
-                amount=10,
-                reason="outfit_logged",
-                metadata={"outfit_id": outfit_id, "occasion": occasion}
-            )
-            logger.info(f"✅ Awarded 10 XP for outfit log")
+            # 1. Award XP for outfit logging (already handled by process_outfit_log above)
+            # This is kept for backward compatibility
+            xp_result = gamification_result if 'gamification_result' in locals() else {}
+            logger.info(f"✅ Gamification already processed above")
             
             # 2. Check for challenge progress
             completed_challenges = await challenge_service.check_challenge_progress(
@@ -594,9 +606,12 @@ async def mark_outfit_as_worn(
         return {
             "success": True,
             "message": "Outfit marked as worn successfully",
-            "entryId": str(doc_id),  # Ensure doc_id is serializable
-            "xp_earned": xp_result.get('xp_awarded', 10) if xp_result else 10,
-            "level_up": xp_result.get('level_up', False) if xp_result else False,
+            "entryId": str(doc_id),
+            "xp_earned": gamification_result.get('xp_awarded', 0),
+            "tokens_earned": gamification_result.get('tokens_awarded', 0),
+            "level_up": gamification_result.get('level_up', False),
+            "new_level": gamification_result.get('new_level', 1),
+            "current_streak": gamification_result.get('current_streak', 0),
             "challenges_completed": completed_challenges,
             "milestones_reached": milestone_results
         }
