@@ -127,6 +127,7 @@ interface WardrobeInsightsHubProps {
     budget_range: string;
   };
   onRefresh?: () => void;
+  canAccessGapAnalysis?: boolean;
   className?: string;
 }
 
@@ -135,6 +136,7 @@ export default function WardrobeInsightsHub({
   gaps = [],
   shoppingRecommendations: initialShoppingRecommendations,
   onRefresh,
+  canAccessGapAnalysis = false,
   className = ""
 }: WardrobeInsightsHubProps) {
   const { user } = useAuthContext();
@@ -317,21 +319,27 @@ export default function WardrobeInsightsHub({
 
           {/* Tab 2: Wardrobe Gap Analysis */}
           <TabsContent value="gap-analysis" className="space-y-6">
-            {!hasRealGaps && (
-              <Card className="border border-emerald-200 bg-emerald-50 dark:border-emerald-800/60 dark:bg-emerald-900/20">
-                <CardContent className="py-10 text-center space-y-3">
-                  <Sparkles className="w-10 h-10 mx-auto text-emerald-500" />
-                  <h3 className="text-xl font-semibold text-emerald-700 dark:text-emerald-300">
-                    You’ve hit all of your style goals!
-                  </h3>
-                  <p className="text-sm text-emerald-600 dark:text-emerald-200/80 max-w-md mx-auto">
-                    Keep exploring new looks or revisit your wardrobe anytime to maintain your perfect balance.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            {!canAccessGapAnalysis ? (
+              <div className="py-8">
+                <PremiumTeaser variant="compact" />
+              </div>
+            ) : (
+              <>
+                {!hasRealGaps && (
+                  <Card className="border border-emerald-200 bg-emerald-50 dark:border-emerald-800/60 dark:bg-emerald-900/20">
+                    <CardContent className="py-10 text-center space-y-3">
+                      <Sparkles className="w-10 h-10 mx-auto text-emerald-500" />
+                      <h3 className="text-xl font-semibold text-emerald-700 dark:text-emerald-300">
+                        You've hit all of your style goals!
+                      </h3>
+                      <p className="text-sm text-emerald-600 dark:text-emerald-200/80 max-w-md mx-auto">
+                        Keep exploring new looks or revisit your wardrobe anytime to maintain your perfect balance.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
 
-            {/* Seasonal Essentials Section */}
+                {/* Seasonal Essentials Section */}
             {seasonalGaps.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
@@ -526,14 +534,16 @@ export default function WardrobeInsightsHub({
               </div>
             )}
 
-            {gaps.length === 0 && (
-              <div className="text-center py-12 border border-dashed border-stone-300 dark:border-stone-700 rounded-lg">
-                <CheckCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-                <p className="text-stone-500 dark:text-stone-400 mb-2">No wardrobe gaps found!</p>
-                <p className="text-sm text-stone-600 dark:text-stone-500">
-                  Your wardrobe is well-balanced. Great job!
-                </p>
-              </div>
+                {gaps.length === 0 && (
+                  <div className="text-center py-12 border border-dashed border-stone-300 dark:border-stone-700 rounded-lg">
+                    <CheckCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+                    <p className="text-stone-500 dark:text-stone-400 mb-2">No wardrobe gaps found!</p>
+                    <p className="text-sm text-stone-600 dark:text-stone-500">
+                      Your wardrobe is well-balanced. Great job!
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </TabsContent>
         </Tabs>

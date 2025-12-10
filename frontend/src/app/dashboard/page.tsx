@@ -44,6 +44,9 @@ import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerato
 import { useAutoWeather } from '@/hooks/useWeather';
 import PremiumTeaser from '@/components/PremiumTeaser';
 import { useGamificationStats } from '@/hooks/useGamificationStats';
+import { useSubscriptionPlan } from '@/hooks/useSubscriptionPlan';
+import { SubscriptionPlan } from '@/types/subscription';
+import { withSubscriptionGate } from '@/components/providers/withSubscriptionGate';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/components/ui/use-toast';
 import {
@@ -133,6 +136,31 @@ export default function Dashboard() {
   
   // Gamification stats for Level and AI Fit Score
   const { stats: gamificationStats } = useGamificationStats();
+  
+  // Subscription plan for gating premium features
+  const { plan, canAccess, loading: planLoading, subscription } = useSubscriptionPlan();
+  
+  // Helper to check if user can access PRO features
+  // IMPORTANT: Only allow access if subscription has finished loading AND user has PRO or PREMIUM
+  // Default to false during loading to prevent premature content display
+  const canAccessPro = !planLoading && plan !== SubscriptionPlan.FREE && canAccess(SubscriptionPlan.PRO);
+  
+  // Debug: Log subscription info
+  useEffect(() => {
+    if (!planLoading && user) {
+      console.log('🔒 Subscription Plan Debug:', {
+        plan,
+        subscriptionRole: subscription?.role,
+        subscriptionStatus: subscription?.status,
+        canAccessProCheck: canAccess(SubscriptionPlan.PRO),
+        canAccessPremium: canAccess(SubscriptionPlan.PREMIUM),
+        isFree: plan === SubscriptionPlan.FREE,
+        loading: planLoading,
+        canAccessProHelper: canAccessPro,
+        planIsFree: plan === SubscriptionPlan.FREE
+      });
+    }
+  }, [plan, planLoading, subscription, canAccess, user, canAccessPro]);
   
   const topItemsByCategory = useMemo(() => {
     if (!dashboardData?.topItems) return [];
@@ -338,8 +366,8 @@ export default function Dashboard() {
   };
 
 
-  // Show loading state while authentication is resolving
-  if (loading || isLoading) {
+  // Show loading state while authentication is resolving or subscription is loading
+  if (loading || isLoading || planLoading) {
     return (
       <div className="min-h-screen">
         <Navigation />
@@ -505,29 +533,47 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* AI Fit Score Card */}
-          <div className="component-card p-4 sm:p-6">
-            <div className="flex flex-col space-y-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--copper-mid)]/30 to-primary/35 dark:from-[var(--copper-mid)]/20 dark:to-primary/25 rounded-xl flex items-center justify-center shadow-inner">
-                <Star className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80 dark:text-primary/70" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">AI Fit Score</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E8A4A4] to-[#D4A574] bg-clip-text text-transparent mb-0.5">
-                  {Math.round(gamificationStats?.ai_fit_score?.total_score || 0)}
-                </p>
-                <p className="text-xs sm:text-sm component-text-secondary">
-                  {gamificationStats?.ai_fit_score?.total_score === undefined || gamificationStats?.ai_fit_score?.total_score === 0 
-                    ? 'Getting Started' 
-                    : gamificationStats?.ai_fit_score?.total_score >= 75 
-                      ? 'AI Master' 
-                      : gamificationStats?.ai_fit_score?.total_score >= 50 
-                        ? 'AI Apprentice' 
-                        : 'Learning'}
-                </p>
+          {/* AI Fit Score Card - PRO/PREMIUM ONLY */}
+          {canAccessPro ? (
+            <div className="component-card p-4 sm:p-6">
+              <div className="flex flex-col space-y-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--copper-mid)]/30 to-primary/35 dark:from-[var(--copper-mid)]/20 dark:to-primary/25 rounded-xl flex items-center justify-center shadow-inner">
+                  <Star className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80 dark:text-primary/70" />
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">AI Fit Score</p>
+                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E8A4A4] to-[#D4A574] bg-clip-text text-transparent mb-0.5">
+                    {Math.round(gamificationStats?.ai_fit_score?.total_score || 0)}
+                  </p>
+                  <p className="text-xs sm:text-sm component-text-secondary">
+                    {gamificationStats?.ai_fit_score?.total_score === undefined || gamificationStats?.ai_fit_score?.total_score === 0 
+                      ? 'Getting Started' 
+                      : gamificationStats?.ai_fit_score?.total_score >= 75 
+                        ? 'AI Master' 
+                        : gamificationStats?.ai_fit_score?.total_score >= 50 
+                          ? 'AI Apprentice' 
+                          : 'Learning'}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="component-card p-4 sm:p-6 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-[var(--copper-mid)]/5 to-primary/5 dark:from-[var(--copper-mid)]/10 dark:to-primary/10 blur-sm" />
+              <div className="relative flex flex-col space-y-3 opacity-60">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--copper-mid)]/30 to-primary/35 dark:from-[var(--copper-mid)]/20 dark:to-primary/25 rounded-xl flex items-center justify-center shadow-inner">
+                  <Star className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80 dark:text-primary/70" />
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">AI Fit Score</p>
+                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E8A4A4] to-[#D4A574] bg-clip-text text-transparent mb-0.5">
+                    --
+                  </p>
+                  <p className="text-xs sm:text-sm component-text-secondary">Upgrade to PRO</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Total Items Card */}
           <div className="component-card p-4 sm:p-6">
@@ -720,16 +766,17 @@ export default function Dashboard() {
           </AccordionItem>
         </Accordion>
 
-        {/* Style Goals - Mobile Optimized with Accordion */}
-        <Accordion type="single" collapsible className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl" defaultValue={isMobile ? undefined : "goals"}>
-          <AccordionItem value="goals" className="border-0">
-            <AccordionTrigger className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 hover:no-underline">
-              <div className="flex-1 text-left">
-            <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Style goals</h2>
-            <p className="text-sm sm:text-base text-muted-foreground">Personalized targets based on your look history</p>
-          </div>
-            </AccordionTrigger>
-            <AccordionContent className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8">
+        {/* Style Goals - Mobile Optimized with Accordion - PRO/PREMIUM ONLY */}
+        {canAccessPro ? (
+          <Accordion type="single" collapsible className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl" defaultValue={isMobile ? undefined : "goals"}>
+            <AccordionItem value="goals" className="border-0">
+              <AccordionTrigger className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 hover:no-underline">
+                <div className="flex-1 text-left">
+              <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Style goals</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">Personalized targets based on your look history</p>
+            </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8">
             <div className="space-y-4 sm:space-y-6">
               {/* Overall Progress */}
               <div className="component-card-nested text-center p-4 sm:p-6 rounded-xl sm:rounded-2xl">
@@ -760,27 +807,33 @@ export default function Dashboard() {
                 ))}
               </div>
             </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        ) : (
+          <div className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl">
+            <PremiumTeaser variant="compact" />
+          </div>
+        )}
 
-        {/* Wardrobe Insights Hub - Unified component with Style Expansion, Gap Analysis, and Shopping - Collapsible */}
+        {/* Wardrobe Insights Hub - Style Inspiration available to all, Gap Analysis gated */}
         <Accordion type="single" collapsible className="component-card mb-6 sm:mb-8 lg:mb-12 sm:rounded-3xl" defaultValue={isMobile ? undefined : "insights-hub"}>
           <AccordionItem value="insights-hub" className="border-0">
             <AccordionTrigger className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 hover:no-underline">
               <div className="flex-1 text-left">
                 <h2 className="text-xl sm:text-2xl font-display font-semibold text-card-foreground mb-1 sm:mb-2">Advanced Insights</h2>
-                <p className="text-sm sm:text-base text-muted-foreground">Style expansion, gap analysis, and shopping recommendations</p>
+                <p className="text-sm sm:text-base text-muted-foreground">Style inspiration {canAccessPro ? 'and gap analysis' : ''}</p>
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-0 pb-0">
-        <WardrobeInsightsHub
-          styleExpansions={dashboardData?.styleExpansions || []}
-          gaps={dashboardData?.wardrobeGaps || []}
-          shoppingRecommendations={dashboardData?.shoppingRecommendations}
-          onRefresh={fetchDashboardData}
-          className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8"
-        />
+              <WardrobeInsightsHub
+                styleExpansions={dashboardData?.styleExpansions || []}
+                gaps={canAccessPro ? (dashboardData?.wardrobeGaps || []) : []}
+                shoppingRecommendations={canAccessPro ? dashboardData?.shoppingRecommendations : undefined}
+                onRefresh={fetchDashboardData}
+                canAccessGapAnalysis={canAccessPro}
+                className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8"
+              />
             </AccordionContent>
           </AccordionItem>
         </Accordion>

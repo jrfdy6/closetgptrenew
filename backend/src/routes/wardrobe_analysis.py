@@ -3,6 +3,7 @@ from typing import Dict, Any
 from ..services.wardrobe_analysis_service import WardrobeAnalysisService
 from ..auth.auth_service import get_current_user_id, get_current_user
 from ..custom_types.profile import UserProfile
+from ..services.subscription_feature_access import check_feature_access
 from datetime import datetime
 import logging
 
@@ -27,6 +28,8 @@ async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depe
     - gender: Optional gender filter ("male", "female", or None for unisex/all)
     
     Returns detailed analysis with prioritized recommendations.
+    
+    Requires PRO or PREMIUM subscription.
     """
     try:
         # print(f"🔍 Gaps Backend: Received gender parameter: {gender}")
@@ -35,6 +38,19 @@ async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depe
         
         if not current_user:
             raise HTTPException(status_code=400, detail="User not found")
+        
+        # Check subscription - gap analysis requires PRO or PREMIUM (tier2 or tier3)
+        allowed, error_message, subscription_info = check_feature_access(
+            current_user.id,
+            'wardrobe_analytics',
+            require_active=True
+        )
+        
+        if not allowed:
+            raise HTTPException(
+                status_code=403,
+                detail=error_message or "Gap analysis requires PRO or PREMIUM subscription"
+            )
         
         # Use user's gender if not specified
         if not gender and current_user.gender:
