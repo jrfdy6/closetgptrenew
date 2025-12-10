@@ -661,9 +661,28 @@
     color: transparent;
   }
 
+  /* Amber/Orange gradient text for menu/nav elements */
+  .gradient-amber-text {
+    background: linear-gradient(90deg, #FFB84C 0%, #FF9400 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
   /* Override gradient text to cream in dark mode */
   html.dark .gradient-copper-text,
   .dark .gradient-copper-text {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    -webkit-text-fill-color: unset !important;
+    color: #F8F5F1 !important; /* Cream color in dark mode */
+  }
+  
+  /* Override amber gradient text to cream in dark mode */
+  html.dark .gradient-amber-text,
+  .dark .gradient-amber-text {
     background: none !important;
     -webkit-background-clip: unset !important;
     background-clip: unset !important;

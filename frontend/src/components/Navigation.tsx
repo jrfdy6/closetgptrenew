@@ -98,7 +98,7 @@ export default function Navigation() {
                 priority
                 className="h-8 sm:h-10 w-auto object-contain"
               />
-              <span className="hidden sm:inline text-lg font-semibold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
+              <span className="hidden sm:inline text-lg font-semibold gradient-amber-text">
                 Easy Outfit
               </span>
             </Link>
