@@ -312,7 +312,7 @@ export default function WardrobePage() {
             <div className="flex gap-4">
               <Button 
                 onClick={() => setShowBatchUpload(true)}
-                className="bg-gradient-to-r from-primary to-accent text-primary-foreground px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                className="bg-gradient-to-r from-primary to-accent text-primary-foreground dark:!text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Upload className="w-5 h-5 mr-3" />
                 Add items with AI
@@ -405,7 +405,7 @@ export default function WardrobePage() {
                     }
                   </p>
                   <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-                    <Button onClick={() => setShowBatchUpload(true)} className="bg-gradient-to-r from-primary to-accent text-primary-foreground px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20">
+                    <Button onClick={() => setShowBatchUpload(true)} className="bg-gradient-to-r from-primary to-accent text-primary-foreground dark:!text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20">
                       <Upload className="w-4 h-4 mr-2" />
                       Add items with AI
                     </Button>

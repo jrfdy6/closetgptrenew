@@ -425,7 +425,7 @@ export default function Dashboard() {
             <h1 className="heading-xl gradient-copper-text mb-2 sm:mb-3 component-text-primary">
               Let&apos;s get you dressed ✨
             </h1>
-            <p className="text-body-lg component-text-secondary">
+            <p className="text-body-lg component-text-secondary dark:text-white">
               Your look today is ready when you are.
             </p>
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
@@ -443,7 +443,8 @@ export default function Dashboard() {
             </Button>
             <Button
                 onClick={() => setShowBatchUpload(true)}
-                className="component-button-outline px-6 py-3"
+                variant="outline"
+                className="component-button-outline px-6 py-3 dark:hover:bg-white/10 dark:!text-white"
               >
                 <Upload className="w-5 h-5 mr-2" />
                 Add items with AI

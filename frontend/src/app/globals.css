@@ -660,6 +660,16 @@
     -webkit-text-fill-color: transparent;
     color: transparent;
   }
+
+  /* Override gradient text to white/cream in dark mode */
+  html.dark .gradient-copper-text,
+  .dark .gradient-copper-text {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    -webkit-text-fill-color: unset !important;
+    color: hsl(var(--card-foreground)) !important; /* White/cream in dark mode */
+  }
   
   /* Page backgrounds */
   .page-bg-light {
@@ -979,8 +989,8 @@
   html.dark .component-button-outline,
   .component-button-outline.dark,
   .dark .component-button-outline {
-    border-color: hsl(var(--primary)) !important; /* Rose-gold */
-    color: hsl(var(--primary)) !important;
+    border-color: hsl(var(--card-foreground)) !important; /* White/cream border */
+    color: hsl(var(--card-foreground)) !important; /* White/cream text */
     background: transparent !important;
   }
 
@@ -996,6 +1006,49 @@
     background: hsl(var(--primary)) !important; /* Rose-gold fill */
     color: hsl(var(--primary-foreground)) !important; /* Dark text */
     box-shadow: 0 4px 6px -1px hsl(var(--primary) / 0.4) !important;
+  }
+
+  /* Ensure gradient buttons with text-primary-foreground have white text in dark mode */
+  html.dark button.text-primary-foreground[class*="bg-gradient"],
+  .dark button.text-primary-foreground[class*="bg-gradient"],
+  html.dark .text-primary-foreground[class*="bg-gradient"],
+  .dark .text-primary-foreground[class*="bg-gradient"] {
+    color: hsl(var(--card-foreground)) !important; /* White/cream text in dark mode */
+  }
+  
+  /* Also handle when component-button-outline is combined with gradient */
+  html.dark button.component-button-outline[class*="bg-gradient"],
+  .dark button.component-button-outline[class*="bg-gradient"] {
+    color: hsl(var(--card-foreground)) !important; /* White/cream text in dark mode */
+    border-color: hsl(var(--card-foreground)) !important; /* White/cream border */
+  }
+  
+  /* Force white text for component-button-outline in dark mode - highest specificity */
+  /* This needs to override the button's default variant styles */
+  html.dark button.component-button-outline,
+  .dark button.component-button-outline,
+  html.dark .component-button-outline,
+  .dark .component-button-outline,
+  html.dark button[class*="component-button-outline"],
+  .dark button[class*="component-button-outline"] {
+    color: hsl(var(--card-foreground)) !important; /* White/cream text in dark mode */
+    border-color: hsl(var(--card-foreground)) !important; /* White/cream border */
+  }
+  
+  /* Override any text-primary-foreground on outline buttons in dark mode */
+  html.dark button.component-button-outline.text-primary-foreground,
+  .dark button.component-button-outline.text-primary-foreground,
+  html.dark button[class*="component-button-outline"][class*="text-primary-foreground"],
+  .dark button[class*="component-button-outline"][class*="text-primary-foreground"] {
+    color: hsl(var(--card-foreground)) !important; /* White/cream text in dark mode */
+  }
+  
+  /* Override gradient background when component-button-outline is present */
+  html.dark button.component-button-outline[class*="bg-gradient"],
+  .dark button.component-button-outline[class*="bg-gradient"] {
+    background: transparent !important;
+    color: hsl(var(--card-foreground)) !important; /* White/cream text in dark mode */
+    border-color: hsl(var(--card-foreground)) !important; /* White/cream border */
   }
 
   /* Text Hierarchy */
