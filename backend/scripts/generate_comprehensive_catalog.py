@@ -497,15 +497,63 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=str, 
                        default="../src/data/style_inspiration_catalog.json", 
                        help="Output file path")
+    parser.add_argument("--append", action="store_true",
+                       help="Append to existing catalog instead of replacing")
+    parser.add_argument("--input", type=str,
+                       help="Input catalog path (required if using --append)")
     parser.add_argument("--no-coverage-check", action="store_true",
                        help="Skip minimum coverage check (faster but may have gaps)")
     args = parser.parse_args()
     
-    # Generate catalog
-    catalog = generate_comprehensive_catalog(
+    # Generate new catalog
+    new_catalog = generate_comprehensive_catalog(
         items_per_combination=args.items_per_combo,
         ensure_coverage=not args.no_coverage_check
     )
+    
+    # If appending, merge with existing catalog
+    if args.append:
+        if not args.input:
+            print("❌ Error: --input required when using --append")
+            exit(1)
+        
+        input_path = Path(__file__).parent / args.input
+        if not input_path.exists():
+            print(f"❌ Error: Input catalog not found: {input_path}")
+            exit(1)
+        
+        print(f"\n📖 Loading existing catalog from: {input_path}")
+        with open(input_path, 'r') as f:
+            existing_catalog = json.load(f)
+        
+        existing_items = existing_catalog.get("items", [])
+        existing_ids = {item.get("id") for item in existing_items}
+        
+        # Filter out duplicates and get new items
+        new_items = [item for item in new_catalog["items"] 
+                    if item.get("id") not in existing_ids]
+        
+        # Merge catalogs
+        merged_items = existing_items + new_items
+        merged_catalog = {
+            **existing_catalog,  # Preserve existing metadata
+            "catalog_version": "4.0",
+            "last_updated": datetime.now().isoformat(),
+            "total_items": len(merged_items),
+            "items": merged_items,
+            "appended_items": len(new_items),
+            "original_items": len(existing_items)
+        }
+        
+        print(f"✅ Merged catalogs:")
+        print(f"   Existing items: {len(existing_items)}")
+        print(f"   New items: {len(new_items)}")
+        print(f"   Total items: {len(merged_items)}")
+        
+        catalog = merged_catalog
+    else:
+        catalog = new_catalog
+        print(f"\n📝 Generating NEW catalog (will replace existing)")
     
     # Print stats
     print_catalog_stats(catalog)
@@ -524,4 +572,6 @@ if __name__ == "__main__":
     print(f"   Styles: {len(catalog['styles_covered'])}")
     print(f"   Categories: {len(catalog['categories_covered'])}")
     print(f"   Genders: {len(catalog['genders_covered'])}")
+    if args.append:
+        print(f"   ✨ Appended {catalog.get('appended_items', 0)} new items to existing catalog")
 
