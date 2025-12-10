@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
-import subscriptionService, { Subscription } from '@/lib/services/subscriptionService';
+import { subscriptionService, Subscription } from '@/lib/services/subscriptionService';
 import { SubscriptionPlan, mapRoleToPlan } from '@/types/subscription';
 
 interface UseSubscriptionPlanResult {
