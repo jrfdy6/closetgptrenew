@@ -270,19 +270,36 @@ class StyleInspirationService:
                 has_matching_style = False
                 
                 # Map common preference variations to catalog style names
+                # This ensures users with different preference names still get matched items
                 style_mapping = {
+                    # Minimalist variations
                     'minimalist': ['minimalist', 'minimal'],
                     'clean minimal': ['minimalist', 'minimal'],
+                    'minimal': ['minimalist', 'minimal'],
+                    # Classic variations
                     'classic': ['classic', 'old money'],
                     'classic elegant': ['classic', 'old money'],
+                    'old money': ['old money', 'classic'],
+                    'timeless': ['classic', 'old money'],
+                    # Street/Urban variations
                     'street style': ['urban street', 'street'],
                     'urban street': ['urban street', 'street'],
-                    'old money': ['old money', 'classic'],
-                    'preppy': ['preppy'],
+                    'grunge street': ['urban street', 'street'],
+                    'streetwear': ['urban street', 'street'],
+                    'edgy': ['urban street', 'street'],
+                    # Bohemian variations
                     'boho': ['boho', 'bohemian'],
                     'bohemian': ['boho', 'bohemian'],
+                    'natural boho': ['boho', 'bohemian'],
+                    'cottagecore': ['boho', 'bohemian', 'romantic'],
+                    # Other styles
+                    'preppy': ['preppy'],
                     'y2k': ['y2k'],
-                    'avant-garde': ['avant-garde', 'avant garde']
+                    'avant-garde': ['avant-garde', 'avant garde'],
+                    'romantic': ['romantic', 'boho'],
+                    'vintage': ['vintage', 'boho'],
+                    'sophisticated': ['classic', 'old money'],
+                    'athletic': ['urban street', 'street']
                 }
                 
                 for pref in user_style_prefs:
@@ -344,7 +361,10 @@ class StyleInspirationService:
         # Filter by gender and style preferences FIRST
         filtered_catalog = self._filter_by_gender_and_preferences(self.catalog, user_profile)
         
-        # If no items match after filtering, try a more lenient approach
+        # Remove excluded items from filtered catalog
+        filtered_catalog = [item for item in filtered_catalog if item['id'] not in excluded_ids]
+        
+        # If no items match after filtering (or all were excluded), try a more lenient approach
         if not filtered_catalog:
             logger.warning("⚠️ No items match user's gender and style preferences, trying lenient filtering")
             # Fallback: only filter by gender, ignore style preferences
@@ -385,11 +405,9 @@ class StyleInspirationService:
         # Get user's style vector
         user_style_vector = self._user_style_vector_from_profile(user_profile)
         
-        # Score filtered items
+        # Score filtered items (excluded_ids already removed above)
         scored_items = []
         for item in filtered_catalog:
-            if item['id'] in excluded_ids:
-                continue
             
             # Compute similarity
             item_style_vector = item.get('style_vector', {})
