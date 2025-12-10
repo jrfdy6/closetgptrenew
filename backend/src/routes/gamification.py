@@ -195,6 +195,18 @@ async def get_gamification_stats(
         user_level = user_data.get('level', 1)
         user_badges = user_data.get('badges', [])
         
+        # Get tokens and streak data
+        style_tokens = user_data.get('style_tokens', {})
+        tokens_balance = style_tokens.get('balance', 0)
+        tokens_total_earned = style_tokens.get('total_earned', 0)
+        tokens_total_spent = style_tokens.get('total_spent', 0)
+        
+        streak_data = user_data.get('streak', {})
+        current_streak = streak_data.get('current_streak', 0)
+        longest_streak = streak_data.get('longest_streak', 0)
+        streak_multiplier = streak_data.get('streak_multiplier', 1.0)
+        last_log_date = streak_data.get('last_log_date')
+        
         # Get level info using actual XP
         level_info = gamification_service.get_level_info(user_xp)
         
@@ -213,6 +225,15 @@ async def get_gamification_stats(
             "data": {
                 "xp": user_xp,
                 "level": level_info.dict(),
+                "tokens_balance": tokens_balance,
+                "tokens_total_earned": tokens_total_earned,
+                "tokens_total_spent": tokens_total_spent,
+                "streak": {
+                    "current_streak": current_streak,
+                    "longest_streak": longest_streak,
+                    "multiplier": streak_multiplier,
+                    "last_log_date": last_log_date
+                },
                 "ai_fit_score": ai_fit_explanation,
                 "tve": tve_stats,
                 "badges": user_badges,
