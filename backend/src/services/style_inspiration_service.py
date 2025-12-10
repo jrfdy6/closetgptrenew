@@ -262,27 +262,56 @@ class StyleInspirationService:
                         continue
             
             # Style preference filtering (if user has strong preferences)
-            if user_style_prefs and len(user_style_prefs) > 0:
+            # Made more lenient: only filter if user has 3+ preferences AND item matches none
+            if user_style_prefs and len(user_style_prefs) >= 3:
                 item_style_vector = item.get('style_vector', {})
                 
                 # Check if item aligns with at least one of user's style preferences
                 has_matching_style = False
+                
+                # Map common preference variations to catalog style names
+                style_mapping = {
+                    'minimalist': ['minimalist', 'minimal'],
+                    'clean minimal': ['minimalist', 'minimal'],
+                    'classic': ['classic', 'old money'],
+                    'classic elegant': ['classic', 'old money'],
+                    'street style': ['urban street', 'street'],
+                    'urban street': ['urban street', 'street'],
+                    'old money': ['old money', 'classic'],
+                    'preppy': ['preppy'],
+                    'boho': ['boho', 'bohemian'],
+                    'bohemian': ['boho', 'bohemian'],
+                    'y2k': ['y2k'],
+                    'avant-garde': ['avant-garde', 'avant garde']
+                }
+                
                 for pref in user_style_prefs:
-                    pref_normalized = pref.strip()
+                    pref_normalized = pref.strip().lower()
+                    
+                    # Get possible style names to match
+                    possible_styles = style_mapping.get(pref_normalized, [pref_normalized])
                     
                     # Check if preference matches any style in the item's vector
                     for style_name, score in item_style_vector.items():
-                        if pref_normalized.lower() in style_name.lower():
-                            if score >= 0.3:  # Item has at least some of this style
-                                has_matching_style = True
-                                break
+                        style_name_lower = style_name.lower()
+                        
+                        # Check if this style is in our possible matches
+                        matches = any(
+                            possible_style.lower() in style_name_lower or 
+                            style_name_lower in possible_style.lower() or
+                            any(word in style_name_lower for word in possible_style.split() if len(word) > 3)
+                            for possible_style in possible_styles
+                        )
+                        
+                        if matches and score >= 0.2:  # Lowered threshold from 0.3 to 0.2
+                            has_matching_style = True
+                            break
                     
                     if has_matching_style:
                         break
                 
-                # If user has specific preferences and item doesn't match any, skip
-                # But allow if user has less than 2 preferences (still exploring)
-                if not has_matching_style and len(user_style_prefs) >= 2:
+                # Only skip if user has 3+ preferences AND item matches none
+                if not has_matching_style:
                     continue
             
             filtered.append(item)
