@@ -422,7 +422,7 @@ export default function Dashboard() {
         {/* Welcome Section - "Silent Luxury" Design */}
         <div className="mb-6 sm:mb-8">
           <div className="component-card p-6 sm:p-8 sm:rounded-3xl">
-            <h1 className="heading-xl gradient-copper-text mb-2 sm:mb-3 component-text-primary">
+            <h1 className="heading-xl gradient-copper-text dark:!text-[#F8F5F1] mb-2 sm:mb-3 component-text-primary">
               Let&apos;s get you dressed ✨
             </h1>
             <p className="text-body-lg component-text-secondary dark:text-white">

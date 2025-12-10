@@ -661,14 +661,26 @@
     color: transparent;
   }
 
-  /* Override gradient text to white/cream in dark mode */
+  /* Override gradient text to cream in dark mode */
   html.dark .gradient-copper-text,
   .dark .gradient-copper-text {
     background: none !important;
     -webkit-background-clip: unset !important;
     background-clip: unset !important;
     -webkit-text-fill-color: unset !important;
-    color: hsl(var(--card-foreground)) !important; /* White/cream in dark mode */
+    color: #F8F5F1 !important; /* Cream color in dark mode */
+  }
+  
+  /* More specific rule for gradient text with component-text-primary - must come after component-text-primary rules */
+  html.dark .gradient-copper-text.component-text-primary,
+  .dark .gradient-copper-text.component-text-primary,
+  html.dark h1.gradient-copper-text.component-text-primary,
+  .dark h1.gradient-copper-text.component-text-primary {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    -webkit-text-fill-color: unset !important;
+    color: #F8F5F1 !important; /* Cream color in dark mode - override component-text-primary */
   }
   
   /* Page backgrounds */
@@ -1060,6 +1072,12 @@
   .component-text-primary.dark,
   .dark .component-text-primary {
     color: hsl(var(--card-foreground)) !important; /* #F8F5F1 - Warm light */
+  }
+  
+  /* Exception: gradient-copper-text should use cream color, not card-foreground */
+  html.dark .gradient-copper-text.component-text-primary,
+  .dark .gradient-copper-text.component-text-primary {
+    color: #F8F5F1 !important; /* Cream color - more specific than component-text-primary */
   }
 
   .component-text-secondary {
