@@ -92,28 +92,61 @@ async def get_gamification_profile(
         from ..config.firebase import db
         from google.cloud.firestore_v1 import SERVER_TIMESTAMP
         
-        # First, ensure user has gamification fields (merge update won't overwrite existing)
+        # First, ensure user has gamification fields (only set if missing)
         user_ref = db.collection('users').document(current_user.id)
-        user_ref.set({
-            'xp': 0,
-            'level': 1,
-            'ai_fit_score': 0.0,
-            'badges': [],
-            'current_challenges': {},
-            'spending_ranges': {
-                "annual_total": "unknown",
-                "shoes": "unknown",
-                "jackets": "unknown",
-                "pants": "unknown",
-                "tops": "unknown",
-                "dresses": "unknown",
-                "activewear": "unknown",
-                "accessories": "unknown"
-            },
-            'updatedAt': SERVER_TIMESTAMP
-        }, merge=True)
+        user_doc = user_ref.get()
         
-        logger.info(f"Ensured gamification fields for user {current_user.id}")
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            # Only initialize fields that don't exist
+            updates = {}
+            if 'xp' not in user_data:
+                updates['xp'] = 0
+            if 'level' not in user_data:
+                updates['level'] = 1
+            if 'ai_fit_score' not in user_data:
+                updates['ai_fit_score'] = 0.0
+            if 'badges' not in user_data:
+                updates['badges'] = []
+            if 'current_challenges' not in user_data:
+                updates['current_challenges'] = {}
+            if 'spending_ranges' not in user_data:
+                updates['spending_ranges'] = {
+                    "annual_total": "unknown",
+                    "shoes": "unknown",
+                    "jackets": "unknown",
+                    "pants": "unknown",
+                    "tops": "unknown",
+                    "dresses": "unknown",
+                    "activewear": "unknown",
+                    "accessories": "unknown"
+                }
+            
+            if updates:
+                updates['updatedAt'] = SERVER_TIMESTAMP
+                user_ref.update(updates)
+                logger.info(f"Initialized missing gamification fields for user {current_user.id}: {list(updates.keys())}")
+        else:
+            # User doesn't exist, create with defaults
+            user_ref.set({
+                'xp': 0,
+                'level': 1,
+                'ai_fit_score': 0.0,
+                'badges': [],
+                'current_challenges': {},
+                'spending_ranges': {
+                    "annual_total": "unknown",
+                    "shoes": "unknown",
+                    "jackets": "unknown",
+                    "pants": "unknown",
+                    "tops": "unknown",
+                    "dresses": "unknown",
+                    "activewear": "unknown",
+                    "accessories": "unknown"
+                },
+                'updatedAt': SERVER_TIMESTAMP
+            })
+            logger.info(f"Created new user with gamification fields for user {current_user.id}")
         
         # Now get the state
         state = await gamification_service.get_user_gamification_state(current_user.id)
@@ -148,8 +181,22 @@ async def get_gamification_stats(
     - Active challenges
     """
     try:
-        # Get level info
-        level_info = gamification_service.get_level_info(current_user.xp or 0)
+        # Fetch XP and level directly from Firestore (not from UserProfile which may be stale)
+        from ..config.firebase import db
+        user_ref = db.collection('users').document(current_user.id)
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_data = user_doc.to_dict()
+        # Get actual XP and level from Firestore
+        user_xp = user_data.get('xp', 0)
+        user_level = user_data.get('level', 1)
+        user_badges = user_data.get('badges', [])
+        
+        # Get level info using actual XP
+        level_info = gamification_service.get_level_info(user_xp)
         
         # Get AI Fit Score explanation
         ai_fit_explanation = await ai_fit_score_service.get_score_explanation(current_user.id)
@@ -164,16 +211,18 @@ async def get_gamification_stats(
         return {
             "success": True,
             "data": {
-                "xp": current_user.xp or 0,
+                "xp": user_xp,
                 "level": level_info.dict(),
                 "ai_fit_score": ai_fit_explanation,
                 "tve": tve_stats,
-                "badges": current_user.badges or [],
+                "badges": user_badges,
                 "active_challenges": active_challenges,
                 "active_challenges_count": len(active_challenges)
             }
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting gamification stats: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to get gamification stats")
@@ -218,8 +267,17 @@ async def get_user_badges(
     """
     try:
         from ..custom_types.gamification import BADGE_DEFINITIONS, BadgeType
+        from ..config.firebase import db
         
-        badges = current_user.badges or []
+        # Fetch badges directly from Firestore (not from UserProfile which may be stale)
+        user_ref = db.collection('users').document(current_user.id)
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_data = user_doc.to_dict()
+        badges = user_data.get('badges', [])
         
         badge_details = []
         for badge_id in badges:
@@ -242,6 +300,8 @@ async def get_user_badges(
             }
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting badges: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to get badges")
