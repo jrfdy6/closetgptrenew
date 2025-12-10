@@ -105,13 +105,25 @@ async function testChallengeSystem() {
   log(`✅ Found ${active.length} active challenges`, 'green');
   
   if (active.length > 0) {
-    log('\n📝 Active Challenges:', 'cyan');
-    active.forEach(ch => {
-      const progress = ch.progress || 0;
-      const target = ch.target || 1;
-      const percent = Math.round((progress / target) * 100);
-      log(`   • ${ch.title}: ${progress}/${target} (${percent}%)`, 'reset');
-    });
+      log('\n📝 Active Challenges:', 'cyan');
+      active.forEach(ch => {
+        let progress, target, percent;
+        
+        // Handle annual challenge special structure
+        if (ch.challenge_id === 'annual_wardrobe_master') {
+          const progressData = ch.progress || {};
+          progress = progressData.total_outfits || 0;
+          target = 260; // 52 weeks * 5 outfits
+          percent = Math.round((progress / target) * 100);
+          const weeks = progressData.weeks_completed || 0;
+          log(`   • ${ch.title}: ${progress}/260 outfits, ${weeks}/52 weeks (${percent}%)`, 'reset');
+        } else {
+          progress = typeof ch.progress === 'number' ? ch.progress : 0;
+          target = typeof ch.target === 'number' ? ch.target : 1;
+          percent = target > 0 ? Math.round((progress / target) * 100) : 0;
+          log(`   • ${ch.title}: ${progress}/${target} (${percent}%)`, 'reset');
+        }
+      });
   }
   
   // Step 4: Start a few challenges
@@ -201,11 +213,24 @@ async function testChallengeSystem() {
     if (updatedActive.length > 0) {
       log('\n📊 Challenge Progress:', 'cyan');
       updatedActive.forEach(ch => {
-        const progress = ch.progress || 0;
-        const target = ch.target || 1;
-        const percent = Math.round((progress / target) * 100);
-        const status = ch.status || 'unknown';
-        log(`   • ${ch.title}: ${progress}/${target} (${percent}%) [${status}]`, 'reset');
+        let progress, target, percent;
+        
+        // Handle annual challenge special structure
+        if (ch.challenge_id === 'annual_wardrobe_master') {
+          const progressData = ch.progress || {};
+          progress = progressData.total_outfits || 0;
+          target = 260;
+          percent = Math.round((progress / target) * 100);
+          const weeks = progressData.weeks_completed || 0;
+          const status = ch.status || 'unknown';
+          log(`   • ${ch.title}: ${progress}/260 outfits, ${weeks}/52 weeks (${percent}%) [${status}]`, 'reset');
+        } else {
+          progress = typeof ch.progress === 'number' ? ch.progress : 0;
+          target = typeof ch.target === 'number' ? ch.target : 1;
+          percent = target > 0 ? Math.round((progress / target) * 100) : 0;
+          const status = ch.status || 'unknown';
+          log(`   • ${ch.title}: ${progress}/${target} (${percent}%) [${status}]`, 'reset');
+        }
       });
     }
   }

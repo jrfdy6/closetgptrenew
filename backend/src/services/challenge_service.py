@@ -143,12 +143,14 @@ class ChallengeService:
             
             # Log event
             from .gamification_service import gamification_service
+            # Handle enum conversion (use_enum_values=True means type is already a string)
+            challenge_type_str = challenge_def.type.value if hasattr(challenge_def.type, 'value') else str(challenge_def.type)
             await gamification_service.log_gamification_event(
                 user_id=user_id,
                 event_type="challenge_started",
                 metadata={
                     "challenge_id": challenge_id,
-                    "challenge_type": challenge_def.type.value
+                    "challenge_type": challenge_type_str
                 }
             )
             
@@ -320,7 +322,7 @@ class ChallengeService:
                 xp_amount=xp_reward,
                 metadata={
                     "challenge_id": challenge_id,
-                    "challenge_type": challenge_def.type.value,
+                    "challenge_type": challenge_def.type.value if hasattr(challenge_def.type, 'value') else str(challenge_def.type),
                     "badge_unlocked": badge_id if badge_unlocked else None
                 }
             )
