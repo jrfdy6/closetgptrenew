@@ -227,6 +227,10 @@ ROUTERS = [
     ("src.routes.gamification", "/api"),  # Gamification system - XP, levels, badges
     ("src.routes.challenges", "/api"),  # Challenge management
     ("src.routes.admin_migration", "/api"),  # Admin migration endpoint
+    ("src.routes.gacha", "/api"),  # Gacha & Style Tokens (Variable Ratio Reinforcement)
+    ("src.routes.roles", "/api"),  # Internal Status Roles (Status & Power)
+    ("src.routes.battlepass", "/api"),  # Battle Pass (Seasonal Urgency)
+    ("src.routes.store", "/api"),  # Store (Premium Battle Pass only - NO token purchases)
 ]
 
 def include_router_safe(module_name: str, prefix: str):

@@ -15,6 +15,16 @@ class ChallengeType(str, Enum):
     THIRTY_WEARS = "30_wears"
     CONTEXT = "context"
     COLD_START = "cold_start"
+    # New Ecosystem Engineering challenge types
+    STREAK_MAINTENANCE = "streak_maintenance"
+    GACHA_PULL = "gacha_pull"
+    ROLE_DEFENSE = "role_defense"
+    SCARCITY_EVENT = "scarcity_event"
+    CPW_OPTIMIZER = "cpw_optimizer"
+    COLOR_EXPLORER = "color_explorer"
+    THEMED_EVENT = "themed_event"
+    SUSTAINABILITY_CHAMPION = "sustainability_champion"
+    PATTERN_MASTER = "pattern_master"
 
 
 class ChallengeStatus(str, Enum):
@@ -60,6 +70,20 @@ class LevelTier(str, Enum):
     STYLIST = "Stylist"
     CURATOR = "Curator"
     CONNOISSEUR = "Connoisseur"
+
+
+class UserRole(str, Enum):
+    """Internal Status Roles - Power User Tiers"""
+    LURKER = "lurker"              # Default - basic access
+    SCOUT = "scout"                # Early access, token bonuses
+    TRENDSETTER = "trendsetter"    # Premium perks, exclusive features
+
+
+class GachaRarity(str, Enum):
+    """Gacha pull rarity tiers"""
+    COMMON = "COMMON"
+    RARE = "RARE"
+    LEGENDARY = "LEGENDARY"
 
 
 class Challenge(BaseModel):
@@ -152,6 +176,49 @@ class GamificationState(BaseModel):
         use_enum_values = True
 
 
+class StreakData(BaseModel):
+    """User streak information"""
+    current_streak: int = 0
+    longest_streak: int = 0
+    last_log_date: Optional[str] = None
+    streak_multiplier: float = 1.0
+
+
+class StyleTokens(BaseModel):
+    """Style Token balance and statistics"""
+    balance: int = 0
+    total_earned: int = 0
+    total_spent: int = 0
+    last_earned_at: Optional[str] = None
+
+
+class UserRoleData(BaseModel):
+    """User role and privilege information"""
+    current_role: str = "lurker"
+    role_earned_at: Optional[str] = None
+    role_decay_checks_remaining: int = 0
+    privileges: Dict[str, Any] = Field(default_factory=dict)
+
+
+class GachaPull(BaseModel):
+    """Gacha pull result"""
+    rarity: GachaRarity
+    reward_type: str
+    reward_data: Dict[str, Any]
+    visual_effect: str
+    pulled_at: datetime
+    cost: int
+
+
+class BattlePassProgress(BaseModel):
+    """Battle Pass progression data"""
+    season_id: str
+    current_level: int = 1
+    current_xp: int = 0
+    premium_unlocked: bool = False
+    claimed_rewards: List[str] = Field(default_factory=list)
+
+
 # Predefined challenges catalog
 CHALLENGE_CATALOG = {
     "forgotten_gems_weekly": Challenge(
@@ -165,6 +232,7 @@ CHALLENGE_CATALOG = {
         },
         rewards={
             "xp": 75,
+            "tokens": 75,
             "badge": BadgeType.HIDDEN_GEM_HUNTER.value
         },
         cadence="weekly",
@@ -181,6 +249,7 @@ CHALLENGE_CATALOG = {
         },
         rewards={
             "xp": 100,
+            "tokens": 100,
             "badge": BadgeType.SUSTAINABLE_STYLE_BRONZE.value
         },
         cadence="always",
@@ -198,6 +267,7 @@ CHALLENGE_CATALOG = {
         },
         rewards={
             "xp": 120,
+            "tokens": 120,
             "badge": BadgeType.COLOR_MASTER.value
         },
         cadence="weekly",
@@ -214,6 +284,7 @@ CHALLENGE_CATALOG = {
         },
         rewards={
             "xp": 200,
+            "tokens": 200,
             "badge": BadgeType.CLOSET_CATALOGER.value
         },
         cadence="always",
@@ -360,6 +431,8 @@ __all__ = [
     'ChallengeStatus',
     'BadgeType',
     'LevelTier',
+    'UserRole',
+    'GachaRarity',
     'Challenge',
     'UserChallenge',
     'Badge',
@@ -367,6 +440,11 @@ __all__ = [
     'XPReward',
     'LevelInfo',
     'GamificationState',
+    'StreakData',
+    'StyleTokens',
+    'UserRoleData',
+    'GachaPull',
+    'BattlePassProgress',
     'CHALLENGE_CATALOG',
     'BADGE_DEFINITIONS',
     'LEVEL_TIERS',
