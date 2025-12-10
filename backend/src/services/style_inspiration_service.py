@@ -245,21 +245,44 @@ class StyleInspirationService:
         for item in items:
             # Gender filtering
             if user_gender:
-                item_categories = [cat.lower() for cat in item.get('categories', [])]
-                item_tags = [tag.lower() for tag in item.get('tags', [])]
+                # First check explicit gender field (more reliable)
+                item_gender = item.get('gender', '').lower()
+                user_gender_normalized = user_gender.lower()
                 
-                # Skip gender-specific items that don't match
-                if user_gender in ['male', 'man', 'men']:
-                    # Skip explicitly feminine items
-                    feminine_keywords = ['dress', 'skirt', 'bra', 'heels', 'makeup']
-                    if any(kw in ' '.join(item_categories + item_tags) for kw in feminine_keywords):
-                        continue
+                # Normalize user gender
+                if user_gender_normalized in ['male', 'man', 'men']:
+                    user_gender_normalized = 'male'
+                elif user_gender_normalized in ['female', 'woman', 'women']:
+                    user_gender_normalized = 'female'
                 
-                elif user_gender in ['female', 'woman', 'women']:
-                    # Skip explicitly masculine items
-                    masculine_keywords = ['mens', 'masculine']
-                    if any(kw in ' '.join(item_categories + item_tags) for kw in masculine_keywords):
+                # If item has explicit gender field, use it
+                if item_gender:
+                    # Allow unisex items for all users
+                    if item_gender == 'unisex':
+                        pass  # Allow through
+                    # Allow matching gender
+                    elif item_gender == user_gender_normalized:
+                        pass  # Allow through
+                    # Skip non-matching gender-specific items
+                    else:
                         continue
+                else:
+                    # Fallback to keyword-based filtering for items without explicit gender
+                    item_categories = [cat.lower() for cat in item.get('categories', [])]
+                    item_tags = [tag.lower() for tag in item.get('tags', [])]
+                    
+                    # Skip gender-specific items that don't match
+                    if user_gender_normalized == 'male':
+                        # Skip explicitly feminine items
+                        feminine_keywords = ['dress', 'skirt', 'bra', 'heels', 'makeup']
+                        if any(kw in ' '.join(item_categories + item_tags) for kw in feminine_keywords):
+                            continue
+                    
+                    elif user_gender_normalized == 'female':
+                        # Skip explicitly masculine items
+                        masculine_keywords = ['mens', 'masculine']
+                        if any(kw in ' '.join(item_categories + item_tags) for kw in masculine_keywords):
+                            continue
             
             # Style preference filtering (if user has strong preferences)
             # Made more lenient: only filter if user has 3+ preferences AND item matches none
@@ -377,17 +400,38 @@ class StyleInspirationService:
                     
                 # Only apply gender filtering (more lenient)
                 if user_gender:
-                    item_categories = [cat.lower() for cat in item.get('categories', [])]
-                    item_tags = [tag.lower() for tag in item.get('tags', [])]
+                    # Normalize user gender
+                    user_gender_normalized = user_gender.lower()
+                    if user_gender_normalized in ['male', 'man', 'men']:
+                        user_gender_normalized = 'male'
+                    elif user_gender_normalized in ['female', 'woman', 'women']:
+                        user_gender_normalized = 'female'
                     
-                    if user_gender in ['male', 'man', 'men']:
-                        feminine_keywords = ['dress', 'skirt', 'bra', 'heels', 'makeup']
-                        if any(kw in ' '.join(item_categories + item_tags) for kw in feminine_keywords):
+                    # Check explicit gender field first
+                    item_gender = item.get('gender', '').lower()
+                    if item_gender:
+                        # Allow unisex items for all users
+                        if item_gender == 'unisex':
+                            pass  # Allow through
+                        # Allow matching gender
+                        elif item_gender == user_gender_normalized:
+                            pass  # Allow through
+                        # Skip non-matching gender-specific items
+                        else:
                             continue
-                    elif user_gender in ['female', 'woman', 'women']:
-                        masculine_keywords = ['mens', 'masculine']
-                        if any(kw in ' '.join(item_categories + item_tags) for kw in masculine_keywords):
-                            continue
+                    else:
+                        # Fallback to keyword-based filtering
+                        item_categories = [cat.lower() for cat in item.get('categories', [])]
+                        item_tags = [tag.lower() for tag in item.get('tags', [])]
+                        
+                        if user_gender_normalized == 'male':
+                            feminine_keywords = ['dress', 'skirt', 'bra', 'heels', 'makeup']
+                            if any(kw in ' '.join(item_categories + item_tags) for kw in feminine_keywords):
+                                continue
+                        elif user_gender_normalized == 'female':
+                            masculine_keywords = ['mens', 'masculine']
+                            if any(kw in ' '.join(item_categories + item_tags) for kw in masculine_keywords):
+                                continue
                 
                 filtered_catalog.append(item)
             
