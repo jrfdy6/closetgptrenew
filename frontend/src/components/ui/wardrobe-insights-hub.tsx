@@ -38,6 +38,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import PremiumTeaser from '@/components/PremiumTeaser';
 
 // Types
 interface StyleExpansion {
