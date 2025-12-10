@@ -12,8 +12,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { withSubscriptionGate } from '@/components/providers/withSubscriptionGate';
+import { SubscriptionPlan } from '@/types/subscription';
 
-export default function TVECard() {
+function TVECard() {
   const { stats, loading, error } = useGamificationStats();
 
   if (loading) {
@@ -158,4 +160,6 @@ export default function TVECard() {
     </Card>
   );
 }
+
+export default withSubscriptionGate(TVECard, SubscriptionPlan.PRO);
 

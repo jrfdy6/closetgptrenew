@@ -18,6 +18,8 @@ import {
   BarChart3,
   ChevronRight
 } from "lucide-react";
+import { withSubscriptionGate } from "@/components/providers/withSubscriptionGate";
+import { SubscriptionPlan } from "@/types/subscription";
 
 interface WardrobeInsightsProps {
   userId: string;
@@ -31,6 +33,8 @@ interface WardrobeInsightsProps {
   };
 }
 
+export default withSubscriptionGate(WardrobeInsightsCard, SubscriptionPlan.PRO);
+
 interface WeeklySummary {
   outfitsWorn: number;
   itemsWorn: number;
@@ -40,7 +44,7 @@ interface WeeklySummary {
   trendPercentage: number;
 }
 
-export default function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeInsightsProps) {
+function WardrobeInsightsCard({ userId, wardrobeData }: WardrobeInsightsProps) {
   const [weeklySummary, setWeeklySummary] = useState<WeeklySummary | null>(null);
   const [utilizationRate, setUtilizationRate] = useState(0);
 

@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase-context';
 import UpgradePrompt from '@/components/UpgradePrompt';
+import { withSubscriptionGate } from '@/components/providers/withSubscriptionGate';
+import { SubscriptionPlan } from '@/types/subscription';
 
 interface OutfitAnalysis {
   textureAnalysis?: {
@@ -102,7 +104,7 @@ interface StyleEducationModuleProps {
   className?: string;
 }
 
-export default function StyleEducationModule({ 
+function StyleEducationModule({ 
   outfitStyle, 
   outfitMood, 
   outfitOccasion,
@@ -677,3 +679,5 @@ export default function StyleEducationModule({
     </div>
   );
 }
+
+export default withSubscriptionGate(StyleEducationModule, SubscriptionPlan.PRO);

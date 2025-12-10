@@ -28,7 +28,9 @@ import OutfitService from '@/lib/services/outfitService';
 import BodyPositiveMessage from '@/components/BodyPositiveMessage';
 import { useAutoWeather } from '@/hooks/useWeather';
 import type { WeatherData } from '@/types/weather';
-import { subscriptionService, SUBSCRIPTION_TIERS } from '@/lib/services/subscriptionService';
+import { subscriptionService } from '@/lib/services/subscriptionService';
+import { SubscriptionPlan, mapRoleToPlan } from '@/types/subscription';
+import { FLATLAY_WEEKLY_LIMITS } from '@/utils/flatLayConfig';
 
 // Import new enhanced components
 import OutfitGenerationBottomSheet from '@/components/outfits/OutfitGenerationBottomSheet';
@@ -127,12 +129,8 @@ export default function OutfitGenerationPage() {
     try {
       // Use subscription service to get current subscription from payment system
       const subscription = await subscriptionService.getCurrentSubscription(user);
-      const tier = subscription.role || 'tier1';
-      
-      // Get tier info to get the limit
-      const tierInfo = subscriptionService.getTierInfo(tier);
-      const limitStr = tierInfo?.limit || '1 flat lay/week';
-      const limit = parseInt(limitStr.split('/')[0]) || 1;
+      const plan = mapRoleToPlan(subscription.role);
+      const limit = FLATLAY_WEEKLY_LIMITS[plan] ?? 1;
       
       // Get remaining from subscription (already calculated by backend)
       const remaining = subscription.flatlays_remaining ?? 0;
@@ -140,7 +138,7 @@ export default function OutfitGenerationPage() {
       // Calculate used
       const used = Math.max(0, limit - remaining);
 
-      setFlatLayUsage({ tier, limit, used, remaining });
+      setFlatLayUsage({ tier: plan, limit, used, remaining });
     } catch (error) {
       console.error('Error loading flat lay usage:', error);
       setFlatLayError('Unable to load your flat lay balance right now.');

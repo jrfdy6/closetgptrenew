@@ -11,8 +11,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { withSubscriptionGate } from '@/components/providers/withSubscriptionGate';
+import { SubscriptionPlan } from '@/types/subscription';
 
-export default function AIFitScoreCard() {
+function AIFitScoreCard() {
   const { stats, loading, error } = useGamificationStats();
 
   if (loading) {
@@ -195,4 +197,6 @@ export default function AIFitScoreCard() {
     </Card>
   );
 }
+
+export default withSubscriptionGate(AIFitScoreCard, SubscriptionPlan.PRO);
 

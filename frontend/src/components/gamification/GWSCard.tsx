@@ -19,6 +19,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronDown } from 'lucide-react';
+import { withSubscriptionGate } from '@/components/providers/withSubscriptionGate';
+import { SubscriptionPlan } from '@/types/subscription';
 
 interface GWSData {
   total_gws: number;
@@ -52,7 +54,7 @@ interface GWSData {
   insights: string[];
 }
 
-export default function GWSCard() {
+function GWSCard() {
   const { user } = useAuthContext();
   const [gws, setGWS] = useState<GWSData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -282,4 +284,6 @@ export default function GWSCard() {
     </Card>
   );
 }
+
+export default withSubscriptionGate(GWSCard, SubscriptionPlan.PRO);
 

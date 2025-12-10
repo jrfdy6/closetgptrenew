@@ -13,6 +13,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { withSubscriptionGate } from '@/components/providers/withSubscriptionGate';
+import { SubscriptionPlan } from '@/types/subscription';
 
 interface UtilizationData {
   utilization_percentage: number;
@@ -22,7 +24,7 @@ interface UtilizationData {
   period_days: number;
 }
 
-export default function UtilizationCard() {
+function UtilizationCard() {
   const { user } = useAuthContext();
   const [utilization, setUtilization] = useState<UtilizationData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -187,4 +189,6 @@ export default function UtilizationCard() {
     </Card>
   );
 }
+
+export default withSubscriptionGate(UtilizationCard, SubscriptionPlan.PRO);
 

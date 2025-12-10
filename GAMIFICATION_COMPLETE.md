@@ -14,6 +14,21 @@ A comprehensive gamification system that transforms wardrobe management into an 
 
 ---
 
+## Access by Plan (Gating)
+
+| Feature | FREE | PRO | PREMIUM |
+| --- | --- | --- | --- |
+| Gamification summary (levels, streaks, challenges) | Visible | Visible | Visible |
+| 30-Wears Progress | Visible | Visible | Visible |
+| Analytics (CPW, Utilization, GWS, TVE, AI Fit Score details) | Blurred (soft gated) | Full | Full |
+| Flat Lays | 1/week | 5/week | Unlimited |
+
+Free-user nudge shown on the Gamification Summary: *"You're leveling up—unlock the 'why' behind your gains with PRO analytics."*
+
+PRO and PREMIUM unlock all analytics. Blurring is used for FREE to create a curiosity gap; data still loads to avoid extra API branching.
+
+---
+
 ## 🌟 Core Gamification Features
 
 ### 1. Experience Points (XP) & Leveling

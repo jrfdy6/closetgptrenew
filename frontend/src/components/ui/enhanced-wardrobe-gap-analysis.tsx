@@ -37,6 +37,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { withSubscriptionGate } from "@/components/providers/withSubscriptionGate";
+import { SubscriptionPlan } from "@/types/subscription";
 
 interface WardrobeGap {
   category: string;
@@ -103,7 +105,7 @@ interface EnhancedWardrobeGapAnalysisProps {
   className?: string;
 }
 
-export default function EnhancedWardrobeGapAnalysis({
+function EnhancedWardrobeGapAnalysis({
   gaps,
   shoppingRecommendations: initialShoppingRecommendations,
   onRefresh,
@@ -483,3 +485,5 @@ export default function EnhancedWardrobeGapAnalysis({
     </div>
   );
 }
+
+export default withSubscriptionGate(EnhancedWardrobeGapAnalysis, SubscriptionPlan.PRO);

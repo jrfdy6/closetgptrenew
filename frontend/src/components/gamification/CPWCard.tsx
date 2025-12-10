@@ -11,8 +11,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { withSubscriptionGate } from '@/components/providers/withSubscriptionGate';
+import { SubscriptionPlan } from '@/types/subscription';
 
-export default function CPWCard() {
+function CPWCard() {
   const { stats, loading, error } = useGamificationStats();
 
   if (loading) {
@@ -149,4 +151,6 @@ export default function CPWCard() {
     </Card>
   );
 }
+
+export default withSubscriptionGate(CPWCard, SubscriptionPlan.PRO);
 
