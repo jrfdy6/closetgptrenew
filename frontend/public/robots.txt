@@ -1,0 +1,29 @@
+# robots.txt for Easy Outfit App
+# https://www.easyoutfitapp.com/robots.txt
+
+User-agent: *
+Allow: /
+
+# Disallow admin and API routes
+Disallow: /api/
+Disallow: /debug/
+Disallow: /test/
+Disallow: /admin/
+
+# Allow important pages
+Allow: /
+Allow: /dashboard
+Allow: /outfits
+Allow: /wardrobe
+Allow: /signin
+Allow: /signup
+Allow: /onboarding
+Allow: /style-persona
+Allow: /style-inspiration
+
+# Sitemap location
+Sitemap: https://www.easyoutfitapp.com/sitemap.xml
+
+# Crawl-delay (optional, adjust as needed)
+Crawl-delay: 1
+
