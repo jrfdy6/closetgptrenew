@@ -97,7 +97,7 @@ export default function Home() {
           <article className="bg-card/85 dark:bg-card/85 backdrop-blur-xl rounded-3xl md:rounded-[2rem] p-6 sm:p-8 md:p-12 mb-6 sm:mb-8 shadow-2xl shadow-primary/10 border border-border/40 dark:border-border/70 animate-fade-in">
             
             {/* Title - Display font for brand moment */}
-            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-4 sm:mb-5 tracking-tight leading-tight">
+            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-foreground mb-4 sm:mb-5 tracking-tight leading-tight">
               Easy Outfit
             </h1>
             
@@ -138,14 +138,14 @@ export default function Home() {
           </article>
           
           {/* CTA Buttons - Improved mobile layout */}
-          <nav className="flex flex-col gap-3 sm:gap-4 justify-center items-stretch sm:items-center max-w-md sm:max-w-none mx-auto" aria-label="Main navigation">
-            <Link href="/signin" className="w-full sm:w-auto">
+          <nav className="flex flex-col gap-3 sm:gap-4 justify-center items-stretch sm:items-center max-w-md sm:max-w-none mx-auto mb-6 sm:mb-8" aria-label="Main navigation">
+            <Link href="/signup" className="w-full sm:w-auto">
               <Button 
                 size="lg" 
                 className="w-full sm:w-auto gradient-copper-gold hover:opacity-90 text-[#1A1510] dark:text-white px-8 sm:px-12 py-5 sm:py-6 rounded-2xl font-semibold text-base sm:text-lg shadow-xl shadow-[var(--copper-dark)]/25 hover:shadow-2xl hover:shadow-[var(--copper-dark)]/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] border-0"
-                aria-label="Sign in to generate today's outfit"
+                aria-label="Get started free"
               >
-                Generate Today&apos;s Fit
+                Get Started Free
                 <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
               </Button>
             </Link>
@@ -156,11 +156,16 @@ export default function Home() {
                 className="w-full sm:w-auto bg-card/65 dark:bg-card/65 hover:bg-card/80 dark:hover:bg-secondary/80 backdrop-blur-xl border-2 border-border/60 dark:border-border/80 text-[var(--copper-dark)] dark:text-[var(--copper-light)] hover:text-[var(--copper-mid)] dark:hover:text-[var(--copper-mid)] px-8 sm:px-12 py-5 sm:py-6 rounded-2xl font-semibold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 aria-label="Start the 2-minute style quiz"
               >
-                Start the 2-minute style quiz
+                Try Style Quiz
                 <Sparkles className="ml-2 h-5 w-5" aria-hidden="true" />
               </Button>
             </Link>
           </nav>
+          
+          {/* Trust indicator - Mobile optimized */}
+          <p className="text-xs sm:text-sm text-muted-foreground font-medium text-center">
+            Free to start. No credit card required.
+          </p>
 
         </div>
       </section>
