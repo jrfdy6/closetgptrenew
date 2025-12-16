@@ -100,13 +100,22 @@ async def analyze_image_with_gpt4(image_path: str) -> dict:
                                 "fit": {"type": "string", "enum": ["fitted", "slim", "regular", "relaxed", "loose", "oversized"]},
                                 "silhouette": {"type": "string"},
                                 "length": {"type": "string"},
+                                "neckline": {"type": "string"},
+                                "transparency": {"type": "string", "enum": ["opaque", "semi-sheer", "sheer", "textured-opaque"]},
+                                "collarType": {"type": "string"},
+                                "embellishments": {"type": "string", "enum": ["none", "minimal", "moderate", "heavy"]},
+                                "printSpecificity": {"type": "string"},
                                 "formalLevel": {"type": "string", "enum": ["Casual", "Smart Casual", "Business Casual", "Semi-Formal", "Formal"]},
                                 "genderTarget": {"type": "string", "enum": ["Men", "Women", "Unisex"]},
                                 "backgroundRemoved": {"type": "boolean"},
                                 "hangerPresent": {"type": "boolean"},
-                                "waistbandType": {"type": "string", "enum": ["belt_loops", "elastic", "drawstring", "elastic_drawstring", "button_zip", "none"]}
+                                "waistbandType": {"type": "string", "enum": ["belt_loops", "elastic", "drawstring", "elastic_drawstring", "button_zip", "none"]},
+                                "rise": {"type": "string"},
+                                "legOpening": {"type": "string"},
+                                "heelHeight": {"type": "string"},
+                                "statementLevel": {"type": "integer", "minimum": 0, "maximum": 10}
                             },
-                            "required": ["wearLayer", "sleeveLength", "material", "pattern", "fit", "formalLevel"]
+                            "required": ["wearLayer", "sleeveLength", "material", "pattern", "fit", "formalLevel", "neckline", "transparency", "embellishments", "printSpecificity"]
                         },
                         "naturalDescription": {"type": "string"}
                     }

@@ -468,7 +468,7 @@ async def add_wardrobe_item(
         metadata_analysis = (analysis.get("metadata", {}) if analysis else {})
         visual_attrs = (metadata_analysis.get("visualAttributes", {}) if metadata_analysis else {})
         
-        # Use AI analysis results or fallback to defaults (ALL 13 fields)
+        # Use AI analysis results or fallback to defaults (ALL 21 fields - including Phase 1)
         visual_attributes = {
             "wearLayer": (visual_attrs.get("wearLayer", "Mid") if visual_attrs else "Mid"),
             "sleeveLength": (visual_attrs.get("sleeveLength", "Unknown") if visual_attrs else "Unknown"),
@@ -482,7 +482,18 @@ async def add_wardrobe_item(
             "formalLevel": (visual_attrs.get("formalLevel", "Casual") if visual_attrs else "Casual"),
             "genderTarget": (visual_attrs.get("genderTarget", "Unisex") if visual_attrs else "Unisex"),
             "backgroundRemoved": (visual_attrs.get("backgroundRemoved", False) if visual_attrs else False),
-            "hangerPresent": (visual_attrs.get("hangerPresent", False) if visual_attrs else False)
+            "hangerPresent": (visual_attrs.get("hangerPresent", False) if visual_attrs else False),
+            # Phase 1 new attributes for gender-inclusive outfit generation
+            "neckline": (visual_attrs.get("neckline", "") if visual_attrs else ""),
+            "transparency": (visual_attrs.get("transparency", "opaque") if visual_attrs else "opaque"),
+            "collarType": (visual_attrs.get("collarType", "") if visual_attrs else ""),
+            "embellishments": (visual_attrs.get("embellishments", "none") if visual_attrs else "none"),
+            "printSpecificity": (visual_attrs.get("printSpecificity", "none") if visual_attrs else "none"),
+            "rise": (visual_attrs.get("rise", "") if visual_attrs else ""),
+            "legOpening": (visual_attrs.get("legOpening", "") if visual_attrs else ""),
+            "heelHeight": (visual_attrs.get("heelHeight", "") if visual_attrs else ""),
+            "statementLevel": (visual_attrs.get("statementLevel", 0) if visual_attrs else 0),
+            "waistbandType": (visual_attrs.get("waistbandType", "") if visual_attrs else "")
         }
         
         # Extract dominant colors from AI analysis if available
@@ -827,8 +838,12 @@ async def get_wardrobe_items_with_slash(
                     "userId": current_user.id,
                     "createdAt": convert_timestamp(item_data.get('createdAt'), current_time),
                     "updatedAt": convert_timestamp(item_data.get('updatedAt'), current_time),
-                    # Exclude metadata and analysis to reduce response size
-                    # These can be fetched separately if needed
+                    # Include metadata and analysis for frontend to display all attributes
+                    "metadata": item_data.get('metadata'),
+                    "analysis": item_data.get('analysis'),
+                    "brand": item_data.get('brand'),
+                    "dominantColors": item_data.get('dominantColors', []),
+                    "matchingColors": item_data.get('matchingColors', []),
                     "backgroundRemovedUrl": item_data.get('backgroundRemovedUrl'),
                     "thumbnailUrl": item_data.get('thumbnailUrl'),
                     "processing_status": item_data.get('processing_status'),

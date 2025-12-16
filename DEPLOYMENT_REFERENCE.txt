@@ -1,0 +1,177 @@
+================================================================================
+                    DEPLOYMENT REFERENCE CARD
+================================================================================
+
+DEPLOYMENT DATE: December 15, 2025 @ 20:37 UTC
+COMMIT HASH: 564c90775
+STATUS: ✅ LIVE IN PRODUCTION
+
+================================================================================
+                        WHAT WAS DEPLOYED
+================================================================================
+
+BACKEND CHANGE (backend/src/routes/payments.py):
+  OLD: if not has_used_trial:
+  NEW: if not has_used_trial and interval == "month":
+  
+  EFFECT: Trial now only applies to monthly subscriptions
+
+FRONTEND CHANGES (frontend/src/app/subscription/page.tsx):
+  ✅ Added monthly/yearly billing toggle
+  ✅ Dynamic pricing display
+  ✅ Trial badge only shows for monthly
+  ✅ Button text changes based on plan type
+  ✅ Better UX distinction between trial and discount
+
+================================================================================
+                      PRODUCTION BEHAVIOR
+================================================================================
+
+MONTHLY PLAN:
+  - Shows: "30-Day Free Trial" badge ✅
+  - Button: "Start Free Trial"
+  - Gets: 30-day trial, then $7.00/month
+
+YEARLY PLAN:
+  - Shows: "Save ~28%" badge (NO trial) ✅
+  - Button: "Subscribe Now"
+  - Gets: $60/year immediately (no trial)
+
+TRIAL ALREADY USED:
+  - Shows: No trial badge on any plan ✅
+  - Button: "Upgrade Now"
+  - Gets: Direct payment (no second trial)
+
+================================================================================
+                      HOW TO VERIFY DEPLOYMENT
+================================================================================
+
+1. Check Git
+   $ git log --oneline -1
+   → Should show: 564c90775 Restrict 30-day free trial...
+
+2. Check Production
+   URL: https://closetgptrenew-production.up.railway.app
+   Look for: New billing toggle on /subscription page
+
+3. Test Flows
+   a) Select Monthly → See trial badge ✅
+   b) Select Yearly → No trial badge ✅
+   c) Click buttons → Route to correct Stripe session ✅
+
+4. Backend Logs
+   Look for: "Adding 30-day free trial to checkout for user {uid} (monthly plan)"
+   (Note the "(monthly plan)" part is NEW)
+
+================================================================================
+                        WHAT'S NOT CHANGED
+================================================================================
+
+✅ Existing subscriptions unaffected
+✅ Already-used trials unaffected
+✅ Stripe customer data unaffected
+✅ Billing dates unaffected
+✅ All other subscription features unchanged
+
+================================================================================
+                          ROLLBACK PLAN
+================================================================================
+
+If you need to rollback (unlikely):
+
+Command:
+  git revert 564c90775
+  git push origin main
+
+This will:
+  - Restore old behavior (trials on both monthly and yearly)
+  - Deploy in ~2-3 minutes
+  - No data loss or issues
+
+================================================================================
+                      TESTING CHECKLIST
+================================================================================
+
+During First Hour After Deployment:
+
+[ ] Check production logs for new commit marker
+[ ] Test monthly signup flow (should have trial)
+[ ] Test yearly signup flow (should NOT have trial)
+[ ] Verify trial badge only shows for monthly
+[ ] Verify button text changes correctly
+[ ] Check Stripe dashboard for session creation
+[ ] Verify billing cycle toggle works
+[ ] Test on mobile view
+[ ] Check dark mode rendering
+[ ] Verify no console errors in browser
+
+================================================================================
+                         KEY METRICS
+================================================================================
+
+Track these after deployment:
+
+1. Monthly Signup Conversion
+   - Should stay the same or improve (trial option available)
+
+2. Yearly Signup Conversion
+   - May decrease slightly (trial removed as incentive)
+   - But revenue per signup increases (no discount stacking)
+
+3. Trial-to-Paid Conversion
+   - Should remain strong (only monthly users on trial path)
+
+4. Revenue per User
+   - Should increase (yearly plans no longer stacking discounts)
+
+5. Customer Support
+   - Watch for confusion about "why no yearly trial?"
+
+================================================================================
+                       COMMUNICATION NOTES
+================================================================================
+
+If Users Ask "Why No Trial for Yearly?":
+
+Response:
+"Yearly plans come with a significant 28% discount compared to monthly pricing.
+We offer the 30-day free trial for monthly subscriptions to help you experience
+the app with confidence. If you prefer yearly pricing, you're already saving
+substantially. Both options are flexible and cancel-anytime!"
+
+================================================================================
+                         FILES TO REFERENCE
+================================================================================
+
+For Business/Product Team:
+  - FREE_TRIAL_STRATEGY.md (strategy and business logic)
+  - BEFORE_AFTER_COMPARISON.md (visual comparison)
+
+For Engineering/Support:
+  - TRIAL_IMPLEMENTATION_SUMMARY.md (technical details)
+  - DEPLOYMENT_COMPLETE.md (full deployment notes)
+
+For Decision Making:
+  - DEPLOYMENT_DECISION_NEEDED.md (decision framework)
+  - CLARIFICATION_NEEDED.md (clarification process)
+
+================================================================================
+                        SUPPORT CONTACTS
+================================================================================
+
+Issues?
+  1. Check production logs first
+  2. Review Stripe dashboard for session details
+  3. Test flow in private/incognito mode
+  4. Check browser console for errors
+  5. If critical: `git revert 564c90775 && git push origin main`
+
+================================================================================
+
+Deployment Status: ✅ COMPLETE
+Production URL: https://closetgptrenew-production.up.railway.app
+Monitoring: Recommended for first 24 hours
+Rollback: Available if needed (single git command)
+
+================================================================================
+

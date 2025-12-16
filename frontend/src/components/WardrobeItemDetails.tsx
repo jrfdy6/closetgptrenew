@@ -122,6 +122,7 @@ export default function WardrobeItemDetails({
   useEffect(() => {
     if (item) {
       setEditedItem({
+        // Basic fields
         name: item.name,
         type: item.type,
         color: item.color,
@@ -131,12 +132,24 @@ export default function WardrobeItemDetails({
         description: item.description || '',
         brand: item.brand || '',
         size: item.size || '',
+        purchasePrice: item.purchasePrice || 0,
+        
+        // Visual attributes
         material: item.material || [],
         sleeveLength: item.sleeveLength || '',
         fit: item.fit || '',
         neckline: item.neckline || '',
         length: item.length || '',
-        purchasePrice: item.purchasePrice || 0
+        
+        // Phase 1 new attributes
+        transparency: item.transparency || '',
+        collarType: item.collarType || '',
+        embellishments: item.embellishments || '',
+        printSpecificity: item.printSpecificity || '',
+        rise: item.rise || '',
+        legOpening: item.legOpening || '',
+        heelHeight: item.heelHeight || '',
+        statementLevel: item.statementLevel || 0
       });
     }
   }, [item]);
@@ -646,6 +659,182 @@ export default function WardrobeItemDetails({
                         {occasion}
                       </Badge>
                     ))}
+                  </div>
+                </div>
+
+                {/* Phase 1 New Fields - Gender-inclusive outfit generation */}
+                <div className="pt-6 border-t border-border/60 dark:border-border/70">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">Additional Details</h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    {isFieldRelevant('transparency') && (
+                      <div>
+                        <Label htmlFor="transparency" className="text-muted-foreground font-medium">Transparency</Label>
+                        <Select
+                          value={editedItem.transparency || ''}
+                          onValueChange={(value) => setEditedItem({ ...editedItem, transparency: value })}
+                        >
+                          <SelectTrigger className="mt-1 border-border/60 dark:border-border/70 bg-card/80 dark:bg-card/80">
+                            <SelectValue placeholder="Select transparency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {TRANSPARENCIES.map(trans => (
+                              <SelectItem key={trans} value={trans}>
+                                {trans.charAt(0).toUpperCase() + trans.slice(1)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    
+                    {isFieldRelevant('collarType') && (
+                      <div>
+                        <Label htmlFor="collarType" className="text-muted-foreground font-medium">Collar Type</Label>
+                        <Select
+                          value={editedItem.collarType || ''}
+                          onValueChange={(value) => setEditedItem({ ...editedItem, collarType: value })}
+                        >
+                          <SelectTrigger className="mt-1 border-border/60 dark:border-border/70 bg-card/80 dark:bg-card/80">
+                            <SelectValue placeholder="Select collar type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {COLLAR_TYPES.map(collar => (
+                              <SelectItem key={collar} value={collar}>
+                                {collar.charAt(0).toUpperCase() + collar.slice(1)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    {isFieldRelevant('embellishments') && (
+                      <div>
+                        <Label htmlFor="embellishments" className="text-muted-foreground font-medium">Embellishments</Label>
+                        <Select
+                          value={editedItem.embellishments || ''}
+                          onValueChange={(value) => setEditedItem({ ...editedItem, embellishments: value })}
+                        >
+                          <SelectTrigger className="mt-1 border-border/60 dark:border-border/70 bg-card/80 dark:bg-card/80">
+                            <SelectValue placeholder="Select embellishments" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {EMBELLISHMENTS.map(emb => (
+                              <SelectItem key={emb} value={emb}>
+                                {emb.charAt(0).toUpperCase() + emb.slice(1)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    
+                    {isFieldRelevant('printSpecificity') && (
+                      <div>
+                        <Label htmlFor="printSpecificity" className="text-muted-foreground font-medium">Print Type</Label>
+                        <Select
+                          value={editedItem.printSpecificity || ''}
+                          onValueChange={(value) => setEditedItem({ ...editedItem, printSpecificity: value })}
+                        >
+                          <SelectTrigger className="mt-1 border-border/60 dark:border-border/70 bg-card/80 dark:bg-card/80">
+                            <SelectValue placeholder="Select print type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PRINT_TYPES.map(print => (
+                              <SelectItem key={print} value={print}>
+                                {print.charAt(0).toUpperCase() + print.slice(1)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    {isFieldRelevant('rise') && (
+                      <div>
+                        <Label htmlFor="rise" className="text-muted-foreground font-medium">Rise</Label>
+                        <Select
+                          value={editedItem.rise || ''}
+                          onValueChange={(value) => setEditedItem({ ...editedItem, rise: value })}
+                        >
+                          <SelectTrigger className="mt-1 border-border/60 dark:border-border/70 bg-card/80 dark:bg-card/80">
+                            <SelectValue placeholder="Select rise" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {RISE_TYPES.map(rise => (
+                              <SelectItem key={rise} value={rise}>
+                                {rise.charAt(0).toUpperCase() + rise.slice(1)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    
+                    {isFieldRelevant('legOpening') && (
+                      <div>
+                        <Label htmlFor="legOpening" className="text-muted-foreground font-medium">Leg Opening</Label>
+                        <Select
+                          value={editedItem.legOpening || ''}
+                          onValueChange={(value) => setEditedItem({ ...editedItem, legOpening: value })}
+                        >
+                          <SelectTrigger className="mt-1 border-border/60 dark:border-border/70 bg-card/80 dark:bg-card/80">
+                            <SelectValue placeholder="Select leg opening" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LEG_OPENINGS.map(leg => (
+                              <SelectItem key={leg} value={leg}>
+                                {leg.charAt(0).toUpperCase() + leg.slice(1)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    {isFieldRelevant('heelHeight') && (
+                      <div>
+                        <Label htmlFor="heelHeight" className="text-muted-foreground font-medium">Heel Height</Label>
+                        <Select
+                          value={editedItem.heelHeight || ''}
+                          onValueChange={(value) => setEditedItem({ ...editedItem, heelHeight: value })}
+                        >
+                          <SelectTrigger className="mt-1 border-border/60 dark:border-border/70 bg-card/80 dark:bg-card/80">
+                            <SelectValue placeholder="Select heel height" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {HEEL_HEIGHTS.map(heel => (
+                              <SelectItem key={heel} value={heel}>
+                                {heel.charAt(0).toUpperCase() + heel.slice(1)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    
+                    {isFieldRelevant('statementLevel') && (
+                      <div>
+                        <Label htmlFor="statementLevel" className="text-muted-foreground font-medium">Statement Level (0-10)</Label>
+                        <Input
+                          id="statementLevel"
+                          type="number"
+                          min="0"
+                          max="10"
+                          value={editedItem.statementLevel ?? ''}
+                          onChange={(e) => setEditedItem({ ...editedItem, statementLevel: parseInt(e.target.value) || 0 })}
+                          className="mt-1 bg-card/80 dark:bg-card/80 border-border/60 dark:border-border/70"
+                          placeholder="0"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
             </div>

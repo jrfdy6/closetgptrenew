@@ -62,9 +62,21 @@ export const convertOpenAIAnalysisToClothingItem = (analysis: any, userId: strin
     sleeveLength: visualAttributes.sleeveLength || '',
     formalLevel: visualAttributes.formalLevel || '',
     
+    // Phase 1 new attributes for gender-inclusive outfit generation
+    neckline: visualAttributes.neckline || '',
+    transparency: visualAttributes.transparency || 'opaque',
+    collarType: visualAttributes.collarType || '',
+    embellishments: visualAttributes.embellishments || 'none',
+    printSpecificity: visualAttributes.printSpecificity || 'none',
+    rise: visualAttributes.rise || '',
+    legOpening: visualAttributes.legOpening || '',
+    heelHeight: visualAttributes.heelHeight || '',
+    statementLevel: visualAttributes.statementLevel || 0,
+    waistbandType: visualAttributes.waistbandType || '',
+    
     // Brand and description
     brand: analysis.brand || '',
-    description: `${type} ${subType ? `(${subType})` : ''} in ${primaryColor}`,
+    description: metadata.naturalDescription || `${type} ${subType ? `(${subType})` : ''} in ${primaryColor}`,
     
     // Metadata
     metadata: {
