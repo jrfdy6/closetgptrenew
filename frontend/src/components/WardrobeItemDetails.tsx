@@ -154,7 +154,7 @@ export default function WardrobeItemDetails({
         purchasePrice: item.purchasePrice || 0,
         
         // Visual attributes
-        material: item.material || [],
+        material: normalizeArray(item.material),
         sleeveLength: item.sleeveLength || '',
         fit: item.fit || '',
         neckline: item.neckline || '',
