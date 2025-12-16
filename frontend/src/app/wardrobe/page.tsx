@@ -36,6 +36,7 @@ import WardrobeGridSimple from "@/components/WardrobeGridSimple";
 import WardrobeItemBottomSheet from "@/components/WardrobeItemBottomSheet";
 import FilterPills from "@/components/FilterPills";
 import dynamic from 'next/dynamic';
+import MissingWardrobeModal from '@/components/MissingWardrobeModal';
 
 // Dynamically import components to avoid SSR issues
 const WardrobeGrid = dynamic(() => import('@/components/WardrobeGrid'), {
@@ -85,6 +86,14 @@ export default function WardrobePage() {
   const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
   const [showItemDetails, setShowItemDetails] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [showMissingWardrobeModal, setShowMissingWardrobeModal] = useState(false);
+
+  // Check if user has fewer than 10 items - show blocking modal
+  useEffect(() => {
+    if (!wardrobeLoading && wardrobeItems.length < 10) {
+      setShowMissingWardrobeModal(true);
+    }
+  }, [wardrobeLoading, wardrobeItems.length]);
 
   // Apply filters when they change
   useEffect(() => {
@@ -896,6 +905,17 @@ export default function WardrobePage() {
           </div>
         </div>
       )}
+      
+      {/* Missing Wardrobe Modal - Block access if < 10 items */}
+      <MissingWardrobeModal
+        userId={user?.uid || ''}
+        isOpen={showMissingWardrobeModal}
+        onComplete={() => {
+          setShowMissingWardrobeModal(false);
+          refetch();
+        }}
+        targetCount={10}
+      />
       
       {/* Client-Only Navigation - No Props to Avoid Serialization */}
       <ClientOnlyNav />

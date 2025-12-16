@@ -1,12 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import ClientOnlyNav from '@/components/ClientOnlyNav';
 import OutfitGrid from '@/components/OutfitGrid';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Plus } from 'lucide-react';
+import { useFirebase } from '@/lib/firebase-context';
+import { useWardrobe } from '@/lib/hooks/useWardrobe';
+import MissingWardrobeModal from '@/components/MissingWardrobeModal';
 
 type OutfitsPageProps = {
   searchParams?: {
@@ -20,6 +23,17 @@ export default function OutfitsPage({ searchParams }: OutfitsPageProps) {
   const initialFavoritesOnly =
     searchParams?.view === 'favorites' ||
     searchParams?.favorites === 'true';
+  
+  const { user } = useFirebase();
+  const { items: wardrobeItems, loading: wardrobeLoading, refetch } = useWardrobe();
+  const [showMissingWardrobeModal, setShowMissingWardrobeModal] = useState(false);
+
+  // Check if user has fewer than 10 items - show blocking modal
+  useEffect(() => {
+    if (!wardrobeLoading && wardrobeItems.length < 10) {
+      setShowMissingWardrobeModal(true);
+    }
+  }, [wardrobeLoading, wardrobeItems.length]);
 
   return (
     <div className="min-h-screen">
@@ -71,6 +85,17 @@ export default function OutfitsPage({ searchParams }: OutfitsPageProps) {
           />
         </div>
       </main>
+      
+      {/* Missing Wardrobe Modal - Block access if < 10 items */}
+      <MissingWardrobeModal
+        userId={user?.uid || ''}
+        isOpen={showMissingWardrobeModal}
+        onComplete={() => {
+          setShowMissingWardrobeModal(false);
+          refetch();
+        }}
+        targetCount={10}
+      />
       
       {/* Client-Only Navigation - No Props to Avoid Serialization */}
       <ClientOnlyNav />

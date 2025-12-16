@@ -40,6 +40,8 @@ import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/AuthContext";
 import dynamic from 'next/dynamic';
 import { dashboardService, DashboardData, TopItem } from "@/lib/services/dashboardService";
+import { useWardrobe } from '@/lib/hooks/useWardrobe';
+import MissingWardrobeModal from '@/components/MissingWardrobeModal';
 import WardrobeInsightsHub from '@/components/ui/wardrobe-insights-hub';
 import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerator";
 import { useAutoWeather } from '@/hooks/useWeather';
@@ -129,9 +131,13 @@ export default function Dashboard() {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showAllStats, setShowAllStats] = useState(false);
   const [showOutfitDetails, setShowOutfitDetails] = useState(false);
+  const [showMissingWardrobeModal, setShowMissingWardrobeModal] = useState(false);
   const { toast } = useToast();
   const { user, loading } = useAuthContext();
   const router = useRouter();
+  
+  // Check wardrobe items for modal
+  const { items: wardrobeItems, loading: wardrobeLoading, refetch: refetchWardrobe } = useWardrobe();
   
   // Weather hook for automatic location detection
   const { weather, fetchWeatherByLocation } = useAutoWeather();
@@ -147,6 +153,13 @@ export default function Dashboard() {
   // Default to false during loading to prevent premature content display
   const canAccessPro = !planLoading && plan !== SubscriptionPlan.FREE && canAccess(SubscriptionPlan.PRO);
   
+  // Check if user has fewer than 10 items - show blocking modal
+  useEffect(() => {
+    if (!wardrobeLoading && wardrobeItems.length < 10) {
+      setShowMissingWardrobeModal(true);
+    }
+  }, [wardrobeLoading, wardrobeItems.length]);
+
   // Debug: Log subscription info
   useEffect(() => {
     if (!planLoading && user) {
@@ -1088,6 +1101,17 @@ export default function Dashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Missing Wardrobe Modal - Block access if < 10 items */}
+      <MissingWardrobeModal
+        userId={user?.uid || ''}
+        isOpen={showMissingWardrobeModal}
+        onComplete={() => {
+          setShowMissingWardrobeModal(false);
+          refetchWardrobe();
+        }}
+        targetCount={10}
+      />
       
       {/* Client-Only Navigation - No Props to Avoid Serialization */}
       <ClientOnlyNav />
