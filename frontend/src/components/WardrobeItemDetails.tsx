@@ -132,14 +132,18 @@ export default function WardrobeItemDetails({
         analysis: item.analysis
       });
       
+      // Normalize case for dropdown values to match constants
+      const normalizeColor = (color: string) => color?.toLowerCase() || '';
+      const normalizeArray = (arr: string[]) => arr?.map(s => s.toLowerCase()) || [];
+      
       setEditedItem({
         // Basic fields
         name: item.name,
-        type: item.type,
-        color: item.color,
-        style: item.style || [],
-        season: item.season || [],
-        occasion: item.occasion || [],
+        type: item.type?.toLowerCase() || '',
+        color: normalizeColor(item.color),
+        style: normalizeArray(item.style),
+        season: normalizeArray(item.season),
+        occasion: normalizeArray(item.occasion),
         description: item.description || '',
         brand: item.brand || '',
         size: item.size || '',
