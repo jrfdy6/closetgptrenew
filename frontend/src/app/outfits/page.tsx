@@ -28,12 +28,12 @@ export default function OutfitsPage({ searchParams }: OutfitsPageProps) {
   const { items: wardrobeItems, loading: wardrobeLoading, refetch } = useWardrobe();
   const [showMissingWardrobeModal, setShowMissingWardrobeModal] = useState(false);
 
-  // Check if user has fewer than 10 items - show blocking modal
+  // Check if user has fewer than 10 items - show blocking modal (only on initial load)
   useEffect(() => {
-    if (!wardrobeLoading && wardrobeItems.length < 10) {
+    if (!wardrobeLoading && wardrobeItems.length < 10 && !showMissingWardrobeModal) {
       setShowMissingWardrobeModal(true);
     }
-  }, [wardrobeLoading, wardrobeItems.length]);
+  }, [wardrobeLoading]);
 
   return (
     <div className="min-h-screen">
