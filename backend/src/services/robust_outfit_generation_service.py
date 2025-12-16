@@ -1918,29 +1918,62 @@ class RobustOutfitGenerationService:
             return 'summer'
     
     async def _create_outfit_from_items(self, items: List[Any], context: GenerationContext, strategy: str) -> OutfitGeneratedOutfit:
-        """Create a basic outfit from available items"""
+        """Create a basic outfit from available items with dress awareness"""
         logger.info(f"🎯 Creating outfit from {len(items)} items using strategy: {strategy}")
         
-        # Simple item selection - pick one of each essential type
+        # Simple item selection - pick one of each essential category (with dress support)
         selected_items = []
+        category_counts = {}
         
-        # Find essential categories
-        essential_types = ['shirt', 'top', 'blouse', 'pants', 'shorts', 'shoes']
+        # Check if we have any dresses first
+        has_dress = False
+        for item in items:
+            item_category = self._get_item_category(item)
+            if item_category == 'dress':
+                has_dress = True
+                selected_items.append(item)
+                category_counts['dress'] = 1
+                logger.info(f"👗 FALLBACK: Found dress '{getattr(item, 'name', 'Unknown')}', skipping tops/bottoms")
+                break
         
-        for essential_type in essential_types:
+        # Define essential categories based on whether we have a dress
+        if has_dress:
+            essential_categories = ['dress', 'shoes']  # Dress replaces tops + bottoms
+        else:
+            essential_categories = ['tops', 'bottoms', 'shoes']
+        
+        # Select items for each essential category
+        for category in essential_categories:
+            if category_counts.get(category, 0) > 0:
+                continue  # Already have this category (e.g., dress)
+            
             for item in items:
-                item_type = safe_item_access(item, 'type', '').lower()
-                if essential_type in item_type and item not in selected_items:
+                if item in selected_items:
+                    continue
+                item_category = self._get_item_category(item)
+                if item_category == category:
                     selected_items.append(item)
+                    category_counts[category] = category_counts.get(category, 0) + 1
+                    logger.info(f"✅ FALLBACK: Added {category} '{getattr(item, 'name', 'Unknown')}'")
                     break
         
-        # If we don't have enough items, add any remaining items
+        # If we don't have enough items, add non-conflicting items
         if len(selected_items) < 3:
             for item in items:
-                if item not in selected_items:
-                    selected_items.append(item)
-                    if len(selected_items) >= 4:  # Reasonable outfit size
-                        break
+                if item in selected_items:
+                    continue
+                item_category = self._get_item_category(item)
+                
+                # Don't add tops/bottoms if we have a dress
+                if has_dress and item_category in ['tops', 'bottoms']:
+                    continue
+                
+                selected_items.append(item)
+                logger.info(f"✅ FALLBACK: Added filler item '{getattr(item, 'name', 'Unknown')}' ({item_category})")
+                if len(selected_items) >= 4:  # Reasonable outfit size
+                    break
+        
+        logger.info(f"🎯 FALLBACK FINAL: Selected {len(selected_items)} items, has_dress={has_dress}")
         
         return OutfitGeneratedOutfit(
             items=selected_items,
@@ -1949,7 +1982,8 @@ class RobustOutfitGenerationService:
                 "generation_strategy": strategy,
                 "fallback_reason": "progressive_filtering",
                 "original_occasion": (context.occasion if context else "unknown"),
-                "original_style": (context.style if context else "unknown")
+                "original_style": (context.style if context else "unknown"),
+                "has_dress": has_dress
             }
         )
     
@@ -5234,21 +5268,41 @@ class RobustOutfitGenerationService:
         return "spring"
     
     async def _select_basic_items(self, wardrobe: List[ClothingItem], context: GenerationContext) -> List[ClothingItem]:
-        """Select basic items for fallback - simplified version"""
+        """Select basic items for fallback with dress awareness"""
         logger.info(f"🔍 BASIC SELECT: Selecting from {len(wardrobe)} items")
         basic_items = []
-        
-        # Simple selection: pick one item of each basic type
         categories_found = set()
+        
+        # Check for dresses first
+        has_dress = False
         for item in wardrobe:
             category = self._get_item_category(item)
-            if category in ['tops', 'bottoms', 'shoes'] and category not in categories_found:
+            if category == 'dress':
+                basic_items.append(item)
+                categories_found.add('dress')
+                has_dress = True
+                logger.info(f"👗 BASIC SELECT: Found dress, will skip tops/bottoms")
+                break
+        
+        # Define required categories based on whether we have a dress
+        if has_dress:
+            required_categories = ['dress', 'shoes']
+        else:
+            required_categories = ['tops', 'bottoms', 'shoes']
+        
+        # Select one item of each required category
+        for item in wardrobe:
+            if item in basic_items:
+                continue
+            category = self._get_item_category(item)
+            if category in required_categories and category not in categories_found:
                 basic_items.append(item)
                 categories_found.add(category)
-                if len(categories_found) == 3:
+                logger.info(f"✅ BASIC SELECT: Added {category} '{getattr(item, 'name', 'Unknown')[:40]}'")
+                if len(categories_found) >= len(required_categories):
                     break
         
-        logger.info(f"🔍 BASIC SELECT: Selected {len(basic_items)} items")
+        logger.info(f"🔍 BASIC SELECT: Selected {len(basic_items)} items, has_dress={has_dress}, categories={categories_found}")
         return basic_items
     
     async def _calculate_item_score(self, item: ClothingItem, context: GenerationContext) -> float:
