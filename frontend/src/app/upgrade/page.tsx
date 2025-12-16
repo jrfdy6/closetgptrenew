@@ -173,33 +173,61 @@ export default function UpgradePage() {
             upgrade for magazine-ready flat lays, priority rendering, and concierge support.
           </p>
           
-          {/* Billing Interval Toggle */}
-          <div className="flex items-center justify-center gap-4 mt-6">
-            <span className={`text-sm font-medium transition-colors ${billingInterval === 'month' ? 'text-stone-900 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}>
-              Monthly
-            </span>
-            <button
-              type="button"
-              onClick={() => setBillingInterval(billingInterval === 'month' ? 'year' : 'month')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 cursor-pointer ${
-                billingInterval === 'year' ? 'bg-amber-600' : 'bg-stone-300 dark:bg-stone-700'
-              }`}
-              aria-label={`Switch to ${billingInterval === 'month' ? 'yearly' : 'monthly'} billing`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
-                  billingInterval === 'year' ? 'translate-x-6' : 'translate-x-1'
+          {/* Billing Interval Toggle - Modern Segmented Control */}
+          <div className="flex flex-col items-center gap-3 mt-8">
+            <div className="relative inline-grid grid-cols-2 gap-0 bg-stone-100 dark:bg-stone-800/50 rounded-full p-1.5 shadow-inner">
+              {/* Animated background slider */}
+              <div
+                className={`absolute top-1.5 bottom-1.5 rounded-full bg-white dark:bg-stone-700 shadow-md transition-all duration-300 ease-out ${
+                  billingInterval === 'year' 
+                    ? 'left-[calc(50%+0.375rem)] right-1.5' 
+                    : 'left-1.5 right-[calc(50%+0.375rem)]'
                 }`}
               />
-            </button>
-            <span className={`text-sm font-medium transition-colors ${billingInterval === 'year' ? 'text-stone-900 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}>
-              Yearly
-            </span>
-            {billingInterval === 'year' && (
-              <Badge className="bg-amber-600 text-white text-xs">
-                Save 2 months
+              
+              {/* Monthly button */}
+              <button
+                type="button"
+                onClick={() => setBillingInterval('month')}
+                className={`relative z-10 px-6 py-2.5 text-sm font-semibold rounded-full transition-all duration-300 ${
+                  billingInterval === 'month'
+                    ? 'text-stone-900 dark:text-stone-100'
+                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+                }`}
+                aria-label="Switch to monthly billing"
+              >
+                Monthly
+              </button>
+              
+              {/* Yearly button */}
+              <button
+                type="button"
+                onClick={() => setBillingInterval('year')}
+                className={`relative z-10 px-6 py-2.5 text-sm font-semibold rounded-full transition-all duration-300 ${
+                  billingInterval === 'year'
+                    ? 'text-stone-900 dark:text-stone-100'
+                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+                }`}
+                aria-label="Switch to yearly billing"
+              >
+                Yearly
+              </button>
+            </div>
+            
+            {/* Savings badge - always visible but animated */}
+            <div className={`flex items-center gap-2 transition-all duration-300 ${
+              billingInterval === 'year' 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 -translate-y-2 pointer-events-none'
+            }`}>
+              <Badge className="bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-semibold px-3 py-1 shadow-lg border-0">
+                <Sparkles className="h-3 w-3 mr-1 inline" />
+                Save up to $47 per year
               </Badge>
-            )}
+              <span className="text-xs text-stone-500 dark:text-stone-400">
+                (2 months free)
+              </span>
+            </div>
           </div>
 
           {subscription && (
@@ -244,23 +272,37 @@ export default function UpgradePage() {
               </CardHeader>
 
               <CardContent className="space-y-6">
-                <div>
+                <div className="transition-all duration-300">
                   {(() => {
                     const pricing = getTierPrice(tier.id);
                     return (
-                      <>
-                        <span className="text-3xl font-bold text-stone-900 dark:text-stone-100">
-                          {pricing.price}
-                        </span>
-                        <span className="text-sm text-stone-500 dark:text-stone-400 ml-2">
-                          {pricing.cadence}
-                        </span>
+                      <div className="space-y-1">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-4xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">
+                            {pricing.price}
+                          </span>
+                          <span className="text-base text-stone-500 dark:text-stone-400 font-medium">
+                            {pricing.cadence}
+                          </span>
+                        </div>
                         {pricing.savings && (
-                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-semibold">
-                            {pricing.savings}
+                          <div className="flex items-center gap-1.5 pt-1">
+                            <Badge className="bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 text-xs font-semibold px-2 py-0.5">
+                              {pricing.savings}
+                            </Badge>
+                            {tier.id === 'tier2' && (
+                              <span className="text-xs text-stone-500 dark:text-stone-400">
+                                vs monthly
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {!pricing.savings && tier.id !== 'tier1' && (
+                          <p className="text-xs text-stone-400 dark:text-stone-500 pt-1">
+                            Billed {billingInterval === 'year' ? 'annually' : 'monthly'}
                           </p>
                         )}
-                      </>
+                      </div>
                     );
                   })()}
                 </div>
