@@ -5408,6 +5408,34 @@ class RobustOutfitGenerationService:
         
         category = (safe_get(category_map, item_type, 'other') if category_map else 'other')
         
+        # If category is 'other', try fuzzy keyword matching
+        if category == 'other':
+            # Check for dress keywords (highest priority - must come before tops/bottoms)
+            dress_keywords = ['dress', 'romper', 'jumpsuit', 'maxi', 'midi dress', 'mini dress']
+            if any(kw in item_type or kw in item_name for kw in dress_keywords):
+                category = 'dress'
+                logger.debug(f"👗 KEYWORD MATCH: '{item_name[:50]}' → 'dress'")
+            
+            # Check for tops keywords
+            elif any(kw in item_type or kw in item_name for kw in ['shirt', 't-shirt', 't_shirt', 'blouse', 'tank', 'polo', 'sweater', 'tee']):
+                category = 'tops'
+                logger.debug(f"👔 KEYWORD MATCH: '{item_name[:50]}' → 'tops'")
+            
+            # Check for bottoms keywords
+            elif any(kw in item_type or kw in item_name for kw in ['pants', 'jeans', 'shorts', 'skirt', 'trouser', 'denim']):
+                category = 'bottoms'
+                logger.debug(f"👖 KEYWORD MATCH: '{item_name[:50]}' → 'bottoms'")
+            
+            # Check for shoes keywords
+            elif any(kw in item_type or kw in item_name for kw in ['shoes', 'sneakers', 'boots', 'heels', 'sandals', 'loafers', 'flats']):
+                category = 'shoes'
+                logger.debug(f"👟 KEYWORD MATCH: '{item_name[:50]}' → 'shoes'")
+            
+            # Check for outerwear keywords
+            elif any(kw in item_type or kw in item_name for kw in ['jacket', 'coat', 'blazer', 'cardigan', 'hoodie']):
+                category = 'outerwear'
+                logger.debug(f"🧥 KEYWORD MATCH: '{item_name[:50]}' → 'outerwear'")
+        
         # Special handling: Check if a "sweater" is actually a layering piece (cardigan, open-front, etc.)
         if category == 'tops':
             layering_keywords = ['cardigan', 'open front', 'open-front', 'button-up sweater', 
