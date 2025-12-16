@@ -36,6 +36,7 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [billingCycle, setBillingCycle] = useState<'month' | 'year'>('month');
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -59,14 +60,14 @@ export default function SubscriptionPage() {
     }
   };
 
-  const handleUpgrade = async (tier: string) => {
+  const handleUpgrade = async (tier: string, interval: 'month' | 'year' = 'month') => {
     if (tier === 'tier1' || !user) return;
     
     setUpgrading(tier);
     setError(null);
     
     try {
-      const { checkout_url } = await subscriptionService.createCheckoutSession(user, tier);
+      const { checkout_url } = await subscriptionService.createCheckoutSession(user, tier, interval);
       window.location.href = checkout_url;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start checkout');
@@ -222,7 +223,38 @@ export default function SubscriptionPage() {
 
         {/* Subscription Tiers */}
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Available Plans</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-semibold">Available Plans</h2>
+            
+            {/* Billing Cycle Toggle */}
+            <div className="flex items-center gap-4 bg-amber-100 dark:bg-amber-900/30 p-3 rounded-lg">
+              <span className={`text-sm font-medium ${billingCycle === 'month' ? 'text-amber-900 dark:text-amber-100' : 'text-muted-foreground'}`}>
+                Monthly
+              </span>
+              <button
+                onClick={() => setBillingCycle(billingCycle === 'month' ? 'year' : 'month')}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  billingCycle === 'year' 
+                    ? 'bg-amber-600' 
+                    : 'bg-amber-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    billingCycle === 'year' ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className={`text-sm font-medium ${billingCycle === 'year' ? 'text-amber-900 dark:text-amber-100' : 'text-muted-foreground'}`}>
+                Yearly
+              </span>
+              {billingCycle === 'year' && (
+                <Badge className="bg-green-600 text-white ml-2">
+                  Save ~28%
+                </Badge>
+              )}
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {SUBSCRIPTION_TIERS.map((tier) => {
               const isCurrent = currentTier === tier.id;
@@ -261,12 +293,22 @@ export default function SubscriptionPage() {
                     </div>
                     <CardDescription>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold">{tier.price}</span>
-                        <span className="text-muted-foreground">/month</span>
+                        <span className="text-4xl font-bold">
+                          {billingCycle === 'year' && tier.id !== 'tier1' 
+                            ? tier.id === 'tier2' 
+                              ? '$60'
+                              : '$85'
+                            : tier.price}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {billingCycle === 'year' ? '/year' : '/month'}
+                        </span>
                       </div>
                       {tier.pricePerMonth > 0 && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          Billed monthly • Cancel anytime
+                          {billingCycle === 'year' 
+                            ? 'Billed yearly • Cancel anytime'
+                            : 'Billed monthly • Cancel anytime'}
                         </p>
                       )}
                     </CardDescription>
@@ -294,16 +336,16 @@ export default function SubscriptionPage() {
                       </Button>
                     ) : (
                       <div className="space-y-2">
-                        {canUpgrade && tier.id !== 'tier1' && !subscription?.trial_used && (
+                        {canUpgrade && tier.id !== 'tier1' && !subscription?.trial_used && billingCycle === 'month' && (
                           <div className="text-center">
-                            <Badge variant="secondary" className="text-xs mb-2">
+                            <Badge variant="secondary" className="text-xs mb-2 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                               <Calendar className="h-3 w-3 mr-1" />
                               30-Day Free Trial
                             </Badge>
                           </div>
                         )}
                       <Button
-                        onClick={() => handleUpgrade(tier.id)}
+                        onClick={() => handleUpgrade(tier.id, billingCycle)}
                         disabled={isUpgrading || !canUpgrade}
                         className="w-full"
                         variant={tier.popular ? 'default' : 'outline'}
@@ -317,7 +359,11 @@ export default function SubscriptionPage() {
                         ) : canUpgrade ? (
                           <>
                             <Zap className="mr-2 h-4 w-4" />
-                              {subscription?.trial_used ? 'Upgrade Now' : 'Start Free Trial'}
+                            {subscription?.trial_used 
+                              ? 'Upgrade Now' 
+                              : billingCycle === 'month'
+                              ? 'Start Free Trial'
+                              : 'Subscribe Now'}
                           </>
                         ) : (
                           'Downgrade'
