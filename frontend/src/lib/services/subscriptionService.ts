@@ -74,6 +74,12 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
   }
 ];
 
+// Yearly pricing (typically 2 months free = 10 months of monthly price)
+export const YEARLY_PRICING = {
+  tier2: 60.00, // $7/month * 12 = $84, yearly = $60 (save $24)
+  tier3: 85.00, // $11/month * 12 = $132, yearly = $85 (save $47)
+};
+
 class SubscriptionService {
   private async getAuthToken(user: User | null): Promise<string> {
     if (!user) {
@@ -100,7 +106,7 @@ class SubscriptionService {
     return response.json();
   }
 
-  async createCheckoutSession(user: User | null, role: string): Promise<{ checkout_url: string; session_id: string }> {
+  async createCheckoutSession(user: User | null, role: string, interval: 'month' | 'year' = 'month'): Promise<{ checkout_url: string; session_id: string }> {
     const token = await this.getAuthToken(user);
     
     const response = await fetch(`${API_URL}/api/payments/checkout/create-session`, {
@@ -109,7 +115,7 @@ class SubscriptionService {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ role })
+      body: JSON.stringify({ role, interval })
     });
 
     if (!response.ok) {

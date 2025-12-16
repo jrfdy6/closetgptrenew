@@ -360,7 +360,8 @@ def generate_comprehensive_catalog(
     print(f"Target: {items_per_combination} items per style/gender/category combination")
     
     items = []
-    item_id = 1
+    # Start with a high ID to avoid conflicts with existing catalogs
+    item_id = 100000
     
     styles = list(STYLE_PERSONAS.keys())
     categories = list(ITEM_CATEGORIES.keys())
@@ -535,6 +536,8 @@ if __name__ == "__main__":
         
         # Merge catalogs
         merged_items = existing_items + new_items
+        
+        # Preserve existing metadata but update key fields
         merged_catalog = {
             **existing_catalog,  # Preserve existing metadata
             "catalog_version": "4.0",
@@ -544,6 +547,14 @@ if __name__ == "__main__":
             "appended_items": len(new_items),
             "original_items": len(existing_items)
         }
+        
+        # Ensure required fields exist
+        if "styles_covered" not in merged_catalog:
+            merged_catalog["styles_covered"] = new_catalog.get("styles_covered", [])
+        if "categories_covered" not in merged_catalog:
+            merged_catalog["categories_covered"] = new_catalog.get("categories_covered", [])
+        if "genders_covered" not in merged_catalog:
+            merged_catalog["genders_covered"] = new_catalog.get("genders_covered", GENDERS)
         
         print(f"✅ Merged catalogs:")
         print(f"   Existing items: {len(existing_items)}")
@@ -569,9 +580,9 @@ if __name__ == "__main__":
     print(f"📦 File size: {output_path.stat().st_size / 1024 / 1024:.2f} MB")
     print(f"\n🎉 Catalog generation complete!")
     print(f"   Total items: {len(catalog['items'])}")
-    print(f"   Styles: {len(catalog['styles_covered'])}")
-    print(f"   Categories: {len(catalog['categories_covered'])}")
-    print(f"   Genders: {len(catalog['genders_covered'])}")
+    print(f"   Styles: {len(catalog.get('styles_covered', []))}")
+    print(f"   Categories: {len(catalog.get('categories_covered', []))}")
+    print(f"   Genders: {len(catalog.get('genders_covered', []))}")
     if args.append:
         print(f"   ✨ Appended {catalog.get('appended_items', 0)} new items to existing catalog")
 

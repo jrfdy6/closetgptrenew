@@ -38,6 +38,8 @@ STRIPE_PRICE_IDS = {
     "tier1": None,  # Free tier - no payment
     "tier2": os.getenv("STRIPE_PRICE_TIER2", ""),
     "tier3": os.getenv("STRIPE_PRICE_TIER3", ""),
+    "tier2_yearly": os.getenv("STRIPE_PRICE_TIER2_YEARLY", ""),
+    "tier3_yearly": os.getenv("STRIPE_PRICE_TIER3_YEARLY", ""),
 }
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://easyoutfitapp.com")
@@ -46,6 +48,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "https://easyoutfitapp.com")
 # Request/Response Models
 class SubscriptionUpgradeRequest(BaseModel):
     role: str  # "tier2" or "tier3"
+    interval: str = "month"  # "month" or "year"
 
 
 class SubscriptionResponse(BaseModel):
@@ -179,10 +182,18 @@ async def create_checkout_session(
         )
     
     role = request.role
-    if role not in STRIPE_PRICE_IDS or role == "tier1" or not STRIPE_PRICE_IDS[role]:
+    interval = request.interval or "month"
+    
+    # Determine the correct price ID based on role and interval
+    if interval == "year":
+        price_key = f"{role}_yearly"
+    else:
+        price_key = role
+    
+    if price_key not in STRIPE_PRICE_IDS or role == "tier1" or not STRIPE_PRICE_IDS[price_key]:
         raise HTTPException(
             status_code=400, 
-            detail="Invalid role or role does not require payment"
+            detail="Invalid role, interval, or price not configured"
         )
     
     try:
@@ -213,7 +224,7 @@ async def create_checkout_session(
                 'billing.stripeCustomerId': customer.id
             })
         
-        price_id = STRIPE_PRICE_IDS[role]
+        price_id = STRIPE_PRICE_IDS[price_key]
         
         # Check if user has already used a free trial
         # Check both current subscription and subscription history
@@ -252,6 +263,7 @@ async def create_checkout_session(
             'metadata': {
                 'user_id': user_id,
                 'role': role,
+                'interval': interval,
             },
             'allow_promotion_codes': True,
         }
@@ -500,9 +512,10 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
     role = 'tier2'  # Default
     if items:
         price_id = items[0].get('price', {}).get('id', '')
-        if price_id == STRIPE_PRICE_IDS.get('tier3'):
+        # Check both monthly and yearly price IDs
+        if price_id == STRIPE_PRICE_IDS.get('tier3') or price_id == STRIPE_PRICE_IDS.get('tier3_yearly'):
             role = 'tier3'
-        elif price_id == STRIPE_PRICE_IDS.get('tier2'):
+        elif price_id == STRIPE_PRICE_IDS.get('tier2') or price_id == STRIPE_PRICE_IDS.get('tier2_yearly'):
             role = 'tier2'
     
     # Get period end from subscription object or subscription items
@@ -608,9 +621,10 @@ async def handle_subscription_created(subscription: Dict[str, Any]):
     price_id = None
     if items:
         price_id = items[0].get('price', {}).get('id', '')
-        if price_id == STRIPE_PRICE_IDS.get('tier3'):
+        # Check both monthly and yearly price IDs
+        if price_id == STRIPE_PRICE_IDS.get('tier3') or price_id == STRIPE_PRICE_IDS.get('tier3_yearly'):
             role = 'tier3'
-        elif price_id == STRIPE_PRICE_IDS.get('tier2'):
+        elif price_id == STRIPE_PRICE_IDS.get('tier2') or price_id == STRIPE_PRICE_IDS.get('tier2_yearly'):
             role = 'tier2'
     
     # Get period end from subscription object or subscription items

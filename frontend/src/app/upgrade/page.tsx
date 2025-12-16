@@ -12,6 +12,7 @@ import { useFirebase } from '@/lib/firebase-context';
 import { 
   subscriptionService, 
   SUBSCRIPTION_TIERS, 
+  YEARLY_PRICING,
   type Subscription 
 } from '@/lib/services/subscriptionService';
 
@@ -22,6 +23,7 @@ export default function UpgradePage() {
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month');
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -53,7 +55,7 @@ export default function UpgradePage() {
     setError(null);
     
     try {
-      const { checkout_url } = await subscriptionService.createCheckoutSession(user, role);
+      const { checkout_url } = await subscriptionService.createCheckoutSession(user, role, billingInterval);
       // Redirect to Stripe checkout
       window.location.href = checkout_url;
     } catch (err) {
@@ -84,13 +86,34 @@ export default function UpgradePage() {
   const currentRole = subscription?.role || 'tier1';
   const currentTierInfo = subscriptionService.getTierInfo(currentRole);
 
+  const getTierPrice = (tierId: string) => {
+    if (tierId === 'tier1') return { price: '$0', cadence: 'Included', savings: null };
+    
+    if (billingInterval === 'year') {
+      const yearlyPrice = YEARLY_PRICING[tierId as keyof typeof YEARLY_PRICING];
+      const monthlyPrice = tierId === 'tier2' ? 7.00 : 11.00;
+      const yearlyTotal = monthlyPrice * 12;
+      const savings = yearlyTotal - yearlyPrice;
+      return {
+        price: `$${yearlyPrice.toFixed(2)}`,
+        cadence: 'per year',
+        savings: `Save $${savings.toFixed(2)}`
+      };
+    } else {
+      const monthlyPrice = tierId === 'tier2' ? 7.00 : 11.00;
+      return {
+        price: `$${monthlyPrice.toFixed(2)}`,
+        cadence: 'per month',
+        savings: null
+      };
+    }
+  };
+
   const tiers = [
     {
       id: 'tier1',
       name: 'Free',
       description: 'Everything you need to catalogue outfits and start building your personal lookbook.',
-      price: '$0',
-      cadence: 'Included',
       highlight: 'New wardrobe creators',
       perks: [
         '1 premium flat lay credit each week',
@@ -104,8 +127,6 @@ export default function UpgradePage() {
       id: 'tier2',
       name: 'Pro',
       description: 'Upgrade for weekly outfit visuals, priority processing, and deeper personalization.',
-      price: '$7.00',
-      cadence: 'per month',
       highlight: 'Style enthusiasts',
       perks: [
         '7 premium flat lay credits per week',
@@ -122,8 +143,6 @@ export default function UpgradePage() {
       id: 'tier3',
       name: 'Premium',
       description: 'For creators and teams who want premium visuals on demand and concierge support.',
-      price: '$11.00',
-      cadence: 'per month',
       highlight: 'Creators & stylists',
       perks: [
         '30 premium flat lay credits per week',
@@ -153,6 +172,34 @@ export default function UpgradePage() {
             Easy Outfit caters to every type of closet. Keep your free plan for casual outfit saving or
             upgrade for magazine-ready flat lays, priority rendering, and concierge support.
           </p>
+          
+          {/* Billing Interval Toggle */}
+          <div className="flex items-center justify-center gap-4 mt-6">
+            <span className={`text-sm font-medium ${billingInterval === 'month' ? 'text-stone-900 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}>
+              Monthly
+            </span>
+            <button
+              onClick={() => setBillingInterval(billingInterval === 'month' ? 'year' : 'month')}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                billingInterval === 'year' ? 'bg-amber-600' : 'bg-stone-300 dark:bg-stone-700'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  billingInterval === 'year' ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <span className={`text-sm font-medium ${billingInterval === 'year' ? 'text-stone-900 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}>
+              Yearly
+            </span>
+            {billingInterval === 'year' && (
+              <Badge className="bg-amber-600 text-white text-xs">
+                Save 2 months
+              </Badge>
+            )}
+          </div>
+
           {subscription && (
             <div className="mt-4">
               <Badge variant="secondary">
@@ -196,17 +243,24 @@ export default function UpgradePage() {
 
               <CardContent className="space-y-6">
                 <div>
-                  <span className="text-3xl font-bold text-stone-900 dark:text-stone-100">
-                    {tier.price}
-                  </span>
-                  <span className="text-sm text-stone-500 dark:text-stone-400 ml-2">
-                    {tier.cadence}
-                  </span>
-                  {tier.annual && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                      {tier.annual}
-                    </p>
-                  )}
+                  {(() => {
+                    const pricing = getTierPrice(tier.id);
+                    return (
+                      <>
+                        <span className="text-3xl font-bold text-stone-900 dark:text-stone-100">
+                          {pricing.price}
+                        </span>
+                        <span className="text-sm text-stone-500 dark:text-stone-400 ml-2">
+                          {pricing.cadence}
+                        </span>
+                        {pricing.savings && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-semibold">
+                            {pricing.savings}
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 <ul className="space-y-3 text-sm text-stone-700 dark:text-stone-200">
