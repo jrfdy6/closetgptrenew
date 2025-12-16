@@ -98,13 +98,55 @@ const COLORS = [
 const SEASONS = ['spring', 'summer', 'fall', 'winter'];
 
 const OCCASIONS = [
-  'casual', 'work', 'formal', 'party', 'date', 'gym', 'travel', 'home', 
-  'outdoor', 'business', 'athletic', 'everyday', 'special'
+  // Everyday
+  'everyday', 'casual', 'daily', 'lounge', 'home', 'errands', 'running-errands',
+  // Work & Professional
+  'work', 'office', 'business', 'business-casual', 'professional', 'meeting', 'interview',
+  'conference', 'presentation',
+  // Formal Events
+  'formal', 'black-tie', 'cocktail', 'gala', 'wedding', 'wedding-guest', 'prom',
+  'graduation', 'ceremony',
+  // Social
+  'party', 'birthday', 'celebration', 'night-out', 'night out', 'club', 'bar', 
+  'dancing', 'concert', 'festival', 'brunch', 'lunch', 'dinner', 'date', 'date-night',
+  // Active & Outdoor
+  'gym', 'workout', 'athletic', 'sports', 'running', 'yoga', 'hiking', 
+  'outdoor', 'camping', 'beach', 'pool', 'swim',
+  // Travel
+  'travel', 'vacation', 'resort', 'cruise', 'airplane', 'road-trip',
+  // Seasonal & Special
+  'holiday', 'christmas', 'new-years', 'halloween', 'summer', 'winter',
+  // Other
+  'school', 'shopping', 'coffee', 'movie', 'theater', 'art-gallery', 'museum',
+  'religious', 'church', 'special', 'occasion'
 ];
 
 const STYLES = [
-  'casual', 'classic', 'modern', 'vintage', 'bohemian', 'minimalist', 'edgy', 'romantic', 
-  'athletic', 'sporty', 'preppy', 'artistic', 'streetwear', 'business', 'elegant', 'trendy'
+  // Basic
+  'casual', 'classic', 'modern', 'contemporary', 'timeless',
+  // Formal & Professional
+  'formal', 'business', 'business-casual', 'professional', 'elegant', 'sophisticated',
+  // Trendy & Fashion-Forward
+  'trendy', 'fashion-forward', 'avant-garde', 'haute-couture', 'designer',
+  // Vintage & Retro
+  'vintage', 'retro', 'y2k', '90s', '80s', '70s', 'old-money',
+  // Lifestyle
+  'athletic', 'sporty', 'activewear', 'athleisure', 'sportswear',
+  'bohemian', 'boho', 'hippie', 'festival',
+  'minimalist', 'scandinavian', 'japanese-minimalism',
+  'preppy', 'ivy-league', 'collegiate',
+  'romantic', 'feminine', 'girly', 'ethereal',
+  'edgy', 'punk', 'grunge', 'rock', 'goth', 'gothic', 'emo',
+  'streetwear', 'urban', 'skate', 'hip-hop',
+  'artistic', 'creative', 'eclectic', 'quirky',
+  'western', 'cowboy', 'country',
+  'nautical', 'coastal', 'beach',
+  // Seasonal & Weather
+  'summer', 'winter', 'resort', 'vacation',
+  // Special Categories  
+  'luxury', 'high-end', 'statement', 'bold', 'dramatic',
+  'comfortable', 'cozy', 'relaxed', 'laid-back',
+  'sexy', 'glamorous', 'chic', 'polished'
 ];
 
 const SLEEVE_LENGTHS = [
