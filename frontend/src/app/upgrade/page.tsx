@@ -175,22 +175,24 @@ export default function UpgradePage() {
           
           {/* Billing Interval Toggle */}
           <div className="flex items-center justify-center gap-4 mt-6">
-            <span className={`text-sm font-medium ${billingInterval === 'month' ? 'text-stone-900 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}>
+            <span className={`text-sm font-medium transition-colors ${billingInterval === 'month' ? 'text-stone-900 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}>
               Monthly
             </span>
             <button
+              type="button"
               onClick={() => setBillingInterval(billingInterval === 'month' ? 'year' : 'month')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 cursor-pointer ${
                 billingInterval === 'year' ? 'bg-amber-600' : 'bg-stone-300 dark:bg-stone-700'
               }`}
+              aria-label={`Switch to ${billingInterval === 'month' ? 'yearly' : 'monthly'} billing`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
                   billingInterval === 'year' ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
             </button>
-            <span className={`text-sm font-medium ${billingInterval === 'year' ? 'text-stone-900 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}>
+            <span className={`text-sm font-medium transition-colors ${billingInterval === 'year' ? 'text-stone-900 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}>
               Yearly
             </span>
             {billingInterval === 'year' && (
