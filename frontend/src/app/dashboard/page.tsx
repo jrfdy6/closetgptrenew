@@ -154,11 +154,22 @@ export default function Dashboard() {
   const canAccessPro = !planLoading && plan !== SubscriptionPlan.FREE && canAccess(SubscriptionPlan.PRO);
   
   // Check if user has fewer than 10 items - show blocking modal (only on initial load)
+  // Also auto-close modal if user now has 10+ items
   useEffect(() => {
-    if (!wardrobeLoading && wardrobeItems.length < 10 && !showMissingWardrobeModal) {
-      setShowMissingWardrobeModal(true);
+    if (!wardrobeLoading) {
+      if (wardrobeItems.length < 10) {
+        // Show modal if not already shown
+        if (!showMissingWardrobeModal) {
+          setShowMissingWardrobeModal(true);
+        }
+      } else {
+        // Auto-close modal if user has 10+ items
+        if (showMissingWardrobeModal) {
+          setShowMissingWardrobeModal(false);
+        }
+      }
     }
-  }, [wardrobeLoading]);
+  }, [wardrobeLoading, wardrobeItems.length]);
 
   // Debug: Log subscription info
   useEffect(() => {
