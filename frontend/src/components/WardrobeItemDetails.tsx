@@ -68,10 +68,14 @@ const COLORS = [
 
 const SEASONS = ['spring', 'summer', 'fall', 'winter'];
 
-const OCCASIONS = ['casual', 'work', 'formal', 'party', 'date', 'gym', 'travel', 'home'];
+const OCCASIONS = [
+  'casual', 'work', 'formal', 'party', 'date', 'gym', 'travel', 'home', 
+  'outdoor', 'business', 'athletic', 'everyday', 'special'
+];
 
 const STYLES = [
-  'classic', 'modern', 'vintage', 'bohemian', 'minimalist', 'edgy', 'romantic', 'athletic', 'preppy', 'artistic'
+  'casual', 'classic', 'modern', 'vintage', 'bohemian', 'minimalist', 'edgy', 'romantic', 
+  'athletic', 'sporty', 'preppy', 'artistic', 'streetwear', 'business', 'elegant', 'trendy'
 ];
 
 const SLEEVE_LENGTHS = [
