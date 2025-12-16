@@ -268,13 +268,17 @@ async def create_checkout_session(
             'allow_promotion_codes': True,
         }
         
+        # Set up subscription data (trial for monthly, no trial for yearly)
+        subscription_data = {}
+        
         # Add 30-day free trial ONLY for monthly subscriptions if user hasn't used one
         # Rationale: Yearly subscriptions already have a discount and indicate committed users
         if not has_used_trial and interval == "month":
-            checkout_params['subscription_data'] = {
-                'trial_period_days': 30,
-            }
+            subscription_data['trial_period_days'] = 30
             logger.info(f"Adding 30-day free trial to checkout for user {user_id} (monthly plan)")
+        
+        # Always add subscription_data to ensure proper billing cycle
+        checkout_params['subscription_data'] = subscription_data
         
         checkout_session = stripe.checkout.Session.create(**checkout_params)
         
