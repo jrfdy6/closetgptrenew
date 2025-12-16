@@ -7257,6 +7257,16 @@ class RobustOutfitGenerationService:
                     preferred_polished_bottom_id = candidate_id
                     break
         
+        # 👗 PHASE 1 PREP: Adjust essential categories if dress already selected in Phase 0
+        has_dress = categories_filled.get('dress', False)
+        
+        if has_dress:
+            essential_categories = ['shoes']  # Dress already satisfies base outfit (tops + bottoms)
+            logger.info("👗 PHASE 1: Dress detected in Phase 0 → essential categories = ['shoes'] (skipping tops & bottoms)")
+        else:
+            essential_categories = ['tops', 'bottoms', 'shoes']  # Standard outfit requirements
+            logger.debug("👔 PHASE 1: No dress → essential categories = ['tops', 'bottoms', 'shoes']")
+        
         # Phase 1: Fill essential categories (tops, bottoms, shoes)
         logger.info(f"📦 PHASE 1: Selecting essential items (top, bottom, shoes)")
         logger.debug(f"🔍 DEBUG PHASE 1: Starting with {len(sorted_items)} scored items")
@@ -7318,7 +7328,7 @@ class RobustOutfitGenerationService:
                 layer_level = category
             
             # Essential categories first (but ONLY if score is positive or close to 0)
-            if category in ['tops', 'bottoms', 'shoes']:
+            if category in essential_categories:
                 if category not in categories_filled:
                     # CRITICAL: Don't select items with very negative scores, even as essentials
                     composite_score = score_data['composite_score']
