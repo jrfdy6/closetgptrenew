@@ -78,6 +78,9 @@ export const convertOpenAIAnalysisToClothingItem = (analysis: any, userId: strin
     brand: analysis.brand || '',
     description: metadata.naturalDescription || `${type} ${subType ? `(${subType})` : ''} in ${primaryColor}`,
     
+    // CRITICAL: Send the complete analysis object so backend can extract all metadata
+    analysis: analysis,
+    
     // Metadata
     metadata: {
       ...metadata,
