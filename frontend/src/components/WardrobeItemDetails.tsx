@@ -139,6 +139,18 @@ export default function WardrobeItemDetails({
       // Normalize case for dropdown values to match constants
       const normalizeColor = (color: string) => color?.toLowerCase() || '';
       const normalizeArray = (arr: string[]) => arr?.map(s => s.toLowerCase()) || [];
+      const normalizeString = (str: string) => str?.toLowerCase() || '';
+      
+      // Map GPT-4 Vision values to UI dropdown values
+      const normalizeSleeveLength = (sleeve: string) => {
+        if (!sleeve) return '';
+        const lower = sleeve.toLowerCase();
+        // Map "long" → "long-sleeve", "short" → "short-sleeve", etc.
+        if (lower === 'long') return 'long-sleeve';
+        if (lower === 'short') return 'short-sleeve';
+        if (lower === '3/4') return 'three-quarter-sleeve';
+        return lower;
+      };
       
       setEditedItem({
         // Basic fields
@@ -153,21 +165,21 @@ export default function WardrobeItemDetails({
         size: item.size || '',
         purchasePrice: item.purchasePrice || 0,
         
-        // Visual attributes
+        // Visual attributes (normalize to lowercase)
         material: normalizeArray(item.material),
-        sleeveLength: item.sleeveLength || '',
-        fit: item.fit || '',
-        neckline: item.neckline || '',
-        length: item.length || '',
+        sleeveLength: normalizeSleeveLength(item.sleeveLength),
+        fit: normalizeString(item.fit),
+        neckline: normalizeString(item.neckline),
+        length: normalizeString(item.length),
         
-        // Phase 1 new attributes
-        transparency: item.transparency || '',
-        collarType: item.collarType || '',
-        embellishments: item.embellishments || '',
-        printSpecificity: item.printSpecificity || '',
-        rise: item.rise || '',
-        legOpening: item.legOpening || '',
-        heelHeight: item.heelHeight || '',
+        // Phase 1 new attributes (normalize to lowercase)
+        transparency: normalizeString(item.transparency),
+        collarType: normalizeString(item.collarType),
+        embellishments: normalizeString(item.embellishments),
+        printSpecificity: normalizeString(item.printSpecificity),
+        rise: normalizeString(item.rise),
+        legOpening: normalizeString(item.legOpening),
+        heelHeight: normalizeString(item.heelHeight),
         statementLevel: item.statementLevel || 0
       });
       
