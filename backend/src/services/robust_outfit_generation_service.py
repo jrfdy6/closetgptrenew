@@ -5385,7 +5385,7 @@ class RobustOutfitGenerationService:
             'shirt': 'tops',
             't-shirt': 'tops', 
             'blouse': 'tops',
-            'sweater': 'tops',
+            'sweater': 'tops',  # Pullover sweaters worn as tops
             'tank': 'tops',
             'polo': 'tops',
             'pants': 'bottoms',
@@ -5402,10 +5402,19 @@ class RobustOutfitGenerationService:
             'jacket': 'outerwear',
             'blazer': 'outerwear',
             'coat': 'outerwear',
+            'cardigan': 'outerwear',  # Cardigans are layers, can be worn over dresses
             'hoodie': 'outerwear'
         }
         
         category = (safe_get(category_map, item_type, 'other') if category_map else 'other')
+        
+        # Special handling: Check if a "sweater" is actually a layering piece (cardigan, open-front, etc.)
+        if category == 'tops':
+            layering_keywords = ['cardigan', 'open front', 'open-front', 'button-up sweater', 
+                                 'zip sweater', 'kimono', 'duster', 'wrap sweater', 'shrug']
+            if any(kw in item_name for kw in layering_keywords):
+                category = 'outerwear'
+                logger.debug(f"🧥 RECLASSIFIED '{item_name[:50]}' from tops → outerwear (layering piece)")
         
         # 🔍 DIAGNOSTIC LOGGING - Track category assignment for debugging
         logger.debug(f"🏷️ CATEGORY (type-based): '{item_name[:50]}' type='{item_type}' → category='{category}'")
