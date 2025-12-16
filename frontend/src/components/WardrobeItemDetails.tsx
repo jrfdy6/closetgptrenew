@@ -59,11 +59,40 @@ interface WardrobeItemDetailsProps {
 }
 
 const ITEM_TYPES = [
-  'shirt', 't-shirt', 'blouse', 'tank-top', 'polo', 'sweater', 'hoodie', 'pants', 'jeans', 'shorts', 'skirt', 'dress', 'jacket', 'blazer', 'coat', 'shoes', 'sneakers', 'boots', 'sandals', 'heels', 'accessory', 'underwear', 'socks', 'hat', 'bag', 'belt', 'scarf', 'jewelry'
+  // Tops
+  'shirt', 't-shirt', 'blouse', 'tank-top', 'crop-top', 'polo', 'button-up', 'dress-shirt',
+  'sweater', 'cardigan', 'hoodie', 'sweatshirt', 'vest', 'tube-top', 'halter-top',
+  // Bottoms
+  'pants', 'jeans', 'trousers', 'shorts', 'skirt', 'leggings', 'joggers', 'sweatpants',
+  // Dresses & One-pieces
+  'dress', 'mini-dress', 'midi-dress', 'maxi-dress', 'gown', 'jumpsuit', 'romper',
+  // Outerwear
+  'jacket', 'blazer', 'coat', 'puffer', 'trench-coat', 'windbreaker', 'parka', 'bomber',
+  // Footwear
+  'shoes', 'sneakers', 'boots', 'sandals', 'heels', 'flats', 'loafers', 'oxfords', 'mules', 'wedges',
+  // Accessories
+  'accessory', 'hat', 'bag', 'belt', 'scarf', 'jewelry', 'watch', 'sunglasses', 'tie',
+  // Other
+  'underwear', 'socks', 'swimwear', 'activewear'
 ];
 
 const COLORS = [
-  'black', 'white', 'blue', 'red', 'green', 'yellow', 'purple', 'pink', 'brown', 'gray', 'beige', 'navy', 'burgundy', 'camel'
+  // Basics
+  'black', 'white', 'gray', 'grey',
+  // Neutrals
+  'beige', 'tan', 'taupe', 'cream', 'ivory', 'khaki', 'camel', 'brown', 'chocolate',
+  // Blues
+  'blue', 'navy', 'royal-blue', 'light-blue', 'sky-blue', 'turquoise', 'teal', 'aqua', 'cobalt',
+  // Reds & Pinks
+  'red', 'burgundy', 'maroon', 'wine', 'crimson', 'pink', 'hot-pink', 'rose', 'coral', 'salmon', 'blush',
+  // Greens
+  'green', 'olive', 'forest-green', 'lime', 'mint', 'sage', 'emerald', 'hunter-green',
+  // Yellows & Oranges
+  'yellow', 'gold', 'mustard', 'orange', 'rust', 'peach', 'apricot', 'amber',
+  // Purples
+  'purple', 'lavender', 'lilac', 'plum', 'mauve', 'violet', 'indigo',
+  // Metallics & Special
+  'silver', 'bronze', 'copper', 'metallic', 'multicolor', 'print', 'pattern'
 ];
 
 const SEASONS = ['spring', 'summer', 'fall', 'winter'];
@@ -79,33 +108,79 @@ const STYLES = [
 ];
 
 const SLEEVE_LENGTHS = [
-  'sleeveless', 'short-sleeve', 'long-sleeve', 'three-quarter-sleeve', 'cap-sleeve', 'off-shoulder'
+  'none', 'sleeveless', 'cap-sleeve', 'short-sleeve', 'elbow-length', 'three-quarter-sleeve', 
+  'long-sleeve', 'extra-long', 'bell-sleeve', 'puff-sleeve', 'dolman', 'raglan', 'off-shoulder'
 ];
 
 const MATERIALS = [
-  'cotton', 'polyester', 'wool', 'silk', 'linen', 'denim', 'leather', 'suede', 'cashmere', 'spandex', 'rayon', 'viscose', 'nylon', 'acrylic', 'bamboo', 'hemp', 'modal', 'elastane', 'lycra'
+  // Natural fibers
+  'cotton', 'linen', 'silk', 'wool', 'cashmere', 'mohair', 'alpaca', 'bamboo', 'hemp',
+  // Synthetic fibers
+  'polyester', 'nylon', 'spandex', 'elastane', 'lycra', 'acrylic', 'rayon', 'viscose', 'modal',
+  // Leather & Suede
+  'leather', 'faux-leather', 'suede', 'faux-suede', 'patent-leather',
+  // Denim & Canvas
+  'denim', 'canvas', 'chambray',
+  // Specialty
+  'velvet', 'satin', 'chiffon', 'lace', 'tulle', 'mesh', 'fleece', 'terry-cloth',
+  'corduroy', 'tweed', 'flannel', 'jersey', 'sequin', 'faux-fur'
 ];
 
 const FITS = [
-  'slim', 'regular', 'loose', 'oversized', 'fitted', 'relaxed', 'tapered', 'straight', 'skinny', 'wide-leg'
+  'skinny', 'slim', 'slim-fit', 'fitted', 'tailored', 'regular', 'regular-fit', 'classic-fit',
+  'relaxed', 'relaxed-fit', 'loose', 'loose-fit', 'oversized', 'boyfriend', 'girlfriend',
+  'straight', 'tapered', 'wide-leg', 'bootcut', 'flared', 'baggy', 'cropped'
 ];
 
 const NECKLINES = [
-  'crew-neck', 'v-neck', 'scoop-neck', 'boat-neck', 'off-shoulder', 'halter', 'turtleneck', 'cowl-neck', 'sweetheart', 'square-neck'
+  'none', 'crew-neck', 'round-neck', 'v-neck', 'deep-v', 'scoop-neck', 'u-neck',
+  'boat-neck', 'off-shoulder', 'one-shoulder', 'halter', 'high-neck', 'turtleneck', 
+  'mock-neck', 'cowl-neck', 'sweetheart', 'square-neck', 'asymmetric', 'jewel-neck',
+  'collar', 'polo', 'mandarin', 'notched', 'strapless'
 ];
 
 const LENGTHS = [
-  'mini', 'midi', 'maxi', 'knee-length', 'ankle-length', 'crop', 'regular', 'long', 'short'
+  'micro', 'mini', 'short', 'above-knee', 'knee-length', 'below-knee', 'midi', 
+  'tea-length', 'ankle-length', 'maxi', 'floor-length', 'crop', 'cropped', 
+  'regular', 'long', 'extra-long'
 ];
 
 // Phase 1 new constants for gender-inclusive outfit generation
-const TRANSPARENCIES = ['opaque', 'semi-sheer', 'sheer', 'textured-opaque'];
-const COLLAR_TYPES = ['button-down', 'spread', 'point', 'band', 'mandarin', 'camp', 'shawl', 'peter-pan', 'none'];
-const EMBELLISHMENTS = ['none', 'minimal', 'moderate', 'heavy'];
-const PRINT_TYPES = ['none', 'logo', 'text', 'graphic', 'abstract', 'geometric', 'floral', 'animal'];
-const RISE_TYPES = ['high-rise', 'mid-rise', 'low-rise'];
-const LEG_OPENINGS = ['straight', 'tapered', 'wide', 'flared', 'bootcut', 'skinny'];
-const HEEL_HEIGHTS = ['flat', 'low', 'mid', 'high', 'very-high', 'platform'];
+const TRANSPARENCIES = [
+  'opaque', 'textured-opaque', 'semi-sheer', 'sheer', 'see-through', 'mesh'
+];
+
+const COLLAR_TYPES = [
+  'none', 'button-down', 'spread', 'point', 'band', 'mandarin', 'camp', 'shawl', 
+  'peter-pan', 'bow-tie', 'nehru', 'wing', 'stand', 'convertible', 'chelsea', 'ruffle'
+];
+
+const EMBELLISHMENTS = [
+  'none', 'minimal', 'moderate', 'heavy', 'sequins', 'beading', 'embroidery', 
+  'lace', 'rhinestones', 'studs', 'fringe', 'applique', 'pearls', 'crystals', 
+  'patches', 'buttons', 'zippers', 'buckles'
+];
+
+const PRINT_TYPES = [
+  'none', 'solid', 'logo', 'text', 'graphic', 'abstract', 'geometric', 'floral', 
+  'animal', 'animal-print', 'leopard', 'zebra', 'snake', 'stripe', 'striped', 
+  'plaid', 'checkered', 'gingham', 'polka-dot', 'paisley', 'camouflage', 'tie-dye', 
+  'ombre', 'colorblock', 'tropical', 'vintage', 'retro'
+];
+
+const RISE_TYPES = [
+  'low-rise', 'mid-rise', 'regular-rise', 'high-rise', 'ultra-high-rise', 'none'
+];
+
+const LEG_OPENINGS = [
+  'none', 'skinny', 'tapered', 'straight', 'wide', 'wide-leg', 'flared', 'bootcut', 
+  'bell-bottom', 'palazzo', 'culotte', 'jogger', 'cargo'
+];
+
+const HEEL_HEIGHTS = [
+  'flat', 'low-heel', 'kitten-heel', 'mid-heel', 'high-heel', 'very-high-heel', 
+  'stiletto', 'platform', 'wedge', 'block-heel', 'cone-heel', 'none'
+];
 
 export default function WardrobeItemDetails({
   item,
