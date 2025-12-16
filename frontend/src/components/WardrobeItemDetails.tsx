@@ -121,6 +121,17 @@ export default function WardrobeItemDetails({
 
   useEffect(() => {
     if (item) {
+      console.log('🔍 [WardrobeItemDetails] Initializing editedItem with:', {
+        color: item.color,
+        type: item.type,
+        material: item.material,
+        description: item.description,
+        style: item.style,
+        brand: item.brand,
+        metadata: item.metadata,
+        analysis: item.analysis
+      });
+      
       setEditedItem({
         // Basic fields
         name: item.name,
@@ -151,6 +162,8 @@ export default function WardrobeItemDetails({
         heelHeight: item.heelHeight || '',
         statementLevel: item.statementLevel || 0
       });
+      
+      console.log('🔍 [WardrobeItemDetails] editedItem state set');
     }
   }, [item]);
 
