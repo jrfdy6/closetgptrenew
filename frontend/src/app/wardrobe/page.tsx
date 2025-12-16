@@ -86,15 +86,9 @@ export default function WardrobePage() {
   const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
   const [showItemDetails, setShowItemDetails] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
-  const [showMissingWardrobeModal, setShowMissingWardrobeModal] = useState(false);
 
-  // Determine if modal should be shown
+  // Modal should show if user has fewer than 10 items (direct computation, no state needed)
   const shouldShowMissingWardrobeModal = !wardrobeLoading && wardrobeItems.length < 10;
-  
-  // Update modal state based on item count
-  useEffect(() => {
-    setShowMissingWardrobeModal(shouldShowMissingWardrobeModal);
-  }, [shouldShowMissingWardrobeModal]);
 
   // Apply filters when they change
   useEffect(() => {
@@ -910,9 +904,8 @@ export default function WardrobePage() {
       {/* Missing Wardrobe Modal - Block access if < 10 items */}
       <MissingWardrobeModal
         userId={user?.uid || ''}
-        isOpen={showMissingWardrobeModal}
+        isOpen={shouldShowMissingWardrobeModal}
         onComplete={() => {
-          setShowMissingWardrobeModal(false);
           refetch();
         }}
         targetCount={10}

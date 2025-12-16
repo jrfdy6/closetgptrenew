@@ -26,15 +26,9 @@ export default function OutfitsPage({ searchParams }: OutfitsPageProps) {
   
   const { user } = useFirebase();
   const { items: wardrobeItems, loading: wardrobeLoading, refetch } = useWardrobe();
-  const [showMissingWardrobeModal, setShowMissingWardrobeModal] = useState(false);
 
-  // Determine if modal should be shown
+  // Modal should show if user has fewer than 10 items (direct computation, no state needed)
   const shouldShowMissingWardrobeModal = !wardrobeLoading && wardrobeItems.length < 10;
-  
-  // Update modal state based on item count
-  useEffect(() => {
-    setShowMissingWardrobeModal(shouldShowMissingWardrobeModal);
-  }, [shouldShowMissingWardrobeModal]);
 
   return (
     <div className="min-h-screen">
@@ -90,9 +84,8 @@ export default function OutfitsPage({ searchParams }: OutfitsPageProps) {
       {/* Missing Wardrobe Modal - Block access if < 10 items */}
       <MissingWardrobeModal
         userId={user?.uid || ''}
-        isOpen={showMissingWardrobeModal}
+        isOpen={shouldShowMissingWardrobeModal}
         onComplete={() => {
-          setShowMissingWardrobeModal(false);
           refetch();
         }}
         targetCount={10}

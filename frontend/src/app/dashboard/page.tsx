@@ -131,7 +131,6 @@ export default function Dashboard() {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showAllStats, setShowAllStats] = useState(false);
   const [showOutfitDetails, setShowOutfitDetails] = useState(false);
-  const [showMissingWardrobeModal, setShowMissingWardrobeModal] = useState(false);
   const { toast } = useToast();
   const { user, loading } = useAuthContext();
   const router = useRouter();
@@ -153,13 +152,8 @@ export default function Dashboard() {
   // Default to false during loading to prevent premature content display
   const canAccessPro = !planLoading && plan !== SubscriptionPlan.FREE && canAccess(SubscriptionPlan.PRO);
   
-  // Determine if modal should be shown
+  // Modal should show if user has fewer than 10 items (direct computation, no state needed)
   const shouldShowMissingWardrobeModal = !wardrobeLoading && wardrobeItems.length < 10;
-  
-  // Update modal state based on item count
-  useEffect(() => {
-    setShowMissingWardrobeModal(shouldShowMissingWardrobeModal);
-  }, [shouldShowMissingWardrobeModal]);
 
   // Debug: Log subscription info
   useEffect(() => {
@@ -1106,9 +1100,8 @@ export default function Dashboard() {
       {/* Missing Wardrobe Modal - Block access if < 10 items */}
       <MissingWardrobeModal
         userId={user?.uid || ''}
-        isOpen={showMissingWardrobeModal}
+        isOpen={shouldShowMissingWardrobeModal}
         onComplete={() => {
-          setShowMissingWardrobeModal(false);
           refetchWardrobe();
         }}
         targetCount={10}
