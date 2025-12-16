@@ -4705,6 +4705,19 @@ class RobustOutfitGenerationService:
                 
             item_category = self._get_item_category(item)
             
+            # 👗 CRITICAL: If dress is already selected, NEVER add tops or bottoms
+            has_dress = safe_get(category_counts, 'dress', 0) > 0
+            if has_dress and item_category in ['tops', 'bottoms']:
+                logger.info(f"👗 DRESS OUTFIT: Skipping {item_category} '{getattr(item, 'name', 'Unknown')[:40]}' because dress is already selected")
+                continue
+            
+            # 👗 CRITICAL: If tops or bottoms already selected, NEVER add a dress
+            has_tops = safe_get(category_counts, 'tops', 0) > 0
+            has_bottoms = safe_get(category_counts, 'bottoms', 0) > 0
+            if (has_tops or has_bottoms) and item_category == 'dress':
+                logger.info(f"👔 REGULAR OUTFIT: Skipping dress '{getattr(item, 'name', 'Unknown')[:40]}' because tops/bottoms already selected")
+                continue
+            
             # Skip outerwear if not needed
             if item_category == "outerwear" and not needs_outerwear:
                 continue
@@ -4735,7 +4748,17 @@ class RobustOutfitGenerationService:
                 logger.warning(f"❌ REJECTED: '{getattr(item, 'name', 'Unknown')[:60]}' → category='{item_category}' LIMIT REACHED | Category: {current_category_count}/{proportional_limit} | All counts: {dict(category_counts)}")
         
         # STEP 7: Ensure we have at least the minimum essential categories
-        essential_categories = ["tops", "bottoms", "shoes"]
+        # Check if outfit has a dress - if so, it replaces tops + bottoms requirement
+        has_dress = safe_get(category_counts, 'dress', 0) > 0
+        
+        if has_dress:
+            # Dress outfits only need: dress + shoes (tops/bottoms are replaced by dress)
+            essential_categories = ["dress", "shoes"]
+            logger.info(f"👗 DRESS OUTFIT: Essential categories adjusted to {essential_categories} (dress replaces tops + bottoms)")
+        else:
+            # Regular outfits need: tops + bottoms + shoes
+            essential_categories = ["tops", "bottoms", "shoes"]
+        
         missing_essentials = []
         
         for category in essential_categories:
@@ -4763,10 +4786,11 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🎯 TARGET-DRIVEN: Final selection: {len(selected_items)} items (target was {target_count})")
         logger.info(f"🎯 TARGET-DRIVEN: Category distribution: {category_counts}")
+        logger.info(f"👗 DRESS CHECK: has_dress={has_dress}")
         return selected_items
     
     def _get_dynamic_category_limits(self, context: GenerationContext, target_count: int) -> Dict[str, int]:
-        """Get category limits that adapt to target count - TARGET-DRIVEN with optional outerwear"""
+        """Get category limits that adapt to target count - TARGET-DRIVEN with optional outerwear and dress support"""
         occasion_lower = (context.occasion if context else "unknown").lower()
         style_lower = (context.style if context else "unknown").lower() if (context.style if context else "unknown") else ""
         
@@ -4774,39 +4798,40 @@ class RobustOutfitGenerationService:
         needs_outerwear = self._needs_outerwear(context)
         
         # TARGET-DRIVEN: Category limits adapt to target count with optional outerwear
+        # Note: Dress limit is always 1 - if a dress is selected, it replaces tops + bottoms
         if target_count <= 3:
             # Minimal outfit: essentials only
             if needs_outerwear:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1}
+                return {"tops": 1, "bottoms": 1, "dress": 1, "shoes": 1, "outerwear": 1}
             else:
-                return {"tops": 1, "bottoms": 1, "shoes": 1}
+                return {"tops": 1, "bottoms": 1, "dress": 1, "shoes": 1}
         
         elif target_count == 4:
             # Standard outfit: add one layer
             if needs_outerwear:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1}
+                return {"tops": 1, "bottoms": 1, "dress": 1, "shoes": 1, "outerwear": 1}
             else:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "accessories": 1}
+                return {"tops": 1, "bottoms": 1, "dress": 1, "shoes": 1, "accessories": 1}
         
         elif target_count == 5:
             # Enhanced outfit: add layers
             if needs_outerwear:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 1}
+                return {"tops": 1, "bottoms": 1, "dress": 1, "shoes": 1, "outerwear": 1, "accessories": 1}
             else:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "accessories": 2}
+                return {"tops": 1, "bottoms": 1, "dress": 1, "shoes": 1, "accessories": 2}
         
         elif target_count >= 6:
             # Full outfit: maximum layers
             if needs_outerwear:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 2, "sweater": 1}
+                return {"tops": 1, "bottoms": 1, "dress": 1, "shoes": 1, "outerwear": 1, "accessories": 2, "sweater": 1}
             else:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "accessories": 3, "sweater": 1}
+                return {"tops": 1, "bottoms": 1, "dress": 1, "shoes": 1, "accessories": 3, "sweater": 1}
         
         # Fallback for unexpected target counts
         if needs_outerwear:
-            return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 1}
+            return {"tops": 1, "bottoms": 1, "dress": 1, "shoes": 1, "outerwear": 1, "accessories": 1}
         else:
-            return {"tops": 1, "bottoms": 1, "shoes": 1, "accessories": 1}
+            return {"tops": 1, "bottoms": 1, "dress": 1, "shoes": 1, "accessories": 1}
     
     def _get_target_item_count(self, context: GenerationContext) -> int:
         """Get target item count based on occasion, style, and mood - SIMPLIFIED"""
@@ -5313,6 +5338,9 @@ class RobustOutfitGenerationService:
             'jeans': 'bottoms',
             'shorts': 'bottoms',
             'skirt': 'bottoms',
+            'dress': 'dress',  # Dresses are standalone - replace both top and bottom
+            'romper': 'dress',  # Rompers treated like dresses
+            'jumpsuit': 'dress',  # Jumpsuits treated like dresses
             'shoes': 'shoes',
             'sneakers': 'shoes',
             'boots': 'shoes',
