@@ -7627,6 +7627,12 @@ class RobustOutfitGenerationService:
                     logger.warning(f"  🚫 FORBIDDEN: Two shirts not allowed - {self.safe_get_item_name(item)} skipped (already have a shirt)")
                     continue
                 
+                # 👗 CRITICAL: Never add tops if dress exists
+                has_dress = categories_filled.get('dress', False)
+                if has_dress and category == 'tops':
+                    logger.warning(f"  🚫 PHASE 2: Skipping top '{self.safe_get_item_name(item)}' - dress already in outfit")
+                    continue
+                
                 if is_mid_layer and not has_mid_layer and temp < 70:
                     if _is_monochrome_allowed(item, item_id, score_data, log_prefix="  "):
                         selected_items.append(item)
