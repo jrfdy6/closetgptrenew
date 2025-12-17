@@ -7749,6 +7749,11 @@ class RobustOutfitGenerationService:
                     if item_category in ['tops', 'bottoms', 'shoes']:
                         continue
                     
+                    # 👗 CRITICAL: Prevent duplicate dresses (max 1 dress per outfit)
+                    if item_category == 'dress' and categories_filled.get('dress'):
+                        logger.debug(f"  ⏭️ Filler: {self.safe_get_item_name(score_data['item'])} - SKIPPED (dress already in outfit)")
+                        continue
+                    
                     # CRITICAL: Apply hard filter to filler items to prevent inappropriate additions
                     passes_hard_filter = self._hard_filter(score_data['item'], context.occasion, context.style)
                     if not passes_hard_filter:
@@ -7766,6 +7771,11 @@ class RobustOutfitGenerationService:
                 for item_id, score_data in sorted_items:
                     if score_data['item'] not in selected_items and len(selected_items) < min_items:
                         item_category = self._get_item_category(score_data['item'])
+                        
+                        # 👗 CRITICAL: Prevent duplicate dresses (max 1 dress per outfit)
+                        if item_category == 'dress' and categories_filled.get('dress'):
+                            logger.debug(f"  ⏭️ Filler: {self.safe_get_item_name(score_data['item'])} - SKIPPED (dress already in outfit)")
+                            continue
                         
                         # CRITICAL: Apply hard filter
                         passes_hard_filter = self._hard_filter(score_data['item'], context.occasion, context.style)
