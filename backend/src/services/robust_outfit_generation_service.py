@@ -7373,8 +7373,9 @@ class RobustOutfitGenerationService:
         
         # ═══════════════════════════════════════════════════════════
         # FIX #2: SAFETY NET - Ensure all essential categories are filled
+        # 👗 CRITICAL: Use dress-aware essential_categories (not hardcoded list)
         # ═══════════════════════════════════════════════════════════
-        missing_categories = [cat for cat in ['tops', 'bottoms', 'shoes'] if cat not in categories_filled]
+        missing_categories = [cat for cat in essential_categories if cat not in categories_filled]
         
         if missing_categories:
             logger.warning(f"🔧 SAFETY NET ACTIVATED: Missing essential categories: {missing_categories}")
