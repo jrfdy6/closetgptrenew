@@ -802,3 +802,99 @@ Selected items: [Pants (Navy), Shoes (Boots), Shirt (White)]
 
 This is a **"try harder" strategy**, not a hard requirement. If absolutely no valid items exist after this phase, the outfit is still returned (per user's choice to allow incomplete outfits in extreme edge cases, rather than failing entirely).
 
+---
+
+## 15. 🐛 CRITICAL FIX: Loungewear Filler Canonical Gate Bypass (Commit `c55067cc8`)
+
+### Problem: Dress + Shirt in Loungewear Outfits
+
+After implementing the canonical gate (Section 13) and final essential fill (Section 14), a new violation was discovered in production logs:
+
+**Invalid Outfit Generated:**
+```
+Final outfit: ['Shirt t-shirt Dark Gray', 'Shoes running Black by Hoka', 
+              'Accessory sunglasses White', 'Dress knit dress Teal by Unknown']
+```
+
+This violated the **bidirectional dress exclusivity invariant**: a shirt (tops) and dress should NEVER coexist in the same outfit.
+
+### Root Cause: Loungewear Filler Bypass
+
+The loungewear-specific filler logic (line 7744-7762) was **not using the canonical gate**. This code path was missed in the initial implementation because:
+
+1. It's **context-specific** (only runs in loungewear mode)
+2. It runs **before** the general filler passes
+3. It's a **special case** for adding lounge-qualified items
+
+**Log Evidence:**
+```
+📦 PHASE 1: Selecting essential items (top, bottom, shoes)
+  ✅ Essential tops: Shirt t-shirt Dark Gray (score=1.81)
+  ✅ Essential shoes: Shoes running Black by Hoka (score=1.76)
+
+🛋️ LOUNGE MODE: Adding lounge-qualified layers to reach minimum 4
+  🛋️ Added lounge filler: Accessory sunglasses White (score=1.68)
+  🛋️ Added lounge filler: Dress knit dress Teal by Unknown (score=1.64)  ← SHOULD HAVE BEEN BLOCKED
+```
+
+The dress was added **after** the shirt, but the loungewear filler didn't check if adding a dress was allowed.
+
+### Solution: Add Canonical Gate to Loungewear Filler
+
+Added the canonical gate check to the loungewear filler logic (line ~7757-7762):
+
+```python
+# 🔒 CANONICAL GATE: Check invariants before adding
+item_category = self._get_item_category(candidate)
+can_add, reason = self._can_add_category(item_category, categories_filled, selected_items, candidate)
+if not can_add:
+    logger.debug(f"  🚫 Lounge Filler: {self.safe_get_item_name(candidate)} ({item_category}) - BLOCKED ({reason})")
+    continue
+
+# ... existing hard filter and monochrome checks ...
+
+selected_items.append(candidate)
+categories_filled[item_category] = True  # Track category
+logger.info(f"  🛋️ Added lounge filler: {self.safe_get_item_name(candidate)} ({item_category}, score={score_data['composite_score']:.2f})")
+```
+
+### Code Path #8
+
+This is the **8th code path** that needed the canonical gate. All paths now route through the gate:
+
+| # | Code Path | Status |
+|---|-----------|--------|
+| 1 | `_create_outfit_from_items` fallback | ✅ Fixed (Section 13) |
+| 2 | `_intelligent_item_selection` primary | ✅ Fixed (Section 13) |
+| 3 | Phase 1 essential selection | ✅ Fixed (Section 13) |
+| 4 | Phase 2 layering logic | ✅ Fixed (Section 13) |
+| 5 | Phase 2 filler pass 1 | ✅ Fixed (Section 13) |
+| 6 | Phase 2 filler pass 2 | ✅ Fixed (Section 13) |
+| 7 | LAST RESORT bottoms search | ✅ Fixed (Section 13) |
+| 8 | **Loungewear filler** | ✅ **Fixed (THIS COMMIT)** |
+
+### Expected Behavior After Fix
+
+**Before Fix:**
+```
+Phase 1: Shirt (tops) ✅
+Lounge Filler: Dress ❌ (should be blocked)
+Result: Shirt + Dress (INVALID)
+```
+
+**After Fix:**
+```
+Phase 1: Shirt (tops) ✅
+Lounge Filler: Dress 🚫 BLOCKED (tops already exist)
+Lounge Filler: Cardigan ✅ (outerwear allowed)
+Result: Shirt + Cardigan (VALID)
+```
+
+### Deployment Status
+
+**Commit:** `c55067cc8`  
+**Status:** ✅ Deployed to Railway  
+**Verification:** Loungewear filler now respects dress invariants
+
+The dress exclusivity invariant is now enforced across **all 8 code paths**, including context-specific paths like loungewear mode.
+
