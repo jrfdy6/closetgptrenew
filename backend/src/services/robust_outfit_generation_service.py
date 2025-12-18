@@ -492,6 +492,56 @@ class RobustOutfitGenerationService:
         
         return False
     
+    def _can_add_category(
+        self,
+        category: str,
+        categories_filled: dict,
+        selected_items: list,
+        item: Any = None,
+    ) -> tuple[bool, str]:
+        """
+        Canonical invariant gate for outfit composition.
+        
+        Enforces three core invariants:
+        1. No duplicate dresses
+        2. Dress ↔ Tops/Bottoms bidirectional exclusion
+        3. No two shirts
+        
+        Args:
+            category: Category to check ('dress', 'tops', 'bottoms', etc.)
+            categories_filled: Dict tracking which categories are already in outfit
+            selected_items: List of items already selected
+            item: Optional item object (needed for shirt duplicate check)
+        
+        Returns:
+            (can_add: bool, reason: str)
+        """
+        
+        # 👗 INVARIANT 1: No duplicate dresses
+        if category == 'dress' and categories_filled.get('dress'):
+            return False, "duplicate dress"
+        
+        # 👗 INVARIANT 2: Dress ↔ Tops/Bottoms (bidirectional)
+        if category == 'dress':
+            if categories_filled.get('bottoms'):
+                return False, "bottoms already exist"
+            if categories_filled.get('tops'):
+                return False, "tops already exist"
+        
+        if category in ('tops', 'bottoms'):
+            if categories_filled.get('dress'):
+                return False, "dress already exists"
+        
+        # 👕 INVARIANT 3: No two shirts
+        if category == 'tops' and item is not None:
+            if self._is_shirt(item):
+                has_shirt = any(self._is_shirt(i) for i in selected_items)
+                if has_shirt:
+                    return False, "shirt already exists"
+        
+        # ✅ Outerwear, accessories, others are allowed
+        return True, ""
+    
     def _is_turtleneck(self, item) -> bool:
         """Check if item is a turtleneck."""
         item_name = self.safe_get_item_name(item).lower()
@@ -1964,11 +2014,15 @@ class RobustOutfitGenerationService:
                     continue
                 item_category = self._get_item_category(item)
                 
-                # Don't add tops/bottoms if we have a dress
-                if has_dress and item_category in ['tops', 'bottoms']:
+                # 🔒 CANONICAL GATE: Check invariants before adding
+                categories_filled = {cat: True for cat in category_counts.keys()}
+                can_add, reason = self._can_add_category(item_category, categories_filled, selected_items, item)
+                if not can_add:
+                    logger.debug(f"  🚫 FALLBACK FILLER: {getattr(item, 'name', 'Unknown')} ({item_category}) - BLOCKED ({reason})")
                     continue
                 
                 selected_items.append(item)
+                category_counts[item_category] = category_counts.get(item_category, 0) + 1
                 logger.info(f"✅ FALLBACK: Added filler item '{getattr(item, 'name', 'Unknown')}' ({item_category})")
                 if len(selected_items) >= 4:  # Reasonable outfit size
                     break
@@ -4739,17 +4793,11 @@ class RobustOutfitGenerationService:
                 
             item_category = self._get_item_category(item)
             
-            # 👗 CRITICAL: If dress is already selected, NEVER add tops or bottoms
-            has_dress = safe_get(category_counts, 'dress', 0) > 0
-            if has_dress and item_category in ['tops', 'bottoms']:
-                logger.info(f"👗 DRESS OUTFIT: Skipping {item_category} '{getattr(item, 'name', 'Unknown')[:40]}' because dress is already selected")
-                continue
-            
-            # 👗 CRITICAL: If tops or bottoms already selected, NEVER add a dress
-            has_tops = safe_get(category_counts, 'tops', 0) > 0
-            has_bottoms = safe_get(category_counts, 'bottoms', 0) > 0
-            if (has_tops or has_bottoms) and item_category == 'dress':
-                logger.info(f"👔 REGULAR OUTFIT: Skipping dress '{getattr(item, 'name', 'Unknown')[:40]}' because tops/bottoms already selected")
+            # 🔒 CANONICAL GATE: Check invariants before adding
+            categories_filled = {cat: (count > 0) for cat, count in category_counts.items()}
+            can_add, reason = self._can_add_category(item_category, categories_filled, selected_items, item)
+            if not can_add:
+                logger.info(f"🚫 INVARIANT BLOCK: {item_category} '{getattr(item, 'name', 'Unknown')[:40]}' - {reason}")
                 continue
             
             # Skip outerwear if not needed
@@ -7344,13 +7392,11 @@ class RobustOutfitGenerationService:
                             logger.warning(f"  🚫 FORBIDDEN COMBO: {self.safe_get_item_name(item)} creates forbidden combination with existing items")
                             continue  # Skip this item
                         
-                        # ✅ NEW: Check for two shirts in Phase 1 (prevent from the start)
-                        if category == 'tops':
-                            is_shirt = self._is_shirt(item)
-                            has_shirt = any(self._is_shirt(i) for i in selected_items)
-                            if is_shirt and has_shirt:
-                                logger.warning(f"  🚫 FORBIDDEN: Two shirts not allowed in Phase 1 - {self.safe_get_item_name(item)} skipped")
-                                continue
+                        # 🔒 CANONICAL GATE: Check invariants before adding
+                        can_add, reason = self._can_add_category(category, categories_filled, selected_items, item)
+                        if not can_add:
+                            logger.warning(f"  🚫 INVARIANT BLOCK (Phase 1): {category} '{self.safe_get_item_name(item)}' - {reason}")
+                            continue
                         
                         if category == 'shoes' and requires_minimalist_party_polish:
                             if not _is_polished_party_shoe(item):
@@ -7431,10 +7477,10 @@ class RobustOutfitGenerationService:
                 
             # LAST RESORT: If bottoms are missing, search ENTIRE wardrobe for relaxed lounge bottoms
             if 'bottoms' in final_missing:
-                # 👗 CRITICAL: Don't add bottoms if dress exists
-                has_dress = categories_filled.get('dress', False)
-                if has_dress:
-                    logger.warning(f"⚠️ LAST RESORT: Skipping bottoms search - dress already in outfit")
+                # 🔒 CANONICAL GATE: Check if bottoms can be added (dress check)
+                can_add_bottoms, reason = self._can_add_category('bottoms', categories_filled, selected_items, None)
+                if not can_add_bottoms:
+                    logger.warning(f"⚠️ LAST RESORT: Skipping bottoms search - {reason}")
                 else:
                     logger.warning(f"⚠️ LAST RESORT: Searching entire wardrobe for relaxed lounge bottoms")
                     lounge_item_ids = set()
@@ -7618,24 +7664,15 @@ class RobustOutfitGenerationService:
                     for i in selected_items
                 )
                 
-                # ✅ NEW: Check if this would create two shirts (not proper)
-                is_shirt = self._is_shirt(item)
-                has_shirt = any(self._is_shirt(i) for i in selected_items)
-                
                 # ✅ NEW: Check for forbidden layering combinations
                 if self._is_forbidden_combination(item, selected_items):
                     logger.warning(f"  🚫 FORBIDDEN COMBO: {self.safe_get_item_name(item)} would create forbidden layering combination")
                     continue
                 
-                # Block adding a second shirt
-                if is_shirt and has_shirt:
-                    logger.warning(f"  🚫 FORBIDDEN: Two shirts not allowed - {self.safe_get_item_name(item)} skipped (already have a shirt)")
-                    continue
-                
-                # 👗 CRITICAL: Never add tops if dress exists
-                has_dress = categories_filled.get('dress', False)
-                if has_dress and category == 'tops':
-                    logger.warning(f"  🚫 PHASE 2: Skipping top '{self.safe_get_item_name(item)}' - dress already in outfit")
+                # 🔒 CANONICAL GATE: Check invariants before adding
+                can_add, reason = self._can_add_category(category, categories_filled, selected_items, item)
+                if not can_add:
+                    logger.warning(f"  🚫 INVARIANT BLOCK (Phase 2 Layering): {category} '{self.safe_get_item_name(item)}' - {reason}")
                     continue
                 
                 if is_mid_layer and not has_mid_layer and temp < 70:
@@ -7645,8 +7682,8 @@ class RobustOutfitGenerationService:
                         logger.warning(f"  ✅ Mid-layer: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                 elif is_mid_layer and has_mid_layer:
                     logger.warning(f"  ⏭️ Mid-layer: {self.safe_get_item_name(item)} - SKIPPED (already have mid-layer)")
-                elif is_shirt and not has_shirt:
-                    # Allow adding a shirt if we don't have one yet
+                else:
+                    # Allow adding other tops (canonical gate already checked for shirts/dress conflicts)
                     if _is_monochrome_allowed(item, item_id, score_data, log_prefix="  "):
                         selected_items.append(item)
                         logger.warning(f"  ✅ Top: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
@@ -7760,9 +7797,10 @@ class RobustOutfitGenerationService:
                     if item_category in ['tops', 'bottoms', 'shoes']:
                         continue
                     
-                    # 👗 CRITICAL: Prevent duplicate dresses (max 1 dress per outfit)
-                    if item_category == 'dress' and categories_filled.get('dress'):
-                        logger.debug(f"  ⏭️ Filler: {self.safe_get_item_name(score_data['item'])} - SKIPPED (dress already in outfit)")
+                    # 🔒 CANONICAL GATE: Check invariants before adding
+                    can_add, reason = self._can_add_category(item_category, categories_filled, selected_items, score_data['item'])
+                    if not can_add:
+                        logger.debug(f"  🚫 Filler (Pass 1): {self.safe_get_item_name(score_data['item'])} ({item_category}) - BLOCKED ({reason})")
                         continue
                     
                     # CRITICAL: Apply hard filter to filler items to prevent inappropriate additions
@@ -7783,9 +7821,10 @@ class RobustOutfitGenerationService:
                     if score_data['item'] not in selected_items and len(selected_items) < min_items:
                         item_category = self._get_item_category(score_data['item'])
                         
-                        # 👗 CRITICAL: Prevent duplicate dresses (max 1 dress per outfit)
-                        if item_category == 'dress' and categories_filled.get('dress'):
-                            logger.debug(f"  ⏭️ Filler: {self.safe_get_item_name(score_data['item'])} - SKIPPED (dress already in outfit)")
+                        # 🔒 CANONICAL GATE: Check invariants before adding
+                        can_add, reason = self._can_add_category(item_category, categories_filled, selected_items, score_data['item'])
+                        if not can_add:
+                            logger.debug(f"  🚫 Filler (Pass 2): {self.safe_get_item_name(score_data['item'])} ({item_category}) - BLOCKED ({reason})")
                             continue
                         
                         # CRITICAL: Apply hard filter
@@ -8121,6 +8160,14 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🎨 COHESIVE COMPOSITION: Created outfit with {len(selected_items)} items")
         logger.info(f"📊 Final confidence: {final_confidence:.2f}, Avg composite score: {avg_composite_score:.2f}")
+        
+        # 🛑 FINAL INVARIANT CHECK (safety fuse - should never trigger after canonical gate)
+        if categories_filled.get('dress') and (categories_filled.get('tops') or categories_filled.get('bottoms')):
+            logger.error(f"🚨 INVARIANT BREACH: Dress + tops/bottoms survived generation")
+            logger.error(f"   Categories: {list(categories_filled.keys())}")
+            logger.error(f"   Items: {[self.safe_get_item_name(i) for i in selected_items]}")
+            # Don't throw - log and continue (per user's "allow incomplete" choice)
+            # But this should NEVER happen after the canonical gate is in place
         
         return outfit
     
