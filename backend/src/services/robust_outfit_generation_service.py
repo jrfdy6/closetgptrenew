@@ -7431,58 +7431,63 @@ class RobustOutfitGenerationService:
                 
             # LAST RESORT: If bottoms are missing, search ENTIRE wardrobe for relaxed lounge bottoms
             if 'bottoms' in final_missing:
-                logger.warning(f"⚠️ LAST RESORT: Searching entire wardrobe for relaxed lounge bottoms")
-                lounge_item_ids = set()
-                if isinstance(context.metadata_notes, dict):
-                    lounge_item_ids = set(context.metadata_notes.get('lounge_item_ids', []) or [])
-                original_pool = context.wardrobe_original or context.wardrobe
-                all_bottoms = [
-                    item for item in original_pool
-                    if self._get_item_category(item) == 'bottoms'
-                ]
-                if all_bottoms:
-                    import random
-                    scored_bottoms = []
-                    for bottom in all_bottoms:
-                        if bottom in selected_items:
-                            continue
-                        if not self._hard_filter(bottom, context.occasion, context.style):
-                            continue
-                        bottom_id = self.safe_get_item_attr(bottom, 'id', '')
-                        name_lower = self.safe_get_item_name(bottom).lower()
-                        metadata = getattr(bottom, 'metadata', {}) if hasattr(bottom, 'metadata') else {}
-                        waistband = ''
-                        if isinstance(metadata, dict):
-                            waistband = ((metadata.get('visualAttributes') or {}).get('waistbandType') or '').lower()
-                        priority = 0
-                        if bottom_id in lounge_item_ids:
-                            priority += 4
-                        if any(token in name_lower for token in ['sweat', 'short', 'drawstring', 'elastic', 'lounge', 'pj', 'relaxed']):
-                            priority += 2
-                        if waistband in ['elastic', 'drawstring', 'elastic_drawstring']:
-                            priority += 2
-                        soft_score = self._soft_score(bottom, context.occasion, context.style, context.mood, context.weather)
-                        scored_bottoms.append((bottom, priority, soft_score))
-                    if scored_bottoms:
-                        fresh_bottoms = [entry for entry in scored_bottoms if self.safe_get_item_attr(entry[0], 'id', '') not in recently_used_item_ids]
-                        candidate_list = fresh_bottoms if fresh_bottoms else scored_bottoms
-                        random.shuffle(candidate_list)
-                        candidate_list.sort(key=lambda x: (x[1], x[2]), reverse=True)
-                        best_bottom, priority, best_score = candidate_list[0]
-                        bottom_id = self.safe_get_item_attr(best_bottom, 'id', '')
-                        if _is_monochrome_allowed(best_bottom, bottom_id, None, log_prefix="  "):
-                            selected_items.append(best_bottom)
-                            categories_filled['bottoms'] = True
-                            logger.warning(
-                                f"⚠️ LAST RESORT: Added relaxed bottom '{self.safe_get_item_name(best_bottom)}' "
-                                f"(priority={priority}, score={best_score:.2f})"
-                            )
-                        else:
-                            logger.warning("⚠️ LAST RESORT: Best relaxed bottom failed monochrome check")
-                    else:
-                        logger.warning("⚠️ LAST RESORT: No relaxed bottoms passed hard filter")
+                # 👗 CRITICAL: Don't add bottoms if dress exists
+                has_dress = categories_filled.get('dress', False)
+                if has_dress:
+                    logger.warning(f"⚠️ LAST RESORT: Skipping bottoms search - dress already in outfit")
                 else:
-                    logger.warning("⚠️ LAST RESORT: No bottom items found in wardrobe for lounge search")
+                    logger.warning(f"⚠️ LAST RESORT: Searching entire wardrobe for relaxed lounge bottoms")
+                    lounge_item_ids = set()
+                    if isinstance(context.metadata_notes, dict):
+                        lounge_item_ids = set(context.metadata_notes.get('lounge_item_ids', []) or [])
+                    original_pool = context.wardrobe_original or context.wardrobe
+                    all_bottoms = [
+                        item for item in original_pool
+                        if self._get_item_category(item) == 'bottoms'
+                    ]
+                    if all_bottoms:
+                        import random
+                        scored_bottoms = []
+                        for bottom in all_bottoms:
+                            if bottom in selected_items:
+                                continue
+                            if not self._hard_filter(bottom, context.occasion, context.style):
+                                continue
+                            bottom_id = self.safe_get_item_attr(bottom, 'id', '')
+                            name_lower = self.safe_get_item_name(bottom).lower()
+                            metadata = getattr(bottom, 'metadata', {}) if hasattr(bottom, 'metadata') else {}
+                            waistband = ''
+                            if isinstance(metadata, dict):
+                                waistband = ((metadata.get('visualAttributes') or {}).get('waistbandType') or '').lower()
+                            priority = 0
+                            if bottom_id in lounge_item_ids:
+                                priority += 4
+                            if any(token in name_lower for token in ['sweat', 'short', 'drawstring', 'elastic', 'lounge', 'pj', 'relaxed']):
+                                priority += 2
+                            if waistband in ['elastic', 'drawstring', 'elastic_drawstring']:
+                                priority += 2
+                            soft_score = self._soft_score(bottom, context.occasion, context.style, context.mood, context.weather)
+                            scored_bottoms.append((bottom, priority, soft_score))
+                        if scored_bottoms:
+                            fresh_bottoms = [entry for entry in scored_bottoms if self.safe_get_item_attr(entry[0], 'id', '') not in recently_used_item_ids]
+                            candidate_list = fresh_bottoms if fresh_bottoms else scored_bottoms
+                            random.shuffle(candidate_list)
+                            candidate_list.sort(key=lambda x: (x[1], x[2]), reverse=True)
+                            best_bottom, priority, best_score = candidate_list[0]
+                            bottom_id = self.safe_get_item_attr(best_bottom, 'id', '')
+                            if _is_monochrome_allowed(best_bottom, bottom_id, None, log_prefix="  "):
+                                selected_items.append(best_bottom)
+                                categories_filled['bottoms'] = True
+                                logger.warning(
+                                    f"⚠️ LAST RESORT: Added relaxed bottom '{self.safe_get_item_name(best_bottom)}' "
+                                    f"(priority={priority}, score={best_score:.2f})"
+                                )
+                            else:
+                                logger.warning("⚠️ LAST RESORT: Best relaxed bottom failed monochrome check")
+                        else:
+                            logger.warning("⚠️ LAST RESORT: No relaxed bottoms passed hard filter")
+                    else:
+                        logger.warning("⚠️ LAST RESORT: No bottom items found in wardrobe for lounge search")
 
                 # LAST RESORT: If shoes are missing, search ENTIRE wardrobe (bypass occasion filter)
                 if 'shoes' in final_missing:
