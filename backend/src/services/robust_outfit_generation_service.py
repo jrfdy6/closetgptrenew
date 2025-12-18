@@ -7878,6 +7878,119 @@ class RobustOutfitGenerationService:
         selected_items = deduplicated_items
         
         logger.info(f"🎯 FINAL SELECTION: {len(selected_items)} items")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # FINAL ESSENTIAL FILL: Try harder to complete essential categories
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        # Define context-specific essential requirements
+        def get_essential_requirements(occasion: str, style: str, has_dress: bool) -> dict:
+            """Get essential categories based on context"""
+            occasion_lower = (occasion or "").lower()
+            style_lower = (style or "").lower()
+            
+            # If dress exists, it replaces tops + bottoms
+            if has_dress:
+                return {
+                    'required': ['shoes'],  # Only shoes required with dress
+                    'preferred': ['outerwear'],  # Outerwear nice to have
+                    'optional': []
+                }
+            
+            # Context-specific rules for non-dress outfits
+            if occasion_lower == 'loungewear' or style_lower in ['loungewear', 'minimal', 'casual']:
+                return {
+                    'required': ['tops', 'shoes'],  # Bottoms optional for lounge/minimal
+                    'preferred': ['bottoms'],
+                    'optional': ['outerwear']
+                }
+            elif occasion_lower in ['gym', 'workout', 'athletic']:
+                return {
+                    'required': ['tops', 'bottoms', 'shoes'],  # All required for gym
+                    'preferred': [],
+                    'optional': ['outerwear']
+                }
+            else:
+                # Default: tops + bottoms + shoes required
+                return {
+                    'required': ['tops', 'bottoms', 'shoes'],
+                    'preferred': [],
+                    'optional': ['outerwear', 'accessories']
+                }
+        
+        # Check current outfit completeness
+        current_categories = {cat: True for cat in categories_filled.keys()}
+        has_dress = current_categories.get('dress', False)
+        requirements = get_essential_requirements(context.occasion, context.style, has_dress)
+        
+        missing_required = [cat for cat in requirements['required'] if cat not in current_categories]
+        missing_preferred = [cat for cat in requirements['preferred'] if cat not in current_categories]
+        
+        if missing_required or missing_preferred:
+            logger.warning(f"🔧 FINAL ESSENTIAL FILL: Attempting to complete outfit")
+            logger.warning(f"   Missing required: {missing_required}")
+            logger.warning(f"   Missing preferred: {missing_preferred}")
+            
+            # Try to fill missing required categories first, then preferred
+            for category in missing_required + missing_preferred:
+                if category in current_categories:
+                    continue  # Already filled
+                
+                # 🔒 CANONICAL GATE: Check if category can be added
+                can_add, reason = self._can_add_category(category, current_categories, selected_items, None)
+                if not can_add:
+                    logger.warning(f"   ⚠️ Cannot add {category}: {reason}")
+                    continue
+                
+                # Search entire wardrobe for best item in this category
+                original_pool = context.wardrobe_original or context.wardrobe
+                category_items = [
+                    item for item in original_pool
+                    if self._get_item_category(item) == category and item not in selected_items
+                ]
+                
+                if category_items:
+                    # Score and sort candidates
+                    scored_candidates = []
+                    for item in category_items:
+                        # Apply hard filter
+                        if not self._hard_filter(item, context.occasion, context.style):
+                            continue
+                        
+                        # Calculate basic score
+                        score = self._soft_score(item, context.occasion, context.style, context.mood, context.weather)
+                        scored_candidates.append((item, score))
+                    
+                    if scored_candidates:
+                        # Sort by score and pick best
+                        scored_candidates.sort(key=lambda x: x[1], reverse=True)
+                        best_item, best_score = scored_candidates[0]
+                        
+                        # Add to outfit
+                        selected_items.append(best_item)
+                        current_categories[category] = True
+                        categories_filled[category] = True
+                        
+                        is_required = category in requirements['required']
+                        priority = "REQUIRED" if is_required else "PREFERRED"
+                        logger.info(f"   ✅ FINAL FILL ({priority}): Added {category} '{self.safe_get_item_name(best_item)}' (score={best_score:.2f})")
+                    else:
+                        logger.warning(f"   ⚠️ No valid {category} items found (all blocked by filters)")
+                else:
+                    logger.warning(f"   ⚠️ No {category} items available in wardrobe")
+            
+            # Log final status
+            final_missing_required = [cat for cat in requirements['required'] if cat not in current_categories]
+            final_missing_preferred = [cat for cat in requirements['preferred'] if cat not in current_categories]
+            
+            if final_missing_required:
+                logger.error(f"⚠️ FINAL OUTFIT INCOMPLETE: Still missing REQUIRED categories: {final_missing_required}")
+            elif final_missing_preferred:
+                logger.info(f"ℹ️ Final outfit missing PREFERRED categories: {final_missing_preferred} (acceptable)")
+            else:
+                logger.info(f"✅ FINAL FILL: All essential categories completed")
+        
+        logger.info(f"🎯 FINAL SELECTION (after essential fill): {len(selected_items)} items")
 
         if target_style_lower == 'monochrome' and hasattr(context, 'metadata_notes') and isinstance(context.metadata_notes, dict):
             selection_colors: Dict[str, str] = {}
