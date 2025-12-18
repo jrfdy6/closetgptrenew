@@ -7754,12 +7754,21 @@ class RobustOutfitGenerationService:
                         continue
                     if score_data['composite_score'] < 0.25:
                         continue
+                    
+                    # 🔒 CANONICAL GATE: Check invariants before adding
+                    item_category = self._get_item_category(candidate)
+                    can_add, reason = self._can_add_category(item_category, categories_filled, selected_items, candidate)
+                    if not can_add:
+                        logger.debug(f"  🚫 Lounge Filler: {self.safe_get_item_name(candidate)} ({item_category}) - BLOCKED ({reason})")
+                        continue
+                    
                     # CRITICAL: Apply hard filter to lounge fillers too
                     if not self._hard_filter(candidate, context.occasion, context.style):
                         continue
                     if _is_monochrome_allowed(candidate, candidate_id, score_data, log_prefix="  "):
                         selected_items.append(candidate)
-                        logger.info(f"  🛋️ Added lounge filler: {self.safe_get_item_name(candidate)} (score={score_data['composite_score']:.2f})")
+                        categories_filled[item_category] = True  # Track category
+                        logger.info(f"  🛋️ Added lounge filler: {self.safe_get_item_name(candidate)} ({item_category}, score={score_data['composite_score']:.2f})")
 
             if requires_minimalist_party_polish and len(selected_items) < min_items:
                 polish_filler_categories = ['outerwear', 'accessories']
