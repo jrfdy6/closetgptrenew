@@ -683,3 +683,122 @@ This should **never trigger** after the gate is in place, but provides a clear d
 
 This is not a patch - it's a **formal architectural invariant** that makes dress + tops/bottoms violations **structurally impossible**.
 
+---
+
+## 14. 🎯 COMPLETENESS FIX: Context-Aware Final Essential Fill (Commit `68e0e386e`)
+
+### Problem: Incomplete Non-Dress Outfits
+
+After fixing the dress invariant, a new issue emerged: some outfits were still being returned incomplete, missing essential categories like tops or bottoms. Examples from logs:
+- **Pants + Boots** (no top)
+- **Shirt + Boots** (no bottoms)
+- **Dress + Shoes** (acceptable, but happened even when outerwear was available)
+
+This happened when:
+- Aggressive filtering left very few items
+- Safety Net and LAST RESORT couldn't find suitable items
+- System would just return whatever it had
+
+### Solution: Final Essential Fill Phase
+
+Added a **context-aware final fill phase** that runs AFTER all other phases (Phase 0-2, Safety Net, LAST RESORT, Deduplication) but BEFORE returning the outfit.
+
+#### Context-Aware Requirements (Line ~7888)
+
+```python
+def get_essential_requirements(occasion: str, style: str, has_dress: bool) -> dict:
+    """Get essential categories based on context"""
+    
+    # If dress exists, it replaces tops + bottoms
+    if has_dress:
+        return {
+            'required': ['shoes'],
+            'preferred': ['outerwear'],
+            'optional': []
+        }
+    
+    # Loungewear/Minimal: tops + shoes required, bottoms preferred
+    if occasion_lower == 'loungewear' or style_lower in ['loungewear', 'minimal', 'casual']:
+        return {
+            'required': ['tops', 'shoes'],
+            'preferred': ['bottoms'],
+            'optional': ['outerwear']
+        }
+    
+    # Gym: all required
+    elif occasion_lower in ['gym', 'workout', 'athletic']:
+        return {
+            'required': ['tops', 'bottoms', 'shoes'],
+            'preferred': [],
+            'optional': ['outerwear']
+        }
+    
+    # Default: tops + bottoms + shoes required
+    else:
+        return {
+            'required': ['tops', 'bottoms', 'shoes'],
+            'preferred': [],
+            'optional': ['outerwear', 'accessories']
+        }
+```
+
+#### Final Fill Logic (Line ~7883-7999)
+
+1. **Check Completeness**: Determine what's missing (required vs preferred)
+2. **Search Entire Wardrobe**: Go beyond scored items to find ANY valid item
+3. **Respect Canonical Gate**: Use `_can_add_category()` to check invariants
+4. **Apply Filters**: Hard filter for appropriateness, soft score for ranking
+5. **Fill Required First**: Prioritize required categories, then preferred
+6. **Log Results**: Clear indication of what was filled and what's still missing
+
+#### Example Flow
+
+**Before Final Fill:**
+```
+Selected items: [Pants (Navy), Shoes (Boots)]
+Missing required: [tops]
+Missing preferred: []
+```
+
+**Final Fill Activates:**
+```
+🔧 FINAL ESSENTIAL FILL: Attempting to complete outfit
+   Missing required: ['tops']
+   Searching entire wardrobe for tops...
+   Found 5 candidates, scoring...
+   ✅ FINAL FILL (REQUIRED): Added tops 'Shirt t-shirt White' (score=0.65)
+   ✅ FINAL FILL: All essential categories completed
+```
+
+**After Final Fill:**
+```
+Selected items: [Pants (Navy), Shoes (Boots), Shirt (White)]
+🎯 FINAL SELECTION (after essential fill): 3 items
+```
+
+### Context-Specific Behavior
+
+| Context | Required | Preferred | Notes |
+|---------|----------|-----------|-------|
+| **Dress Outfit** | shoes | outerwear | Dress replaces tops + bottoms |
+| **Loungewear** | tops, shoes | bottoms | Bottoms optional for casual/lounge |
+| **Gym** | tops, bottoms, shoes | - | All required for athletic |
+| **Default** | tops, bottoms, shoes | - | Standard outfit requirements |
+
+### Benefits
+
+✅ **Prevents incomplete outfits**: "pants + boots" → "pants + boots + shirt"  
+✅ **Context-aware**: Loungewear can skip bottoms, gym cannot  
+✅ **Respects invariants**: Won't add bottoms if dress exists  
+✅ **Non-invasive**: Only activates when categories are missing  
+✅ **Clear logging**: Shows exactly what was filled and why  
+✅ **Fallback-friendly**: If no valid items exist, outfit is still returned
+
+### Deployment Status
+
+**Commit:** `68e0e386e`  
+**Status:** ✅ Deployed to Railway  
+**Verification:** System now tries harder to complete essential categories before returning outfits
+
+This is a **"try harder" strategy**, not a hard requirement. If absolutely no valid items exist after this phase, the outfit is still returned (per user's choice to allow incomplete outfits in extreme edge cases, rather than failing entirely).
+
