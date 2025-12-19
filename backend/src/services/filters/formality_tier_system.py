@@ -540,7 +540,8 @@ class FormalityTierSystem:
         occasion: str,
         style: str,
         recently_used_item_ids: Set[str],
-        safe_get_item_attr_func: callable
+        safe_get_item_attr_func: callable,
+        occasion_fallbacks: Optional[Dict[str, List[str]]] = None
     ) -> Tuple[List[Any], FormalityTier]:
         """
         Apply progressive tier filtering with fallback.
@@ -551,6 +552,7 @@ class FormalityTierSystem:
             style: Style name
             recently_used_item_ids: Set of recently worn item IDs
             safe_get_item_attr_func: Function to safely get item attributes
+            occasion_fallbacks: Optional dict of occasion fallbacks for semantic matching
         
         Returns:
             (filtered_wardrobe, tier_used)
@@ -567,7 +569,13 @@ class FormalityTierSystem:
         for tier in config.allowed_tiers:
             logger.info(f"📊 Trying TIER: {tier.value}")
             
-            filtered_items = self._filter_by_tier(wardrobe, tier, safe_get_item_attr_func)
+            filtered_items = self._filter_by_tier(
+                wardrobe, 
+                tier, 
+                safe_get_item_attr_func,
+                occasion=occasion,
+                occasion_fallbacks=occasion_fallbacks
+            )
             fresh_items = [
                 item for item in filtered_items
                 if safe_get_item_attr_func(item, 'id', '') not in recently_used_item_ids
@@ -593,9 +601,24 @@ class FormalityTierSystem:
         self,
         wardrobe: List[Any],
         tier: FormalityTier,
-        safe_get_item_attr_func: callable
+        safe_get_item_attr_func: callable,
+        occasion: Optional[str] = None,
+        occasion_fallbacks: Optional[Dict[str, List[str]]] = None
     ) -> List[Any]:
-        """Filter wardrobe items by formality tier with intelligent keyword matching"""
+        """
+        Filter wardrobe items by formality tier with intelligent keyword matching
+        and occasion compatibility checking.
+        
+        Args:
+            wardrobe: List of wardrobe items
+            tier: Formality tier to filter by
+            safe_get_item_attr_func: Function to safely get item attributes
+            occasion: Target occasion (e.g., "interview")
+            occasion_fallbacks: Dict of occasion fallbacks for semantic matching
+        
+        Returns:
+            List of items matching the tier and occasion
+        """
         keywords = self.tier_keywords.get(tier, {})
         if not keywords:
             # No keywords for this tier, return all
@@ -652,6 +675,35 @@ class FormalityTierSystem:
                         elif tier == FormalityTier.TIER_3_CREATIVE_CASUAL:
                             if formal_level in ['casual', 'smart casual', 'creative']:
                                 matches_tier = True
+            
+            # CRITICAL: Check occasion compatibility (with fallbacks)
+            # This ensures items tagged with "business" or "formal" can be used for "interview"
+            if matches_tier and occasion and occasion_fallbacks:
+                item_occasions = safe_get_item_attr_func(item, 'occasion', [])
+                if isinstance(item_occasions, str):
+                    item_occasions = [item_occasions]
+                
+                item_occasions_lower = [occ.lower() for occ in item_occasions]
+                occasion_lower = occasion.lower()
+                
+                # Check if item matches target occasion OR fallback occasions
+                occasion_match = False
+                
+                # Direct match
+                if occasion_lower in item_occasions_lower:
+                    occasion_match = True
+                # Fallback match
+                elif occasion_lower in occasion_fallbacks:
+                    fallback_occasions = [fb.lower() for fb in occasion_fallbacks[occasion_lower]]
+                    if any(fallback in item_occasions_lower for fallback in fallback_occasions):
+                        occasion_match = True
+                
+                # If occasion checking is enabled but item doesn't match, skip it
+                if not occasion_match:
+                    logger.debug(f"   ❌ {item_name}: tier match but occasion mismatch (has {item_occasions_lower}, need {occasion_lower} or {occasion_fallbacks.get(occasion_lower, [])})")
+                    continue
+                else:
+                    logger.debug(f"   ✅ {item_name}: tier + occasion match")
             
             if matches_tier:
                 filtered.append(item)

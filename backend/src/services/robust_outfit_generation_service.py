@@ -1217,13 +1217,17 @@ class RobustOutfitGenerationService:
             print(f"🎯 PROGRESSIVE TIER FILTER: Running BEFORE occasion filter for {context.occasion}")
             logger.error(f"🎯 PROGRESSIVE TIER FILTER: Running BEFORE occasion filter for {context.occasion}")
             try:
+                # Import occasion fallbacks for semantic matching
+                from src.utils.semantic_compatibility import OCCASION_FALLBACKS
+                
                 recently_used_item_ids = self._get_recently_used_items(context.user_id, hours=48)
                 filtered_wardrobe, tier_used = self.tier_system.apply_progressive_filter(
                     wardrobe=context.wardrobe,
                     occasion=context.occasion,
                     style=context.style,
                     recently_used_item_ids=recently_used_item_ids,
-                    safe_get_item_attr_func=self.safe_get_item_attr
+                    safe_get_item_attr_func=self.safe_get_item_attr,
+                    occasion_fallbacks=OCCASION_FALLBACKS  # NEW: Pass fallbacks for semantic matching
                 )
                 context.wardrobe = filtered_wardrobe
                 progressive_filter_applied = True
