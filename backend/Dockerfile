@@ -2,8 +2,8 @@
 FROM python:3.11
 
 # NUCLEAR CACHE BUSTER - Change this number on every deploy to break ALL caches
-ARG CACHE_BUSTER=1766153617
-RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE COMPLETE REBUILD - Refactoring: Extracted modules"
+ARG CACHE_BUSTER=1766155900
+RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE COMPLETE REBUILD - Progressive Tier Filter Connected"
 
 # Set working directory
 WORKDIR /app
@@ -35,14 +35,14 @@ RUN echo "Verifying new code with occasion-first filter..." && \
     grep -q "STEP 1: Occasion-First Filtering" ./src/services/robust_outfit_generation_service.py && \
     echo "✅ New code verified: Occasion-first filter present" || \
     (echo "❌ Old code detected: Occasion-first filter MISSING - build failed!" && exit 1) && \
-    echo "Verifying weather analyzer fix..." && \
-    grep -q "float.*temperature.*CRITICAL" ./src/services/robust_outfit_generation_service.py && \
-    echo "✅ Weather analyzer fix verified" || \
-    (echo "❌ Weather analyzer fix MISSING - build failed!" && exit 1) && \
-    echo "Verifying formality_boost_needed fix..." && \
-    grep -q "FORMALITY FIX ACTIVE: Variables initialized at function level" ./src/services/robust_outfit_generation_service.py && \
-    echo "✅ Formality boost fix verified (function-level scope)" || \
-    (echo "❌ Formality boost fix MISSING - build failed!" && exit 1)
+    echo "Verifying progressive tier filter connection..." && \
+    grep -q "PROGRESSIVE TIER FILTER: Applied" ./src/services/robust_outfit_generation_service.py && \
+    echo "✅ Progressive tier filter connection verified" || \
+    (echo "❌ Progressive tier filter connection MISSING - build failed!" && exit 1) && \
+    echo "Verifying tier system import..." && \
+    grep -q "from src.services.filters import FormalityTierSystem" ./src/services/robust_outfit_generation_service.py && \
+    echo "✅ Tier system import verified" || \
+    (echo "❌ Tier system import MISSING - build failed!" && exit 1)
 
 # Expose port (Railway will override with its own PORT)
 EXPOSE 8080
