@@ -804,6 +804,150 @@ This is a **"try harder" strategy**, not a hard requirement. If absolutely no va
 
 ---
 
+## 16. 🎯 PROGRESSIVE TIER FILTER: Interview + Business (Commit `148aad1f0`)
+
+### Problem: Rigid Formal Filter Blocks All Casual Items
+
+After implementing canonical gate and final essential fill, a new issue emerged: the formal/business hard filter was too strict, blocking all casual items even for context-aware interviews like "Light Academia."
+
+**Example:**
+```
+User: Light Academia style + Interview occasion
+Hard Filter Logic: "interview → block ALL casual items"
+Result: Only 1-2 formal items available
+Outcome: Incomplete or low-quality outfits
+```
+
+### Solution: Style-Aware Progressive Tier Filter
+
+Implemented a **three-tier fallback system** that respects style context while prioritizing formal items:
+
+#### **Tier Architecture** (Line ~3312-3600)
+
+```python
+def _get_interview_formality_tier(self, style: str) -> str:
+    """Determines which tier based on style"""
+    
+    # Tier 1: Strict Formal (Corporate/Traditional)
+    if style in ['formal', 'business', 'professional', 'elegant']:
+        return 'strict_formal'
+    
+    # Tier 2: Smart Casual (Academic/Creative/Startup)
+    if style in ['light-academia', 'dark-academia', 'business-casual', 'modern', 'artistic']:
+        return 'smart_casual'
+    
+    # Tier 3: Creative Casual (Design/Creative Industry)
+    if style in ['trendy', 'fashion-forward', 'creative', 'artistic', 'eclectic']:
+        return 'creative_casual'
+    
+    # Blocked: Not appropriate for interviews
+    if style in ['casual', 'athletic', 'bohemian', 'streetwear', 'beach']:
+        return 'blocked'
+```
+
+#### **Progressive Fallback Strategy** (Line ~3556-3600)
+
+1. **Try Tier 1 (Strict Formal)** first
+   - Dress shirts, suits, dress pants, oxfords, heels
+   - Prioritizes items not worn in last 48 hours (diversity)
+   - Requires ≥ 3 items to proceed
+
+2. **Fallback to Tier 2 (Smart Casual)** if Tier 1 insufficient
+   - Button-ups, chinos, dark jeans, loafers, ankle boots
+   - Blocks athletic/loungewear
+   - Appropriate for Light Academia, Modern, Artistic
+
+3. **Fallback to Tier 3 (Creative Casual)** if Tier 2 insufficient
+   - Only for creative styles
+   - Elevated casual pieces while still professional
+   - Fashion-forward items allowed
+
+4. **Last Resort**: Use best available items
+
+#### **Pipeline Integration** (Line ~1353-1370)
+
+```python
+# After occasion filtering
+if context.occasion.lower() in ['interview', 'business', 'work', 'professional']:
+    recently_used_item_ids = self._get_recently_used_items(context.user_id, hours=48)
+    context.wardrobe = self._apply_progressive_interview_business_filter(
+        context.wardrobe,
+        context,
+        recently_used_item_ids
+    )
+```
+
+**Location:** After occasion filtering, before style/mood/weather filtering
+
+#### **Hard Filter Modification** (Line ~3635-3643)
+
+Modified `_hard_filter` to skip for interview/business (since progressive filter already ran):
+
+```python
+if occasion_lower in ['formal', 'business', 'interview', 'work', 'professional']:
+    # For formal occasions (weddings, galas), apply strict filter
+    if occasion_lower != 'formal':
+        # Progressive filter already applied - skip hard filter
+        return True
+    # else: apply strict formal filter for 'formal' occasions
+```
+
+### Style Tier Mappings
+
+| Style | Tier | Allows |
+|-------|------|--------|
+| **Business, Professional, Formal, Elegant** | 1 | Dress shirts, suits, formal wear |
+| **Light Academia, Dark Academia, Business-Casual, Modern** | 2 | Button-ups, chinos, nice jeans, loafers |
+| **Artistic, Trendy, Fashion-Forward, Creative** | 2-3 | More flexibility with elevated casual |
+| **Casual, Athletic, Bohemian, Streetwear** | Blocked | Not appropriate for interviews |
+
+### Example Outcomes
+
+**Scenario 1: Corporate Interview (Business style)**
+```
+📊 TIER 1 (Strict Formal): 5 total, 4 fresh
+✅ Using TIER 1 (Strict Formal) - sufficient fresh items
+Result: Dress shirt + Suit pants + Oxfords
+```
+
+**Scenario 2: Light Academia Interview**
+```
+📊 TIER 1 (Strict Formal): 2 total, 1 fresh
+⚠️ TIER 1 insufficient - falling back to TIER 2 (Smart Casual)
+📊 TIER 2 (Smart Casual): 12 total, 9 fresh
+✅ Using TIER 2 (Smart Casual) - sufficient fresh items
+Result: Button-up + Chinos + Ankle boots
+```
+
+**Scenario 3: Artistic Business Meeting**
+```
+📊 TIER 1 (Strict Formal): 1 total, 0 fresh
+⚠️ TIER 1 insufficient - falling back to TIER 2 (Smart Casual)
+📊 TIER 2 (Smart Casual): 8 total, 6 fresh
+✅ Using TIER 2 (Smart Casual)
+Result: Fashion-forward blouse + Tailored pants + Loafers
+```
+
+### Key Features
+
+✅ **Style-Aware**: Different interview types get different item pools  
+✅ **Diversity-Conscious**: Considers recently worn items (48-hour window)  
+✅ **Graceful Fallback**: Tier 1 → Tier 2 → Tier 3 progressively relaxes constraints  
+✅ **Formal-First**: Always tries formal tier before relaxing  
+✅ **Context-Aware**: Creative styles get more flexibility than corporate  
+✅ **Clear Logging**: Shows exactly which tier was used and why  
+
+### Deployment Status
+
+**Commit:** `148aad1f0`  
+**Status:** ✅ Deployed to Railway  
+**Scope:** Interview + Business + Work + Professional occasions only  
+**Auto-deploy:** Active
+
+This fixes the Light Academia interview issue while maintaining formal preference for corporate interviews, all while being style-aware and diversity-conscious.
+
+---
+
 ## 15. 🐛 CRITICAL FIX: Loungewear Filler Canonical Gate Bypass (Commit `c55067cc8`)
 
 ### Problem: Dress + Shirt in Loungewear Outfits
