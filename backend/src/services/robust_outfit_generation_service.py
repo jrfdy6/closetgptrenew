@@ -6,7 +6,16 @@ Robust Outfit Generation Service
 Enterprise-grade outfit generation with comprehensive validation,
 fallback strategies, body type optimization, and style profile integration.
 """
-# CACHE BUSTER: 2025-11-10T17:05Z
+# CACHE BUSTER: 2025-12-19T22:05Z - NUCLEAR BYTECODE CLEAR
+
+# MODULE LOAD DEBUG - This prints when Python first imports this module
+import sys
+print(f"\n{'='*100}", file=sys.stderr, flush=True)
+print(f"🔥🔥🔥 MODULE LOAD: robust_outfit_generation_service.py IMPORTED", file=sys.stderr, flush=True)
+print(f"🔥🔥🔥 CODE VERSION: 2025-12-19T22:05Z", file=sys.stderr, flush=True)
+print(f"🔥🔥🔥 TIER FILTER DEBUG ENABLED", file=sys.stderr, flush=True)
+print(f"{'='*100}\n", file=sys.stderr, flush=True)
+sys.stderr.flush()
 
 import asyncio
 import logging

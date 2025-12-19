@@ -2,8 +2,8 @@
 FROM python:3.11
 
 # NUCLEAR CACHE BUSTER - Change this number on every deploy to break ALL caches
-ARG CACHE_BUSTER=1766183000
-RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE COMPLETE REBUILD - Clear Bytecode Cache v4"
+ARG CACHE_BUSTER=1766187100
+RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE COMPLETE REBUILD - Nuclear Bytecode Clear + Timestamp v5"
 
 # Set working directory
 WORKDIR /app
@@ -30,10 +30,12 @@ COPY run.py ./
 COPY minimal_debug_app.py ./
 COPY src/ ./src/
 
-# Remove all Python bytecode cache to force fresh imports
+# NUCLEAR: Remove ALL Python bytecode and force timestamp update on ALL files
 RUN find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
     find . -type f -name "*.pyc" -delete 2>/dev/null || true && \
-    echo "✅ Cleared all Python bytecode cache"
+    touch -a -m -t 202512192200 ./src/services/robust_outfit_generation_service.py && \
+    touch -a -m -t 202512192200 ./src/services/filters/formality_tier_system.py && \
+    echo "✅ Cleared all Python bytecode cache and updated file timestamps"
 
 # Verify files were copied (this will fail if cache is used with old files)
 RUN echo "Verifying GENERATE_OUTFIT entry point..." && \
