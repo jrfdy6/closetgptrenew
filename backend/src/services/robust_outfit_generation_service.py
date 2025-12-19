@@ -1033,6 +1033,8 @@ class RobustOutfitGenerationService:
     async def _generate_outfit_internal(self, context: GenerationContext, session_id: str) -> OutfitGeneratedOutfit:
         """Internal outfit generation logic with full error handling and session tracking"""
         
+        logger.error(f"🚨🚨🚨 FUNCTION START: _generate_outfit_internal called for occasion='{context.occasion}'")
+        
         # ═══════════════════════════════════════════════════════════════════════
         # HYDRATION & CONTEXT VALIDATION
         # ═══════════════════════════════════════════════════════════════════════
