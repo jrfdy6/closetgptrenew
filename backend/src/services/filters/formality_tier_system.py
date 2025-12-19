@@ -595,7 +595,7 @@ class FormalityTierSystem:
         tier: FormalityTier,
         safe_get_item_attr_func: callable
     ) -> List[Any]:
-        """Filter wardrobe items by formality tier"""
+        """Filter wardrobe items by formality tier with intelligent keyword matching"""
         keywords = self.tier_keywords.get(tier, {})
         if not keywords:
             # No keywords for this tier, return all
@@ -610,28 +610,48 @@ class FormalityTierSystem:
             if any(blocked in item_name or blocked in item_type for blocked in self.blocked_keywords):
                 continue
             
-            # Check if item matches tier keywords
+            # Check if item matches tier keywords with INTELLIGENT MATCHING
             matches_tier = False
             for category, category_keywords in keywords.items():
-                if any(keyword in item_name or keyword in item_type for keyword in category_keywords):
-                    matches_tier = True
+                for keyword in category_keywords:
+                    # Split keyword into words for flexible matching
+                    keyword_words = keyword.split()
+                    
+                    if len(keyword_words) > 1:
+                        # Multi-word keyword (e.g., "pencil dress", "dress shirt", "oxford shoes")
+                        # Check if ALL words from keyword appear in item name/type (order-independent)
+                        # This matches:
+                        #   - "pencil dress" → "Dress pencil Mustard Yellow" ✅
+                        #   - "dress shirt" → "Shirt dress blue" ✅
+                        #   - "oxford shoes" → "Shoes oxford brown" ✅
+                        if all(word in item_name or word in item_type for word in keyword_words):
+                            matches_tier = True
+                            break
+                    else:
+                        # Single-word keyword: use simple substring match
+                        if keyword in item_name or keyword in item_type:
+                            matches_tier = True
+                            break
+                
+                if matches_tier:
                     break
             
             # Also check metadata for formality level
-            if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
-                visual_attrs = item.metadata.get('visualAttributes', {})
-                if isinstance(visual_attrs, dict):
-                    formal_level = (visual_attrs.get('formalLevel') or '').lower()
-                    
-                    if tier == FormalityTier.TIER_1_STRICT_FORMAL:
-                        if formal_level in ['formal', 'business', 'professional', 'dress']:
-                            matches_tier = True
-                    elif tier == FormalityTier.TIER_2_SMART_CASUAL:
-                        if formal_level in ['smart casual', 'business casual', 'semi-formal']:
-                            matches_tier = True
-                    elif tier == FormalityTier.TIER_3_CREATIVE_CASUAL:
-                        if formal_level in ['casual', 'smart casual', 'creative']:
-                            matches_tier = True
+            if not matches_tier:  # Only check metadata if keyword match failed
+                if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
+                    visual_attrs = item.metadata.get('visualAttributes', {})
+                    if isinstance(visual_attrs, dict):
+                        formal_level = (visual_attrs.get('formalLevel') or '').lower()
+                        
+                        if tier == FormalityTier.TIER_1_STRICT_FORMAL:
+                            if formal_level in ['formal', 'business', 'professional', 'dress']:
+                                matches_tier = True
+                        elif tier == FormalityTier.TIER_2_SMART_CASUAL:
+                            if formal_level in ['smart casual', 'business casual', 'semi-formal']:
+                                matches_tier = True
+                        elif tier == FormalityTier.TIER_3_CREATIVE_CASUAL:
+                            if formal_level in ['casual', 'smart casual', 'creative']:
+                                matches_tier = True
             
             if matches_tier:
                 filtered.append(item)
