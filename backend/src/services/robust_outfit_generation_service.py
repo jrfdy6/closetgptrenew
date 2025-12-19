@@ -28,6 +28,24 @@ from ..utils.base_item_debugger import BaseItemTracker
 from .outfit_strategy_selector import get_strategy_selector, OutfitStrategy
 from .outfit_strategy_implementation import StrategyImplementation
 from .filters import FormalityTierSystem, OccasionFilters
+
+# Extracted modules for better maintainability
+from .constants import (
+    BASE_CATEGORY_LIMITS,
+    MAX_ITEMS,
+    MIN_ITEMS,
+    INAPPROPRIATE_COMBINATIONS,
+    STYLE_COMPATIBILITY,
+)
+from .item_utils import (
+    get_item_category as extracted_get_item_category,
+    is_shirt as extracted_is_shirt,
+)
+from .validation import (
+    can_add_category as extracted_can_add_category,
+    get_essential_requirements as extracted_get_essential_requirements,
+)
+
 import sys
 import os
 
