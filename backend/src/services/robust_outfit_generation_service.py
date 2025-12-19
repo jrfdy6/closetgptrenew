@@ -1033,6 +1033,7 @@ class RobustOutfitGenerationService:
     async def _generate_outfit_internal(self, context: GenerationContext, session_id: str) -> OutfitGeneratedOutfit:
         """Internal outfit generation logic with full error handling and session tracking"""
         
+        print(f"🚨🚨🚨 FUNCTION START: _generate_outfit_internal called for occasion='{context.occasion}'")
         logger.error(f"🚨🚨🚨 FUNCTION START: _generate_outfit_internal called for occasion='{context.occasion}'")
         
         # ═══════════════════════════════════════════════════════════════════════
@@ -1237,6 +1238,8 @@ class RobustOutfitGenerationService:
         # This allows style-aware fallback (Tier 1 → Tier 2 → Tier 3)
         # IMPORTANT: This REPLACES the hard filter for these occasions
         progressive_filter_applied = False
+        print(f"🚨🚨🚨 TIER FILTER CHECK: Occasion='{context.occasion}', Occasion.lower()='{context.occasion.lower()}'")
+        print(f"🚨🚨🚨 TIER FILTER CHECK: should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}")
         logger.error(f"🚨🚨🚨 TIER FILTER CHECK: Occasion='{context.occasion}', Occasion.lower()='{context.occasion.lower()}'")
         logger.error(f"🚨🚨🚨 TIER FILTER CHECK: should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}")
         
