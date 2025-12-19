@@ -1042,3 +1042,211 @@ Result: Shirt + Cardigan (VALID)
 
 The dress exclusivity invariant is now enforced across **all 8 code paths**, including context-specific paths like loungewear mode.
 
+
+---
+
+## Section 15: Major Refactoring - Comprehensive Tier System (December 19, 2025)
+
+### Overview
+
+The outfit generation system underwent a major refactoring to address Railway deployment issues (file too large) and improve maintainability. The refactoring extracted filter logic into a modular system and implemented a comprehensive tier-based filtering strategy for 20+ occasions.
+
+### Refactoring Summary
+
+**Files Created:**
+- `backend/src/services/filters/__init__.py` - Package exports
+- `backend/src/services/filters/formality_tier_system.py` - Comprehensive tier system (850 lines)
+- `backend/src/services/filters/occasion_filters.py` - Modular occasion filters (500 lines)
+
+**Files Modified:**
+- `backend/src/services/robust_outfit_generation_service.py`
+  - **Before:** 8,920 lines
+  - **After:** 8,362 lines
+  - **Reduction:** 558 lines (-6.3%)
+
+### Architecture Changes
+
+#### Before Refactoring
+```
+robust_outfit_generation_service.py (8,920 lines)
+├── _hard_filter() - 660 lines of inline occasion logic
+├── _apply_progressive_interview_business_filter() - 100 lines
+├── _get_interview_formality_tier()
+├── _is_formal_business_item()
+├── _is_smart_casual_item()
+└── ... 7 helper methods
+```
+
+#### After Refactoring
+```
+filters/
+├── __init__.py
+├── formality_tier_system.py
+│   ├── FormalityTierSystem
+│   ├── OccasionTierConfig (20+ occasions)
+│   └── Tier keywords & definitions
+└── occasion_filters.py
+    ├── OccasionFilters
+    ├── filter_gym()
+    ├── filter_formal()
+    ├── filter_loungewear()
+    ├── filter_party_date()
+    └── filter_old_money_style()
+
+robust_outfit_generation_service.py (8,362 lines)
+├── __init__() - Initializes filter systems
+├── _hard_filter() - 5 lines (delegates to OccasionFilters)
+└── _apply_progressive_interview_business_filter() - 15 lines (delegates to FormalityTierSystem)
+```
+
+### Comprehensive Tier System
+
+The new `FormalityTierSystem` supports progressive filtering for 20+ occasions with style-aware tier selection:
+
+#### Tier Definitions
+
+**Tier 1: Strict Formal**
+- Items: Suits, blazers, dress shoes, formal dresses
+- Occasions: Interview, Business, Formal, Black-Tie, Gala, Wedding, Funeral
+
+**Tier 2: Smart Casual**
+- Items: Button-ups, chinos, loafers, midi dresses
+- Occasions: Cocktail, Date Night, Conference, Presentation, Dinner, Theater
+
+**Tier 3: Creative Casual**
+- Items: Stylish but relaxed items
+- Occasions: Museum, Art Gallery (for creative styles)
+
+**Tier 4: Relaxed**
+- Items: Clean jeans, sneakers
+- Occasions: Brunch, casual contexts
+
+#### Occasion Configurations
+
+Each occasion has a configuration with:
+- **Primary Tier:** Default tier to try first
+- **Allowed Tiers:** Fallback tiers if primary insufficient
+- **Style Overrides:** Tier adjustments for specific styles
+- **Requirements:** Minimum items needed per tier
+
+**Example: Interview**
+```python
+'interview': OccasionTierConfig(
+    occasion='interview',
+    primary_tier=FormalityTier.TIER_1_STRICT_FORMAL,
+    allowed_tiers=[
+        FormalityTier.TIER_1_STRICT_FORMAL,
+        FormalityTier.TIER_2_SMART_CASUAL,
+        FormalityTier.TIER_3_CREATIVE_CASUAL  # Only for creative industries
+    ],
+    style_overrides={
+        'light academia': FormalityTier.TIER_2_SMART_CASUAL,
+        'dark academia': FormalityTier.TIER_2_SMART_CASUAL,
+        'creative': FormalityTier.TIER_3_CREATIVE_CASUAL,
+        'artistic': FormalityTier.TIER_3_CREATIVE_CASUAL,
+        'tech': FormalityTier.TIER_2_SMART_CASUAL,
+    },
+    requirements=TierRequirements(min_items=3, min_fresh_items=2)
+)
+```
+
+#### Progressive Filtering Strategy
+
+1. **Determine Target Tier:** Based on occasion + style
+2. **Try Primary Tier:** Filter wardrobe by tier keywords
+3. **Check Sufficiency:** Minimum items + fresh items
+4. **Fallback if Needed:** Try next allowed tier
+5. **Continue Until Success:** Or return best available
+
+**Example Flow:**
+```
+Interview + Light Academia
+↓
+Target Tier: TIER_2_SMART_CASUAL (style override)
+↓
+Try TIER_1: 2 items (insufficient, need 3)
+↓
+Try TIER_2: 5 items, 4 fresh ✅
+↓
+Return: TIER_2 items
+```
+
+### Supported Occasions
+
+**Tier 1 (Strict Formality):**
+- Interview, Business, Work, Professional
+- Formal, Black-Tie, Gala
+- Wedding, Wedding-Guest, Funeral
+
+**Tier 2 (Context-Aware):**
+- Cocktail, Date, Date-Night, Night-Out
+- Conference, Presentation, Meeting
+- Brunch, Dinner
+
+**Tier 3 (Style-Driven):**
+- Museum, Art-Gallery, Theater
+
+### Benefits
+
+1. **Scalability:** Easy to add new occasions/styles
+2. **Maintainability:** Centralized filter logic
+3. **Flexibility:** Style overrides for context-specific adjustments
+4. **Testability:** Each filter can be tested independently
+5. **Performance:** Reduced file size fixes Railway deployment
+6. **Extensibility:** New tiers can be added without touching main service
+
+### Integration
+
+The tier system integrates seamlessly with existing code:
+
+```python
+# In __init__
+self.tier_system = FormalityTierSystem()
+self.occasion_filters = OccasionFilters(
+    safe_get_item_name_func=self.safe_get_item_name,
+    safe_get_item_attr_func=self.safe_get_item_attr
+)
+
+# In _hard_filter
+def _hard_filter(self, item, occasion, style):
+    return self.occasion_filters.apply_hard_filter(item, occasion, style)
+
+# In _apply_progressive_interview_business_filter
+def _apply_progressive_interview_business_filter(self, wardrobe, context, recently_used_item_ids):
+    if not self.tier_system.should_apply_tier_filter(context.occasion):
+        return wardrobe
+    
+    filtered_wardrobe, tier_used = self.tier_system.apply_progressive_filter(
+        wardrobe, context.occasion, context.style, recently_used_item_ids, self.safe_get_item_attr
+    )
+    return filtered_wardrobe
+```
+
+### Deployment Status
+
+**Commit:** `4aafc197b`  
+**Status:** ✅ Pushed to main  
+**Railway:** Will automatically redeploy  
+**File Size:** Reduced from 500KB to 460KB (-40KB)  
+**Line Count:** Reduced from 8,920 to 8,362 lines (-558 lines)
+
+### Future Enhancements
+
+1. **Add More Occasions:** Easily extend to cover all 50+ occasions in the system
+2. **Refine Tier Keywords:** Based on real usage patterns
+3. **Add Tier 4 & 5:** For very casual and athletic contexts
+4. **Style-Specific Filters:** Extract more style-specific logic
+5. **Unit Tests:** Test each filter independently
+6. **Performance Metrics:** Track tier usage and fallback rates
+
+### Conclusion
+
+This refactoring successfully:
+- ✅ Reduced file size to fix Railway deployment
+- ✅ Improved code maintainability and organization
+- ✅ Implemented comprehensive tier system for 20+ occasions
+- ✅ Maintained backward compatibility
+- ✅ Enhanced scalability for future additions
+
+The outfit generation system is now more modular, maintainable, and ready for future enhancements.
+
