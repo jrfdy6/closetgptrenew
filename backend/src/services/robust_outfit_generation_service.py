@@ -1232,6 +1232,8 @@ class RobustOutfitGenerationService:
         # ═══════════════════════════════════════════════════════════
         # Apply progressive tier filter for Interview/Business occasions
         # This allows style-aware fallback (Tier 1 → Tier 2 → Tier 3)
+        # IMPORTANT: This REPLACES the hard filter for these occasions
+        progressive_filter_applied = False
         if context.occasion.lower() in ['interview', 'business', 'work', 'professional']:
             try:
                 recently_used_item_ids = self._get_recently_used_items(context.user_id, hours=48)
@@ -1240,9 +1242,13 @@ class RobustOutfitGenerationService:
                     context,
                     recently_used_item_ids
                 )
+                progressive_filter_applied = True
                 logger.info(f"✅ Progressive tier filter applied: {len(context.wardrobe)} items remaining")
             except Exception as e:
                 logger.warning(f"⚠️ Progressive filter error (continuing with current wardrobe): {e}")
+        
+        # Store flag in context so hard filter can skip if progressive filter was used
+        context.progressive_filter_applied = progressive_filter_applied
         
         # ═══════════════════════════════════════════════════════════
         # STEP 2: ADDITIONAL FILTERING (style, mood, weather)
@@ -3140,10 +3146,15 @@ class RobustOutfitGenerationService:
             
             # CRITICAL: Apply hard filter AFTER semantic filtering
             if passed_semantic:
-                # Apply hard filter to block explicitly inappropriate items (polos, dress shoes, etc.)
-                passes_hard_filter = self._hard_filter(raw_item, context.occasion, context.style)
-                if passes_hard_filter:
+                # Skip hard filter if progressive tier filter was already applied
+                if getattr(context, 'progressive_filter_applied', False):
+                    # Progressive filter already did the formality filtering
                     valid_items.append(raw_item)
+                else:
+                    # Apply hard filter to block explicitly inappropriate items (polos, dress shoes, etc.)
+                    passes_hard_filter = self._hard_filter(raw_item, context.occasion, context.style)
+                    if passes_hard_filter:
+                        valid_items.append(raw_item)
                 else:
                     # Item blocked by hard filter
                     debug_entry['valid'] = False
