@@ -1203,11 +1203,55 @@ class RobustOutfitGenerationService:
         # STEP 1: OCCASION-FIRST FILTERING (with fallbacks)
         # ═══════════════════════════════════════════════════════════
         
+        # ═══════════════════════════════════════════════════════════
+        # PROGRESSIVE TIER FILTER (RUNS FIRST - Before Occasion Filter!)
+        # ═══════════════════════════════════════════════════════════
+        # For tier-based occasions (Interview, Business, etc.), apply progressive tier filtering
+        # BEFORE the occasion filter, so we don't lose formal items
+        # This allows style-aware fallback (Tier 1 → Tier 2 → Tier 3)
+        progressive_filter_applied = False
+        print(f"🚨🚨🚨 TIER FILTER CHECK: Occasion='{context.occasion}', should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}")
+        logger.error(f"🚨🚨🚨 TIER FILTER CHECK: Occasion='{context.occasion}', should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}")
+        
+        if self.tier_system.should_apply_tier_filter(context.occasion):
+            print(f"🎯 PROGRESSIVE TIER FILTER: Running BEFORE occasion filter for {context.occasion}")
+            logger.error(f"🎯 PROGRESSIVE TIER FILTER: Running BEFORE occasion filter for {context.occasion}")
+            try:
+                recently_used_item_ids = self._get_recently_used_items(context.user_id, hours=48)
+                filtered_wardrobe, tier_used = self.tier_system.apply_progressive_filter(
+                    wardrobe=context.wardrobe,
+                    occasion=context.occasion,
+                    style=context.style,
+                    recently_used_item_ids=recently_used_item_ids,
+                    safe_get_item_attr_func=self.safe_get_item_attr
+                )
+                context.wardrobe = filtered_wardrobe
+                progressive_filter_applied = True
+                print(f"✅ PROGRESSIVE TIER FILTER: Applied {tier_used.value}, {len(context.wardrobe)} items remaining")
+                logger.error(f"✅ PROGRESSIVE TIER FILTER: Applied {tier_used.value} for {context.occasion} + {context.style}")
+                logger.error(f"✅ PROGRESSIVE TIER FILTER: {len(context.wardrobe)} items remaining after tier filtering")
+            except Exception as e:
+                print(f"❌ PROGRESSIVE TIER FILTER ERROR: {e}")
+                logger.error(f"❌ PROGRESSIVE TIER FILTER ERROR: {e}")
+                import traceback
+                logger.error(f"❌ TRACEBACK: {traceback.format_exc()}")
+        else:
+            print(f"⏭️ PROGRESSIVE TIER FILTER: Skipped for occasion '{context.occasion}'")
+        
+        # Store flag in context so hard filter can skip if progressive filter was used
+        context.progressive_filter_applied = progressive_filter_applied
+        
+        # ═══════════════════════════════════════════════════════════
+        # STEP 1: OCCASION-FIRST FILTERING (Skipped for tier-based occasions)
+        # ═══════════════════════════════════════════════════════════
+        
         logger.info(f"🎯 STEP 1: Occasion-First Filtering")
         
-        # CRITICAL: When base item is specified, skip strict occasion filtering
-        # Use OR logic in STEP 2 instead for maximum flexibility
-        if context.base_item_id:
+        # CRITICAL: Skip occasion filter if tier filter was applied (it already did the filtering)
+        if progressive_filter_applied:
+            logger.info(f"✅ STEP 1 SKIPPED: Tier filter already applied, using {len(context.wardrobe)} items")
+            occasion_candidates = context.wardrobe
+        elif context.base_item_id:
             logger.info(f"🎯 BASE ITEM MODE: Skipping strict occasion filter, will use OR logic in STEP 2")
             occasion_candidates = context.wardrobe  # Use entire wardrobe
             logger.info(f"✅ STEP 1 SKIPPED: Using all {len(occasion_candidates)} items (base item mode)")
@@ -1230,44 +1274,6 @@ class RobustOutfitGenerationService:
         context.wardrobe_original = context.wardrobe.copy()
         context.wardrobe = occasion_candidates
         logger.info(f"📦 Wardrobe updated: {original_wardrobe_size} → {len(context.wardrobe)} items (occasion-filtered)")
-        
-        # ═══════════════════════════════════════════════════════════
-        # PROGRESSIVE TIER FILTER (NEW - Comprehensive System)
-        # ═══════════════════════════════════════════════════════════
-        # Apply progressive tier filter for occasions requiring formality control
-        # This allows style-aware fallback (Tier 1 → Tier 2 → Tier 3)
-        # IMPORTANT: This REPLACES the hard filter for these occasions
-        progressive_filter_applied = False
-        print(f"🚨🚨🚨 TIER FILTER CHECK: Occasion='{context.occasion}', Occasion.lower()='{context.occasion.lower()}'")
-        print(f"🚨🚨🚨 TIER FILTER CHECK: should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}")
-        logger.error(f"🚨🚨🚨 TIER FILTER CHECK: Occasion='{context.occasion}', Occasion.lower()='{context.occasion.lower()}'")
-        logger.error(f"🚨🚨🚨 TIER FILTER CHECK: should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}")
-        
-        if self.tier_system.should_apply_tier_filter(context.occasion):
-            logger.info(f"🎯 PROGRESSIVE TIER FILTER: Starting for {context.occasion} + {context.style}")
-            try:
-                recently_used_item_ids = self._get_recently_used_items(context.user_id, hours=48)
-                logger.info(f"🎯 PROGRESSIVE TIER FILTER: Got {len(recently_used_item_ids)} recently used items")
-                filtered_wardrobe, tier_used = self.tier_system.apply_progressive_filter(
-                    wardrobe=context.wardrobe,
-                    occasion=context.occasion,
-                    style=context.style,
-                    recently_used_item_ids=recently_used_item_ids,
-                    safe_get_item_attr_func=self.safe_get_item_attr
-                )
-                context.wardrobe = filtered_wardrobe
-                progressive_filter_applied = True
-                logger.info(f"✅ PROGRESSIVE TIER FILTER: Applied {tier_used.value} for {context.occasion} + {context.style}")
-                logger.info(f"✅ PROGRESSIVE TIER FILTER: {len(context.wardrobe)} items remaining after tier filtering")
-            except Exception as e:
-                logger.error(f"❌ PROGRESSIVE TIER FILTER ERROR: {e}")
-                import traceback
-                logger.error(f"❌ TRACEBACK: {traceback.format_exc()}")
-        else:
-            logger.info(f"⏭️ PROGRESSIVE TIER FILTER: Skipped for occasion '{context.occasion}' (not in tier configs)")
-        
-        # Store flag in context so hard filter can skip if progressive filter was used
-        context.progressive_filter_applied = progressive_filter_applied
         
         # ═══════════════════════════════════════════════════════════
         # STEP 2: ADDITIONAL FILTERING (style, mood, weather)
