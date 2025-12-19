@@ -3155,10 +3155,10 @@ class RobustOutfitGenerationService:
                     passes_hard_filter = self._hard_filter(raw_item, context.occasion, context.style)
                     if passes_hard_filter:
                         valid_items.append(raw_item)
-                else:
-                    # Item blocked by hard filter
-                    debug_entry['valid'] = False
-                    debug_entry['reasons'].append("Blocked by hard filter (formal/inappropriate item)")
+                    else:
+                        # Item blocked by hard filter
+                        debug_entry['valid'] = False
+                        debug_entry['reasons'].append("Blocked by hard filter (formal/inappropriate item)")
         
         
         logger.info(f"🔍 HARD FILTER: Results - {len(valid_items)} passed filters, {len(debug_analysis) - len(valid_items)} rejected")
