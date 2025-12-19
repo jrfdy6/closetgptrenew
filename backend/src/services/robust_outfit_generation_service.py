@@ -1234,9 +1234,14 @@ class RobustOutfitGenerationService:
         # This allows style-aware fallback (Tier 1 → Tier 2 → Tier 3)
         # IMPORTANT: This REPLACES the hard filter for these occasions
         progressive_filter_applied = False
+        logger.info(f"🔍 TIER FILTER CHECK: Occasion='{context.occasion}', Occasion.lower()='{context.occasion.lower()}'")
+        logger.info(f"🔍 TIER FILTER CHECK: should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}")
+        
         if self.tier_system.should_apply_tier_filter(context.occasion):
+            logger.info(f"🎯 PROGRESSIVE TIER FILTER: Starting for {context.occasion} + {context.style}")
             try:
                 recently_used_item_ids = self._get_recently_used_items(context.user_id, hours=48)
+                logger.info(f"🎯 PROGRESSIVE TIER FILTER: Got {len(recently_used_item_ids)} recently used items")
                 filtered_wardrobe, tier_used = self.tier_system.apply_progressive_filter(
                     wardrobe=context.wardrobe,
                     occasion=context.occasion,
@@ -1249,9 +1254,11 @@ class RobustOutfitGenerationService:
                 logger.info(f"✅ PROGRESSIVE TIER FILTER: Applied {tier_used.value} for {context.occasion} + {context.style}")
                 logger.info(f"✅ PROGRESSIVE TIER FILTER: {len(context.wardrobe)} items remaining after tier filtering")
             except Exception as e:
-                logger.warning(f"⚠️ Progressive tier filter error (continuing with current wardrobe): {e}")
+                logger.error(f"❌ PROGRESSIVE TIER FILTER ERROR: {e}")
                 import traceback
-                logger.warning(f"⚠️ Traceback: {traceback.format_exc()}")
+                logger.error(f"❌ TRACEBACK: {traceback.format_exc()}")
+        else:
+            logger.info(f"⏭️ PROGRESSIVE TIER FILTER: Skipped for occasion '{context.occasion}' (not in tier configs)")
         
         # Store flag in context so hard filter can skip if progressive filter was used
         context.progressive_filter_applied = progressive_filter_applied
