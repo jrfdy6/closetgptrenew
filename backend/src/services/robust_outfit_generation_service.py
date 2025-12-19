@@ -990,10 +990,14 @@ class RobustOutfitGenerationService:
     async def generate_outfit(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Generate an outfit with multi-layered scoring system"""
         import sys
-        print(f"\n{'='*80}", flush=True)
-        print(f"🚨 GENERATE_OUTFIT CALLED: occasion={context.occasion}, style={context.style}", flush=True)
-        print(f"{'='*80}\n", flush=True)
+        
+        # EXTREME DEBUG - Print to both stdout and stderr
+        debug_msg = f"\n{'='*80}\n🚨 GENERATE_OUTFIT CALLED: occasion={context.occasion}, style={context.style}\n{'='*80}\n"
+        print(debug_msg, file=sys.stdout, flush=True)
+        print(debug_msg, file=sys.stderr, flush=True)
         sys.stdout.flush()
+        sys.stderr.flush()
+        
         logger.info(f"🎨 Starting robust outfit generation for user {context.user_id}")
         logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
         logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
