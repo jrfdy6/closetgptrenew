@@ -1221,11 +1221,24 @@ class RobustOutfitGenerationService:
         # This allows style-aware fallback (Tier 1 → Tier 2 → Tier 3)
         progressive_filter_applied = False
         import sys
+        
+        # WRITE TO FILE to bypass Railway's broken log ordering
+        with open('/tmp/tier_filter_debug.log', 'a') as f:
+            f.write(f"\n{'='*80}\n")
+            f.write(f"TIER FILTER CHECK\n")
+            f.write(f"Occasion: {context.occasion}\n")
+            f.write(f"Style: {context.style}\n")
+            f.write(f"Should apply: {self.tier_system.should_apply_tier_filter(context.occasion)}\n")
+            f.write(f"{'='*80}\n")
+        
         print(f"🚨🚨🚨 TIER FILTER CHECK: Occasion='{context.occasion}', should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}", flush=True)
         sys.stdout.flush()
         logger.error(f"🚨🚨🚨 TIER FILTER CHECK: Occasion='{context.occasion}', should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}")
         
         if self.tier_system.should_apply_tier_filter(context.occasion):
+            with open('/tmp/tier_filter_debug.log', 'a') as f:
+                f.write(f"TIER FILTER: RUNNING for {context.occasion}\n")
+            
             print(f"🎯 PROGRESSIVE TIER FILTER: Running BEFORE occasion filter for {context.occasion}")
             logger.error(f"🎯 PROGRESSIVE TIER FILTER: Running BEFORE occasion filter for {context.occasion}")
             try:
@@ -1233,6 +1246,11 @@ class RobustOutfitGenerationService:
                 from src.utils.semantic_compatibility import OCCASION_FALLBACKS
                 
                 recently_used_item_ids = self._get_recently_used_items(context.user_id, hours=48)
+                
+                with open('/tmp/tier_filter_debug.log', 'a') as f:
+                    f.write(f"Recently used items: {len(recently_used_item_ids)}\n")
+                    f.write(f"Wardrobe size before filter: {len(context.wardrobe)}\n")
+                
                 filtered_wardrobe, tier_used = self.tier_system.apply_progressive_filter(
                     wardrobe=context.wardrobe,
                     occasion=context.occasion,
@@ -1243,15 +1261,28 @@ class RobustOutfitGenerationService:
                 )
                 context.wardrobe = filtered_wardrobe
                 progressive_filter_applied = True
+                
+                with open('/tmp/tier_filter_debug.log', 'a') as f:
+                    f.write(f"Tier used: {tier_used.value}\n")
+                    f.write(f"Wardrobe size after filter: {len(context.wardrobe)}\n")
+                    f.write(f"Items remaining: {[self.safe_get_item_name(item) for item in context.wardrobe[:5]]}\n")
+                
                 print(f"✅ PROGRESSIVE TIER FILTER: Applied {tier_used.value}, {len(context.wardrobe)} items remaining")
                 logger.error(f"✅ PROGRESSIVE TIER FILTER: Applied {tier_used.value} for {context.occasion} + {context.style}")
                 logger.error(f"✅ PROGRESSIVE TIER FILTER: {len(context.wardrobe)} items remaining after tier filtering")
             except Exception as e:
+                with open('/tmp/tier_filter_debug.log', 'a') as f:
+                    f.write(f"ERROR: {str(e)}\n")
+                    import traceback
+                    f.write(f"TRACEBACK:\n{traceback.format_exc()}\n")
+                
                 print(f"❌ PROGRESSIVE TIER FILTER ERROR: {e}")
                 logger.error(f"❌ PROGRESSIVE TIER FILTER ERROR: {e}")
                 import traceback
                 logger.error(f"❌ TRACEBACK: {traceback.format_exc()}")
         else:
+            with open('/tmp/tier_filter_debug.log', 'a') as f:
+                f.write(f"TIER FILTER: SKIPPED for {context.occasion}\n")
             print(f"⏭️ PROGRESSIVE TIER FILTER: Skipped for occasion '{context.occasion}'")
         
         # Store flag in context so hard filter can skip if progressive filter was used
