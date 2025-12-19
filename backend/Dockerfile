@@ -2,8 +2,8 @@
 FROM python:3.11
 
 # NUCLEAR CACHE BUSTER - Change this number on every deploy to break ALL caches
-ARG CACHE_BUSTER=1766155900
-RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE COMPLETE REBUILD - Progressive Tier Filter Connected"
+ARG CACHE_BUSTER=1766159000
+RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE COMPLETE REBUILD - Occasion Fallbacks Integrated"
 
 # Set working directory
 WORKDIR /app
@@ -42,7 +42,15 @@ RUN echo "Verifying new code with occasion-first filter..." && \
     echo "Verifying tier system import..." && \
     grep -q "from .filters import FormalityTierSystem" ./src/services/robust_outfit_generation_service.py && \
     echo "✅ Tier system import verified" || \
-    (echo "❌ Tier system import MISSING - build failed!" && exit 1)
+    (echo "❌ Tier system import MISSING - build failed!" && exit 1) && \
+    echo "Verifying occasion fallbacks integration..." && \
+    grep -q "OCCASION_FALLBACKS" ./src/services/robust_outfit_generation_service.py && \
+    echo "✅ Occasion fallbacks integration verified" || \
+    (echo "❌ Occasion fallbacks integration MISSING - build failed!" && exit 1) && \
+    echo "Verifying tier filter occasion checking..." && \
+    grep -q "occasion_fallbacks" ./src/services/filters/formality_tier_system.py && \
+    echo "✅ Tier filter occasion checking verified" || \
+    (echo "❌ Tier filter occasion checking MISSING - build failed!" && exit 1)
 
 # Expose port (Railway will override with its own PORT)
 EXPOSE 8080
