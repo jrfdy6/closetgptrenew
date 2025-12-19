@@ -980,9 +980,11 @@ class RobustOutfitGenerationService:
     
     async def generate_outfit(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Generate an outfit with multi-layered scoring system"""
-        print(f"\n{'='*80}")
-        print(f"🚨 GENERATE_OUTFIT CALLED: occasion={context.occasion}, style={context.style}")
-        print(f"{'='*80}\n")
+        import sys
+        print(f"\n{'='*80}", flush=True)
+        print(f"🚨 GENERATE_OUTFIT CALLED: occasion={context.occasion}, style={context.style}", flush=True)
+        print(f"{'='*80}\n", flush=True)
+        sys.stdout.flush()
         logger.info(f"🎨 Starting robust outfit generation for user {context.user_id}")
         logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
         logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
@@ -1199,9 +1201,11 @@ class RobustOutfitGenerationService:
         # Each analyzer scores items, then cohesive composition uses all scores
         # ═══════════════════════════════════════════════════════════
         
-        print(f"\n{'='*80}")
-        print(f"🔬 PHASE 1 START: occasion={context.occasion}")
-        print(f"{'='*80}\n")
+        import sys
+        print(f"\n{'='*80}", flush=True)
+        print(f"🔬 PHASE 1 START: occasion={context.occasion}", flush=True)
+        print(f"{'='*80}\n", flush=True)
+        sys.stdout.flush()
         logger.info(f"🔬 PHASE 1: Filtering & Multi-Layered Analysis & Scoring")
         logger.error(f"🚨🚨🚨 CRITICAL DEBUG: About to check tier filter for occasion='{context.occasion}'")
         
@@ -1216,7 +1220,9 @@ class RobustOutfitGenerationService:
         # BEFORE the occasion filter, so we don't lose formal items
         # This allows style-aware fallback (Tier 1 → Tier 2 → Tier 3)
         progressive_filter_applied = False
-        print(f"🚨🚨🚨 TIER FILTER CHECK: Occasion='{context.occasion}', should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}")
+        import sys
+        print(f"🚨🚨🚨 TIER FILTER CHECK: Occasion='{context.occasion}', should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}", flush=True)
+        sys.stdout.flush()
         logger.error(f"🚨🚨🚨 TIER FILTER CHECK: Occasion='{context.occasion}', should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}")
         
         if self.tier_system.should_apply_tier_filter(context.occasion):

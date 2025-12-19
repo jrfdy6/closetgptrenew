@@ -296,15 +296,18 @@ async def generate_personalized_outfit_from_existing_data(
                 
                 # Generate outfit using robust service
                 logger.warning(f"🚀 ROBUST SERVICE: Calling generate_outfit with {len(wardrobe_items)} items")
-                print(f"\n{'='*100}")
-                print(f"🚨🚨🚨 ROUTE: About to call robust_service.generate_outfit()")
-                print(f"🚨🚨🚨 ROUTE: Occasion={context.occasion}, Style={context.style}")
-                print(f"🚨🚨🚨 ROUTE: Wardrobe size={len(wardrobe_items)}")
-                print(f"{'='*100}\n")
+                import sys
+                print(f"\n{'='*100}", flush=True)
+                print(f"🚨🚨🚨 ROUTE: About to call robust_service.generate_outfit()", flush=True)
+                print(f"🚨🚨🚨 ROUTE: Occasion={context.occasion}, Style={context.style}", flush=True)
+                print(f"🚨🚨🚨 ROUTE: Wardrobe size={len(wardrobe_items)}", flush=True)
+                print(f"{'='*100}\n", flush=True)
+                sys.stdout.flush()
                 robust_outfit = await robust_service.generate_outfit(context)
-                print(f"\n{'='*100}")
-                print(f"✅✅✅ ROUTE: robust_service.generate_outfit() RETURNED")
-                print(f"{'='*100}\n")
+                print(f"\n{'='*100}", flush=True)
+                print(f"✅✅✅ ROUTE: robust_service.generate_outfit() RETURNED", flush=True)
+                print(f"{'='*100}\n", flush=True)
+                sys.stdout.flush()
                 logger.warning(f"✅ ROBUST SERVICE: generate_outfit returned successfully")
                 
                 # Convert robust outfit to response format
