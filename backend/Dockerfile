@@ -2,8 +2,8 @@
 FROM python:3.11
 
 # NUCLEAR CACHE BUSTER - Change this number on every deploy to break ALL caches
-ARG CACHE_BUSTER=1766182500
-RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE COMPLETE REBUILD - Tier Filter Debug Logging v3"
+ARG CACHE_BUSTER=1766183000
+RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE COMPLETE REBUILD - Clear Bytecode Cache v4"
 
 # Set working directory
 WORKDIR /app
@@ -30,27 +30,28 @@ COPY run.py ./
 COPY minimal_debug_app.py ./
 COPY src/ ./src/
 
+# Remove all Python bytecode cache to force fresh imports
+RUN find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
+    find . -type f -name "*.pyc" -delete 2>/dev/null || true && \
+    echo "✅ Cleared all Python bytecode cache"
+
 # Verify files were copied (this will fail if cache is used with old files)
-RUN echo "Verifying new code with occasion-first filter..." && \
-    grep -q "STEP 1: Occasion-First Filtering" ./src/services/robust_outfit_generation_service.py && \
-    echo "✅ New code verified: Occasion-first filter present" || \
-    (echo "❌ Old code detected: Occasion-first filter MISSING - build failed!" && exit 1) && \
-    echo "Verifying progressive tier filter connection..." && \
-    grep -q "PROGRESSIVE TIER FILTER: Applied" ./src/services/robust_outfit_generation_service.py && \
-    echo "✅ Progressive tier filter connection verified" || \
-    (echo "❌ Progressive tier filter connection MISSING - build failed!" && exit 1) && \
-    echo "Verifying tier system import..." && \
-    grep -q "from .filters import FormalityTierSystem" ./src/services/robust_outfit_generation_service.py && \
-    echo "✅ Tier system import verified" || \
-    (echo "❌ Tier system import MISSING - build failed!" && exit 1) && \
-    echo "Verifying occasion fallbacks integration..." && \
-    grep -q "OCCASION_FALLBACKS" ./src/services/robust_outfit_generation_service.py && \
-    echo "✅ Occasion fallbacks integration verified" || \
-    (echo "❌ Occasion fallbacks integration MISSING - build failed!" && exit 1) && \
-    echo "Verifying tier filter occasion checking..." && \
-    grep -q "occasion_fallbacks" ./src/services/filters/formality_tier_system.py && \
-    echo "✅ Tier filter occasion checking verified" || \
-    (echo "❌ Tier filter occasion checking MISSING - build failed!" && exit 1)
+RUN echo "Verifying GENERATE_OUTFIT entry point..." && \
+    grep -q "GENERATE_OUTFIT CALLED" ./src/services/robust_outfit_generation_service.py && \
+    echo "✅ generate_outfit entry point verified" || \
+    (echo "❌ generate_outfit entry point MISSING - build failed!" && exit 1) && \
+    echo "Verifying PHASE 1 START marker..." && \
+    grep -q "PHASE 1 START: occasion" ./src/services/robust_outfit_generation_service.py && \
+    echo "✅ PHASE 1 START marker verified" || \
+    (echo "❌ PHASE 1 START marker MISSING - build failed!" && exit 1) && \
+    echo "Verifying TIER FILTER CHECK marker..." && \
+    grep -q "TIER FILTER CHECK: Occasion" ./src/services/robust_outfit_generation_service.py && \
+    echo "✅ TIER FILTER CHECK marker verified" || \
+    (echo "❌ TIER FILTER CHECK marker MISSING - build failed!" && exit 1) && \
+    echo "Verifying tier filter blocking logic..." && \
+    grep -q "BLOCKED.*keyword" ./src/services/filters/formality_tier_system.py && \
+    echo "✅ Tier filter blocking logic verified" || \
+    (echo "❌ Tier filter blocking logic MISSING - build failed!" && exit 1)
 
 # Expose port (Railway will override with its own PORT)
 EXPOSE 8080
