@@ -149,6 +149,22 @@ async def debug_tier_filter():
     except Exception as e:
         return {"error": str(e), "found": False}
 
+# Global variable to store last outfit metadata for debugging
+_last_outfit_metadata = None
+
+@router.get("/debug-last-outfit")
+async def debug_last_outfit():
+    """Get the last generated outfit's metadata for debugging"""
+    global _last_outfit_metadata
+    if _last_outfit_metadata:
+        return {
+            "found": True,
+            "tier_filter_debug": _last_outfit_metadata.get('tier_filter_debug'),
+            "full_metadata_keys": list(_last_outfit_metadata.keys())
+        }
+    else:
+        return {"found": False, "message": "No outfit generated yet"}
+
 @router.post("/generate-personalized", response_model=OutfitResponse)
 async def generate_personalized_outfit_from_existing_data(
     req: OutfitGenerationRequest,
@@ -369,6 +385,10 @@ async def generate_personalized_outfit_from_existing_data(
                 else:
                     # Fallback to empty dict
                     base_metadata = {}
+                
+                # Store metadata globally for debugging
+                global _last_outfit_metadata
+                _last_outfit_metadata = base_metadata
                 
                 existing_result = {
                     "id": f"outfit_{int(time.time())}",
