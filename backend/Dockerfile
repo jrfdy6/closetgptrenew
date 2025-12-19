@@ -40,7 +40,7 @@ RUN echo "Verifying new code with occasion-first filter..." && \
     echo "✅ Progressive tier filter connection verified" || \
     (echo "❌ Progressive tier filter connection MISSING - build failed!" && exit 1) && \
     echo "Verifying tier system import..." && \
-    grep -q "from src.services.filters import FormalityTierSystem" ./src/services/robust_outfit_generation_service.py && \
+    grep -q "from .filters import FormalityTierSystem" ./src/services/robust_outfit_generation_service.py && \
     echo "✅ Tier system import verified" || \
     (echo "❌ Tier system import MISSING - build failed!" && exit 1)
 
