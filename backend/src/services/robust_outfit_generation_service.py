@@ -1201,6 +1201,23 @@ class RobustOutfitGenerationService:
         logger.info(f"📦 Wardrobe updated: {original_wardrobe_size} → {len(context.wardrobe)} items (occasion-filtered)")
         
         # ═══════════════════════════════════════════════════════════
+        # PROGRESSIVE INTERVIEW/BUSINESS FILTER (NEW)
+        # ═══════════════════════════════════════════════════════════
+        # Apply progressive tier filter for Interview/Business occasions
+        # This allows style-aware fallback (Tier 1 → Tier 2 → Tier 3)
+        if context.occasion.lower() in ['interview', 'business', 'work', 'professional']:
+            try:
+                recently_used_item_ids = self._get_recently_used_items(context.user_id, hours=48)
+                context.wardrobe = self._apply_progressive_interview_business_filter(
+                    context.wardrobe,
+                    context,
+                    recently_used_item_ids
+                )
+                logger.info(f"✅ Progressive tier filter applied: {len(context.wardrobe)} items remaining")
+            except Exception as e:
+                logger.warning(f"⚠️ Progressive filter error (continuing with current wardrobe): {e}")
+        
+        # ═══════════════════════════════════════════════════════════
         # STEP 2: ADDITIONAL FILTERING (style, mood, weather)
         # ═══════════════════════════════════════════════════════════
         
@@ -3310,6 +3327,315 @@ class RobustOutfitGenerationService:
         
         return result
     
+    def _get_interview_formality_tier(self, style: str) -> str:
+        """
+        Determine interview/business formality tier based on style.
+        Returns: 'strict_formal', 'smart_casual', 'creative_casual', or 'blocked'
+        """
+        style_lower = (style or "").lower().strip()
+        
+        # Tier 1: Strict Formal (Corporate/Traditional)
+        strict_formal_styles = {
+            'formal', 'business', 'professional', 'elegant', 
+            'sophisticated', 'classic', 'timeless'
+        }
+        
+        # Tier 2: Smart Casual (Academic/Creative/Startup)
+        smart_casual_styles = {
+            'business-casual', 'modern', 'contemporary', 'preppy',
+            'ivy-league', 'collegiate', 'light-academia', 'dark-academia',
+            'old-money', 'polished', 'chic', 'minimalist', 'scandinavian',
+            'japanese-minimalism', 'designer', 'high-end', 'luxury'
+        }
+        
+        # Tier 3: Creative Casual (Design/Creative Industry)
+        creative_casual_styles = {
+            'trendy', 'fashion-forward', 'artistic', 'creative',
+            'eclectic', 'avant-garde', 'haute-couture', 'vintage',
+            'retro', 'romantic', 'feminine', 'ethereal'
+        }
+        
+        # Tier 4: Blocked (Too casual/inappropriate)
+        blocked_styles = {
+            'casual', 'athletic', 'sporty', 'activewear', 'athleisure',
+            'sportswear', 'bohemian', 'boho', 'hippie', 'festival',
+            'edgy', 'punk', 'grunge', 'rock', 'goth', 'gothic', 'emo',
+            'streetwear', 'urban', 'skate', 'hip-hop', 'western',
+            'cowboy', 'country', 'nautical', 'coastal', 'beach',
+            'summer', 'resort', 'vacation', 'comfortable', 'cozy',
+            'relaxed', 'laid-back', 'sexy', 'glamorous', 'bold',
+            'dramatic', 'quirky', 'y2k', '90s', '80s', '70s',
+            'girly', 'statement'
+        }
+        
+        if style_lower in strict_formal_styles:
+            return 'strict_formal'
+        elif style_lower in smart_casual_styles:
+            return 'smart_casual'
+        elif style_lower in creative_casual_styles:
+            return 'creative_casual'
+        elif style_lower in blocked_styles:
+            return 'blocked'
+        else:
+            # Default: treat unknown styles as smart casual
+            return 'smart_casual'
+    
+    def _is_formal_business_item(self, item) -> bool:
+        """Check if item is formal business appropriate (Tier 1)"""
+        item_type = str(self.safe_get_item_type(item)).lower()
+        item_name = self.safe_get_item_name(item).lower()
+        
+        # Check metadata for formality
+        if hasattr(item, 'metadata') and item.metadata:
+            if isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    formality = (visual_attrs.get('formality') or '').lower()
+                    formal_level = (visual_attrs.get('formalLevel') or '').lower()
+                    
+                    if formality in ['formal', 'business', 'business_formal'] or formal_level in ['formal', 'business', 'dress']:
+                        return True
+                    if formality in ['casual', 'athletic', 'lounge'] or formal_level in ['casual', 'athletic', 'sport']:
+                        return False
+        
+        # Formal keywords (include)
+        formal_keywords = [
+            'dress shirt', 'button-up', 'button up', 'oxford shirt',
+            'dress pants', 'trousers', 'slacks', 'suit', 'blazer',
+            'dress shoes', 'oxford', 'loafer', 'heel', 'pump',
+            'pencil skirt', 'a-line skirt', 'midi skirt'
+        ]
+        
+        # Casual keywords (exclude)
+        casual_keywords = [
+            't-shirt', 't_shirt', 'tee', 'tank', 'cami',
+            'jeans', 'denim', 'shorts', 'sneakers', 'sneaker',
+            'hoodie', 'sweatshirt', 'sweatpants', 'joggers',
+            'athletic', 'gym', 'workout', 'yoga', 'running'
+        ]
+        
+        # Check for casual keywords first (exclude)
+        if any(kw in item_name or kw in item_type for kw in casual_keywords):
+            return False
+        
+        # Check for formal keywords
+        if any(kw in item_name or kw in item_type for kw in formal_keywords):
+            return True
+        
+        return False
+    
+    def _is_smart_casual_item(self, item) -> bool:
+        """Check if item is smart casual appropriate (Tier 2)"""
+        item_type = str(self.safe_get_item_type(item)).lower()
+        item_name = self.safe_get_item_name(item).lower()
+        
+        # Block athletic/loungewear
+        if self._is_athletic_or_lounge(item):
+            return False
+        
+        # Block overly casual
+        if self._is_overly_casual(item):
+            return False
+        
+        return True
+    
+    def _is_athletic_or_lounge(self, item) -> bool:
+        """Check if item is athletic or loungewear"""
+        item_type = str(self.safe_get_item_type(item)).lower()
+        item_name = self.safe_get_item_name(item).lower()
+        
+        athletic_keywords = [
+            'athletic', 'gym', 'workout', 'yoga', 'running',
+            'joggers', 'sweatpants', 'sweatshirt', 'hoodie',
+            'activewear', 'athleisure', 'sports bra', 'leggings',
+            'track pants', 'basketball shorts', 'jersey'
+        ]
+        
+        return any(kw in item_name or kw in item_type for kw in athletic_keywords)
+    
+    def _is_overly_casual(self, item) -> bool:
+        """Check if item is too casual for interview/business (even smart casual)"""
+        item_type = str(self.safe_get_item_type(item)).lower()
+        item_name = self.safe_get_item_name(item).lower()
+        
+        overly_casual_keywords = [
+            'graphic', 'ripped', 'distressed', 'torn',
+            'flip-flop', 'flip flop', 'sandal', 'crocs', 'slides',
+            'tank top', 'crop top', 'cutoff', 'cargo shorts',
+            'beach', 'swimsuit', 'bikini'
+        ]
+        
+        return any(kw in item_name or kw in item_type for kw in overly_casual_keywords)
+    
+    def _is_creative_casual_item(self, item) -> bool:
+        """Check if item is creative casual appropriate (Tier 3)"""
+        item_type = str(self.safe_get_item_type(item)).lower()
+        item_name = self.safe_get_item_name(item).lower()
+        
+        # Block athletic/loungewear
+        if self._is_athletic_or_lounge(item):
+            return False
+        
+        # Block beach/resort wear
+        beach_keywords = [
+            'swimsuit', 'bikini', 'boardshorts', 'beach',
+            'resort', 'vacation', 'tropical', 'hawaiian',
+            'flip-flop', 'flip flop'
+        ]
+        
+        if any(kw in item_name or kw in item_type for kw in beach_keywords):
+            return False
+        
+        return True
+    
+    def _get_recently_used_items(self, user_id: str, hours: int = 48) -> set:
+        """Get set of item IDs worn in the last N hours from Firestore"""
+        try:
+            import time
+            from google.cloud import firestore
+            
+            # Get Firestore client
+            db = firestore.Client()
+            
+            # Calculate cutoff timestamp
+            cutoff_time = int(time.time()) - (hours * 3600)
+            
+            # Query for recent outfits
+            outfits_ref = db.collection('outfits').where('user_id', '==', user_id).where('createdAt', '>=', cutoff_time)
+            recent_outfits = outfits_ref.stream()
+            
+            used_item_ids = set()
+            for outfit_doc in recent_outfits:
+                outfit_data = outfit_doc.to_dict()
+                items = outfit_data.get('items', [])
+                if isinstance(items, list):
+                    for item in items:
+                        # Handle both item objects and item IDs
+                        item_id = item.get('id') if isinstance(item, dict) else item
+                        if item_id:
+                            used_item_ids.add(str(item_id))
+            
+            logger.debug(f"📊 Found {len(used_item_ids)} recently used items in last {hours} hours")
+            return used_item_ids
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Could not fetch recently used items: {e}")
+            return set()  # Return empty set on error (graceful fallback)
+    
+    def _apply_progressive_interview_business_filter(self, wardrobe, context, recently_used_item_ids):
+        """
+        Apply progressive interview/business filtering with tier fallback.
+        
+        Strategy:
+        1. Try Tier 1 (strict formal) first
+        2. If insufficient or all recently worn, fallback to Tier 2 (smart casual)
+        3. If still insufficient, fallback to Tier 3 (creative casual) for creative styles
+        
+        Args:
+            wardrobe: List of wardrobe items
+            context: GenerationContext with occasion, style, etc.
+            recently_used_item_ids: Set of item IDs worn in last 24-48 hours
+        
+        Returns:
+            Filtered wardrobe items
+        """
+        occasion_lower = context.occasion.lower()
+        
+        if occasion_lower not in ['interview', 'business', 'work', 'professional']:
+            # Not interview/business, return as-is
+            return wardrobe
+        
+        # Determine style-based tier
+        style_tier = self._get_interview_formality_tier(context.style)
+        
+        # If style explicitly requires blocking (e.g., "casual" for interview)
+        if style_tier == 'blocked':
+            logger.warning(f"⚠️ Style '{context.style}' is not appropriate for {context.occasion} occasion")
+            # Still try smart casual as fallback
+            style_tier = 'smart_casual'
+        
+        logger.info(f"🎯 {context.occasion.upper()} FILTER: Style '{context.style}' → Tier: {style_tier}")
+        
+        # ═══════════════════════════════════════════════════════════
+        # TIER 1: Try Strict Formal First
+        # ═══════════════════════════════════════════════════════════
+        tier1_items = [
+            item for item in wardrobe
+            if self._is_formal_business_item(item)
+        ]
+        
+        # Check if Tier 1 has enough fresh items
+        tier1_fresh = [
+            item for item in tier1_items
+            if self.safe_get_item_attr(item, 'id', '') not in recently_used_item_ids
+        ]
+        
+        logger.info(f"📊 TIER 1 (Strict Formal): {len(tier1_items)} total, {len(tier1_fresh)} fresh")
+        
+        # Use Tier 1 if we have at least 3 fresh items
+        if len(tier1_fresh) >= 3:
+            logger.info(f"✅ Using TIER 1 (Strict Formal) - sufficient fresh items")
+            return tier1_items
+        
+        # If we have some Tier 1 items but not enough fresh, still prefer them
+        if len(tier1_items) >= 3:
+            logger.info(f"⚠️ Using TIER 1 (Strict Formal) - sufficient items but some recently worn")
+            return tier1_items
+        
+        # ═══════════════════════════════════════════════════════════
+        # TIER 2: Fallback to Smart Casual
+        # ═══════════════════════════════════════════════════════════
+        logger.warning(f"⚠️ TIER 1 insufficient ({len(tier1_items)} items) - falling back to TIER 2 (Smart Casual)")
+        
+        tier2_items = [
+            item for item in wardrobe
+            if self._is_smart_casual_item(item)
+        ]
+        
+        tier2_fresh = [
+            item for item in tier2_items
+            if self.safe_get_item_attr(item, 'id', '') not in recently_used_item_ids
+        ]
+        
+        logger.info(f"📊 TIER 2 (Smart Casual): {len(tier2_items)} total, {len(tier2_fresh)} fresh")
+        
+        # Use Tier 2 if we have at least 3 fresh items
+        if len(tier2_fresh) >= 3:
+            logger.info(f"✅ Using TIER 2 (Smart Casual) - sufficient fresh items")
+            return tier2_items
+        
+        if len(tier2_items) >= 3:
+            logger.info(f"⚠️ Using TIER 2 (Smart Casual) - sufficient items but some recently worn")
+            return tier2_items
+        
+        # ═══════════════════════════════════════════════════════════
+        # TIER 3: Fallback to Creative Casual (only if style allows)
+        # ═══════════════════════════════════════════════════════════
+        if style_tier == 'creative_casual':
+            logger.warning(f"⚠️ TIER 2 insufficient ({len(tier2_items)} items) - falling back to TIER 3 (Creative Casual)")
+            
+            tier3_items = [
+                item for item in wardrobe
+                if self._is_creative_casual_item(item)
+            ]
+            
+            tier3_fresh = [
+                item for item in tier3_items
+                if self.safe_get_item_attr(item, 'id', '') not in recently_used_item_ids
+            ]
+            
+            logger.info(f"📊 TIER 3 (Creative Casual): {len(tier3_items)} total, {len(tier3_fresh)} fresh")
+            
+            if len(tier3_items) >= 3:
+                logger.info(f"✅ Using TIER 3 (Creative Casual)")
+                return tier3_items
+        
+        # ═══════════════════════════════════════════════════════════
+        # LAST RESORT: Use whatever we have
+        # ═══════════════════════════════════════════════════════════
+        logger.error(f"🚨 All tiers insufficient - using best available items")
+        return tier2_items if len(tier2_items) > len(tier1_items) else tier1_items
+    
     def _hard_filter(self, item: ClothingItem, occasion: str, style: str) -> bool:
         """Hard constraints - Block inappropriate items for specific occasions"""
         # BUILD MARKER v2025-10-13-02:50 - Force Railway to detect change
@@ -3629,6 +3955,14 @@ class RobustOutfitGenerationService:
         
         # FORMAL/BUSINESS/INTERVIEW HARD BLOCKS - Block casual/athletic items
         if occasion_lower in ['formal', 'business', 'interview', 'work', 'professional']:
+            # For 'formal' occasions (weddings, galas), apply strict filter
+            # For interview/business/work, progressive filter already applied - skip hard filter
+            if occasion_lower != 'formal':
+                logger.debug(f"✅ {occasion.upper()}: Progressive filter already applied, passing item through")
+                # Progressive filter has already been applied during wardrobe loading
+                # Skip hard filter here to allow tier-appropriate items
+                return True
+            
             logger.info(f"👔 FORMAL FILTER ACTIVE for {occasion}")
             
             # Block athletic/gym wear for formal occasions
