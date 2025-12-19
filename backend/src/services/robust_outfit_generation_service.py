@@ -1262,12 +1262,22 @@ class RobustOutfitGenerationService:
                 context.wardrobe = filtered_wardrobe
                 progressive_filter_applied = True
                 
+                # Store tier filter results in context for debugging
+                context.tier_filter_results = {
+                    'tier_used': tier_used.value,
+                    'items_before': 23,  # We know this from the logs
+                    'items_after': len(context.wardrobe),
+                    'items_removed': 23 - len(context.wardrobe),
+                    'sample_items': [self.safe_get_item_name(item) for item in context.wardrobe[:10]]
+                }
+                
                 with open('/tmp/tier_filter_debug.log', 'a') as f:
                     f.write(f"Tier used: {tier_used.value}\n")
                     f.write(f"Wardrobe size after filter: {len(context.wardrobe)}\n")
                     f.write(f"Items remaining: {[self.safe_get_item_name(item) for item in context.wardrobe[:5]]}\n")
                 
-                print(f"✅ PROGRESSIVE TIER FILTER: Applied {tier_used.value}, {len(context.wardrobe)} items remaining")
+                print(f"✅ PROGRESSIVE TIER FILTER: Applied {tier_used.value}, {len(context.wardrobe)} items remaining", flush=True)
+                print(f"✅ TIER FILTER REMOVED: {23 - len(context.wardrobe)} items", flush=True)
                 logger.error(f"✅ PROGRESSIVE TIER FILTER: Applied {tier_used.value} for {context.occasion} + {context.style}")
                 logger.error(f"✅ PROGRESSIVE TIER FILTER: {len(context.wardrobe)} items remaining after tier filtering")
             except Exception as e:
@@ -7980,7 +7990,10 @@ class RobustOutfitGenerationService:
                 ],
                 "diversity_info": {
                     "message": self._generate_diversity_message(diversity_result, session_tracker, session_id) if diversity_result else "Introducing fresh combinations to keep your style varied!"
-                }
+                },
+                
+                # DEBUG: Tier filter results
+                "tier_filter_debug": context.tier_filter_results if hasattr(context, 'tier_filter_results') else None
             },
             wasSuccessful=True,
             baseItemId=context.base_item_id,
