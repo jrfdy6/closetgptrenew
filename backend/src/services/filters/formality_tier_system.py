@@ -622,22 +622,48 @@ class FormalityTierSystem:
         Returns:
             List of items matching the tier and occasion
         """
+        # EXTREME DEBUG LOGGING
+        import sys
+        print(f"\n{'='*80}", flush=True)
+        print(f"🔍 _filter_by_tier CALLED", flush=True)
+        print(f"   Tier: {tier.value}", flush=True)
+        print(f"   Occasion: {occasion}", flush=True)
+        print(f"   Wardrobe size: {len(wardrobe)}", flush=True)
+        print(f"   Blocked keywords count: {len(self.blocked_keywords)}", flush=True)
+        print(f"   First 5 blocked keywords: {self.blocked_keywords[:5]}", flush=True)
+        print(f"{'='*80}\n", flush=True)
+        sys.stdout.flush()
+        
         keywords = self.tier_keywords.get(tier, {})
         if not keywords:
             # No keywords for this tier, return all
+            print(f"⚠️ NO KEYWORDS for tier {tier.value}, returning all items", flush=True)
+            sys.stdout.flush()
             return wardrobe
         
         filtered = []
+        blocked_count = 0
         for item in wardrobe:
             item_name = safe_get_item_attr_func(item, 'name', '').lower()
             item_type = str(safe_get_item_attr_func(item, 'type', '')).lower()
             
+            # EXTREME DEBUG: Log every item
+            print(f"🔍 Checking item: '{item_name}' (type: '{item_type}')", flush=True)
+            sys.stdout.flush()
+            
             # First, check if item is blocked (too casual)
             is_blocked = any(blocked in item_name or blocked in item_type for blocked in self.blocked_keywords)
+            
+            print(f"   is_blocked check result: {is_blocked}", flush=True)
+            sys.stdout.flush()
+            
             if is_blocked:
                 # Find which keyword blocked it
                 blocking_keyword = next((kw for kw in self.blocked_keywords if kw in item_name or kw in item_type), None)
+                print(f"   🚫 BLOCKED: '{item_name}' (keyword: '{blocking_keyword}')", flush=True)
+                sys.stdout.flush()
                 logger.info(f"   🚫 BLOCKED: '{item_name}' (keyword: '{blocking_keyword}')")
+                blocked_count += 1
                 continue
             
             # Check if item matches tier keywords with INTELLIGENT MATCHING
@@ -713,12 +739,23 @@ class FormalityTierSystem:
                     logger.debug(f"   ✅ {item_name}: tier + occasion match")
             
             if matches_tier:
+                print(f"   ✅ ADDED: '{item_name}' (tier: {tier.value})", flush=True)
+                sys.stdout.flush()
                 logger.info(f"   ✅ ADDED: '{item_name}' (tier: {tier.value})")
                 filtered.append(item)
             else:
+                print(f"   ❌ REJECTED: '{item_name}' (no tier match)", flush=True)
+                sys.stdout.flush()
                 logger.info(f"   ❌ REJECTED: '{item_name}' (no tier match)")
         
-        logger.info(f"📊 TIER FILTER RESULT: {len(filtered)}/{len(wardrobe)} items passed")
+        print(f"\n{'='*80}", flush=True)
+        print(f"📊 TIER FILTER RESULT:", flush=True)
+        print(f"   Total items: {len(wardrobe)}", flush=True)
+        print(f"   Blocked: {blocked_count}", flush=True)
+        print(f"   Passed: {len(filtered)}", flush=True)
+        print(f"{'='*80}\n", flush=True)
+        sys.stdout.flush()
+        logger.info(f"📊 TIER FILTER RESULT: {len(filtered)}/{len(wardrobe)} items passed, {blocked_count} blocked")
         return filtered
     
     def get_tier_description(self, tier: FormalityTier) -> str:
