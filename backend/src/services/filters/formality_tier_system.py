@@ -150,7 +150,10 @@ TIER_BLOCKED_KEYWORDS = [
     'graphic tee', 'band tee', 'logo tee',
     # Footwear
     'flip-flop', 'slide', 'crocs', 'slipper', 'athletic shoes',
-    'running shoes', 'gym shoes', 'basketball shoes'
+    'running shoes', 'gym shoes', 'basketball shoes',
+    # CRITICAL: Block casual items for interviews
+    't-shirt', 'tshirt', 'tee shirt', 'denim shorts', 'jean shorts',
+    'cargo shorts', 'athletic shorts', 'running shorts'
 ]
 
 
