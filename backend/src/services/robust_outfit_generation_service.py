@@ -1194,6 +1194,7 @@ class RobustOutfitGenerationService:
         # ═══════════════════════════════════════════════════════════
         
         logger.info(f"🔬 PHASE 1: Filtering & Multi-Layered Analysis & Scoring")
+        logger.error(f"🚨🚨🚨 CRITICAL DEBUG: About to check tier filter for occasion='{context.occasion}'")
         
         # ═══════════════════════════════════════════════════════════
         # STEP 1: OCCASION-FIRST FILTERING (with fallbacks)
@@ -1234,8 +1235,8 @@ class RobustOutfitGenerationService:
         # This allows style-aware fallback (Tier 1 → Tier 2 → Tier 3)
         # IMPORTANT: This REPLACES the hard filter for these occasions
         progressive_filter_applied = False
-        logger.info(f"🔍 TIER FILTER CHECK: Occasion='{context.occasion}', Occasion.lower()='{context.occasion.lower()}'")
-        logger.info(f"🔍 TIER FILTER CHECK: should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}")
+        logger.error(f"🚨🚨🚨 TIER FILTER CHECK: Occasion='{context.occasion}', Occasion.lower()='{context.occasion.lower()}'")
+        logger.error(f"🚨🚨🚨 TIER FILTER CHECK: should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}")
         
         if self.tier_system.should_apply_tier_filter(context.occasion):
             logger.info(f"🎯 PROGRESSIVE TIER FILTER: Starting for {context.occasion} + {context.style}")
