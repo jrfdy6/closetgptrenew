@@ -137,6 +137,18 @@ async def test_endpoint():
         "timestamp": time.time()
     }
 
+@router.get("/debug-tier-filter")
+async def debug_tier_filter():
+    """Read tier filter debug log"""
+    try:
+        with open('/tmp/tier_filter_debug.log', 'r') as f:
+            content = f.read()
+        return {"log": content, "found": True}
+    except FileNotFoundError:
+        return {"log": "No debug log found yet - generate an outfit first", "found": False}
+    except Exception as e:
+        return {"error": str(e), "found": False}
+
 @router.post("/generate-personalized", response_model=OutfitResponse)
 async def generate_personalized_outfit_from_existing_data(
     req: OutfitGenerationRequest,
