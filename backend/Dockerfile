@@ -2,8 +2,15 @@
 FROM python:3.11
 
 # NUCLEAR CACHE BUSTER - Change this number on every deploy to break ALL caches
-ARG CACHE_BUSTER=1766187100
-RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE COMPLETE REBUILD - Nuclear Bytecode Clear + Timestamp v5"
+ARG CACHE_BUSTER=1766187700
+RUN echo "CACHE BUSTER: $CACHE_BUSTER" && \
+    echo "FORCE COMPLETE REBUILD - Railway Cache Bust v6" && \
+    echo "Build ID: railway-$(date +%s)" && \
+    echo "Commit: f873ccb86" && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/* && \
+    echo "Cache bust complete"
 
 # Set working directory
 WORKDIR /app
