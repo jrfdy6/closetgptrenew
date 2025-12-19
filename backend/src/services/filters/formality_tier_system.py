@@ -633,7 +633,11 @@ class FormalityTierSystem:
             item_type = str(safe_get_item_attr_func(item, 'type', '')).lower()
             
             # First, check if item is blocked (too casual)
-            if any(blocked in item_name or blocked in item_type for blocked in self.blocked_keywords):
+            is_blocked = any(blocked in item_name or blocked in item_type for blocked in self.blocked_keywords)
+            if is_blocked:
+                # Find which keyword blocked it
+                blocking_keyword = next((kw for kw in self.blocked_keywords if kw in item_name or kw in item_type), None)
+                logger.info(f"   🚫 BLOCKED: '{item_name}' (keyword: '{blocking_keyword}')")
                 continue
             
             # Check if item matches tier keywords with INTELLIGENT MATCHING
@@ -709,8 +713,12 @@ class FormalityTierSystem:
                     logger.debug(f"   ✅ {item_name}: tier + occasion match")
             
             if matches_tier:
+                logger.info(f"   ✅ ADDED: '{item_name}' (tier: {tier.value})")
                 filtered.append(item)
+            else:
+                logger.info(f"   ❌ REJECTED: '{item_name}' (no tier match)")
         
+        logger.info(f"📊 TIER FILTER RESULT: {len(filtered)}/{len(wardrobe)} items passed")
         return filtered
     
     def get_tier_description(self, tier: FormalityTier) -> str:
