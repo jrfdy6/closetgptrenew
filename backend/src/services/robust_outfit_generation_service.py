@@ -980,6 +980,9 @@ class RobustOutfitGenerationService:
     
     async def generate_outfit(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Generate an outfit with multi-layered scoring system"""
+        print(f"\n{'='*80}")
+        print(f"🚨 GENERATE_OUTFIT CALLED: occasion={context.occasion}, style={context.style}")
+        print(f"{'='*80}\n")
         logger.info(f"🎨 Starting robust outfit generation for user {context.user_id}")
         logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
         logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
@@ -1196,6 +1199,9 @@ class RobustOutfitGenerationService:
         # Each analyzer scores items, then cohesive composition uses all scores
         # ═══════════════════════════════════════════════════════════
         
+        print(f"\n{'='*80}")
+        print(f"🔬 PHASE 1 START: occasion={context.occasion}")
+        print(f"{'='*80}\n")
         logger.info(f"🔬 PHASE 1: Filtering & Multi-Layered Analysis & Scoring")
         logger.error(f"🚨🚨🚨 CRITICAL DEBUG: About to check tier filter for occasion='{context.occasion}'")
         
