@@ -306,6 +306,48 @@ async def generate_personalized_outfit_from_existing_data(
                 logger.error(f"🚨 ROBUST CRITICAL: About to create GenerationContext with base_item_id={req.baseItemId}")
                 logger.error(f"🚨 ROBUST CRITICAL: req.baseItemId type={type(req.baseItemId)}, is None={req.baseItemId is None}")
                 
+                # ═══════════════════════════════════════════════════════════════════════
+                # 🔥 ROUTE-LEVEL TIER FILTER (Simple Pre-Processor)
+                # ═══════════════════════════════════════════════════════════════════════
+                # Filter out inappropriate items for formal occasions BEFORE passing to service
+                if req.occasion and req.occasion.lower() in ['interview', 'business']:
+                    print(f"\n{'='*80}", flush=True)
+                    print(f"🎯 ROUTE TIER FILTER: Filtering for {req.occasion}", flush=True)
+                    print(f"   Items before filter: {len(wardrobe_items)}", flush=True)
+                    
+                    # Blocked keywords for formal occasions
+                    blocked_keywords = [
+                        't-shirt', 'tshirt', 'tee', 'tank top',
+                        'jeans', 'denim', 'jean shorts', 'denim shorts',
+                        'running shoes', 'sneakers', 'athletic shoes', 'gym shoes',
+                        'sweatpants', 'joggers', 'sweatshirt', 'hoodie',
+                        'shorts' # Block all shorts for interviews
+                    ]
+                    
+                    filtered_wardrobe = []
+                    blocked_count = 0
+                    for item in wardrobe_items:
+                        item_name = (item.name if hasattr(item, 'name') else '').lower()
+                        item_type = str(item.type if hasattr(item, 'type') else '').lower()
+                        
+                        # Check if item should be blocked
+                        is_blocked = any(keyword in item_name or keyword in item_type for keyword in blocked_keywords)
+                        
+                        if is_blocked:
+                            blocking_keyword = next((kw for kw in blocked_keywords if kw in item_name or kw in item_type), 'unknown')
+                            print(f"   🚫 BLOCKED: '{item_name}' (keyword: '{blocking_keyword}')", flush=True)
+                            logger.warning(f"🚫 ROUTE FILTER: Blocked '{item_name}' for {req.occasion}")
+                            blocked_count += 1
+                        else:
+                            filtered_wardrobe.append(item)
+                    
+                    wardrobe_items = filtered_wardrobe
+                    print(f"   ✅ Filtered: {blocked_count} blocked, {len(wardrobe_items)} remaining", flush=True)
+                    print(f"{'='*80}\n", flush=True)
+                    logger.warning(f"✅ ROUTE FILTER: {blocked_count} items blocked, {len(wardrobe_items)} remaining")
+                
+                # ═══════════════════════════════════════════════════════════════════════
+                
                 context = GenerationContext(
                     user_id=user_id,
                     occasion=req.occasion,
