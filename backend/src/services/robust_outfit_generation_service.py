@@ -6854,9 +6854,40 @@ class RobustOutfitGenerationService:
         logger.info(f"🎯 EXPLORATION RATIO: {len(high_score_items)} high scorers (>{high_score_threshold}), {len(low_score_items)} low scorers (<={high_score_threshold})")
         
         # ═══════════════════════════════════════════════════════════
+        # DRESS DETECTION: Check top 3 scored items for dress
+        # ═══════════════════════════════════════════════════════════
+        # If a high-scoring dress exists, adjust essential categories dynamically
+        # This ensures dresses aren't ignored in favor of tops+bottoms
+        
+        top_3_scored = sorted_items[:min(3, len(sorted_items))]
+        has_high_scoring_dress = False
+        high_scoring_dress_id = None
+        high_scoring_dress_score = 0.0
+        
+        for item_id, score_data in top_3_scored:
+            item = score_data['item']
+            item_category = self._get_item_category(item)
+            final_score = score_data['composite_score'] + diversity_adjustments.get(item_id, 0.0)
+            
+            if item_category == 'dress':
+                has_high_scoring_dress = True
+                high_scoring_dress_id = item_id
+                high_scoring_dress_score = final_score
+                logger.info(f"👗 DRESS DETECTED IN TOP 3: '{self.safe_get_item_name(item)}' (score={final_score:.2f})")
+                logger.info(f"   Will prioritize dress-based outfit (dress + shoes + optional layers)")
+                break
+        
+        # ═══════════════════════════════════════════════════════════
         # FIX #1: CATEGORY BALANCE - Reserve best from each essential category
         # ═══════════════════════════════════════════════════════════
-        essential_categories = ['tops', 'bottoms', 'shoes']
+        # Dynamically set essential categories based on dress detection
+        if has_high_scoring_dress:
+            essential_categories = ['dress', 'shoes']
+            logger.info(f"✅ ESSENTIAL CATEGORIES (dress-based): {essential_categories}")
+        else:
+            essential_categories = ['tops', 'bottoms', 'shoes']
+            logger.info(f"✅ ESSENTIAL CATEGORIES (traditional): {essential_categories}")
+        
         reserved_items = {}
         reserved_ids = set()
         
@@ -7036,12 +7067,16 @@ class RobustOutfitGenerationService:
                     preferred_polished_bottom_id = candidate_id
                     break
         
-        # 👗 PHASE 1 PREP: Adjust essential categories if dress already selected in Phase 0
-        has_dress = categories_filled.get('dress', False)
+        # 👗 PHASE 1 PREP: Adjust essential categories based on dress presence
+        # Check both Phase 0 (base item) and top-scored items for dress
+        has_dress = categories_filled.get('dress', False) or has_high_scoring_dress
         
         if has_dress:
-            essential_categories = ['shoes']  # Dress already satisfies base outfit (tops + bottoms)
-            logger.info("👗 PHASE 1: Dress detected in Phase 0 → essential categories = ['shoes'] (skipping tops & bottoms)")
+            essential_categories = ['dress', 'shoes'] if has_high_scoring_dress else ['shoes']
+            if has_high_scoring_dress:
+                logger.info("👗 PHASE 1: High-scoring dress detected → essential categories = ['dress', 'shoes']")
+            else:
+                logger.info("👗 PHASE 1: Dress detected in Phase 0 → essential categories = ['shoes'] (skipping tops & bottoms)")
         else:
             essential_categories = ['tops', 'bottoms', 'shoes']  # Standard outfit requirements
             logger.debug("👔 PHASE 1: No dress → essential categories = ['tops', 'bottoms', 'shoes']")
