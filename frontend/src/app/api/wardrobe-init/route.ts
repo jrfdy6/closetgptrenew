@@ -8,11 +8,21 @@ export async function POST(request: Request) {
   try {
     const backendUrl = process.env.BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
     
+    // Get authorization header from request
+    const authHeader = request.headers.get('authorization');
+    
+    if (!authHeader) {
+      return NextResponse.json(
+        { success: false, error: 'No authorization header' },
+        { status: 401 }
+      );
+    }
+    
     // Forward the request to the backend
     const response = await fetch(`${backendUrl}/api/wardrobe/initialize-my-wardrobe-count`, {
       method: 'POST',
       headers: {
-        'Authorization': request.headers.get('authorization') || '',
+        'Authorization': authHeader,
         'Content-Type': 'application/json'
       }
     });
