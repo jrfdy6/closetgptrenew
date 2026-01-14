@@ -1368,9 +1368,48 @@ function OnboardingContent() {
           }, {} as Record<string, string>)
         });
         
-        // For new quiz completions, go directly to upload phase
-        // The wardrobe check is unnecessary and causes delays
-        console.log('🎯 [Quiz] Going directly to upload phase');
+        // Quick wardrobe check to see if user already has items (they're retaking the quiz)
+        console.log('🎯 [Quiz] Quick check for existing wardrobe at:', Date.now() - startTime, 'ms');
+        
+        // Use a fast HEAD request or count endpoint instead of fetching all items
+        try {
+          const wardrobeCheckToken = await user.getIdToken();
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
+          
+          const wardrobeStart = Date.now();
+          // Try to get just the count, not all items
+          const wardrobeResponse = await fetch('/api/wardrobe?count_only=true', {
+            headers: {
+              'Authorization': `Bearer ${wardrobeCheckToken}`,
+              'Content-Type': 'application/json'
+            },
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          console.log('⏱️ [Quiz] Wardrobe check took:', Date.now() - wardrobeStart, 'ms');
+          
+          if (wardrobeResponse.ok) {
+            const wardrobeData = await wardrobeResponse.json();
+            const itemCount = wardrobeData.count || wardrobeData.items?.length || 0;
+            
+            console.log(`📦 [Quiz] User has ${itemCount} wardrobe items`);
+            
+            if (itemCount >= 10) {
+              console.log(`✅ User has ${itemCount} items, skipping upload - going to persona page`);
+              console.log('⏱️ [submitQuiz] TOTAL TIME:', Date.now() - startTime, 'ms');
+              // Skip upload and go directly to style persona page
+              router.push('/style-persona?from=quiz');
+              return;
+            }
+          }
+        } catch (wardrobeError) {
+          console.warn('⚠️ [Quiz] Could not check wardrobe (will proceed to upload):', wardrobeError);
+        }
+        
+        // Start upload phase for new users or users with < 10 items
+        console.log('🎯 [Quiz] Starting upload phase');
         console.log('⏱️ [submitQuiz] TOTAL TIME BEFORE UPLOAD:', Date.now() - startTime, 'ms');
         setUploadPhase(true);
       } else {

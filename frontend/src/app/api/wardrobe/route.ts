@@ -17,6 +17,10 @@ export async function GET(request: Request) {
       return handleOutfitHistory(request);
     }
     
+    // Check if this is a count-only request (faster for quiz completion checks)
+    const countOnly = url.searchParams.get('count_only') === 'true';
+    console.log('🔍 DEBUG: Count-only request:', countOnly);
+    
     // Get the authorization header - try multiple variations
     const authHeader = request.headers.get('authorization') || 
                       request.headers.get('Authorization') ||
@@ -46,9 +50,12 @@ export async function GET(request: Request) {
     console.log('🔍 DEBUG: Environment variable NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
     console.log('🔍 DEBUG: Using hardcoded backend URL to ensure correct backend is called');
     
-    // Call the real backend to get your 114 wardrobe items
+    // Call the real backend to get your wardrobe items
     // Add trailing slash to avoid 307 redirect that changes protocol
-    const fullBackendUrl = `${backendUrl}/api/wardrobe/`;
+    // If count_only, add query parameter to get faster response
+    const fullBackendUrl = countOnly 
+      ? `${backendUrl}/api/wardrobe/?count_only=true`
+      : `${backendUrl}/api/wardrobe/`;
     console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
     
     console.log('🔍 DEBUG: About to call backend with URL:', fullBackendUrl);
@@ -57,10 +64,11 @@ export async function GET(request: Request) {
     // Add retry logic with exponential backoff for mobile network issues
     const userAgent = request.headers.get('user-agent') || '';
     const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
-    // Increased mobile timeout - backend responds but network latency on mobile can be high
-    // With 145+ items, backend needs more time to process and return data
-    const timeoutMs = isMobile ? 30000 : 45000; // 30s for mobile (was 15s), 45s for desktop
-    const maxRetries = isMobile ? 1 : 1; // Reduced retries since we increased timeout
+    // Count-only requests should be much faster
+    const timeoutMs = countOnly 
+      ? 3000 // 3s for count-only requests
+      : (isMobile ? 30000 : 45000); // 30s mobile / 45s desktop for full wardrobe
+    const maxRetries = countOnly ? 0 : (isMobile ? 1 : 1); // No retries for count-only
     
     console.log('🔍 DEBUG: Wardrobe API route - isMobile:', isMobile, 'timeout:', timeoutMs, 'maxRetries:', maxRetries);
     
