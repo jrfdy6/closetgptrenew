@@ -613,12 +613,29 @@ function OnboardingContent() {
     
     const filtered = QUIZ_QUESTIONS.filter(question => {
       // GENERIC GENDER FILTER: Check question.gender attribute first
+      // Special handling for style questions - non-binary users should see BOTH male and female style questions
+      const isStyleQuestion = question.id.startsWith('style_item_f_') || question.id.startsWith('style_item_m_');
+      const isNonBinaryUser = currentGender === 'Non-binary' || currentGender === 'Prefer not to say';
+      
+      // For female-specific questions: show to Female users, and also to Non-binary users if it's a style question
       if (question.gender === 'female' && currentGender && currentGender !== 'Female') {
-        console.log(`❌ [Filter] Filtering out ${question.id} for non-female (has gender='female')`);
-        return false;
+        if (!(isStyleQuestion && isNonBinaryUser)) {
+          console.log(`❌ [Filter] Filtering out ${question.id} for non-female (has gender='female')`);
+          return false;
+        }
       }
+      // For male-specific questions: show to Male users, and also to Non-binary users if it's a style question
       if (question.gender === 'male' && currentGender && currentGender !== 'Male') {
-        console.log(`❌ [Filter] Filtering out ${question.id} for non-male (has gender='male')`);
+        if (!(isStyleQuestion && isNonBinaryUser)) {
+          console.log(`❌ [Filter] Filtering out ${question.id} for non-male (has gender='male')`);
+          return false;
+        }
+      }
+      // For nonbinary-specific questions: only show to Non-binary and Prefer not to say users
+      if (question.gender === 'nonbinary' && currentGender && 
+          currentGender !== 'Non-binary' && 
+          currentGender !== 'Prefer not to say') {
+        console.log(`❌ [Filter] Filtering out ${question.id} for binary gender (has gender='nonbinary')`);
         return false;
       }
       
@@ -660,22 +677,8 @@ function OnboardingContent() {
         return false;
       }
       
-      // For non-binary and "prefer not to say" users, show BOTH male and female style questions
-      // For specific gender users, show only their gender's style questions
-      if (question.id.startsWith('style_item_f_') && currentGender && 
-          currentGender !== 'Female' && 
-          currentGender !== 'Non-binary' && 
-          currentGender !== 'Prefer not to say') {
-        console.log('❌ [Filter] Filtering out', question.id, 'for non-female');
-        return false;
-      }
-      if (question.id.startsWith('style_item_m_') && currentGender && 
-          currentGender !== 'Male' && 
-          currentGender !== 'Non-binary' && 
-          currentGender !== 'Prefer not to say') {
-        console.log('❌ [Filter] Filtering out', question.id, 'for non-male');
-        return false;
-      }
+      // Style questions are already handled by the generic gender filter above
+      // which allows non-binary users to see both male and female style questions
       
       return true;
     });
