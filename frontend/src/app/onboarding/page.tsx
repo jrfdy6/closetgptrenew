@@ -1368,47 +1368,9 @@ function OnboardingContent() {
           }, {} as Record<string, string>)
         });
         
-        // Check if user already has items in wardrobe
-        // If yes, skip upload phase (they're retaking the quiz)
-        console.log('🎯 [Quiz] Checking if user has existing wardrobe items at:', Date.now() - startTime, 'ms');
-        try {
-          const wardrobeCheckToken = await user.getIdToken();
-          
-          // Add timeout to wardrobe check (5 seconds max)
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000);
-          
-          const wardrobeStart = Date.now();
-          const wardrobeResponse = await fetch('/api/wardrobe/', {
-            headers: {
-              'Authorization': `Bearer ${wardrobeCheckToken}`,
-              'Content-Type': 'application/json'
-            },
-            signal: controller.signal
-          });
-          
-          clearTimeout(timeoutId);
-          console.log('⏱️ [Quiz] Wardrobe check took:', Date.now() - wardrobeStart, 'ms');
-          
-          if (wardrobeResponse.ok) {
-            const wardrobeData = await wardrobeResponse.json();
-            const itemCount = wardrobeData.items?.length || 0;
-            
-            if (itemCount >= 10) {
-              console.log(`✅ User has ${itemCount} items, skipping upload phase`);
-              console.log('⏱️ [submitQuiz] TOTAL TIME:', Date.now() - startTime, 'ms');
-              router.push('/style-persona?from=quiz');
-              return;
-            }
-          }
-        } catch (wardrobeError) {
-          console.warn('Could not check wardrobe quickly, proceeding to upload:', wardrobeError);
-          console.log('⏱️ [Quiz] Wardrobe check failed at:', Date.now() - startTime, 'ms');
-          // If check fails or times out, proceed to upload phase
-        }
-        
-        // Start upload phase for new users or users with < 10 items
-        console.log('🎯 [Quiz] Starting upload phase for new/incomplete wardrobe');
+        // For new quiz completions, go directly to upload phase
+        // The wardrobe check is unnecessary and causes delays
+        console.log('🎯 [Quiz] Going directly to upload phase');
         console.log('⏱️ [submitQuiz] TOTAL TIME BEFORE UPLOAD:', Date.now() - startTime, 'ms');
         setUploadPhase(true);
       } else {
@@ -1437,41 +1399,9 @@ function OnboardingContent() {
         userAnswers: userAnswers
       });
       
-      // Check if user has items before starting upload phase (even on fallback)
-      console.log('🎯 [Quiz] Using fallback data, checking wardrobe...');
-      try {
-        const wardrobeCheckToken = await user.getIdToken();
-        
-        // Add timeout to wardrobe check (5 seconds max)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        
-        const wardrobeResponse = await fetch('/api/wardrobe/', {
-          headers: {
-            'Authorization': `Bearer ${wardrobeCheckToken}`,
-            'Content-Type': 'application/json'
-          },
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-          if (wardrobeResponse.ok) {
-            const wardrobeData = await wardrobeResponse.json();
-            const itemCount = wardrobeData.items?.length || 0;
-            
-            if (itemCount >= 10) {
-              console.log(`✅ User has ${itemCount} items, skipping upload phase`);
-              router.push('/style-persona?from=quiz');
-              return;
-            }
-          }
-        } catch (wardrobeError) {
-          console.warn('Could not check wardrobe quickly:', wardrobeError);
-          // If check fails or times out, proceed to upload phase
-        }
-        
-        setUploadPhase(true);
+      // Go directly to upload phase on error fallback
+      console.log('🎯 [Quiz] Using fallback, going to upload phase');
+      setUploadPhase(true);
     } finally {
       setIsLoading(false);
     }
