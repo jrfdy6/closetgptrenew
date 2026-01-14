@@ -1375,12 +1375,13 @@ function OnboardingContent() {
         console.log('📦 [Quiz] Wardrobe status from quiz API:', {
           count: wardrobeCount,
           hasExisting: hasExistingWardrobe,
-          backendSupportsCount: data.wardrobeCount !== undefined
+          backendSupportsCount: data.wardrobeCount !== undefined,
+          backendReturnedZero: data.wardrobeCount === 0
         });
         
-        // If backend returned 0 or undefined, do a quick real check
-        // (Backend might not support wardrobeCount yet)
-        if (!hasExistingWardrobe && data.wardrobeCount === undefined) {
+        // Always do a real check to verify (backend fallback may have failed/timed out)
+        // This is fast (2s) and ensures accuracy
+        if (!hasExistingWardrobe) {
           console.log('⚠️ [Quiz] Backend did not return wardrobe count, doing quick check...');
           try {
             const controller = new AbortController();
