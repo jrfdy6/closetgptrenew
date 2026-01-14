@@ -1369,13 +1369,44 @@ function OnboardingContent() {
         });
         
         // Check if backend already told us about wardrobe status (most efficient!)
-        const wardrobeCount = data.wardrobeCount || 0;
-        const hasExistingWardrobe = data.hasExistingWardrobe || wardrobeCount >= 10;
+        let wardrobeCount = data.wardrobeCount || 0;
+        let hasExistingWardrobe = data.hasExistingWardrobe || wardrobeCount >= 10;
         
         console.log('📦 [Quiz] Wardrobe status from quiz API:', {
           count: wardrobeCount,
-          hasExisting: hasExistingWardrobe
+          hasExisting: hasExistingWardrobe,
+          backendSupportsCount: data.wardrobeCount !== undefined
         });
+        
+        // If backend returned 0 or undefined, do a quick real check
+        // (Backend might not support wardrobeCount yet)
+        if (!hasExistingWardrobe && data.wardrobeCount === undefined) {
+          console.log('⚠️ [Quiz] Backend did not return wardrobe count, doing quick check...');
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000);
+            
+            const wardrobeCheckStart = Date.now();
+            const wardrobeResponse = await fetch('/api/wardrobe?count_only=true', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (wardrobeResponse.ok) {
+              const wardrobeData = await wardrobeResponse.json();
+              wardrobeCount = wardrobeData.count || wardrobeData.items?.length || 0;
+              hasExistingWardrobe = wardrobeCount >= 10;
+              console.log(`📦 [Quiz] Quick check found ${wardrobeCount} items (took ${Date.now() - wardrobeCheckStart}ms)`);
+            }
+          } catch (error) {
+            console.warn('⚠️ [Quiz] Quick wardrobe check failed:', error);
+          }
+        }
         
         if (hasExistingWardrobe) {
           console.log(`✅ User has ${wardrobeCount} items, skipping upload - going to persona page`);
