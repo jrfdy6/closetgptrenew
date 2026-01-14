@@ -230,6 +230,7 @@ ROUTERS = [
     ("src.routes.gacha", "/api"),  # Gacha & Style Tokens (Variable Ratio Reinforcement)
     ("src.routes.roles", "/api"),  # Internal Status Roles (Status & Power)
     ("src.routes.audit", "/api"),  # Wardrobe Audit (ROI-focused, subscription-gated)
+    ("src.routes.wardrobe_admin", "/api/wardrobe"),  # Wardrobe admin utilities (temporary)
 ]
 
 def include_router_safe(module_name: str, prefix: str):
