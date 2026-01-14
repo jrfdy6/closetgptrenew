@@ -31,9 +31,11 @@ function decodeFirebaseToken(token: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
   try {
-    console.log('🚀 [Quiz Submit API] Received quiz submission');
+    console.log('🚀 [Quiz Submit API] Received quiz submission at:', new Date().toISOString());
     const submission = await req.json();
+    console.log('⏱️ [Quiz Submit API] Parsed JSON in:', Date.now() - startTime, 'ms');
     console.log('🚀 [Quiz Submit API] Submission data:', {
       userId: submission.userId,
       hasToken: !!submission.token,
@@ -63,6 +65,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Map quiz answers to profile structure
+    console.log('⏱️ [Quiz Submit API] Mapping quiz answers to profile...');
+    const mappingStart = Date.now();
     const profileUpdate = mapQuizAnswersToProfile(
       userAnswers, 
       submission.colorAnalysis, 
@@ -73,6 +77,7 @@ export async function POST(req: NextRequest) {
       userId,
       submission.spending_ranges || null
     );
+    console.log('⏱️ [Quiz Submit API] Profile mapping took:', Date.now() - mappingStart, 'ms');
 
     console.log('🔍 [Quiz Submit] Profile update data:', JSON.stringify(profileUpdate, null, 2));
     console.log('🔍 [Quiz Submit] User answers count:', Object.keys(userAnswers).length);
@@ -102,6 +107,8 @@ export async function POST(req: NextRequest) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
+      const backendStart = Date.now();
+      console.log('⏱️ [Quiz Submit API] Calling backend at:', Date.now() - startTime, 'ms');
       const backendResponse = await fetch(`${process.env.BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/auth/profile`, {
         method: 'PUT',
         headers: {
@@ -113,6 +120,7 @@ export async function POST(req: NextRequest) {
       });
 
       clearTimeout(timeoutId);
+      console.log('⏱️ [Quiz Submit API] Backend call took:', Date.now() - backendStart, 'ms');
       console.log('🔍 [Quiz Submit] Backend response status:', backendResponse.status);
       
       if (!backendResponse.ok) {
@@ -141,6 +149,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    console.log('⏱️ [Quiz Submit API] TOTAL API TIME:', Date.now() - startTime, 'ms');
     console.log('Quiz submission processed:', {
       userId,
       profileUpdate,

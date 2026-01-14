@@ -1224,11 +1224,25 @@ def _apply_progressive_interview_business_filter(self, wardrobe, context, recent
 
 ### Deployment Status
 
-**Commit:** `4aafc197b`  
+**Latest Commit:** `cd70e882b`  
 **Status:** ✅ Pushed to main  
-**Railway:** Will automatically redeploy  
+**Railway:** Automatic redeployment in progress  
+**Fix:** Dynamic dress-aware essential categories  
 **File Size:** Reduced from 500KB to 460KB (-40KB)  
 **Line Count:** Reduced from 8,920 to 8,362 lines (-558 lines)
+
+### Recent Fixes
+
+**Error 31: Highest-scoring dress not being selected for outfit (Dec 21, 2025)**
+- **Problem:** The "Dress pencil Mustard Yellow" had the highest composite score (2.69) but was ignored in favor of jeans + t-shirt for interview outfits.
+- **Root Cause:** The `essential_categories` was hardcoded to `['tops', 'bottoms', 'shoes']` BEFORE the category balance reservation phase. This meant dresses were never considered for reservation, even if they were the highest-scoring items.
+- **Fix (Commit cd70e882b):** 
+  - Added dress detection logic that checks the **top 3 scored items** for any dress
+  - If a dress is found in top 3 → `essential_categories = ['dress', 'shoes']`
+  - If no dress in top 3 → traditional `['tops', 'bottoms', 'shoes']`
+  - This happens **before** category balance reservation, ensuring dresses are properly reserved
+  - Updated Phase 1 logic to respect both Phase 0 dress (base item) and high-scoring dress detection
+- **Impact:** High-scoring dresses will now be selected as the centerpiece of outfits instead of being ignored.
 
 ### Future Enhancements
 

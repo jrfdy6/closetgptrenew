@@ -1257,11 +1257,18 @@ function OnboardingContent() {
   };
 
   const submitQuiz = async () => {
-    console.log('🚀 [submitQuiz] Function called!');
+    const startTime = Date.now();
+    console.log('🚀 [submitQuiz] Function called at:', new Date().toISOString());
     console.log('🚀 [submitQuiz] User:', !!user);
     console.log('🚀 [submitQuiz] Answers:', answers.length);
+    
+    console.log('⏱️ [submitQuiz] Starting color analysis...');
     const colorAnalysis = analyzeColors();
+    console.log('⏱️ [submitQuiz] Color analysis took:', Date.now() - startTime, 'ms');
+    
+    console.log('⏱️ [submitQuiz] Starting preference derivation...');
     const { stylePreferences, colorPreferences } = deriveQuizPreferences();
+    console.log('⏱️ [submitQuiz] Preference derivation took:', Date.now() - startTime, 'ms');
     
     if (!user) {
       if (isGuestFlow) {
@@ -1298,7 +1305,10 @@ function OnboardingContent() {
     setError(null);
 
     try {
+      console.log('⏱️ [submitQuiz] Getting ID token...');
+      const tokenStart = Date.now();
       const token = await user.getIdToken();
+      console.log('⏱️ [submitQuiz] Got ID token in:', Date.now() - tokenStart, 'ms');
       
       // Extract spending ranges from answers (8 categories)
       const spending_ranges = {
@@ -1330,7 +1340,8 @@ function OnboardingContent() {
         hasColorAnalysis: !!colorAnalysis
       });
 
-      console.log('🌐 [Quiz Frontend] Making API call to /api/style-quiz/submit');
+      console.log('🌐 [Quiz Frontend] Making API call to /api/style-quiz/submit at:', Date.now() - startTime, 'ms');
+      const apiStart = Date.now();
       const response = await fetch('/api/style-quiz/submit', {
         method: 'POST',
         headers: {
@@ -1340,7 +1351,9 @@ function OnboardingContent() {
         body: JSON.stringify(submissionData)
       });
       
+      console.log('🌐 [Quiz Frontend] API response received in:', Date.now() - apiStart, 'ms');
       console.log('🌐 [Quiz Frontend] API response status:', response.status);
+      console.log('⏱️ [submitQuiz] Total time so far:', Date.now() - startTime, 'ms');
 
       if (response.ok) {
         const data = await response.json();
@@ -1357,7 +1370,7 @@ function OnboardingContent() {
         
         // Check if user already has items in wardrobe
         // If yes, skip upload phase (they're retaking the quiz)
-        console.log('🎯 [Quiz] Checking if user has existing wardrobe items...');
+        console.log('🎯 [Quiz] Checking if user has existing wardrobe items at:', Date.now() - startTime, 'ms');
         try {
           const wardrobeCheckToken = await user.getIdToken();
           
@@ -1365,6 +1378,7 @@ function OnboardingContent() {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 5000);
           
+          const wardrobeStart = Date.now();
           const wardrobeResponse = await fetch('/api/wardrobe/', {
             headers: {
               'Authorization': `Bearer ${wardrobeCheckToken}`,
@@ -1374,6 +1388,7 @@ function OnboardingContent() {
           });
           
           clearTimeout(timeoutId);
+          console.log('⏱️ [Quiz] Wardrobe check took:', Date.now() - wardrobeStart, 'ms');
           
           if (wardrobeResponse.ok) {
             const wardrobeData = await wardrobeResponse.json();
@@ -1381,17 +1396,20 @@ function OnboardingContent() {
             
             if (itemCount >= 10) {
               console.log(`✅ User has ${itemCount} items, skipping upload phase`);
+              console.log('⏱️ [submitQuiz] TOTAL TIME:', Date.now() - startTime, 'ms');
               router.push('/style-persona?from=quiz');
               return;
             }
           }
         } catch (wardrobeError) {
           console.warn('Could not check wardrobe quickly, proceeding to upload:', wardrobeError);
+          console.log('⏱️ [Quiz] Wardrobe check failed at:', Date.now() - startTime, 'ms');
           // If check fails or times out, proceed to upload phase
         }
         
         // Start upload phase for new users or users with < 10 items
         console.log('🎯 [Quiz] Starting upload phase for new/incomplete wardrobe');
+        console.log('⏱️ [submitQuiz] TOTAL TIME BEFORE UPLOAD:', Date.now() - startTime, 'ms');
         setUploadPhase(true);
       } else {
         throw new Error('Failed to submit quiz');
