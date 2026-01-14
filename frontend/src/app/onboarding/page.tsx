@@ -1360,12 +1360,20 @@ function OnboardingContent() {
         console.log('🎯 [Quiz] Checking if user has existing wardrobe items...');
         try {
           const wardrobeCheckToken = await user.getIdToken();
+          
+          // Add timeout to wardrobe check (5 seconds max)
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          
           const wardrobeResponse = await fetch('/api/wardrobe/', {
             headers: {
               'Authorization': `Bearer ${wardrobeCheckToken}`,
               'Content-Type': 'application/json'
-            }
+            },
+            signal: controller.signal
           });
+          
+          clearTimeout(timeoutId);
           
           if (wardrobeResponse.ok) {
             const wardrobeData = await wardrobeResponse.json();
@@ -1378,7 +1386,8 @@ function OnboardingContent() {
             }
           }
         } catch (wardrobeError) {
-          console.warn('Could not check wardrobe, proceeding to upload:', wardrobeError);
+          console.warn('Could not check wardrobe quickly, proceeding to upload:', wardrobeError);
+          // If check fails or times out, proceed to upload phase
         }
         
         // Start upload phase for new users or users with < 10 items
@@ -1414,12 +1423,20 @@ function OnboardingContent() {
       console.log('🎯 [Quiz] Using fallback data, checking wardrobe...');
       try {
         const wardrobeCheckToken = await user.getIdToken();
+        
+        // Add timeout to wardrobe check (5 seconds max)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
         const wardrobeResponse = await fetch('/api/wardrobe/', {
           headers: {
             'Authorization': `Bearer ${wardrobeCheckToken}`,
             'Content-Type': 'application/json'
-          }
+          },
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         
           if (wardrobeResponse.ok) {
             const wardrobeData = await wardrobeResponse.json();
@@ -1432,7 +1449,8 @@ function OnboardingContent() {
             }
           }
         } catch (wardrobeError) {
-          console.warn('Could not check wardrobe:', wardrobeError);
+          console.warn('Could not check wardrobe quickly:', wardrobeError);
+          // If check fails or times out, proceed to upload phase
         }
         
         setUploadPhase(true);

@@ -92,11 +92,15 @@ export async function POST(req: NextRequest) {
       updated_at: profileUpdate.updated_at
     });
 
-    // Save to user profile via backend API directly
+    // Save to user profile via backend API directly with timeout
     try {
       console.log('🔍 [Quiz Submit] Attempting to save profile to backend...');
       console.log('🔍 [Quiz Submit] Backend URL:', process.env.BACKEND_URL || 'https://closetgptrenew-production.up.railway.app');
       console.log('🔍 [Quiz Submit] Token present:', !!submission.token);
+      
+      // Add 10 second timeout for backend call
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
       const backendResponse = await fetch(`${process.env.BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/auth/profile`, {
         method: 'PUT',
@@ -104,9 +108,11 @@ export async function POST(req: NextRequest) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${submission.token || ''}`
         },
-        body: JSON.stringify(profileUpdate)
+        body: JSON.stringify(profileUpdate),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
       console.log('🔍 [Quiz Submit] Backend response status:', backendResponse.status);
       
       if (!backendResponse.ok) {
