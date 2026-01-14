@@ -196,6 +196,15 @@ async def add_wardrobe_item(item_data: Dict[str, Any], current_user_id: str = De
         doc_ref = db.collection('wardrobe').document(item_id)
         doc_ref.set(wardrobe_item)
         
+        # Atomically increment wardrobe item count in user profile
+        try:
+            user_ref = db.collection('users').document(current_user_id)
+            user_ref.update({
+                'wardrobeItemCount': firestore.Increment(1)
+            })
+        except Exception as count_error:
+            pass  # Don't fail the operation if count update fails
+        
         # print(f"DEBUG: Successfully added item with ID: {item_id}")
         # print(f"DEBUG: Item saved with userId: {wardrobe_item['userId']}")
         # print(f"DEBUG: Item name: {wardrobe_item['name']}")
@@ -340,6 +349,15 @@ async def delete_wardrobe_item(item_id: str, current_user_id: str = Depends(get_
         
         # Delete the item
         doc_ref.delete()
+        
+        # Atomically decrement wardrobe item count in user profile
+        try:
+            user_ref = db.collection('users').document(current_user_id)
+            user_ref.update({
+                'wardrobeItemCount': firestore.Increment(-1)
+            })
+        except Exception as count_error:
+            pass  # Don't fail the operation if count update fails
         
         # print(f"DEBUG: Successfully deleted item {item_id}")
         

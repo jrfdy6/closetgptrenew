@@ -282,8 +282,21 @@ async def update_user_profile(
                 logger.warning(f"⚠️ Failed to recalculate TVE after spending update: {tve_error}")
                 # Don't fail the profile update if TVE recalculation fails
         
-        # Return the updated profile data
-        return update_data
+        # Fetch the updated profile to get wardrobeItemCount
+        updated_doc = user_ref.get()
+        wardrobe_count = 0
+        if updated_doc.exists:
+            updated_data = updated_doc.to_dict()
+            wardrobe_count = updated_data.get('wardrobeItemCount', 0)
+        
+        logger.info(f"📦 Returning wardrobeItemCount: {wardrobe_count} for user {current_user.id}")
+        
+        # Return the updated profile data with wardrobe count
+        return {
+            **update_data,
+            'wardrobeCount': wardrobe_count,
+            'wardrobe_count': wardrobe_count  # Support both naming conventions
+        }
         
     except Exception as e:
         logger.error(f"Failed to update user profile: {e}")

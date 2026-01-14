@@ -111,6 +111,9 @@ class UserProfile(BaseModel):
     badges: List[str] = Field(default_factory=list)
     current_challenges: Dict[str, Any] = Field(default_factory=dict)
     
+    # Wardrobe tracking (cached for performance)
+    wardrobeItemCount: Optional[int] = 0
+    
     # Spending data for CPW calculations (8 categories)
     spending_ranges: Optional[Dict[str, str]] = Field(default_factory=lambda: {
         "tops": "unknown",

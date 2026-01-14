@@ -559,6 +559,16 @@ async def add_wardrobe_item(
         doc_ref = db.collection('wardrobe').document(item_id)
         doc_ref.set(normalized_item)
         
+        # Atomically increment wardrobe item count in user profile
+        try:
+            user_ref = db.collection('users').document(current_user.id)
+            user_ref.update({
+                'wardrobeItemCount': firestore.Increment(1)
+            })
+            logger.info(f"✅ Incremented wardrobeItemCount for user {current_user.id}")
+        except Exception as count_error:
+            logger.warning(f"⚠️ Failed to increment wardrobeItemCount: {count_error}")
+        
         # Track usage (async, don't fail if it errors)
         try:
             from ..services.usage_tracking_service import UsageTrackingService
@@ -1093,6 +1103,16 @@ async def delete_wardrobe_item(
         
         # Delete from Firestore
         doc_ref.delete()
+        
+        # Atomically decrement wardrobe item count in user profile
+        try:
+            user_ref = db.collection('users').document(current_user.id)
+            user_ref.update({
+                'wardrobeItemCount': firestore.Increment(-1)
+            })
+            logger.info(f"✅ Decremented wardrobeItemCount for user {current_user.id}")
+        except Exception as count_error:
+            logger.warning(f"⚠️ Failed to decrement wardrobeItemCount: {count_error}")
         
         logger.info(f"Wardrobe item deleted: {item_id}")
         
