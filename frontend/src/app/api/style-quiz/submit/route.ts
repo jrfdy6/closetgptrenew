@@ -363,17 +363,10 @@ function mapQuizAnswersToProfile(
       traits: determinedPersona.traits,
       examples: determinedPersona.examples
     },
-    // Add spending ranges if provided
-    spending_ranges: spendingRanges || {
-      shoes: "unknown",
-      jackets: "unknown",
-      pants: "unknown",
-      tops: "unknown",
-      dresses: "unknown",
-      accessories: "unknown",
-      undergarments: "unknown",
-      swimwear: "unknown"
-    },
+    // IMPORTANT: Do NOT set `spending_ranges` during quiz submission.
+    // The backend currently triggers a full TVE recalculation whenever `spending_ranges` is present,
+    // which can take >10s for large wardrobes and causes the quiz submit request to time out.
+    // Spending ranges can be saved later via a dedicated settings flow / background task.
     createdAt: Math.floor(Date.now() / 1000), // Unix timestamp like backend
     updatedAt: Math.floor(Date.now() / 1000), // Unix timestamp like backend
     created_at: Math.floor(Date.now() / 1000), // Also add with underscore for backend compatibility
