@@ -1,302 +1,198 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { getApps, initializeApp, cert } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
-// Increase Vercel function timeout (Hobby plan has 10s limit, but we can try)
-export const maxDuration = 60; // Try to get 60s timeout (may not work on Hobby plan)
+// This endpoint MUST be fast/reliable. Previously it proxied to Railway and often hit Vercel's 10s limit,
+// causing 504s that blocked Profile (and onboarding quick checks).
+//
+// We now read/write the user profile directly in Firestore via Firebase Admin.
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
-// 🔥 ENHANCEMENT #3: In-memory cache for profile data (5-minute TTL)
 const profileCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 60 * 1000; // 1 minute (best-effort on warm instances)
 
-// 🔥 ENHANCEMENT #4: Retry logic with exponential backoff
-async function fetchWithRetry(
-  url: string, 
-  options: RequestInit, 
-  maxRetries = 3
-): Promise<Response> {
-  let lastError: Error | null = null;
-  
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      const startTime = Date.now();
-      const response = await fetch(url, options);
-      const duration = Date.now() - startTime;
-      
-      // 🔥 ENHANCEMENT #1: Detailed logging
-      console.log(`🔍 PROFILE PROXY: Attempt ${attempt + 1}/${maxRetries}`, {
-        url,
-        status: response.status,
-        duration: `${duration}ms`,
-        ok: response.ok
-      });
-      
-      // Don't retry on successful responses or client errors (4xx)
-      if (response.ok || (response.status >= 400 && response.status < 500)) {
-        return response;
-      }
-      
-      // Log server errors before retry
-      console.warn(`🔍 PROFILE PROXY: Server error ${response.status}, will retry...`);
-      
-    } catch (error: any) {
-      lastError = error;
-      console.error(`🔍 PROFILE PROXY: Attempt ${attempt + 1} failed:`, {
-        error: error.message,
-        name: error.name,
-        willRetry: attempt < maxRetries - 1
-      });
-      
-      // Don't retry on abort/timeout errors on last attempt
-      if (error.name === 'AbortError' && attempt === maxRetries - 1) {
-        throw error;
-      }
-    }
-    
-    // Exponential backoff: 100ms, 200ms, 400ms
-    if (attempt < maxRetries - 1) {
-      const delay = Math.pow(2, attempt) * 100;
-      console.log(`🔍 PROFILE PROXY: Waiting ${delay}ms before retry...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
+function initAdmin() {
+  if (getApps().length) return;
+
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+
+  if (!privateKey || !projectId || !clientEmail) {
+    throw new Error("Firebase Admin env vars missing (FIREBASE_PRIVATE_KEY/PROJECT_ID/CLIENT_EMAIL)");
   }
-  
-  throw lastError || new Error('All retry attempts failed');
+
+  initializeApp({
+    credential: cert({
+      projectId,
+      clientEmail,
+      privateKey,
+    }),
+  });
+}
+
+function getBearerToken(request: Request): string | null {
+  const raw = request.headers.get("authorization") || request.headers.get("Authorization");
+  if (!raw) return null;
+  if (!raw.startsWith("Bearer ")) return null;
+  return raw.slice("Bearer ".length).trim();
+}
+
+function toUnixSeconds(value: any): number | null {
+  if (value == null) return null;
+  if (typeof value === "number") {
+    // Heuristic: treat large numbers as ms, smaller as seconds.
+    return value > 1_000_000_000_000 ? Math.floor(value / 1000) : Math.floor(value);
+  }
+  if (typeof value === "string") {
+    const dt = new Date(value);
+    if (!Number.isNaN(dt.getTime())) return Math.floor(dt.getTime() / 1000);
+    const asNum = Number(value);
+    if (!Number.isNaN(asNum)) return toUnixSeconds(asNum);
+    return null;
+  }
+  // Firestore Timestamp (admin SDK)
+  if (typeof value === "object" && typeof value.seconds === "number") {
+    return Math.floor(value.seconds);
+  }
+  return null;
+}
+
+function normalizeProfileForClient(input: any, decoded: any, userId: string) {
+  const data = input || {};
+
+  const createdSeconds =
+    toUnixSeconds(data.created_at) ??
+    toUnixSeconds(data.createdAt) ??
+    toUnixSeconds(decoded?.iat ? decoded.iat * 1000 : null);
+  const updatedSeconds =
+    toUnixSeconds(data.updated_at) ??
+    toUnixSeconds(data.updatedAt) ??
+    createdSeconds ??
+    null;
+
+  return {
+    ...data,
+    user_id: data.user_id || data.userId || userId,
+    userId: data.userId || userId,
+    firebase_uid: data.firebase_uid || userId,
+    email: data.email || decoded?.email || "",
+    name: data.name || decoded?.name || decoded?.email || "",
+    created_at: createdSeconds ?? undefined,
+    updated_at: updatedSeconds ?? undefined,
+  };
 }
 
 export async function GET(request: Request) {
-  const requestStartTime = Date.now();
-  
+  const start = Date.now();
+
   try {
-    console.log('🔍 PROFILE PROXY: Request received');
-    
-    // Get the authorization header
-    const authHeader = request.headers.get('authorization');
-    
-    if (!authHeader) {
-      console.log('🔍 PROFILE PROXY: No auth header - returning 401');
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+    const token = getBearerToken(request);
+    if (!token) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    
-    // Extract user ID from token for caching (simple approach)
-    const cacheKey = authHeader.substring(0, 50); // Use partial token as cache key
-    
-    // 🔥 ENHANCEMENT #3: Check cache first
+
+    // Best-effort cache (warm instance only)
+    const cacheKey = token.slice(0, 32);
     const cached = profileCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      const cacheAge = Date.now() - cached.timestamp;
-      console.log(`🔍 PROFILE PROXY: Cache hit! Age: ${cacheAge}ms`);
-      return NextResponse.json({
-        ...cached.data,
-        _cached: true,
-        _cacheAge: cacheAge
-      });
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return NextResponse.json({ ...cached.data, _cached: true, _duration: `${Date.now() - start}ms` });
     }
-    
-    // Call the production backend
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
-    const fullBackendUrl = `${backendUrl}/api/auth/profile`;
-    console.log('🔍 PROFILE PROXY: Calling backend:', fullBackendUrl);
-    
-    // Add timeout - increased for mobile (Vercel may still limit to 10s on Hobby plan)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.error('🔍 PROFILE PROXY: Request timeout after 30s');
-      controller.abort();
-    }, 30000); // 30 second timeout (Vercel may still kill at 10s on Hobby plan)
-    
-    try {
-      // 🔥 ENHANCEMENT #4: Use retry logic
-      const response = await fetchWithRetry(
-        fullBackendUrl,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': authHeader,
-            'Content-Type': 'application/json',
-          },
-          signal: controller.signal,
-        },
-        3 // Max 3 retries
-      );
-      
-      clearTimeout(timeoutId);
-      
-      const totalDuration = Date.now() - requestStartTime;
-      console.log(`🔍 PROFILE PROXY: Total request duration: ${totalDuration}ms`);
-      
-      if (!response.ok) {
-        // 🔥 ENHANCEMENT #1: Enhanced error logging
-        let errorDetails;
-        try {
-          errorDetails = await response.text();
-          console.error('🔍 PROFILE PROXY: Backend error details:', {
-            status: response.status,
-            statusText: response.statusText,
-            body: errorDetails.substring(0, 500), // Log first 500 chars
-            duration: `${totalDuration}ms`
-          });
-          
-          try {
-            errorDetails = JSON.parse(errorDetails);
-          } catch {
-            // Keep as text if not JSON
-          }
-        } catch (e) {
-          errorDetails = response.statusText;
-        }
-        
-        // If it's a 502/503, return a helpful error
-        if (response.status === 502 || response.status === 503) {
-          return NextResponse.json({ 
-            error: 'Backend service unavailable', 
-            details: 'The backend service may be starting up or experiencing issues. Please try again in a moment.',
-            status: response.status,
-            duration: `${totalDuration}ms`
-          }, { status: 503 });
-        }
-        
-        return NextResponse.json({ 
-          error: 'Backend request failed', 
-          details: errorDetails || `Status: ${response.status} ${response.statusText}`,
-          duration: `${totalDuration}ms`
-        }, { status: response.status });
-      }
-      
-      const profileData = await response.json();
-      
-      // 🔥 ENHANCEMENT #1: Detailed success logging
-      console.log('🔍 PROFILE PROXY: Success!', {
-        hasProfile: !!profileData.profile || !!profileData.user_id,
-        profileId: profileData.profile?.id || profileData.user_id,
-        duration: `${totalDuration}ms`
-      });
-      
-      // 🔥 ENHANCEMENT #3: Cache the successful response
-      profileCache.set(cacheKey, {
-        data: profileData,
-        timestamp: Date.now()
-      });
-      
-      // Clean up old cache entries (simple LRU)
-      if (profileCache.size > 100) {
-        const oldestKey = profileCache.keys().next().value;
-        profileCache.delete(oldestKey);
-      }
-      
-      return NextResponse.json({
-        ...profileData,
-        _cached: false,
-        _duration: `${totalDuration}ms`
-      });
-      
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-      
-      const totalDuration = Date.now() - requestStartTime;
-      
-      // 🔥 ENHANCEMENT #1: Enhanced error logging
-      console.error('🔍 PROFILE PROXY: Fetch error details:', {
-        name: fetchError.name,
-        message: fetchError.message,
-        duration: `${totalDuration}ms`,
-        isAbortError: fetchError.name === 'AbortError'
-      });
-      
-      if (fetchError.name === 'AbortError') {
-        return NextResponse.json({ 
-          error: 'Backend request timeout', 
-          details: 'The backend service took too long to respond (>10s). Please try again.',
-          duration: `${totalDuration}ms`
-        }, { status: 504 });
-      }
-      
-      return NextResponse.json(
-        { 
-          error: 'Failed to fetch user profile', 
-          details: fetchError.message || 'Network error connecting to backend',
-          duration: `${totalDuration}ms`
-        },
-        { status: 500 }
-      );
+
+    initAdmin();
+    const decoded = await getAuth().verifyIdToken(token);
+    const userId = decoded.uid;
+
+    const db = getFirestore();
+    const userRef = db.collection("users").doc(userId);
+    const snap = await userRef.get();
+
+    let rawProfile: any = snap.exists ? snap.data() : null;
+
+    // If missing, create a minimal doc so downstream flows can proceed.
+    if (!rawProfile) {
+      const now = Timestamp.now();
+      const seed = {
+        firebase_uid: userId,
+        email: decoded?.email || "",
+        name: decoded?.name || decoded?.email || "",
+        created_at: now,
+        updated_at: now,
+      };
+      await userRef.set(seed, { merge: true });
+      rawProfile = seed;
     }
-    
-  } catch (error) {
-    const totalDuration = Date.now() - requestStartTime;
-    
-    // 🔥 ENHANCEMENT #1: Enhanced error logging
-    console.error('🔍 PROFILE PROXY: Unexpected error:', {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      duration: `${totalDuration}ms`
-    });
-    
+
+    const normalized = normalizeProfileForClient(rawProfile, decoded, userId);
+    const payload = { ...normalized, _source: "firestore", _duration: `${Date.now() - start}ms` };
+
+    profileCache.set(cacheKey, { data: payload, timestamp: Date.now() });
+
+    return NextResponse.json(payload);
+  } catch (e: any) {
+    // Fail closed for auth errors, but avoid 504s from slow upstreams (we no longer depend on Railway).
+    const message = String(e?.message || e);
+    const isAuthError =
+      message.toLowerCase().includes("token") ||
+      message.toLowerCase().includes("auth") ||
+      message.toLowerCase().includes("jwt") ||
+      message.toLowerCase().includes("permission");
+
     return NextResponse.json(
-      { 
-        error: 'Failed to fetch user profile', 
-        details: error instanceof Error ? error.message : 'Unknown error',
-        duration: `${totalDuration}ms`
-      },
-      { status: 500 }
+      { error: "Failed to fetch user profile", details: message, _duration: `${Date.now() - start}ms` },
+      { status: isAuthError ? 401 : 500 }
     );
   }
 }
 
 export async function POST(request: Request) {
+  const start = Date.now();
+
   try {
-    console.log('🔍 DEBUG: Creating/updating user profile - CONNECTING TO PRODUCTION BACKEND');
-    
-    // Get the authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+    const token = getBearerToken(request);
+    if (!token) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    
-    const body = await request.json();
-    console.log('🔍 DEBUG: Profile data:', body);
-    
-    // Call the production backend
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
-    const fullBackendUrl = `${backendUrl}/api/auth/profile`;
-    console.log('🔍 DEBUG: Calling backend URL:', fullBackendUrl);
-    
-    const response = await fetch(fullBackendUrl, {
-      method: 'PUT',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-    
-    console.log('🔍 DEBUG: Backend response status:', response.status);
-    
-    if (!response.ok) {
-      console.error('🔍 DEBUG: Backend response not ok:', response.status, response.statusText);
-      return NextResponse.json({ 
-        error: 'Backend request failed', 
-        details: `Status: ${response.status} ${response.statusText}`
-      }, { status: response.status });
+
+    initAdmin();
+    const decoded = await getAuth().verifyIdToken(token);
+    const userId = decoded.uid;
+
+    const body = await request.json().catch(() => ({}));
+    const db = getFirestore();
+
+    const userRef = db.collection("users").doc(userId);
+    const now = Timestamp.now();
+
+    const update = {
+      ...body,
+      firebase_uid: userId,
+      email: body?.email || decoded?.email || "",
+      name: body?.name || decoded?.name || decoded?.email || "",
+      updated_at: now,
+      // keep legacy field used elsewhere
+      updatedAt: Math.floor(Date.now()),
+    };
+
+    // Ensure created_at exists
+    const existing = await userRef.get();
+    if (!existing.exists || !existing.data()?.created_at) {
+      (update as any).created_at = now;
     }
-    
-    const profileData = await response.json();
-    console.log('🔍 DEBUG: Backend profile data received:', {
-      success: profileData.success,
-      hasProfile: !!profileData.profile,
-      profileId: profileData.profile?.id || profileData.id
-    });
-    
-    return NextResponse.json(profileData);
-    
-  } catch (error) {
-    console.error('🔍 DEBUG: Error in profile POST:', error);
+
+    await userRef.set(update, { merge: true });
+
+    // Bust cache for this token (warm instance only)
+    profileCache.delete(token.slice(0, 32));
+
+    const normalized = normalizeProfileForClient(update, decoded, userId);
+    return NextResponse.json({ ...normalized, _source: "firestore", _duration: `${Date.now() - start}ms` });
+  } catch (e: any) {
     return NextResponse.json(
-      { error: 'Failed to create/update user profile', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: "Failed to update user profile", details: String(e?.message || e), _duration: `${Date.now() - start}ms` },
       { status: 500 }
     );
   }
-} 
+}

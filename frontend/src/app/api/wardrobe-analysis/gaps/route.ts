@@ -14,16 +14,14 @@ export async function GET(request: NextRequest) {
                       request.headers.get('AUTHORIZATION');
     console.log('🔍 Frontend API: Authorization header present:', !!authHeader);
     console.log('🔍 DEBUG: Authorization header value:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
-    
-    // Temporarily bypass auth check to test functionality
-    console.log('🔍 DEBUG: TEMPORARILY BYPASSING AUTH CHECK FOR TESTING');
-    
-    // if (!authHeader) {
-    //   return NextResponse.json(
-    //     { error: 'Authorization header required' },
-    //     { status: 401 }
-    //   );
-    // }
+
+    // Require auth; callers are authenticated and this avoids sending null Authorization upstream.
+    if (!authHeader) {
+      return NextResponse.json(
+        { success: false, error: 'Authorization header required', data: { gaps: [] } },
+        { status: 401 }
+      );
+    }
     
     // Get backend URL from environment variables
     const backendUrl = 'https://closetgptrenew-production.up.railway.app';
@@ -43,14 +41,18 @@ export async function GET(request: NextRequest) {
     const fullBackendUrl = `${backendUrl}/api/wardrobe-analysis/gaps${queryString ? `?${queryString}` : ''}`;
     console.log('🔍 Frontend API: Full backend URL:', fullBackendUrl);
     
-    // Call the backend
+    // Call the backend with a short timeout (this is non-critical; UI should proceed without it).
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
     const backendResponse = await fetch(fullBackendUrl, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json',
       },
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
     
     console.log('🔍 Frontend API: Backend response status:', backendResponse.status);
     
@@ -58,10 +60,18 @@ export async function GET(request: NextRequest) {
       console.log('❌ Frontend API: Backend call failed:', backendResponse.status, backendResponse.statusText);
       const errorText = await backendResponse.text();
       console.log('❌ Frontend API: Backend error response:', errorText);
-      return NextResponse.json(
-        { error: 'Backend service unavailable' },
-        { status: backendResponse.status }
-      );
+      // IMPORTANT: return 200 with safe empty data so dashboard/profile pages don't throw and
+      // users don't get blocked by a "nice-to-have" endpoint.
+      return NextResponse.json({
+        success: true,
+        data: { gaps: [] },
+        debug: {
+          backendStatus: backendResponse.status,
+          backendStatusText: backendResponse.statusText,
+          backendError: errorText?.substring?.(0, 500) || null,
+          backendUnavailable: true,
+        },
+      });
     }
     
     const data = await backendResponse.json();
@@ -70,12 +80,14 @@ export async function GET(request: NextRequest) {
     
   } catch (error) {
     console.error("❌ Frontend API: Error:", error);
-    return NextResponse.json(
-      { 
-        error: "Failed to fetch wardrobe gaps",
-        details: error instanceof Error ? error.message : "Unknown error"
+    // Same rationale: do not break the page for optional gaps.
+    return NextResponse.json({
+      success: true,
+      data: { gaps: [] },
+      debug: {
+        backendUnavailable: true,
+        error: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
-    );
+    });
   }
 } 
