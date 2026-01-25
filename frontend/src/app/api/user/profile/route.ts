@@ -200,24 +200,44 @@ export async function GET(request: Request) {
     }
     const userId = decoded.uid;
 
-    const db = getFirestore();
-    const userRef = db.collection("users").doc(userId);
-    const snap = await userRef.get();
+    let rawProfile: any = null;
+    try {
+      const db = getFirestore();
+      const userRef = db.collection("users").doc(userId);
+      const snap = await userRef.get();
 
-    let rawProfile: any = snap.exists ? snap.data() : null;
+      rawProfile = snap.exists ? snap.data() : null;
 
-    // If missing, create a minimal doc so downstream flows can proceed.
-    if (!rawProfile) {
-      const now = Timestamp.now();
-      const seed = {
-        firebase_uid: userId,
-        email: decoded?.email || "",
-        name: decoded?.name || decoded?.email || "",
-        created_at: now,
-        updated_at: now,
-      };
-      await userRef.set(seed, { merge: true });
-      rawProfile = seed;
+      // If missing, create a minimal doc so downstream flows can proceed.
+      if (!rawProfile) {
+        const now = Timestamp.now();
+        const seed = {
+          firebase_uid: userId,
+          email: decoded?.email || "",
+          name: decoded?.name || decoded?.email || "",
+          created_at: now,
+          updated_at: now,
+        };
+        await userRef.set(seed, { merge: true });
+        rawProfile = seed;
+      }
+    } catch (e: any) {
+      // This happens on some deployments when Google credentials for Firestore aren't configured
+      // (e.g., missing/invalid service account on Vercel). Don't break Profile — fall back to Railway.
+      const msg = String(e?.message || e);
+      const looksLikeBadGoogleCreds =
+        msg.includes("UNAUTHENTICATED") ||
+        msg.toLowerCase().includes("invalid authentication credentials") ||
+        msg.toLowerCase().includes("oauth 2") ||
+        msg.toLowerCase().includes("login cookie") ||
+        msg.toLowerCase().includes("invalid_grant");
+
+      console.error("PROFILE API: Firestore read failed.", { msg });
+      if (looksLikeBadGoogleCreds) {
+        console.error("PROFILE API: Firestore credentials issue; falling back to Railway.");
+        return fetchProfileFromRailway(authHeader, start);
+      }
+      throw e;
     }
 
     const normalized = normalizeProfileForClient(rawProfile, decoded, userId);
@@ -366,7 +386,58 @@ export async function POST(request: Request) {
     const userId = decoded.uid;
 
     const body = await request.json().catch(() => ({}));
-    const db = getFirestore();
+    let db;
+    try {
+      db = getFirestore();
+    } catch (e: any) {
+      console.error("PROFILE API: Firestore init failed on POST; falling back to Railway.", e);
+      const backendUrl = "https://closetgptrenew-production.up.railway.app";
+      const fullBackendUrl = `${backendUrl}/api/auth/profile`;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8500);
+      try {
+        const res = await fetch(fullBackendUrl, {
+          method: "PUT",
+          headers: {
+            Authorization: authHeader,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
+        const text = await res.text().catch(() => "");
+        if (!res.ok) {
+          return NextResponse.json(
+            {
+              error: "Backend request failed",
+              details: text || `${res.status} ${res.statusText}`,
+              _source: "railway",
+              _duration: `${Date.now() - start}ms`,
+            },
+            { status: res.status }
+          );
+        }
+        let data: any = {};
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {}
+        return NextResponse.json({ ...data, _source: "railway", _duration: `${Date.now() - start}ms` });
+      } catch (err: any) {
+        const isTimeout = err?.name === "AbortError";
+        return NextResponse.json(
+          {
+            error: isTimeout ? "Backend request timeout" : "Backend request failed",
+            details: String(err?.message || err),
+            _source: "railway",
+            _duration: `${Date.now() - start}ms`,
+          },
+          { status: isTimeout ? 504 : 502 }
+        );
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
 
     const userRef = db.collection("users").doc(userId);
     const now = Timestamp.now();
@@ -387,7 +458,69 @@ export async function POST(request: Request) {
       (update as any).created_at = now;
     }
 
-    await userRef.set(update, { merge: true });
+    try {
+      await userRef.set(update, { merge: true });
+    } catch (e: any) {
+      const msg = String(e?.message || e);
+      const looksLikeBadGoogleCreds =
+        msg.includes("UNAUTHENTICATED") ||
+        msg.toLowerCase().includes("invalid authentication credentials") ||
+        msg.toLowerCase().includes("oauth 2") ||
+        msg.toLowerCase().includes("login cookie") ||
+        msg.toLowerCase().includes("invalid_grant");
+
+      console.error("PROFILE API: Firestore write failed.", { msg });
+      if (looksLikeBadGoogleCreds) {
+        console.error("PROFILE API: Firestore credentials issue on POST; falling back to Railway.");
+        const backendUrl = "https://closetgptrenew-production.up.railway.app";
+        const fullBackendUrl = `${backendUrl}/api/auth/profile`;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8500);
+        try {
+          const res = await fetch(fullBackendUrl, {
+            method: "PUT",
+            headers: {
+              Authorization: authHeader,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+            signal: controller.signal,
+          });
+          const text = await res.text().catch(() => "");
+          if (!res.ok) {
+            return NextResponse.json(
+              {
+                error: "Backend request failed",
+                details: text || `${res.status} ${res.statusText}`,
+                _source: "railway",
+                _duration: `${Date.now() - start}ms`,
+              },
+              { status: res.status }
+            );
+          }
+          let data: any = {};
+          try {
+            data = text ? JSON.parse(text) : {};
+          } catch {}
+          return NextResponse.json({ ...data, _source: "railway", _duration: `${Date.now() - start}ms` });
+        } catch (err: any) {
+          const isTimeout = err?.name === "AbortError";
+          return NextResponse.json(
+            {
+              error: isTimeout ? "Backend request timeout" : "Backend request failed",
+              details: String(err?.message || err),
+              _source: "railway",
+              _duration: `${Date.now() - start}ms`,
+            },
+            { status: isTimeout ? 504 : 502 }
+          );
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      }
+      throw e;
+    }
 
     // Bust cache for this token (warm instance only)
     profileCache.delete(token.slice(0, 32));
