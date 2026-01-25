@@ -133,10 +133,17 @@ export async function POST(req: NextRequest) {
         const responseData = await backendResponse.json();
         console.log('✅ Successfully saved profile to backend:', responseData);
         console.log('✅ Profile fields saved:', Object.keys(responseData));
+        console.log('🔍 [DEBUG] wardrobeCount field:', responseData.wardrobeCount);
+        console.log('🔍 [DEBUG] wardrobe_count field:', responseData.wardrobe_count);
+        console.log('🔍 [DEBUG] wardrobeItemCount field:', responseData.wardrobeItemCount);
         
         // Extract wardrobe count from backend response if available
-        wardrobeCount = responseData.wardrobe_count || responseData.wardrobeCount || 0;
+        wardrobeCount = responseData.wardrobe_count || responseData.wardrobeCount || responseData.wardrobeItemCount || 0;
         console.log('📦 [Quiz Submit] Backend returned wardrobe count:', wardrobeCount);
+        console.log('📦 [Quiz Submit] Using count:', wardrobeCount, 'from field:', 
+          responseData.wardrobe_count ? 'wardrobe_count' : 
+          responseData.wardrobeCount ? 'wardrobeCount' : 
+          responseData.wardrobeItemCount ? 'wardrobeItemCount' : 'none (defaulting to 0)');
       }
     } catch (apiError) {
       console.error('❌ Backend save failed:', apiError);
