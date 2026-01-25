@@ -189,7 +189,15 @@ export async function GET(request: Request) {
       return fetchProfileFromRailway(authHeader, start);
     }
 
-    const decoded = await getAuth().verifyIdToken(token);
+    // If Firebase token verification fails (often due to misconfigured Firebase Admin creds on this host),
+    // fall back to Railway, which is known to be configured correctly for production.
+    let decoded: any;
+    try {
+      decoded = await getAuth().verifyIdToken(token);
+    } catch (e) {
+      console.error("PROFILE API: verifyIdToken failed; falling back to Railway.", e);
+      return fetchProfileFromRailway(authHeader, start);
+    }
     const userId = decoded.uid;
 
     const db = getFirestore();
@@ -300,7 +308,61 @@ export async function POST(request: Request) {
       }
     }
 
-    const decoded = await getAuth().verifyIdToken(token);
+    // Same as GET: if token verification fails on this host, fall back to Railway.
+    let decoded: any;
+    try {
+      decoded = await getAuth().verifyIdToken(token);
+    } catch (e) {
+      console.error("PROFILE API: verifyIdToken failed on POST; falling back to Railway.", e);
+      const backendUrl = "https://closetgptrenew-production.up.railway.app";
+      const fullBackendUrl = `${backendUrl}/api/auth/profile`;
+
+      const body = await request.json().catch(() => ({}));
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8500);
+      try {
+        const res = await fetch(fullBackendUrl, {
+          method: "PUT",
+          headers: {
+            Authorization: authHeader,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
+        const text = await res.text().catch(() => "");
+        if (!res.ok) {
+          return NextResponse.json(
+            {
+              error: "Backend request failed",
+              details: text || `${res.status} ${res.statusText}`,
+              _source: "railway",
+              _duration: `${Date.now() - start}ms`,
+            },
+            { status: res.status }
+          );
+        }
+        let data: any = {};
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {}
+        return NextResponse.json({ ...data, _source: "railway", _duration: `${Date.now() - start}ms` });
+      } catch (err: any) {
+        const isTimeout = err?.name === "AbortError";
+        return NextResponse.json(
+          {
+            error: isTimeout ? "Backend request timeout" : "Backend request failed",
+            details: String(err?.message || err),
+            _source: "railway",
+            _duration: `${Date.now() - start}ms`,
+          },
+          { status: isTimeout ? 504 : 502 }
+        );
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
     const userId = decoded.uid;
 
     const body = await request.json().catch(() => ({}));
