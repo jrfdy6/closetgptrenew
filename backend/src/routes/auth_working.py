@@ -263,10 +263,12 @@ async def update_user_profile(
         logger.info(f"🔍 DEBUG: Fields in update_data: {list(update_data.keys())}")
         logger.info(f"🔍 DEBUG: Has measurements: {'measurements' in update_data}, Has stylePreferences: {'stylePreferences' in update_data}")
         
-        # If spending ranges changed, queue TVE recalculation in the background (do NOT block response)
+        # If spending ranges changed, mark TVE recalculation as queued.
+        # IMPORTANT: Do NOT run the recalculation in-process here (even in BackgroundTasks).
+        # Running it alongside user requests can still saturate the server and cause onboarding
+        # requests (including quiz submit / wardrobeCount) to time out.
         if spending_ranges_changed:
             try:
-                background_tasks.add_task(recalculate_tve_for_user, current_user.id)
                 user_ref.set(
                     {
                         "tveRecalcStatus": "queued",
@@ -274,7 +276,7 @@ async def update_user_profile(
                     },
                     merge=True,
                 )
-                logger.info(f"💰 Spending ranges changed - queued TVE recalculation for user {current_user.id}")
+                logger.info(f"💰 Spending ranges changed - marked TVE recalculation queued for user {current_user.id}")
             except Exception as queue_error:
                 logger.warning(f"⚠️ Failed to queue TVE recalculation: {queue_error}")
                 # Don't fail the profile update if background queueing fails

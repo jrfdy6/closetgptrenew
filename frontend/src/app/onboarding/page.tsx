@@ -1322,29 +1322,8 @@ function OnboardingContent() {
         swimwear: answers.find(a => a.question_id === "category_spend_swimwear")?.selected_option || "unknown"
       };
 
-      // Best-effort: save spending ranges without blocking onboarding.
-      // We do this separately because some backend deployments may do expensive work when spending_ranges is present.
-      try {
-        const spendingRangesPayload = {
-          name: user.displayName || user.email || 'Quiz User',
-          email: user.email || 'quiz@example.com',
-          spending_ranges,
-          updated_at: Math.floor(Date.now() / 1000),
-        };
-
-        console.log('💰 [Quiz] Queuing background save for spending_ranges');
-        void fetch('https://closetgptrenew-production.up.railway.app/api/auth/profile', {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(spendingRangesPayload),
-          keepalive: true,
-        }).catch((e) => console.warn('⚠️ [Quiz] spending_ranges background save failed:', e));
-      } catch (e) {
-        console.warn('⚠️ [Quiz] spending_ranges background save setup failed:', e);
-      }
+      // Spending ranges are sent via /api/style-quiz/submit (server-side), to avoid adding
+      // extra concurrent backend calls during onboarding.
       
       const submissionData = {
           userId: user.uid,
