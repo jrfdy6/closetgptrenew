@@ -1388,15 +1388,16 @@ function OnboardingContent() {
         });
         
         // Always do a real check to verify (backend fallback may have failed/timed out).
-        // The proxy route now has a profile-cache fast path, but allow enough time for Vercel cold starts.
+        // IMPORTANT: use `/api/user/profile` (reliable proxy) to read cached `wardrobeItemCount`
+        // instead of scanning the wardrobe collection.
         if (!hasExistingWardrobe) {
-          console.log('⚠️ [Quiz] Wardrobe not confirmed (count < 10). Doing quick count_only check...');
+          console.log('⚠️ [Quiz] Wardrobe not confirmed (count < 10). Checking cached profile wardrobe count...');
           try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
             
-            const wardrobeCheckStart = Date.now();
-            const wardrobeResponse = await fetch('/api/wardrobe?count_only=true', {
+            const profileCheckStart = Date.now();
+            const profileResponse = await fetch('/api/user/profile', {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -1406,12 +1407,19 @@ function OnboardingContent() {
             
             clearTimeout(timeoutId);
             
-            if (wardrobeResponse.ok) {
-              const wardrobeData = await wardrobeResponse.json();
-              wardrobeCount = wardrobeData?.count ?? wardrobeData?.items?.length ?? 0;
+            if (profileResponse.ok) {
+              const profileData = await profileResponse.json();
+              const cachedCount =
+                profileData?.wardrobeItemCount ??
+                profileData?.wardrobeCount ??
+                profileData?.wardrobe_count ??
+                null;
+
+              wardrobeCount = (typeof cachedCount === 'number') ? cachedCount : 0;
               hasExistingWardrobe = wardrobeCount >= 10;
-              console.log(`📦 [Quiz] Quick check found ${wardrobeCount} items (took ${Date.now() - wardrobeCheckStart}ms)`, {
-                source: wardrobeData?.source
+              console.log(`📦 [Quiz] Profile cached count check found ${wardrobeCount} items (took ${Date.now() - profileCheckStart}ms)`, {
+                _cached: profileData?._cached,
+                _duration: profileData?._duration
               });
             }
           } catch (error) {
