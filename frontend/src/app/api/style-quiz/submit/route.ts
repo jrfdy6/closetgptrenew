@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
     let wardrobeItemCount = wardrobeCount; // Use the count from the backend profile update
     try {
       // Try to get from backend response first (most efficient)
-      if (typeof wardrobeCount !== 'undefined' && wardrobeCount > 0) {
+      if (wardrobeCount !== undefined && wardrobeCount !== null) {
         wardrobeItemCount = wardrobeCount;
         console.log('✅ [Quiz Submit] Using wardrobeCount from profile update:', wardrobeItemCount);
       } else {
