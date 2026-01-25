@@ -3,7 +3,7 @@ Working authentication routes for Easy Outfit App.
 Follows the exact pattern used by working wardrobe.py and outfits.py
 """
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import logging
 import time
@@ -154,6 +154,7 @@ async def get_user_profile(current_user: UserProfile = Depends(get_current_user)
 @router.put("/profile")
 async def update_user_profile(
     profile_data: dict,
+    background_tasks: BackgroundTasks,
     current_user: UserProfile = Depends(get_current_user)
 ):
     """Update current user's profile."""
@@ -191,9 +192,11 @@ async def update_user_profile(
         # Get existing user data to preserve created_at
         existing_user_doc = user_ref.get()
         existing_created_at = None
+        existing_spending_ranges = None
         if existing_user_doc.exists:
             existing_data = existing_user_doc.to_dict()
             existing_created_at = existing_data.get('created_at') or existing_data.get('createdAt')
+            existing_spending_ranges = existing_data.get('spending_ranges')
         
         update_data = {
             'name': (profile_data.get('name') if profile_data else None),
@@ -240,12 +243,11 @@ async def update_user_profile(
             update_data['avatar_url'] = profile_data['avatar_url']
         if 'stylePersona' in profile_data:
             update_data['stylePersona'] = profile_data['stylePersona']
+        spending_ranges_changed = False
         if 'spending_ranges' in profile_data:
             update_data['spending_ranges'] = profile_data['spending_ranges']
             logger.info(f"✅ DEBUG: Added spending_ranges to update_data: {profile_data['spending_ranges']}")
-            
-            # Trigger TVE recalculation when spending ranges change
-            spending_ranges_changed = True
+            spending_ranges_changed = (profile_data.get('spending_ranges') != existing_spending_ranges)
         if 'height' in profile_data:
             update_data['height'] = profile_data['height']
         if 'weight' in profile_data:
@@ -261,26 +263,21 @@ async def update_user_profile(
         logger.info(f"🔍 DEBUG: Fields in update_data: {list(update_data.keys())}")
         logger.info(f"🔍 DEBUG: Has measurements: {'measurements' in update_data}, Has stylePreferences: {'stylePreferences' in update_data}")
         
-        # Recalculate TVE if spending ranges changed
-        if 'spending_ranges' in profile_data:
+        # If spending ranges changed, queue TVE recalculation in the background (do NOT block response)
+        if spending_ranges_changed:
             try:
-                from ..services.tve_service import tve_service
-                logger.info(f"💰 Spending ranges updated - recalculating TVE for all items...")
-                
-                # Get all user's items
-                wardrobe_ref = db.collection('wardrobe').where('userId', '==', current_user.id)
-                items = list(wardrobe_ref.stream())
-                
-                recalculated_count = 0
-                for doc in items:
-                    success = await tve_service.initialize_item_tve_fields(current_user.id, doc.id)
-                    if success:
-                        recalculated_count += 1
-                
-                logger.info(f"✅ Recalculated TVE for {recalculated_count} items after spending ranges update")
-            except Exception as tve_error:
-                logger.warning(f"⚠️ Failed to recalculate TVE after spending update: {tve_error}")
-                # Don't fail the profile update if TVE recalculation fails
+                background_tasks.add_task(recalculate_tve_for_user, current_user.id)
+                user_ref.set(
+                    {
+                        "tveRecalcStatus": "queued",
+                        "tveRecalcRequestedAt": int(time.time()),
+                    },
+                    merge=True,
+                )
+                logger.info(f"💰 Spending ranges changed - queued TVE recalculation for user {current_user.id}")
+            except Exception as queue_error:
+                logger.warning(f"⚠️ Failed to queue TVE recalculation: {queue_error}")
+                # Don't fail the profile update if background queueing fails
         
         # Fetch the updated profile to get wardrobeItemCount
         updated_doc = user_ref.get()
@@ -304,3 +301,58 @@ async def update_user_profile(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update user profile"
         )
+
+
+async def recalculate_tve_for_user(user_id: str) -> None:
+    """
+    Background TVE recalculation when spending ranges change.
+    Runs after the response is returned so onboarding stays fast.
+    """
+    try:
+        from ..config.firebase import db
+        from ..services.tve_service import tve_service
+
+        user_ref = db.collection("users").document(user_id)
+        user_ref.set(
+            {
+                "tveRecalcStatus": "running",
+                "tveRecalcStartedAt": int(time.time()),
+            },
+            merge=True,
+        )
+
+        wardrobe_ref = db.collection("wardrobe").where("userId", "==", user_id)
+        items = list(wardrobe_ref.stream())
+
+        recalculated_count = 0
+        for doc in items:
+            try:
+                success = await tve_service.initialize_item_tve_fields(user_id, doc.id)
+                if success:
+                    recalculated_count += 1
+            except Exception:
+                # Keep going; one bad item shouldn't kill the batch
+                continue
+
+        user_ref.set(
+            {
+                "tveRecalcStatus": "completed",
+                "tveRecalcCompletedAt": int(time.time()),
+                "tveRecalcUpdatedCount": recalculated_count,
+            },
+            merge=True,
+        )
+    except Exception as e:
+        try:
+            from ..config.firebase import db
+
+            db.collection("users").document(user_id).set(
+                {
+                    "tveRecalcStatus": "error",
+                    "tveRecalcCompletedAt": int(time.time()),
+                    "tveRecalcError": str(e)[:500],
+                },
+                merge=True,
+            )
+        except Exception:
+            pass

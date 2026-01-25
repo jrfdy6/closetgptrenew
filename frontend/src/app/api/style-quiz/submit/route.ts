@@ -363,10 +363,9 @@ function mapQuizAnswersToProfile(
       traits: determinedPersona.traits,
       examples: determinedPersona.examples
     },
-    // IMPORTANT: Do NOT set `spending_ranges` during quiz submission.
-    // The backend currently triggers a full TVE recalculation whenever `spending_ranges` is present,
-    // which can take >10s for large wardrobes and causes the quiz submit request to time out.
-    // Spending ranges can be saved later via a dedicated settings flow / background task.
+    // Spending ranges (saved during quiz submit).
+    // Backend will queue any expensive TVE recalculation asynchronously.
+    ...(spendingRanges ? { spending_ranges: spendingRanges } : {}),
     createdAt: Math.floor(Date.now() / 1000), // Unix timestamp like backend
     updatedAt: Math.floor(Date.now() / 1000), // Unix timestamp like backend
     created_at: Math.floor(Date.now() / 1000), // Also add with underscore for backend compatibility
