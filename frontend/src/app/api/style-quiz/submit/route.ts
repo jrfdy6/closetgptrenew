@@ -363,9 +363,10 @@ function mapQuizAnswersToProfile(
       traits: determinedPersona.traits,
       examples: determinedPersona.examples
     },
-    // Spending ranges (saved during quiz submit).
-    // Backend will queue any expensive TVE recalculation asynchronously.
-    ...(spendingRanges ? { spending_ranges: spendingRanges } : {}),
+    // NOTE: We intentionally do NOT include `spending_ranges` in the main quiz profile update.
+    // Some backend deployments can still perform an expensive synchronous TVE recalculation when this
+    // field is present, which slows onboarding and can break wardrobeCount redirects.
+    // Spending ranges are saved separately (best-effort) from the client after quiz completion.
     createdAt: Math.floor(Date.now() / 1000), // Unix timestamp like backend
     updatedAt: Math.floor(Date.now() / 1000), // Unix timestamp like backend
     created_at: Math.floor(Date.now() / 1000), // Also add with underscore for backend compatibility
