@@ -1369,23 +1369,31 @@ function OnboardingContent() {
         });
         
         // Check if backend already told us about wardrobe status (most efficient!)
-        let wardrobeCount = data.wardrobeCount || 0;
-        let hasExistingWardrobe = data.hasExistingWardrobe || wardrobeCount >= 10;
+        // Use nullish coalescing so a legitimate 0 doesn't get overwritten.
+        let wardrobeCount = data.wardrobeCount ?? 0;
+        let hasExistingWardrobe = (data.hasExistingWardrobe ?? (wardrobeCount >= 10));
+        
+        // Surface server-side API version/debug info in the browser console
+        if (data?.debug) {
+          console.log('🧩 [Quiz] Quiz API debug:', data.debug);
+        }
         
         console.log('📦 [Quiz] Wardrobe status from quiz API:', {
           count: wardrobeCount,
           hasExisting: hasExistingWardrobe,
           backendSupportsCount: data.wardrobeCount !== undefined,
-          backendReturnedZero: data.wardrobeCount === 0
+          backendReturnedZero: data.wardrobeCount === 0,
+          apiVersion: data?.debug?.apiVersion,
+          wardrobeCountSource: data?.debug?.wardrobeCountSource
         });
         
-        // Always do a real check to verify (backend fallback may have failed/timed out)
-        // This is fast (2s) and ensures accuracy
+        // Always do a real check to verify (backend fallback may have failed/timed out).
+        // The proxy route now has a profile-cache fast path, but allow enough time for Vercel cold starts.
         if (!hasExistingWardrobe) {
-          console.log('⚠️ [Quiz] Backend did not return wardrobe count, doing quick check...');
+          console.log('⚠️ [Quiz] Wardrobe not confirmed (count < 10). Doing quick count_only check...');
           try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 2000);
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
             
             const wardrobeCheckStart = Date.now();
             const wardrobeResponse = await fetch('/api/wardrobe?count_only=true', {
@@ -1400,9 +1408,11 @@ function OnboardingContent() {
             
             if (wardrobeResponse.ok) {
               const wardrobeData = await wardrobeResponse.json();
-              wardrobeCount = wardrobeData.count || wardrobeData.items?.length || 0;
+              wardrobeCount = wardrobeData?.count ?? wardrobeData?.items?.length ?? 0;
               hasExistingWardrobe = wardrobeCount >= 10;
-              console.log(`📦 [Quiz] Quick check found ${wardrobeCount} items (took ${Date.now() - wardrobeCheckStart}ms)`);
+              console.log(`📦 [Quiz] Quick check found ${wardrobeCount} items (took ${Date.now() - wardrobeCheckStart}ms)`, {
+                source: wardrobeData?.source
+              });
             }
           } catch (error) {
             console.warn('⚠️ [Quiz] Quick wardrobe check failed:', error);

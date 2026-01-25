@@ -97,6 +97,9 @@ export async function POST(req: NextRequest) {
       updated_at: profileUpdate.updated_at
     });
 
+    // Backend URL: hardcode production to avoid env mismatches between deployments
+    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
+
     // Save to user profile via backend API directly with timeout
     // Use null to distinguish "missing" from a leading 0.
     let wardrobeCount: number | null = null; // Track wardrobe count from backend response
@@ -104,7 +107,7 @@ export async function POST(req: NextRequest) {
     
     try {
       console.log('🔍 [Quiz Submit] Attempting to save profile to backend...');
-      console.log('🔍 [Quiz Submit] Backend URL:', process.env.BACKEND_URL || 'https://closetgptrenew-production.up.railway.app');
+      console.log('🔍 [Quiz Submit] Backend URL:', backendUrl);
       console.log('🔍 [Quiz Submit] Token present:', !!submission.token);
       
       // Add 10 second timeout for backend call
@@ -113,7 +116,7 @@ export async function POST(req: NextRequest) {
       
       const backendStart = Date.now();
       console.log('⏱️ [Quiz Submit API] Calling backend at:', Date.now() - startTime, 'ms');
-      const backendResponse = await fetch(`${process.env.BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/auth/profile`, {
+      const backendResponse = await fetch(`${backendUrl}/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -193,7 +196,7 @@ export async function POST(req: NextRequest) {
         const profileCheckStart = Date.now();
 
         const profileResponse = await fetch(
-          `${process.env.BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/auth/profile`,
+          `${backendUrl}/api/auth/profile`,
           {
             method: 'GET',
             headers: {
