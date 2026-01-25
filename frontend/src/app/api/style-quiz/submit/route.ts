@@ -98,7 +98,9 @@ export async function POST(req: NextRequest) {
     });
 
     // Save to user profile via backend API directly with timeout
-    let wardrobeCount = 0; // Track wardrobe count from backend response
+    // Use null to distinguish "missing" from a leading 0.
+    let wardrobeCount: number | null = null; // Track wardrobe count from backend response
+    let wardrobeCountSource: string = 'none';
     
     try {
       console.log('🔍 [Quiz Submit] Attempting to save profile to backend...');
@@ -138,12 +140,21 @@ export async function POST(req: NextRequest) {
         console.log('🔍 [DEBUG] wardrobeItemCount field:', responseData.wardrobeItemCount);
         
         // Extract wardrobe count from backend response if available
-        wardrobeCount = responseData.wardrobe_count || responseData.wardrobeCount || responseData.wardrobeItemCount || 0;
+        const extracted =
+          responseData?.wardrobe_count ??
+          responseData?.wardrobeCount ??
+          responseData?.wardrobeItemCount ??
+          null;
+
+        wardrobeCount = typeof extracted === 'number' ? extracted : null;
+        wardrobeCountSource =
+          responseData?.wardrobe_count !== undefined ? 'wardrobe_count'
+          : responseData?.wardrobeCount !== undefined ? 'wardrobeCount'
+          : responseData?.wardrobeItemCount !== undefined ? 'wardrobeItemCount'
+          : 'none';
+
         console.log('📦 [Quiz Submit] Backend returned wardrobe count:', wardrobeCount);
-        console.log('📦 [Quiz Submit] Using count:', wardrobeCount, 'from field:', 
-          responseData.wardrobe_count ? 'wardrobe_count' : 
-          responseData.wardrobeCount ? 'wardrobeCount' : 
-          responseData.wardrobeItemCount ? 'wardrobeItemCount' : 'none (defaulting to 0)');
+        console.log('📦 [Quiz Submit] Using count source:', wardrobeCountSource);
       }
     } catch (apiError) {
       console.error('❌ Backend save failed:', apiError);
@@ -170,28 +181,47 @@ export async function POST(req: NextRequest) {
     });
 
     // Get wardrobe count from backend response or fallback to checking separately
-    let wardrobeItemCount = wardrobeCount; // Use the count from the backend profile update
+    let wardrobeItemCount = wardrobeCount ?? 0; // default to 0 if we truly can't determine
     try {
       // Try to get from backend response first (most efficient)
-      if (wardrobeCount !== undefined && wardrobeCount !== null) {
+      if (wardrobeCount !== null) {
         wardrobeItemCount = wardrobeCount;
         console.log('✅ [Quiz Submit] Using wardrobeCount from profile update:', wardrobeItemCount);
       } else {
-        // Fallback: Quick check if backend didn't return count
-        console.log('⚠️ [Quiz Submit] Backend did not return wardrobe count, doing quick check...');
-        const wardrobeCheckStart = Date.now();
-        const wardrobeResponse = await fetch(`${process.env.BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/wardrobe/?count_only=true`, {
-          headers: {
-            'Authorization': `Bearer ${submission.token || ''}`,
-            'Content-Type': 'application/json'
-          },
-          signal: AbortSignal.timeout(2000) // 2 second timeout
-        });
-        
-        if (wardrobeResponse.ok) {
-          const wardrobeData = await wardrobeResponse.json();
-          wardrobeItemCount = wardrobeData.count || wardrobeData.items?.length || 0;
-          console.log(`📦 [Quiz Submit] Wardrobe check took ${Date.now() - wardrobeCheckStart}ms, count: ${wardrobeItemCount}`);
+        // Fallback: Use cached count from profile (fast, no wardrobe scan)
+        console.log('⚠️ [Quiz Submit] Backend did not return wardrobe count, checking cached profile count...');
+        const profileCheckStart = Date.now();
+
+        const profileResponse = await fetch(
+          `${process.env.BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/auth/profile`,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${submission.token || ''}`,
+              'Content-Type': 'application/json',
+            },
+            signal: AbortSignal.timeout(2500),
+          }
+        );
+
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          const cachedCount =
+            profileData?.wardrobeItemCount ??
+            profileData?.wardrobeCount ??
+            profileData?.wardrobe_count ??
+            null;
+
+          if (typeof cachedCount === 'number') {
+            wardrobeItemCount = cachedCount;
+            wardrobeCountSource = 'profileCache';
+          }
+
+          console.log(
+            `📦 [Quiz Submit] Profile cached count check took ${Date.now() - profileCheckStart}ms, count: ${wardrobeItemCount}`
+          );
+        } else {
+          console.warn('⚠️ [Quiz Submit] Profile cached count check failed with status:', profileResponse.status);
         }
       }
     } catch (error) {
@@ -204,6 +234,10 @@ export async function POST(req: NextRequest) {
       message: 'Style profile saved successfully',
       wardrobeCount: wardrobeItemCount, // Include wardrobe count in response
       hasExistingWardrobe: wardrobeItemCount >= 10, // Frontend can use this flag
+      debug: {
+        apiVersion: 'quiz-submit-api-v3',
+        wardrobeCountSource,
+      },
       hybridStyleName: "Personal Style", // Will be overridden by frontend
       quizResults: {
         aesthetic_scores: profileUpdate.stylePersonality || { "classic": 0.6, "sophisticated": 0.4 },

@@ -49,6 +49,65 @@ export async function GET(request: Request) {
     console.log('🔍 DEBUG: Backend URL:', backendUrl);
     console.log('🔍 DEBUG: Environment variable NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
     console.log('🔍 DEBUG: Using hardcoded backend URL to ensure correct backend is called');
+
+    // FAST PATH: count-only requests should use cached profile count (no wardrobe scan)
+    // This avoids slow Firestore queries on the wardrobe collection during onboarding redirects.
+    if (countOnly) {
+      try {
+        const profileController = new AbortController();
+        const profileTimeoutId = setTimeout(() => profileController.abort(), 2500);
+
+        const profileUrl = `${backendUrl}/api/auth/profile`;
+        console.log('🔍 DEBUG: Count-only fast path - calling profile endpoint:', profileUrl);
+
+        const profileResponse = await fetch(profileUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/json',
+          },
+          signal: profileController.signal,
+        });
+
+        clearTimeout(profileTimeoutId);
+
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          const cachedCount =
+            profileData?.wardrobeItemCount ??
+            profileData?.wardrobeCount ??
+            profileData?.wardrobe_count ??
+            null;
+
+          console.log('🔍 DEBUG: Count-only fast path - profile cached count:', cachedCount);
+
+          if (typeof cachedCount === 'number') {
+            return NextResponse.json(
+              {
+                success: true,
+                count: cachedCount,
+                items: [],
+                user_id: profileData?.user_id || profileData?.userId || null,
+                source: 'profileCache',
+              },
+              {
+                headers: {
+                  'Access-Control-Allow-Origin': '*',
+                  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+                  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                },
+              }
+            );
+          }
+        } else {
+          const errorText = await profileResponse.text().catch(() => 'Unable to read error');
+          console.warn('⚠️ DEBUG: Count-only fast path - profile endpoint failed:', profileResponse.status, errorText);
+        }
+      } catch (e) {
+        console.warn('⚠️ DEBUG: Count-only fast path - failed, falling back to wardrobe count_only:', e);
+      }
+      // Continue to slow-path wardrobe count_only below if profile fast-path fails.
+    }
     
     // Call the real backend to get your wardrobe items
     // Add trailing slash to avoid 307 redirect that changes protocol
