@@ -327,7 +327,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     question: "How much do you typically spend on dresses per year?",
     options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
     category: "measurements",
-    gender: "female"  // Only show for female and non-binary users
+    gender: "female" // Show for Female + Non-binary + Prefer not to say (see filter logic)
   },
   {
     id: "category_spend_accessories",
@@ -616,10 +616,12 @@ function OnboardingContent() {
       // Special handling for style questions - non-binary users should see BOTH male and female style questions
       const isStyleQuestion = question.id.startsWith('style_item_f_') || question.id.startsWith('style_item_m_');
       const isNonBinaryUser = currentGender === 'Non-binary' || currentGender === 'Prefer not to say';
+      const isDressesSpendQuestion = question.id === 'category_spend_dresses';
       
       // For female-specific questions: show to Female users, and also to Non-binary users if it's a style question
       if (question.gender === 'female' && currentGender && currentGender !== 'Female') {
-        if (!(isStyleQuestion && isNonBinaryUser)) {
+        // Exception: dresses spend question should also show for Non-binary / Prefer not to say (but not Male)
+        if (!((isStyleQuestion && isNonBinaryUser) || (isDressesSpendQuestion && isNonBinaryUser))) {
           console.log(`❌ [Filter] Filtering out ${question.id} for non-female (has gender='female')`);
           return false;
         }
