@@ -33,7 +33,7 @@ function decodeFirebaseToken(token: string) {
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   try {
-    console.log('🚀 [Quiz Submit API] Received quiz submission at:', new Date().toISOString());
+    console.log('🚀 [Quiz Submit API v2] Received quiz submission at:', new Date().toISOString());
     const submission = await req.json();
     console.log('⏱️ [Quiz Submit API] Parsed JSON in:', Date.now() - startTime, 'ms');
     console.log('🚀 [Quiz Submit API] Submission data:', {
