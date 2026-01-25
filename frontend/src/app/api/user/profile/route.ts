@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 // This endpoint MUST be fast/reliable. Previously it proxied to Railway and often hit Vercel's 10s limit,
 // causing 504s that blocked Profile (and onboarding quick checks).
@@ -9,6 +11,7 @@ import { getFirestore, Timestamp } from "firebase-admin/firestore";
 // We now read/write the user profile directly in Firestore via Firebase Admin.
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+export const runtime = "nodejs";
 
 const profileCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL_MS = 60 * 1000; // 1 minute (best-effort on warm instances)
@@ -20,17 +23,38 @@ function initAdmin() {
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 
-  if (!privateKey || !projectId || !clientEmail) {
-    throw new Error("Firebase Admin env vars missing (FIREBASE_PRIVATE_KEY/PROJECT_ID/CLIENT_EMAIL)");
+  // Prefer env-based credentials (recommended for production).
+  if (privateKey && projectId && clientEmail) {
+    initializeApp({
+      credential: cert({
+        projectId,
+        clientEmail,
+        privateKey,
+      }),
+    });
+    return;
   }
 
-  initializeApp({
-    credential: cert({
-      projectId,
-      clientEmail,
-      privateKey,
-    }),
-  });
+  // Fallback: local service account JSON (useful in dev/self-host; some deployments may bundle this file).
+  // NOTE: This is NOT recommended for typical Vercel deployments; prefer env vars.
+  const candidates = [
+    join(process.cwd(), "serviceAccountKey.json"),
+    join(process.cwd(), "frontend", "serviceAccountKey.json"),
+  ];
+  for (const p of candidates) {
+    try {
+      const raw = readFileSync(p, "utf8");
+      const svc = JSON.parse(raw);
+      initializeApp({
+        credential: cert(svc),
+      });
+      return;
+    } catch {
+      // try next candidate
+    }
+  }
+
+  throw new Error("Firebase Admin not configured (missing env vars and no serviceAccountKey.json found)");
 }
 
 function getBearerToken(request: Request): string | null {
@@ -85,6 +109,59 @@ function normalizeProfileForClient(input: any, decoded: any, userId: string) {
   };
 }
 
+async function fetchProfileFromRailway(authHeader: string, startMs: number) {
+  const backendUrl = "https://closetgptrenew-production.up.railway.app";
+  const fullBackendUrl = `${backendUrl}/api/auth/profile`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8500); // keep under typical 10s serverless limit
+
+  try {
+    const res = await fetch(fullBackendUrl, {
+      method: "GET",
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+    });
+
+    const text = await res.text().catch(() => "");
+    if (!res.ok) {
+      return NextResponse.json(
+        {
+          error: "Backend request failed",
+          details: text || `${res.status} ${res.statusText}`,
+          _source: "railway",
+          _duration: `${Date.now() - startMs}ms`,
+        },
+        { status: res.status }
+      );
+    }
+
+    let data: any = {};
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      // keep empty
+    }
+    return NextResponse.json({ ...data, _source: "railway", _duration: `${Date.now() - startMs}ms` });
+  } catch (e: any) {
+    const isTimeout = e?.name === "AbortError";
+    return NextResponse.json(
+      {
+        error: isTimeout ? "Backend request timeout" : "Backend request failed",
+        details: String(e?.message || e),
+        _source: "railway",
+        _duration: `${Date.now() - startMs}ms`,
+      },
+      { status: isTimeout ? 504 : 502 }
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export async function GET(request: Request) {
   const start = Date.now();
 
@@ -101,7 +178,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ ...cached.data, _cached: true, _duration: `${Date.now() - start}ms` });
     }
 
-    initAdmin();
+    const authHeader = `Bearer ${token}`;
+
+    // If Firebase Admin isn't configured in this deployment, fall back to the Railway proxy
+    // instead of hard-failing with 500.
+    try {
+      initAdmin();
+    } catch (e) {
+      console.error("PROFILE API: Firebase Admin init failed; falling back to Railway.", e);
+      return fetchProfileFromRailway(authHeader, start);
+    }
+
     const decoded = await getAuth().verifyIdToken(token);
     const userId = decoded.uid;
 
@@ -156,7 +243,63 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    initAdmin();
+    const authHeader = `Bearer ${token}`;
+
+    try {
+      initAdmin();
+    } catch (e) {
+      console.error("PROFILE API: Firebase Admin init failed on POST; falling back to Railway.", e);
+      // Railway expects PUT for update
+      const backendUrl = "https://closetgptrenew-production.up.railway.app";
+      const fullBackendUrl = `${backendUrl}/api/auth/profile`;
+
+      const body = await request.json().catch(() => ({}));
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8500);
+      try {
+        const res = await fetch(fullBackendUrl, {
+          method: "PUT",
+          headers: {
+            Authorization: authHeader,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
+        const text = await res.text().catch(() => "");
+        if (!res.ok) {
+          return NextResponse.json(
+            {
+              error: "Backend request failed",
+              details: text || `${res.status} ${res.statusText}`,
+              _source: "railway",
+              _duration: `${Date.now() - start}ms`,
+            },
+            { status: res.status }
+          );
+        }
+        let data: any = {};
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {}
+        return NextResponse.json({ ...data, _source: "railway", _duration: `${Date.now() - start}ms` });
+      } catch (err: any) {
+        const isTimeout = err?.name === "AbortError";
+        return NextResponse.json(
+          {
+            error: isTimeout ? "Backend request timeout" : "Backend request failed",
+            details: String(err?.message || err),
+            _source: "railway",
+            _duration: `${Date.now() - start}ms`,
+          },
+          { status: isTimeout ? 504 : 502 }
+        );
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
     const decoded = await getAuth().verifyIdToken(token);
     const userId = decoded.uid;
 
