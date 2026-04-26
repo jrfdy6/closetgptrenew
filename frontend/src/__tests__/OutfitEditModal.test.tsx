@@ -112,7 +112,7 @@ describe('OutfitEditModal', () => {
       />
     );
 
-    expect(screen.getByText('Edit Outfit')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /edit outfit/i })).toBeInTheDocument();
     expect(screen.getByDisplayValue('Casual Friday')).toBeInTheDocument();
   });
 
@@ -126,7 +126,7 @@ describe('OutfitEditModal', () => {
       />
     );
 
-    expect(screen.queryByText('Edit Outfit')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /edit outfit/i })).not.toBeInTheDocument();
   });
 
   it('validates required fields', async () => {
@@ -143,7 +143,7 @@ describe('OutfitEditModal', () => {
     fireEvent.change(screen.getByDisplayValue('Casual Friday'), { target: { value: '' } });
     
     // Try to save
-    fireEvent.click(screen.getByText('Save Changes'));
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Outfit name is required')).toBeInTheDocument();
@@ -165,7 +165,7 @@ describe('OutfitEditModal', () => {
       target: { value: 'Updated Outfit Name' } 
     });
 
-    expect(screen.getByText('Unsaved Changes')).toBeInTheDocument();
+    expect(screen.getByText(/unsaved changes/i)).toBeInTheDocument();
   });
 
   it('disables save button when no changes made', () => {
@@ -178,7 +178,7 @@ describe('OutfitEditModal', () => {
       />
     );
 
-    const saveButton = screen.getByText('No Changes');
+    const saveButton = screen.getByRole('button', { name: /no changes/i });
     expect(saveButton).toBeDisabled();
   });
 
@@ -206,7 +206,7 @@ describe('OutfitEditModal', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+    fireEvent.click(screen.getByRole('button', { name: /close edit outfit modal/i }));
     expect(mockOnClose).toHaveBeenCalled();
   });
 
@@ -236,11 +236,16 @@ describe('OutfitEditModal', () => {
       />
     );
 
-    // Try to save
-    fireEvent.click(screen.getByText('Save Changes'));
+    // Make a change so the save action is enabled, then try to save
+    fireEvent.change(screen.getByDisplayValue('Casual Friday'), {
+      target: { value: 'Updated Outfit Name' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/no longer in your wardrobe/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/the following items are no longer in your wardrobe:/i)
+      ).toBeInTheDocument();
     });
   });
 });

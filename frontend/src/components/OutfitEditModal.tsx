@@ -255,6 +255,7 @@ export default function OutfitEditModal({
             variant="ghost"
             size="sm"
             onClick={onClose}
+            aria-label="Close edit outfit modal"
             className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground"
           >
             <X className="h-4 w-4" />
