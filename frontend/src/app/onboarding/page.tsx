@@ -12,6 +12,20 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import BodyPositiveMessage from "@/components/BodyPositiveMessage";
 import GuidedUploadWizard from "@/components/GuidedUploadWizard";
 
+const ONBOARDING_DEBUG = process.env.NODE_ENV === 'development';
+
+function debugOnboarding(...args: unknown[]) {
+  if (ONBOARDING_DEBUG) {
+    globalThis.console.log(...args);
+  }
+}
+
+function debugOnboardingWarn(...args: unknown[]) {
+  if (ONBOARDING_DEBUG) {
+    globalThis.console.warn(...args);
+  }
+}
+
 interface QuizAnswer {
   question_id: string;
   selected_option: string;
@@ -553,18 +567,18 @@ function OnboardingContent() {
   
   // Debug: Track when quizCompleted changes
   useEffect(() => {
-    console.log('🎯 [Quiz State] quizCompleted changed to:', quizCompleted);
+    debugOnboarding('🎯 [Quiz State] quizCompleted changed to:', quizCompleted);
     if (quizCompleted) {
-      console.log('🎯 [Quiz State] Quiz completed! Stack trace:', new Error().stack);
+      debugOnboarding('🎯 [Quiz State] Quiz completed! Stack trace:', new Error().stack);
     }
   }, [quizCompleted]);
   const [quizResults, setQuizResults] = useState<any>(null);
   
   // Debug: Track when quizResults changes
   useEffect(() => {
-    console.log('🎯 [Quiz State] quizResults changed to:', !!quizResults);
+    debugOnboarding('🎯 [Quiz State] quizResults changed to:', !!quizResults);
     if (quizResults) {
-      console.log('🎯 [Quiz State] Quiz results set! Stack trace:', new Error().stack);
+      debugOnboarding('🎯 [Quiz State] Quiz results set! Stack trace:', new Error().stack);
     }
   }, [quizResults]);
   const [error, setError] = useState<string | null>(null);
@@ -609,7 +623,6 @@ function OnboardingContent() {
   // Filter questions based on gender
   const getFilteredQuestions = (genderOverride?: string): QuizQuestion[] => {
     const currentGender = genderOverride || userGender;
-    console.log('🔍 [getFilteredQuestions] Called with genderOverride:', genderOverride, 'userGender:', userGender, 'currentGender:', currentGender);
     
     const filtered = QUIZ_QUESTIONS.filter(question => {
       // GENERIC GENDER FILTER: Check question.gender attribute first
@@ -622,14 +635,12 @@ function OnboardingContent() {
       if (question.gender === 'female' && currentGender && currentGender !== 'Female') {
         // Exception: dresses spend question should also show for Non-binary / Prefer not to say (but not Male)
         if (!((isStyleQuestion && isNonBinaryUser) || (isDressesSpendQuestion && isNonBinaryUser))) {
-          console.log(`❌ [Filter] Filtering out ${question.id} for non-female (has gender='female')`);
           return false;
         }
       }
       // For male-specific questions: show to Male users, and also to Non-binary users if it's a style question
       if (question.gender === 'male' && currentGender && currentGender !== 'Male') {
         if (!(isStyleQuestion && isNonBinaryUser)) {
-          console.log(`❌ [Filter] Filtering out ${question.id} for non-male (has gender='male')`);
           return false;
         }
       }
@@ -637,7 +648,6 @@ function OnboardingContent() {
       if (question.gender === 'nonbinary' && currentGender && 
           currentGender !== 'Non-binary' && 
           currentGender !== 'Prefer not to say') {
-        console.log(`❌ [Filter] Filtering out ${question.id} for binary gender (has gender='nonbinary')`);
         return false;
       }
       
@@ -646,36 +656,29 @@ function OnboardingContent() {
           currentGender !== 'Female' && 
           currentGender !== 'Non-binary' && 
           currentGender !== 'Prefer not to say') {
-        console.log('❌ [Filter] Filtering out cup_size for non-female/non-binary/prefer not to say');
         return false;
       }
       
       // Show gender-specific body type questions
       if (question.id === 'body_type_female' && currentGender && currentGender !== 'Female') {
-        console.log('❌ [Filter] Filtering out body_type_female for non-female');
         return false;
       }
       if (question.id === 'body_type_male' && currentGender && currentGender !== 'Male') {
-        console.log('❌ [Filter] Filtering out body_type_male for non-male');
         return false;
       }
       if (question.id === 'body_type_nonbinary' && currentGender && (currentGender === 'Female' || currentGender === 'Male')) {
-        console.log('❌ [Filter] Filtering out body_type_nonbinary for binary gender');
         return false;
       }
       
       // Show gender-specific shoe size questions
       if (question.id === 'shoe_size_female' && currentGender && currentGender !== 'Female') {
-        console.log('❌ [Filter] Filtering out shoe_size_female for non-female');
         return false;
       }
       if (question.id === 'shoe_size_male' && currentGender && currentGender !== 'Male') {
-        console.log('❌ [Filter] Filtering out shoe_size_male for non-male');
         return false;
       }
       // Generic shoe_size (for non-binary / prefer not to say)
       if (question.id === 'shoe_size' && currentGender && (currentGender === 'Male' || currentGender === 'Female')) {
-        console.log('❌ [Filter] Filtering out generic shoe_size for binary gender users');
         return false;
       }
       
@@ -685,26 +688,16 @@ function OnboardingContent() {
       return true;
     });
     
-    console.log('🔍 [Quiz] Filtered questions:', {
-      totalQuestions: QUIZ_QUESTIONS.length,
-      filteredQuestions: filtered.length,
-      currentGender,
-      questionIds: filtered.map(q => q.id),
-      visualYesNoQuestions: filtered.filter(q => q.type === 'visual_yesno').map(q => q.id),
-      femaleStyleQuestions: filtered.filter(q => q.id.startsWith('style_item_f_')).map(q => q.id),
-      maleStyleQuestions: filtered.filter(q => q.id.startsWith('style_item_m_')).map(q => q.id)
-    });
-    
     return filtered;
   };
 
   const [questions, setQuestions] = React.useState<QuizQuestion[]>(() => getFilteredQuestions());
 
   React.useEffect(() => {
-    console.log('🔄 [useEffect] Recalculating questions with gender:', userGender);
-    console.log('🔄 [useEffect] userGender type:', typeof userGender, 'value:', userGender);
+    debugOnboarding('🔄 [useEffect] Recalculating questions with gender:', userGender);
+    debugOnboarding('🔄 [useEffect] userGender type:', typeof userGender, 'value:', userGender);
     const newQuestions = getFilteredQuestions(userGender);
-    console.log('🔄 [useEffect] Result:', {
+    debugOnboarding('🔄 [useEffect] Result:', {
       totalQuestions: newQuestions.length,
       visualYesNoCount: newQuestions.filter(q => q.type === 'visual_yesno').length,
       questionIds: newQuestions.map(q => q.id)
@@ -714,7 +707,7 @@ function OnboardingContent() {
 
   // Debug: Log when userGender changes
   React.useEffect(() => {
-    console.log('👤 [Gender Change] userGender changed to:', userGender);
+    debugOnboarding('👤 [Gender Change] userGender changed to:', userGender);
   }, [userGender]);
 
   const nextStep = () => {
@@ -816,37 +809,37 @@ function OnboardingContent() {
         const styleName = question.style_name;
         if (styleName) {
           stylePreferences[styleName] = (stylePreferences[styleName] || 0) + 1;
-          console.log('🎨 [Style] Found style preference:', styleName, 'for question:', answer.question_id);
+          debugOnboarding('🎨 [Style] Found style preference:', styleName, 'for question:', answer.question_id);
         }
       }
     });
     
-    console.log('🎨 [Style] All style preferences:', stylePreferences);
+    debugOnboarding('🎨 [Style] All style preferences:', stylePreferences);
 
     // Map style preferences to personas
     if (stylePreferences['Minimalist'] || stylePreferences['Clean Minimal']) {
       personaScores.architect += 3;
       personaScores.modernist += 2;
-      console.log('🎨 [Persona] Added points for Minimalist style');
+      debugOnboarding('🎨 [Persona] Added points for Minimalist style');
     }
     if (stylePreferences['Street Style'] || stylePreferences['Urban Street']) {
       personaScores.rebel += 3;
       personaScores.strategist += 2;
-      console.log('🎨 [Persona] Added points for Street Style');
+      debugOnboarding('🎨 [Persona] Added points for Street Style');
     }
     if (stylePreferences['Classic Elegant']) {
       personaScores.classic += 3;
       personaScores.connoisseur += 2;
-      console.log('🎨 [Persona] Added points for Classic Elegant');
+      debugOnboarding('🎨 [Persona] Added points for Classic Elegant');
     }
     if (stylePreferences['Old Money']) {
       personaScores.connoisseur += 3;
       personaScores.classic += 2;
-      console.log('🎨 [Persona] Added points for Old Money');
+      debugOnboarding('🎨 [Persona] Added points for Old Money');
     }
     if (stylePreferences['Cottagecore'] || stylePreferences['Natural Boho']) {
       personaScores.wanderer += 3;
-      console.log('🎨 [Persona] Added points for Cottagecore/Boho');
+      debugOnboarding('🎨 [Persona] Added points for Cottagecore/Boho');
     }
 
     // Daily activities scoring
@@ -910,18 +903,18 @@ function OnboardingContent() {
     const topPersona = sortedPersonas[0][0];
     
     // Debug logging
-    console.log('🎯 [Persona] User answers:', userAnswers);
-    console.log('🎯 [Persona] Style preferences:', stylePreferences);
-    console.log('🎯 [Persona] Persona scores:', personaScores);
-    console.log('🎯 [Persona] Sorted personas:', sortedPersonas);
-    console.log('🎯 [Persona] Selected persona:', topPersona);
+    debugOnboarding('🎯 [Persona] User answers:', userAnswers);
+    debugOnboarding('🎯 [Persona] Style preferences:', stylePreferences);
+    debugOnboarding('🎯 [Persona] Persona scores:', personaScores);
+    debugOnboarding('🎯 [Persona] Sorted personas:', sortedPersonas);
+    debugOnboarding('🎯 [Persona] Selected persona:', topPersona);
     
     // Count total "Yes" answers for style questions
     const styleYesAnswers = answers.filter(answer => {
       const question = QUIZ_QUESTIONS.find(q => q.id === answer.question_id);
       return question && question.type === 'visual_yesno' && answer.selected_option === 'Yes';
     }).length;
-    console.log('🎯 [Persona] Total style "Yes" answers:', styleYesAnswers);
+    debugOnboarding('🎯 [Persona] Total style "Yes" answers:', styleYesAnswers);
 
     return STYLE_PERSONAS[topPersona] || STYLE_PERSONAS.strategist;
   };
@@ -994,7 +987,7 @@ function OnboardingContent() {
 
   // Hero images mapping for each persona
   const getHeroImageForPersona = (personaId: string): string => {
-    console.log('🖼️ [Hero Image] Persona ID:', personaId, 'User Gender:', userGender);
+    debugOnboarding('🖼️ [Hero Image] Persona ID:', personaId, 'User Gender:', userGender);
     
     // Determine which gender variant to use
     let genderVariant = 'unisex'; // default fallback
@@ -1048,7 +1041,7 @@ function OnboardingContent() {
     };
     
     const imageUrl = heroImages[personaId]?.[genderVariant] || "/images/placeholder.jpg";
-    console.log('🖼️ [Hero Image] Selected image:', imageUrl, 'for gender variant:', genderVariant);
+    debugOnboarding('🖼️ [Hero Image] Selected image:', imageUrl, 'for gender variant:', genderVariant);
     return imageUrl;
   };
 
@@ -1110,7 +1103,7 @@ function OnboardingContent() {
 
   // Style examples mapping for each persona
   const getStyleExamplesForPersona = (personaId: string): Array<{url: string, caption: string}> => {
-    console.log('🎨 [Style Examples] Persona ID:', personaId);
+    debugOnboarding('🎨 [Style Examples] Persona ID:', personaId);
     const styleExamples: Record<string, Array<{url: string, caption: string}>> = {
       strategist: [
         { url: "/images/style-examples/strategist/business-meeting.jpg", caption: "Strategic Planning Session" },
@@ -1154,8 +1147,8 @@ function OnboardingContent() {
       ]
     };
     
-    console.log('🎨 [Style Examples] Available personas:', Object.keys(styleExamples));
-    console.log('🎨 [Style Examples] Selected examples:', styleExamples[personaId]);
+    debugOnboarding('🎨 [Style Examples] Available personas:', Object.keys(styleExamples));
+    debugOnboarding('🎨 [Style Examples] Selected examples:', styleExamples[personaId]);
     
     return styleExamples[personaId] || [
       { url: "/images/style-examples/default/example-1.jpg", caption: "Style Example" },
@@ -1260,21 +1253,21 @@ function OnboardingContent() {
 
   const submitQuiz = async () => {
     const startTime = Date.now();
-    console.log('🚀 [submitQuiz] Function called at:', new Date().toISOString());
-    console.log('🚀 [submitQuiz] User:', !!user);
-    console.log('🚀 [submitQuiz] Answers:', answers.length);
+    debugOnboarding('🚀 [submitQuiz] Function called at:', new Date().toISOString());
+    debugOnboarding('🚀 [submitQuiz] User:', !!user);
+    debugOnboarding('🚀 [submitQuiz] Answers:', answers.length);
     
-    console.log('⏱️ [submitQuiz] Starting color analysis...');
+    debugOnboarding('⏱️ [submitQuiz] Starting color analysis...');
     const colorAnalysis = analyzeColors();
-    console.log('⏱️ [submitQuiz] Color analysis took:', Date.now() - startTime, 'ms');
+    debugOnboarding('⏱️ [submitQuiz] Color analysis took:', Date.now() - startTime, 'ms');
     
-    console.log('⏱️ [submitQuiz] Starting preference derivation...');
+    debugOnboarding('⏱️ [submitQuiz] Starting preference derivation...');
     const { stylePreferences, colorPreferences } = deriveQuizPreferences();
-    console.log('⏱️ [submitQuiz] Preference derivation took:', Date.now() - startTime, 'ms');
+    debugOnboarding('⏱️ [submitQuiz] Preference derivation took:', Date.now() - startTime, 'ms');
     
     if (!user) {
       if (isGuestFlow) {
-        console.log('✨ [submitQuiz] Guest flow detected, storing quiz results for later signup');
+        debugOnboarding('✨ [submitQuiz] Guest flow detected, storing quiz results for later signup');
         try {
           if (typeof window !== 'undefined') {
             const persona = determineStylePersona();
@@ -1287,7 +1280,7 @@ function OnboardingContent() {
               createdAt: Date.now()
             };
             sessionStorage.setItem('pendingQuizSubmission', JSON.stringify(pendingSubmission));
-            console.log('💾 [submitQuiz] Stored pending quiz submission in sessionStorage');
+            debugOnboarding('💾 [submitQuiz] Stored pending quiz submission in sessionStorage');
           }
         } catch (storageError) {
           console.error('❌ [submitQuiz] Failed to store pending quiz submission:', storageError);
@@ -1297,20 +1290,20 @@ function OnboardingContent() {
         return;
       }
 
-      console.log('❌ [submitQuiz] No user in authenticated flow, setting error');
+      debugOnboarding('❌ [submitQuiz] No user in authenticated flow, setting error');
       setError('Please sign in to complete the quiz');
       return;
     }
 
-    console.log('🚀 [submitQuiz] Starting submission...');
+    debugOnboarding('🚀 [submitQuiz] Starting submission...');
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('⏱️ [submitQuiz] Getting ID token...');
+      debugOnboarding('⏱️ [submitQuiz] Getting ID token...');
       const tokenStart = Date.now();
       const token = await user.getIdToken();
-      console.log('⏱️ [submitQuiz] Got ID token in:', Date.now() - tokenStart, 'ms');
+      debugOnboarding('⏱️ [submitQuiz] Got ID token in:', Date.now() - tokenStart, 'ms');
       
       // Extract spending ranges from answers (8 categories)
       const spending_ranges = {
@@ -1337,7 +1330,7 @@ function OnboardingContent() {
           spending_ranges: spending_ranges
       };
 
-      console.log('🔍 [Quiz Frontend] Submitting quiz data:', {
+      debugOnboarding('🔍 [Quiz Frontend] Submitting quiz data:', {
         userId: user.uid,
         answersCount: answers.length,
         stylePreferences: stylePreferences,
@@ -1345,7 +1338,7 @@ function OnboardingContent() {
         hasColorAnalysis: !!colorAnalysis
       });
 
-      console.log('🌐 [Quiz Frontend] Making API call to /api/style-quiz/submit at:', Date.now() - startTime, 'ms');
+      debugOnboarding('🌐 [Quiz Frontend] Making API call to /api/style-quiz/submit at:', Date.now() - startTime, 'ms');
       const apiStart = Date.now();
       const response = await fetch('/api/style-quiz/submit', {
         method: 'POST',
@@ -1356,9 +1349,9 @@ function OnboardingContent() {
         body: JSON.stringify(submissionData)
       });
       
-      console.log('🌐 [Quiz Frontend] API response received in:', Date.now() - apiStart, 'ms');
-      console.log('🌐 [Quiz Frontend] API response status:', response.status);
-      console.log('⏱️ [submitQuiz] Total time so far:', Date.now() - startTime, 'ms');
+      debugOnboarding('🌐 [Quiz Frontend] API response received in:', Date.now() - apiStart, 'ms');
+      debugOnboarding('🌐 [Quiz Frontend] API response status:', response.status);
+      debugOnboarding('⏱️ [submitQuiz] Total time so far:', Date.now() - startTime, 'ms');
 
       if (response.ok) {
         const data = await response.json();
@@ -1380,10 +1373,10 @@ function OnboardingContent() {
         
         // Surface server-side API version/debug info in the browser console
         if (data?.debug) {
-          console.log('🧩 [Quiz] Quiz API debug:', data.debug);
+          debugOnboarding('🧩 [Quiz] Quiz API debug:', data.debug);
         }
         
-        console.log('📦 [Quiz] Wardrobe status from quiz API:', {
+        debugOnboarding('📦 [Quiz] Wardrobe status from quiz API:', {
           count: wardrobeCount,
           hasExisting: hasExistingWardrobe,
           backendSupportsCount: data.wardrobeCount !== undefined,
@@ -1396,7 +1389,7 @@ function OnboardingContent() {
         // IMPORTANT: use `/api/user/profile` (reliable proxy) to read cached `wardrobeItemCount`
         // instead of scanning the wardrobe collection.
         if (!hasExistingWardrobe) {
-          console.log('⚠️ [Quiz] Wardrobe not confirmed (count < 10). Checking cached profile wardrobe count...');
+          debugOnboarding('⚠️ [Quiz] Wardrobe not confirmed (count < 10). Checking cached profile wardrobe count...');
           try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -1422,27 +1415,27 @@ function OnboardingContent() {
 
               wardrobeCount = (typeof cachedCount === 'number') ? cachedCount : 0;
               hasExistingWardrobe = wardrobeCount >= 10;
-              console.log(`📦 [Quiz] Profile cached count check found ${wardrobeCount} items (took ${Date.now() - profileCheckStart}ms)`, {
+              debugOnboarding(`📦 [Quiz] Profile cached count check found ${wardrobeCount} items (took ${Date.now() - profileCheckStart}ms)`, {
                 _cached: profileData?._cached,
                 _duration: profileData?._duration
               });
             }
           } catch (error) {
-            console.warn('⚠️ [Quiz] Quick wardrobe check failed:', error);
+            debugOnboardingWarn('⚠️ [Quiz] Quick wardrobe check failed:', error);
           }
         }
         
         if (hasExistingWardrobe) {
-          console.log(`✅ User has ${wardrobeCount} items, skipping upload - going to persona page`);
-          console.log('⏱️ [submitQuiz] TOTAL TIME:', Date.now() - startTime, 'ms');
+          debugOnboarding(`✅ User has ${wardrobeCount} items, skipping upload - going to persona page`);
+          debugOnboarding('⏱️ [submitQuiz] TOTAL TIME:', Date.now() - startTime, 'ms');
           // Skip upload and go directly to style persona page
           router.push('/style-persona?from=quiz');
           return;
         }
         
         // Start upload phase for new users or users with < 10 items
-        console.log('🎯 [Quiz] Starting upload phase (user has', wardrobeCount, 'items)');
-        console.log('⏱️ [submitQuiz] TOTAL TIME BEFORE UPLOAD:', Date.now() - startTime, 'ms');
+        debugOnboarding('🎯 [Quiz] Starting upload phase (user has', wardrobeCount, 'items)');
+        debugOnboarding('⏱️ [submitQuiz] TOTAL TIME BEFORE UPLOAD:', Date.now() - startTime, 'ms');
         setUploadPhase(true);
       } else {
         throw new Error('Failed to submit quiz');
@@ -1471,7 +1464,7 @@ function OnboardingContent() {
       });
       
       // Go directly to upload phase on error fallback
-      console.log('🎯 [Quiz] Using fallback, going to upload phase');
+      debugOnboarding('🎯 [Quiz] Using fallback, going to upload phase');
       setUploadPhase(true);
     } finally {
       setIsLoading(false);
@@ -1725,7 +1718,7 @@ function OnboardingContent() {
         stylePersona={quizResults?.stylePersona || 'default'}
         gender={userGender || 'Male'}
         onComplete={(itemCount) => {
-          console.log(`✅ Upload complete with ${itemCount} items`);
+          debugOnboarding(`✅ Upload complete with ${itemCount} items`);
           setUploadComplete(true);
           // Redirect to persona page after upload
           setTimeout(() => {
@@ -1980,17 +1973,17 @@ function OnboardingContent() {
 
   // Quiz functions
   const handleAnswer = (questionId: string, answer: string) => {
-    console.log('📝 [Answer] Saving answer:', { questionId, answer });
+    debugOnboarding('📝 [Answer] Saving answer:', { questionId, answer });
     
     // Set user gender when gender question is answered
     if (questionId === 'gender') {
-      console.log('👤 [Gender] About to set user gender from:', userGender, 'to:', answer);
+      debugOnboarding('👤 [Gender] About to set user gender from:', userGender, 'to:', answer);
       setUserGender(answer);
-      console.log('👤 [Gender] Set user gender:', answer);
+      debugOnboarding('👤 [Gender] Set user gender:', answer);
       
       // Debug: Show what questions will be available after gender selection
       const newFiltered = getFilteredQuestions(answer);
-      console.log('🔄 [Gender] After gender selection, available questions:', {
+      debugOnboarding('🔄 [Gender] After gender selection, available questions:', {
         totalQuestions: newFiltered.length,
         visualYesNoQuestions: newFiltered.filter(q => q.type === 'visual_yesno').map(q => q.id),
         femaleStyleQuestions: newFiltered.filter(q => q.id.startsWith('style_item_f_')).map(q => q.id),
@@ -1998,7 +1991,7 @@ function OnboardingContent() {
       });
       
       // Force update questions immediately
-      console.log('🔄 [Gender] Force updating questions immediately');
+      debugOnboarding('🔄 [Gender] Force updating questions immediately');
       setQuestions(newFiltered);
     }
     
@@ -2012,7 +2005,7 @@ function OnboardingContent() {
     });
     
     // Debug: Log current state after answering
-    console.log('🔍 [Quiz State] After answering:', {
+    debugOnboarding('🔍 [Quiz State] After answering:', {
       currentQuestionIndex,
       totalQuestions: questions.length,
       isLastQuestion: currentQuestionIndex === questions.length - 1,
@@ -2028,7 +2021,7 @@ function OnboardingContent() {
   };
 
   const handleNext = () => {
-    console.log('🔄 [Navigation] Next clicked:', {
+    debugOnboarding('🔄 [Navigation] Next clicked:', {
       currentQuestionIndex,
       totalQuestions: questions.length,
       canGoNext: currentQuestionIndex < questions.length - 1,
@@ -2039,10 +2032,10 @@ function OnboardingContent() {
       setCurrentQuestionIndex(prev => prev + 1);
     } else {
       // If this is the last question, submit the quiz
-      console.log('🎯 [Quiz] Last question reached, submitting quiz...');
-      console.log('🎯 [Quiz] submitQuiz function available:', typeof submitQuiz);
-      console.log('🎯 [Quiz] User available:', !!user);
-      console.log('🎯 [Quiz] Answers count:', answers.length);
+      debugOnboarding('🎯 [Quiz] Last question reached, submitting quiz...');
+      debugOnboarding('🎯 [Quiz] submitQuiz function available:', typeof submitQuiz);
+      debugOnboarding('🎯 [Quiz] User available:', !!user);
+      debugOnboarding('🎯 [Quiz] Answers count:', answers.length);
       submitQuiz();
     }
   };
@@ -2054,7 +2047,7 @@ function OnboardingContent() {
   };
 
   const handleSubmit = async () => {
-    console.log('🚀 [handleSubmit] Called - redirecting to submitQuiz');
+    debugOnboarding('🚀 [handleSubmit] Called - redirecting to submitQuiz');
     setIsSubmitting(true);
     try {
       await submitQuiz();
@@ -2070,7 +2063,7 @@ function OnboardingContent() {
   const question = questions[currentQuestionIndex];
   
   // Debug: Log current question details
-  console.log('🎯 [Current Question]', {
+  debugOnboarding('🎯 [Current Question]', {
     currentQuestionIndex,
     totalQuestions: questions.length,
     questionId: question?.id,
@@ -2080,7 +2073,7 @@ function OnboardingContent() {
   });
   
   // Debug: Show visual breakdown of all questions
-  console.log('📋 [Quiz Overview]', {
+  debugOnboarding('📋 [Quiz Overview]', {
     allQuestions: questions.map((q, index) => ({
       index,
       id: q.id,

@@ -1,38 +1,30 @@
 import { NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    console.log('🔍 DEBUG: Top worn items API route called - CALLING REAL BACKEND');
-    console.log('🔍 DEBUG: All headers:', Object.fromEntries(request.headers.entries()));
+    serverDebugLog('🔍 DEBUG: Top worn items API route called - CALLING REAL BACKEND');
     
     // Get the authorization header - try multiple variations
     const authHeader = request.headers.get('authorization') || 
                       request.headers.get('Authorization') ||
                       request.headers.get('AUTHORIZATION');
     
-    console.log('🔍 DEBUG: Authorization header found:', !!authHeader);
-    console.log('🔍 DEBUG: Authorization header value:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
+    serverDebugLog('🔍 DEBUG: Authorization header found:', !!authHeader);
     
     // Temporarily bypass auth check to test functionality
-    console.log('🔍 DEBUG: TEMPORARILY BYPASSING AUTH CHECK FOR TESTING');
-    
-    // if (!authHeader) {
-    //   console.log('🔍 DEBUG: No auth header - returning 401');
-    //   return NextResponse.json(
-    //     { error: 'Not authenticated' },
-    //     { status: 401 }
-    //   );
-    // }
+    serverDebugLog('🔍 DEBUG: TEMPORARILY BYPASSING AUTH CHECK FOR TESTING');
     
     // Get limit from query params
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '5');
     
     // Call the real backend to get top worn items
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/wardrobe/top-worn-items?limit=${limit}`;
-    console.log('🔍 DEBUG: Calling backend URL:', backendUrl);
+    const backendUrl = `${getBackendUrl()}/api/wardrobe/top-worn-items?limit=${limit}`;
+    serverDebugLog('🔍 DEBUG: Calling backend URL:', backendUrl);
     
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -42,7 +34,7 @@ export async function GET(request: Request) {
       },
     });
     
-    console.log('🔍 DEBUG: Backend response status:', response.status);
+    serverDebugLog('🔍 DEBUG: Backend response status:', response.status);
     
     if (!response.ok) {
       console.error('🔍 DEBUG: Backend response not ok:', response.status, response.statusText);
@@ -103,7 +95,7 @@ export async function GET(request: Request) {
     }
     
     const data = await response.json();
-    console.log('🔍 DEBUG: Backend data received:', data);
+    serverDebugLog('🔍 DEBUG: Backend data received:', data);
     
     return NextResponse.json(data);
     

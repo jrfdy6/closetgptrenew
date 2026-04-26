@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog, serverDebugWarn } from '@/lib/server/debug';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,14 +25,10 @@ export async function POST(
     }
 
     // Get the backend URL with fallbacks
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
-                      process.env.NEXT_PUBLIC_BACKEND_URL || 
-                      'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
 
     const currentTimestamp = Date.now();
-    const currentDate = new Date(currentTimestamp);
-    console.log(`👕 [API] Marking outfit ${outfitId} as worn`);
-    console.log(`📅 [API] Using timestamp: ${currentTimestamp} (${currentDate.toLocaleString()})`);
+    serverDebugLog(`👕 [API] Marking outfit ${outfitId} as worn`);
 
     // Prepare request body with required fields
     const requestBody = {
@@ -42,8 +40,6 @@ export async function POST(
       notes: '',
       tags: []
     };
-
-    console.log(`🔍 [API] Request body:`, requestBody);
 
     // Forward request to backend with timeout
     const controller = new AbortController();
@@ -65,7 +61,7 @@ export async function POST(
       const data = await backendResponse.json();
 
       if (!backendResponse.ok) {
-        console.error(`❌ [API] Backend error marking outfit ${outfitId} as worn:`, data);
+        serverDebugWarn(`❌ [API] Backend error marking outfit ${outfitId} as worn:`, data);
         return NextResponse.json(
           { 
             success: false,
@@ -76,13 +72,13 @@ export async function POST(
         );
       }
 
-      console.log(`✅ [API] Successfully marked outfit ${outfitId} as worn:`, data);
+      serverDebugLog(`✅ [API] Successfully marked outfit ${outfitId} as worn`, data);
       return NextResponse.json(data);
 
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
-        console.error(`⏰ [API] Timeout marking outfit ${outfitId} as worn`);
+        serverDebugWarn(`⏰ [API] Timeout marking outfit ${outfitId} as worn`);
         return NextResponse.json(
           { 
             success: false,

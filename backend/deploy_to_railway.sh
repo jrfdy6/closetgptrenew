@@ -5,6 +5,10 @@
 
 set -e  # Exit on any error
 
+RAILWAY_PROJECT_ID="97ed14e7-f7a6-4f86-b919-94f133ed478e"
+RAILWAY_ENVIRONMENT="production"
+RAILWAY_SERVICE="closetgptrenew-backend"
+
 echo "🚀 Deploying Easy Outfit Backend to Railway..."
 echo ""
 
@@ -49,7 +53,7 @@ echo ""
 echo "📝 Next steps:"
 echo "1. Copy the Firebase environment variables above to your Railway project"
 echo "2. Run: railway login (if not already logged in)"
-echo "3. Run: railway up"
+echo "3. Run: railway up --project $RAILWAY_PROJECT_ID --environment $RAILWAY_ENVIRONMENT --service $RAILWAY_SERVICE"
 echo ""
 
 # Check if user wants to proceed with deployment
@@ -66,7 +70,10 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     
     # Deploy to Railway
     echo "📤 Deploying to Railway..."
-    railway up
+    railway up \
+      --project "$RAILWAY_PROJECT_ID" \
+      --environment "$RAILWAY_ENVIRONMENT" \
+      --service "$RAILWAY_SERVICE"
     
     if [ $? -eq 0 ]; then
         echo ""
@@ -82,5 +89,5 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         exit 1
     fi
 else
-    echo "⏸️  Deployment cancelled. You can run 'railway up' manually when ready."
-fi 
+    echo "⏸️  Deployment cancelled. You can run 'railway up --project $RAILWAY_PROJECT_ID --environment $RAILWAY_ENVIRONMENT --service $RAILWAY_SERVICE' manually when ready."
+fi

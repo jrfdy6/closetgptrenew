@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  'https://closetgptrenew-production.up.railway.app';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'item_id is required' }, { status: 400 });
     }
 
-    const response = await fetch(`${API_URL}/api/item-analytics/favorites/toggle`, {
+    const response = await fetch(`${getBackendUrl()}/api/item-analytics/favorites/toggle`, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,

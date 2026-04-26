@@ -4,8 +4,7 @@
  */
 
 import { User } from 'firebase/auth';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-production.up.railway.app';
+import { buildPublicBackendUrl } from '@/lib/publicBackendUrl';
 
 export interface Subscription {
   role: string;
@@ -91,7 +90,7 @@ class SubscriptionService {
   async getCurrentSubscription(user: User | null): Promise<Subscription> {
     const token = await this.getAuthToken(user);
     
-    const response = await fetch(`${API_URL}/api/payments/subscription/current`, {
+    const response = await fetch(buildPublicBackendUrl('/api/payments/subscription/current'), {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -109,7 +108,7 @@ class SubscriptionService {
   async createCheckoutSession(user: User | null, role: string, interval: 'month' | 'year' = 'month'): Promise<{ checkout_url: string; session_id: string }> {
     const token = await this.getAuthToken(user);
     
-    const response = await fetch(`${API_URL}/api/payments/checkout/create-session`, {
+    const response = await fetch(buildPublicBackendUrl('/api/payments/checkout/create-session'), {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -129,7 +128,7 @@ class SubscriptionService {
   async createPortalSession(user: User | null): Promise<{ url: string }> {
     const token = await this.getAuthToken(user);
     
-    const response = await fetch(`${API_URL}/api/payments/checkout/create-portal-session`, {
+    const response = await fetch(buildPublicBackendUrl('/api/payments/checkout/create-portal-session'), {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -162,7 +161,7 @@ class SubscriptionService {
   async consumeFlatLayQuota(user: User | null): Promise<{ remaining: number; limit: number }> {
     const token = await this.getAuthToken(user);
     
-    const response = await fetch(`${API_URL}/api/payments/flatlay/consume`, {
+    const response = await fetch(buildPublicBackendUrl('/api/payments/flatlay/consume'), {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -180,4 +179,3 @@ class SubscriptionService {
 }
 
 export const subscriptionService = new SubscriptionService();
-

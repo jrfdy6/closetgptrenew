@@ -1,14 +1,29 @@
-// Firebase admin placeholder
-export const initializeFirebaseAdmin = () => {
-  // Implement Firebase admin initialization
-  console.log('Firebase admin not implemented')
+import type { Auth } from 'firebase-admin/auth';
+import type { Firestore } from 'firebase-admin/firestore';
+import {
+  getFirebaseAdminAuth,
+  getFirebaseAdminDb,
+  initFirebaseAdminApp,
+} from '@/lib/server/firebaseAdmin';
+
+export const initializeFirebaseAdmin = () => initFirebaseAdminApp();
+export const getFirebaseAdmin = () => initFirebaseAdminApp();
+
+function loadAdminAuth(): Auth | null {
+  try {
+    return getFirebaseAdminAuth();
+  } catch {
+    return null;
+  }
 }
 
-export const getFirebaseAdmin = () => {
-  // Return Firebase admin instance
-  throw new Error('Firebase admin not implemented')
+function loadAdminDb(): Firestore | null {
+  try {
+    return getFirebaseAdminDb();
+  } catch {
+    return null;
+  }
 }
 
-// Placeholder exports for API routes
-export const auth = null;
-export const db = null;
+export const auth = loadAdminAuth();
+export const db = loadAdminDb();

@@ -1,149 +1,101 @@
 # Quick Test Guide
 
-## 🚀 Start Backend
+This is the current local smoke test for EasyOutfit. It replaces an older misplaced quick-test flow that referenced prospect and outreach endpoints from a different project.
+
+## Start Backend
 
 ```bash
 cd backend
-python3 -m uvicorn app:app --reload --port 3001
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp env.example .env  # first run only
+python run.py
 ```
 
-Or if you have a virtual environment:
-```bash
-cd backend
-source venv/bin/activate  # or your venv path
-python -m uvicorn app:app --reload --port 3001
-```
+Expected local backend URL: `http://localhost:8080`
 
-## 🧪 Run Test Script
-
-In a new terminal:
-```bash
-./test_endpoints.sh
-```
-
-## 📋 Manual Test Steps
-
-### 1. Test Health Check
-```bash
-curl http://localhost:3001/health
-```
-
-### 2. Upload Test Prospect
-```bash
-curl -X POST http://localhost:3001/api/prospects/upload \
-  -H "Content-Type: application/json" \
-  -d '{
-    "prospects": [{
-      "name": "Test User",
-      "job_title": "VP Sales",
-      "company": "TestCorp",
-      "email": "test@testcorp.com"
-    }],
-    "user_id": "test-user-123",
-    "batch_name": "Quick Test"
-  }'
-```
-
-**Save the `prospect_ids` from the response!**
-
-### 3. Generate Analysis Prompt
-```bash
-# Replace PROSPECT_ID_HERE with actual ID from step 2
-curl -X POST http://localhost:3001/api/prospects/manual/prompts/analyze \
-  -H "Content-Type: application/json" \
-  -d '{
-    "prospect_ids": ["PROSPECT_ID_HERE"],
-    "user_id": "test-user-123",
-    "audience_profile": {
-      "brand_name": "My Company",
-      "brand_voice": "Professional"
-    }
-  }'
-```
-
-**Copy the `prompt.full_prompt` field and paste into ChatGPT!**
-
-### 4. Upload ChatGPT Results
-After getting ChatGPT response, format it and upload:
+## Start Frontend
 
 ```bash
-curl -X POST http://localhost:3001/api/prospects/manual/upload-analysis \
-  -H "Content-Type: application/json" \
-  -d '{
-    "results": [{
-      "prospect_id": "PROSPECT_ID_HERE",
-      "analysis": {
-        "summary": "VP of Sales at TestCorp...",
-        "fit_likelihood": "High",
-        "suggested_outreach_angle": "Focus on automation",
-        "reasoning": "Role aligns with target",
-        "confidence_score": 0.85
-      }
-    }],
-    "user_id": "test-user-123"
-  }'
+cd frontend
+npm ci
+cp env.example .env.local  # first run only
+npm run dev
 ```
 
-### 5. Verify Results
+Expected local frontend URL: `http://localhost:3000`
+
+## Smoke Tests
+
+### 1. Backend health
+
 ```bash
-curl "http://localhost:3001/api/prospects/list?user_id=test-user-123"
+curl http://localhost:8080/health
+curl http://localhost:8080/api/health
 ```
 
-### 6. Test Phase Status
+Expected:
+- `/health` returns a JSON object with `status: "healthy"`
+- `/api/health` returns a JSON object with `status: "ok"`
+
+### 2. Frontend build
+
 ```bash
-curl "http://localhost:3001/api/phases/phase-status/test-user-123"
+cd frontend
+npm run build
 ```
 
-## ✅ Expected Results
+Expected:
+- Build completes successfully
+- You may still see non-blocking Next.js `metadata.viewport` warnings on older pages
 
-- ✅ Health endpoint returns `{"status": "healthy"}` or similar
-- ✅ Upload returns `{"success": true, "prospect_ids": [...]}`
-- ✅ Prompt generation returns formatted prompt
-- ✅ List shows uploaded prospects
-- ✅ Phase status shows current phase (defaults to Phase 1)
+### 3. Sign-in and dashboard
 
-## 🐛 Troubleshooting
+1. Open `http://localhost:3000/signin`
+2. Sign in with a real test account
+3. Open `http://localhost:3000/dashboard`
+4. Confirm the dashboard loads without proxy errors
 
-### Backend Won't Start
-- Check Python version: `python3 --version` (should be 3.8+)
-- Install dependencies: `pip install -r backend/requirements.txt`
-- Check port 3001 is available
+Expected:
+- Auth succeeds
+- Dashboard renders
+- No `401`, `404`, or backend proxy errors in the browser network tab
 
-### Import Errors
-- Make sure you're in the backend directory
-- Check Python path includes backend directory
-- Verify all route files exist
+### 4. Wardrobe load and upload
 
-### Firebase Errors
-- Check environment variables are set
-- Or Firebase credentials file exists
-- Errors are logged but won't stop route registration
+1. Open `http://localhost:3000/wardrobe`
+2. Confirm existing wardrobe items load
+3. Upload a test clothing image through the batch uploader
+4. Re-open the uploaded item and verify metadata appears
 
-### Endpoint Not Found (404)
-- Check routes are mounted in `app.py`
-- Verify route paths match exactly
-- Check backend logs for registration messages
+Expected:
+- Wardrobe list loads
+- Upload reaches success state
+- Item detail modal shows core metadata like name, type, color, and tags
 
-## 📝 All Endpoints to Test
+### 5. Outfit generation
 
-**Prospect Management:**
-- `POST /api/prospects/upload` ✅
-- `POST /api/prospects/manual/prompts/analyze` ✅
-- `POST /api/prospects/manual/upload-analysis` ✅
-- `POST /api/prospects/review` ✅
-- `GET /api/prospects/list` ✅
+1. Open `http://localhost:3000/outfits` or `http://localhost:3000/outfits/generate`
+2. Generate an outfit
+3. Submit feedback on the generated outfit
 
-**Outreach:**
-- `POST /api/outreach/manual/prompts/generate` ✅
-- `POST /api/outreach/manual/upload` ✅
-- `GET /api/outreach/drafts` ✅
+Expected:
+- Outfit request completes
+- Feedback request succeeds
+- No proxy route silently hits the production backend because local env should now drive these routes
 
-**Phases:**
-- `GET /api/phases/phase-status/{user_id}` ✅
-- `POST /api/phases/phase1/metrics` ✅
-- `POST /api/phases/phase2/metrics` ✅
-- `GET /api/phases/phase1/summary/{user_id}` ✅
+## Troubleshooting
 
-**Tracking:**
-- `POST /api/tracking/outreach` ✅
-- `POST /api/phases/phase2/engagement` ✅
+- Backend install fails on Python 3.10 or 3.12:
+  Use Python 3.11. The current backend dependency set is pinned around that runtime.
+- Frontend loads but API requests behave like production:
+  Check `frontend/.env.local` and confirm `NEXT_PUBLIC_BACKEND_URL`, `NEXT_PUBLIC_API_URL`, and `BACKEND_URL` point to `http://localhost:8080`.
+- Build passes but logs are noisy:
+  The current main warnings are mostly stale `metadata.viewport` exports on older pages.
+- Local server cannot bind in a restricted environment:
+  Use an in-process backend health check instead:
+
+```bash
+./backend/.venv/bin/python -c "import sys,json; from dotenv import load_dotenv; load_dotenv('backend/.env'); sys.path.insert(0,'backend'); from app import app; from fastapi.testclient import TestClient; r=TestClient(app).get('/health'); print(r.status_code); print(json.dumps(r.json()))"
+```

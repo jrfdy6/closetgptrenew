@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/utils/server-auth';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 // Force dynamic rendering since we use request.url
 export const dynamic = 'force-dynamic';
@@ -48,11 +49,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Forward request to backend
-    const backendUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
     const response = await fetch(`${backendUrl}/api/wardrobe/${itemId}/increment-wear`, {
       method: 'POST',
       headers: {

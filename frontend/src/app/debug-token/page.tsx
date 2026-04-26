@@ -2,6 +2,7 @@
 
 import { getAuth } from "firebase/auth";
 import { useState } from "react";
+import { buildPublicBackendUrl } from "@/lib/publicBackendUrl";
 
 export default function DebugTokenPage() {
   const [token, setToken] = useState<string>("");
@@ -49,7 +50,7 @@ export default function DebugTokenPage() {
       setIsLoading(true);
       console.log("🧪 Testing backend with token...");
       
-      const response = await fetch('https://closetgptrenew-production.up.railway.app/api/wardrobe/', {
+      const response = await fetch(buildPublicBackendUrl('/api/wardrobe/'), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticatedFetch } from '@/lib/utils/auth';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 export async function GET(
   request: NextRequest,
@@ -8,7 +9,7 @@ export async function GET(
   try {
     const { outfitId } = await params;
     
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
     const response = await authenticatedFetch(
       `${backendUrl}/analytics/diagnostics/outfit-traces/${outfitId}`,
       {

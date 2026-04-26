@@ -1,9 +1,5 @@
 import { NextResponse } from "next/server";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  "https://closetgptrenew-production.up.railway.app";
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 export async function GET(
   request: Request,
@@ -25,7 +21,7 @@ export async function GET(
     }
     
     // Forward the request to the backend
-    const response = await fetch(`${API_URL}/api/outfit/${id}`, {
+    const response = await fetch(`${getBackendUrl()}/api/outfit/${id}`, {
       headers,
     });
 

@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  console.log("🌅 Today's outfit API route called");
+  serverDebugLog("🌅 Today's outfit API route called");
   
   try {
     // Use the new suggestion endpoint instead of the old today endpoint
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/today-suggestion`;
-    console.log("🔗 Proxying to backend suggestion URL:", backendUrl);
+    const backendUrl = `${getBackendUrl()}/api/today-suggestion`;
+    serverDebugLog("🔗 Proxying to backend suggestion URL:", backendUrl);
     
     const authHeader = req.headers.get('authorization');
-    console.log("🔍 Authorization header:", authHeader ? 'Present' : 'Missing');
+    serverDebugLog("🔍 Authorization header:", authHeader ? 'Present' : 'Missing');
     
     const res = await fetch(backendUrl, {
       method: 'GET',
@@ -38,8 +40,8 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await res.json();
-    console.log("✅ Successfully fetched today's outfit from backend");
-    console.log("🔍 DEBUG: Backend response data:", JSON.stringify(data, null, 2));
+    serverDebugLog("✅ Successfully fetched today's outfit from backend");
+    serverDebugLog("🔍 DEBUG: Backend response data:", JSON.stringify(data, null, 2));
     return NextResponse.json(data);
 
   } catch (error) {

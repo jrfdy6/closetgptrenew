@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 export async function POST(request: NextRequest) {
   try {
-    const backendUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      process.env.BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
     const response = await fetch(`${backendUrl}/api/wardrobe/force-refresh-trends`, {
       method: 'POST',
       headers: {

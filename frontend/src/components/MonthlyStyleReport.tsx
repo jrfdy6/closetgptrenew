@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase-context';
 import { performanceService } from '@/lib/services/performanceService';
+import { buildPublicBackendUrl } from '@/lib/publicBackendUrl';
 
 interface StyleReport {
   month: string;
@@ -92,9 +93,8 @@ export default function MonthlyStyleReport({
 
       // Fetch from API
       const token = await user?.getIdToken();
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-production.up.railway.app';
       const response = await fetch(
-        `${apiUrl}/api/style-report?month=${monthKey}`,
+        buildPublicBackendUrl(`/api/style-report?month=${encodeURIComponent(monthKey)}`),
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -377,4 +377,3 @@ export default function MonthlyStyleReport({
     </Card>
   );
 }
-

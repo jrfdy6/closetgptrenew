@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserIdFromRequest } from '@/lib/utils/server-auth';
+import { serverDebugLog } from '@/lib/server/debug';
 
 // Force dynamic rendering since we use request.url
 export const dynamic = 'force-dynamic';
@@ -14,12 +15,9 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       );
     }
-
-    // Get the authorization header from the request
-    const authHeader = request.headers.get('authorization');
     
     // For now, return mock data since the backend endpoint doesn't exist yet
-    console.log("💡 Returning mock wardrobe recommendations data");
+    serverDebugLog('💡 Returning mock wardrobe recommendations data');
     return NextResponse.json({
       success: true,
       recommendations: [

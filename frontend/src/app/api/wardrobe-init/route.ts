@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 /**
  * Initialize wardrobe count for the current user
@@ -6,7 +7,7 @@ import { NextResponse } from 'next/server';
  */
 export async function POST(request: Request) {
   try {
-    const backendUrl = process.env.BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
     
     // Get authorization header from request
     const authHeader = request.headers.get('authorization');

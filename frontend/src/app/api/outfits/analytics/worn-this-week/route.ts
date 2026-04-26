@@ -1,14 +1,15 @@
 // Force Vercel redeploy - analytics endpoint fix - Oct 22 2025
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog, serverDebugWarn } from '@/lib/server/debug';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 DEBUG: Worn outfits analytics API route called');
-    console.log('🔍 DEBUG: Request URL:', request.url);
-    console.log('🔍 DEBUG: Request method:', request.method);
-    console.log('🔍 DEBUG: All headers:', Object.fromEntries(request.headers.entries()));
+    serverDebugLog('🔍 DEBUG: Worn outfits analytics API route called');
+    serverDebugLog('🔍 DEBUG: Request URL:', request.url);
+    serverDebugLog('🔍 DEBUG: Request method:', request.method);
     
     // Get the authorization header - check standard location and Vercel special headers
     let authHeader = request.headers.get('authorization') || 
@@ -22,17 +23,17 @@ export async function GET(request: NextRequest) {
         try {
           const parsedHeaders = JSON.parse(vercelScHeaders);
           authHeader = parsedHeaders.Authorization || parsedHeaders.authorization;
-          console.log('🔍 DEBUG: Found auth in x-vercel-sc-headers');
+          serverDebugLog('🔍 DEBUG: Found auth in x-vercel-sc-headers');
         } catch (e) {
-          console.log('⚠️ DEBUG: Failed to parse x-vercel-sc-headers');
+          serverDebugWarn('⚠️ DEBUG: Failed to parse x-vercel-sc-headers');
         }
       }
     }
     
-    console.log('🔍 DEBUG: Authorization header received:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
+    serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('🔍 DEBUG: No valid auth header - returning 401');
+      serverDebugLog('🔍 DEBUG: No valid auth header - returning 401');
       return NextResponse.json(
         { error: 'Authorization header required', debug: 'API route called but no auth header provided' },
         { status: 401 }
@@ -40,14 +41,12 @@ export async function GET(request: NextRequest) {
     }
     
     // Get backend URL from environment variables
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
-                      process.env.NEXT_PUBLIC_BACKEND_URL || 
-                      'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
     
     // Call the backend endpoint for worn outfits this week
     const fullBackendUrl = `${backendUrl}/api/simple-analytics/outfits-worn-this-week`;
-    console.log('🔍 DEBUG: Calling backend URL:', fullBackendUrl);
-    console.log('🔍 DEBUG: Using auth header from request');
+    serverDebugLog('🔍 DEBUG: Calling backend URL:', fullBackendUrl);
+    serverDebugLog('🔍 DEBUG: Using auth header from request');
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -63,7 +62,7 @@ export async function GET(request: NextRequest) {
     
     clearTimeout(timeoutId);
     
-    console.log('🔍 DEBUG: Backend response status:', response.status);
+    serverDebugLog('🔍 DEBUG: Backend response status:', response.status);
     
     if (!response.ok) {
       console.error('🔍 DEBUG: Backend response not ok:', response.status, response.statusText);
@@ -79,7 +78,7 @@ export async function GET(request: NextRequest) {
     }
     
     const data = await response.json();
-    console.log('🔍 DEBUG: Backend data received:', data);
+    serverDebugLog('🔍 DEBUG: Backend data received:', data);
     
     // Normalize field names - backend returns worn_this_week, frontend expects outfits_worn_this_week
     const normalizedData = {
@@ -93,7 +92,7 @@ export async function GET(request: NextRequest) {
       api_version: 'v2.0'
     };
     
-    console.log('🔍 DEBUG: Normalized data:', normalizedData);
+    serverDebugLog('🔍 DEBUG: Normalized data:', normalizedData);
     
     // Add cache-busting headers to prevent browser/CDN caching
     return NextResponse.json(normalizedData, {

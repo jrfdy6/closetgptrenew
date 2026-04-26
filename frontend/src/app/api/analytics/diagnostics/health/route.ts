@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticatedFetch } from '@/lib/auth';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 // Force dynamic rendering since we use request.url
 export const dynamic = 'force-dynamic';
@@ -9,10 +9,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const queryString = searchParams.toString();
     
-    const backendUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
     
     // Use the public endpoint for testing
     const response = await fetch(

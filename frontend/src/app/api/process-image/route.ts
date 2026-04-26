@@ -2,22 +2,24 @@ import { NextResponse } from 'next/server';
 import { processAndAddImages } from '@/lib/firebase/wardrobeService';
 import { analyzeClothingImage } from '@/lib/services/clothingImageAnalysis';
 import { convertOpenAIAnalysisToClothingItem } from '@/lib/utils/validation';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 // Removed direct Firestore imports - now using backend API
 import { v4 as uuidv4 } from 'uuid';
 // Removed Firebase Admin SDK - now using backend API directly
 
 export async function POST(request: Request) {
   try {
-    console.log('📥 process-image route hit');
-    console.log('🔍 DEBUG: Request method:', request.method);
-    console.log('🔍 DEBUG: Request headers:', Object.fromEntries(request.headers.entries()));
+    serverDebugLog('📥 process-image route hit');
+    serverDebugLog('🔍 DEBUG: Request method:', request.method);
+    serverDebugLog('🔍 DEBUG: Content-Type:', request.headers.get('content-type'));
     
     // Get the current user's ID token
     const authHeader = request.headers.get('authorization');
-    console.log('🔍 DEBUG: Auth header present:', !!authHeader);
+    serverDebugLog('🔍 DEBUG: Auth header present:', !!authHeader);
     
     if (!authHeader?.startsWith('Bearer ')) {
-      console.log('❌ No valid auth header provided');
+      serverDebugLog('❌ No valid auth header provided');
       return NextResponse.json(
         { success: false, error: 'Unauthorized - No token provided' },
         { status: 401 }
@@ -26,7 +28,6 @@ export async function POST(request: Request) {
 
     // Extract token and get user ID
     const token = authHeader.split(' ')[1];
-    console.log('🔍 DEBUG: Token extracted, length:', token.length);
     
     // Decode the Firebase token to get user ID
     let userId: string;
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
       // Firebase tokens are JWT tokens, decode the payload
       const payload = JSON.parse(atob(token.split('.')[1]));
       userId = payload.uid;
-      console.log('🔍 DEBUG: User ID extracted from token:', userId);
+      serverDebugLog('🔍 DEBUG: User token decoded successfully');
     } catch (error) {
       console.error('❌ Failed to decode token:', error);
       return NextResponse.json(
@@ -43,15 +44,15 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('🔍 DEBUG: Parsing form data...');
+    serverDebugLog('🔍 DEBUG: Parsing form data...');
     const formData = await request.formData();
-    console.log('🔍 DEBUG: Form data parsed successfully');
+    serverDebugLog('🔍 DEBUG: Form data parsed successfully');
     
     const file = formData.get('file') as File;
-    console.log('🔍 DEBUG: File extracted:', file ? { name: file.name, size: file.size, type: file.type } : 'null');
+    serverDebugLog('🔍 DEBUG: File extracted:', file ? { name: file.name, size: file.size, type: file.type } : 'null');
     
     if (!file) {
-      console.log('❌ No file provided in form data');
+      serverDebugLog('❌ No file provided in form data');
       return NextResponse.json(
         { success: false, error: 'No file provided' },
         { status: 400 }
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
     }
 
     if (!userId) {
-      console.log('❌ No user ID provided');
+      serverDebugLog('❌ No user ID provided');
       return NextResponse.json(
         { success: false, error: 'No user ID provided' },
         { status: 400 }
@@ -67,18 +68,18 @@ export async function POST(request: Request) {
     }
 
     // Skip user ID verification - using consistent user ID
-    console.log('🔍 DEBUG: Using consistent user ID:', userId);
+    serverDebugLog('🔍 DEBUG: Continuing with authenticated user');
 
     // Generate a temporary ID for the embedding request
     const tempId = uuidv4();
 
     // Define backend URL once at the top
-    const backendUrl = process.env.BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
-    console.log('🔍 DEBUG: Backend URL:', backendUrl);
+    const backendUrl = getBackendUrl();
+    serverDebugLog('🔍 DEBUG: Backend URL:', backendUrl);
 
     try {
       // 1. Upload image to Firebase Storage first (we need a real URL for analysis)
-      console.log('🔍 DEBUG: Starting image upload to Firebase Storage...');
+      serverDebugLog('🔍 DEBUG: Starting image upload to Firebase Storage...');
       
       // For now, create a mock image URL - we'll need to implement proper Firebase Storage later
       const mockImageUrl = `https://mock-storage.com/wardrobe/${userId}/${tempId}.jpg`;
@@ -86,13 +87,13 @@ export async function POST(request: Request) {
         url: mockImageUrl,
         path: `wardrobe/${userId}/${tempId}.jpg`
       };
-      console.log('✅ Using mock image URL for now:', uploadedImage);
+      serverDebugLog('✅ Using mock image URL for now:', uploadedImage);
 
       // 2. Use frontend analysis service (which calls backend internally)
-      console.log('🔍 DEBUG: Starting AI analysis via frontend service...');
+      serverDebugLog('🔍 DEBUG: Starting AI analysis via frontend service...');
       
       const analysisResponse = await analyzeClothingImage(uploadedImage.url);
-      console.log('🔍 DEBUG: Analysis response:', analysisResponse);
+      serverDebugLog('🔍 DEBUG: Analysis response:', analysisResponse);
 
       if (!analysisResponse || 'error' in analysisResponse) {
         throw new Error('Failed to analyze image');
@@ -142,11 +143,10 @@ export async function POST(request: Request) {
       };
 
       // 6. Save to backend API (which saves to Firestore)
-      console.log('💾 Saving item via backend API:', finalItem);
+      serverDebugLog('💾 Saving item via backend API');
       
-      console.log('🔍 DEBUG: Backend URL:', `${backendUrl}/api/wardrobe/`);
-      console.log('🔍 DEBUG: Auth header present:', !!authHeader);
-      console.log('🔍 DEBUG: Final item keys:', Object.keys(finalItem));
+      serverDebugLog('🔍 DEBUG: Backend URL:', `${backendUrl}/api/wardrobe/`);
+      serverDebugLog('🔍 DEBUG: Auth header present:', !!authHeader);
       const saveResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
         method: 'POST',
         headers: {
@@ -156,8 +156,8 @@ export async function POST(request: Request) {
         body: JSON.stringify(finalItem),
       });
       
-      console.log('🔍 DEBUG: Backend response status:', saveResponse.status);
-      console.log('🔍 DEBUG: Backend response ok:', saveResponse.ok);
+      serverDebugLog('🔍 DEBUG: Backend response status:', saveResponse.status);
+      serverDebugLog('🔍 DEBUG: Backend response ok:', saveResponse.ok);
 
       if (!saveResponse.ok) {
         const errorData = await saveResponse.json();
@@ -165,7 +165,7 @@ export async function POST(request: Request) {
       }
 
       const saveResult = await saveResponse.json();
-      console.log('✅ Item saved via backend API:', saveResult);
+      serverDebugLog('✅ Item saved via backend API:', saveResult);
 
       // 7. Return the processed item with all metadata
       return NextResponse.json({

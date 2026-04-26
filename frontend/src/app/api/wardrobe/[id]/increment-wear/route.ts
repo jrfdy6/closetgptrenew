@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 
 // Force dynamic rendering since we use request headers
 export const dynamic = 'force-dynamic';
@@ -9,11 +11,11 @@ export async function POST(
 ) {
   try {
     const { id } = params;
-    console.log('🔍 DEBUG: Wardrobe INCREMENT-WEAR API route called for item:', id);
+    serverDebugLog('🔍 DEBUG: Wardrobe INCREMENT-WEAR API route called for item:', id);
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
-    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     if (!authHeader) {
       return NextResponse.json(
@@ -23,12 +25,12 @@ export async function POST(
     }
     
     // Get backend URL from environment variables
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
-    console.log('🔍 DEBUG: Backend URL:', backendUrl);
+    const backendUrl = getBackendUrl();
+    serverDebugLog('🔍 DEBUG: Backend URL:', backendUrl);
     
     // Call the real backend to increment wear count
     const fullBackendUrl = `${backendUrl}/api/wardrobe/${id}/increment-wear`;
-    console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
+    serverDebugLog('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
       method: 'POST',
@@ -38,7 +40,7 @@ export async function POST(
       },
     });
     
-    console.log('🔍 DEBUG: Backend INCREMENT-WEAR response received:', {
+    serverDebugLog('🔍 DEBUG: Backend INCREMENT-WEAR response received:', {
       status: response.status,
       statusText: response.statusText,
       ok: response.ok
@@ -60,7 +62,7 @@ export async function POST(
     }
     
     const responseData = await response.json();
-    console.log('🔍 DEBUG: Backend INCREMENT-WEAR response data:', responseData);
+    serverDebugLog('🔍 DEBUG: Backend INCREMENT-WEAR response data:', responseData);
     
     return NextResponse.json(responseData);
     
@@ -76,4 +78,3 @@ export async function POST(
     );
   }
 }
-

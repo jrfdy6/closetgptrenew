@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useFirebase } from '@/lib/firebase-context';
+import { buildPublicBackendUrl } from '@/lib/publicBackendUrl';
 import { useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import { ArrowRight, Sparkles } from 'lucide-react';
@@ -332,7 +333,7 @@ export default function StylePersonaPage() {
       setLoading(true);
       const token = await user?.getIdToken();
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/auth/profile`, {
+      const response = await fetch(buildPublicBackendUrl('/api/auth/profile'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }

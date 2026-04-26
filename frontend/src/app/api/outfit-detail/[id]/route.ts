@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 export async function GET(
   request: Request,
@@ -11,10 +12,7 @@ export async function GET(
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
     
-    const apiUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+    const apiUrl = getBackendUrl();
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',

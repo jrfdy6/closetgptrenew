@@ -24,7 +24,7 @@ def check_dependencies():
         return True
     except ImportError as e:
         print(f"❌ Missing dependency: {e}")
-        print("Please install requirements: pip install -r requirements-full.txt")
+        print("Please install requirements: pip install -r requirements.txt")
         return False
 
 def start_backend():

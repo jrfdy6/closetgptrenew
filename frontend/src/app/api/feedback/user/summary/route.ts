@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   try {
-    console.log('🔍 DEBUG: Feedback user summary API route called');
-    
     // For now, return empty data since this is a new user
     return NextResponse.json({
       success: true,

@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 export const dynamic = 'force-dynamic';
-
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  'https://closetgptrenew-production.up.railway.app';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Call the backend recalculation endpoint
-    const backendUrl = `${BACKEND_URL}/api/gamification/recalculate-tve`;
+    const backendUrl = `${getBackendUrl()}/api/gamification/recalculate-tve`;
     
     const response = await fetch(backendUrl, {
       method: 'POST',
@@ -48,4 +45,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

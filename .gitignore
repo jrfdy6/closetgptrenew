@@ -92,6 +92,10 @@ Thumbs.db
 service-account-key.json
 service-account-key.json.backup
 service-account-key.json.new
+serviceAccountKey.json
+serviceAccountKey.local.json
+frontend/serviceAccountKey.local.json
+backend/serviceAccountKey.local.json
 
 # Logs
 *.log
@@ -201,3 +205,4 @@ package-lock.json
 requirements.txt
 run_tests.sh
 .env*.local
+backend/.env.gateway

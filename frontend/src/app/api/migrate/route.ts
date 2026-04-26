@@ -1,17 +1,6 @@
 import { NextResponse } from 'next/server';
-import * as admin from 'firebase-admin';
-import { join } from 'path';
-import { readFileSync } from 'fs';
-
-// Initialize Firebase Admin if it hasn't been initialized
-if (!admin.apps.length) {
-  const serviceAccountPath = join(process.cwd(), 'serviceAccountKey.json');
-  const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
-  
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
-}
+import { serverDebugLog } from '@/lib/server/debug';
+import { getFirebaseAdminDb, initFirebaseAdminApp } from '@/lib/server/firebaseAdmin';
 
 interface OldClothingItem {
   id: string;
@@ -64,19 +53,22 @@ const typeMapping: Record<string, 'shirt' | 'pants' | 'dress' | 'skirt' | 'jacke
 
 export async function POST() {
   try {
-    console.log('Starting schema update...');
+    serverDebugLog('Starting schema update...');
+    initFirebaseAdminApp();
+    const db = getFirebaseAdminDb();
     
     // Get all clothing items
-    const snapshot = await admin.firestore().collection('wardrobe').get();
-    console.log(`Found ${snapshot.size} items to update`);
+    const snapshot = await db.collection('wardrobe').get();
+    serverDebugLog(`Found ${snapshot.size} items to update`);
     
     // Update each item
-    const batch = admin.firestore().batch();
+    let batch = db.batch();
     let updatedCount = 0;
+    let pendingCount = 0;
     
     for (const doc of snapshot.docs) {
       const oldData = doc.data() as OldClothingItem;
-      console.log('Original data:', JSON.stringify(oldData, null, 2));
+      serverDebugLog('Original data:', JSON.stringify(oldData, null, 2));
       
       try {
         // Map the type to a valid enum value
@@ -112,16 +104,19 @@ export async function POST() {
           metadata: {}
         };
         
-        console.log('Transformed data:', JSON.stringify(newData, null, 2));
+        serverDebugLog('Transformed data:', JSON.stringify(newData, null, 2));
         
         // Update the document
         batch.update(doc.ref, newData);
         updatedCount++;
+        pendingCount++;
         
         // Commit batch every 500 operations
-        if (updatedCount % 500 === 0) {
+        if (pendingCount === 500) {
           await batch.commit();
-          console.log(`Committed ${updatedCount} updates`);
+          serverDebugLog(`Committed ${updatedCount} updates`);
+          batch = db.batch();
+          pendingCount = 0;
         }
       } catch (error) {
         console.error(`Validation failed for item ${doc.id}:`, error);
@@ -130,7 +125,7 @@ export async function POST() {
     }
     
     // Commit any remaining updates
-    if (updatedCount % 500 !== 0) {
+    if (pendingCount > 0) {
       await batch.commit();
     }
     

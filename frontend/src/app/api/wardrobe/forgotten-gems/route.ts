@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog, serverDebugWarn } from '@/lib/server/debug';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  console.log("💎 Forgotten Gems API route called");
+  serverDebugLog('💎 Forgotten Gems API route called');
   
   try {
     // Get the authorization header
     const authHeader = req.headers.get('authorization');
-    console.log("🔍 Authorization header:", authHeader ? 'Present' : 'Missing');
+    serverDebugLog('🔍 Authorization header:', authHeader ? 'Present' : 'Missing');
     
     if (!authHeader) {
       return NextResponse.json(
@@ -18,8 +20,8 @@ export async function GET(req: NextRequest) {
     }
     
     // Call the backend forgotten gems endpoint
-    const backendUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/wardrobe-insights/insights/forgotten-gems`;
-    console.log("🔗 Proxying to backend URL:", backendUrl);
+    const backendUrl = `${getBackendUrl()}/api/wardrobe-insights/insights/forgotten-gems`;
+    serverDebugLog('🔗 Proxying to backend URL:', backendUrl);
     
     const res = await fetch(backendUrl, {
       method: 'GET',
@@ -30,9 +32,9 @@ export async function GET(req: NextRequest) {
     });
 
     if (!res.ok) {
-      console.error(`❌ Backend error: ${res.status} ${res.statusText}`);
+      serverDebugWarn(`❌ Backend error: ${res.status} ${res.statusText}`);
       const errorText = await res.text().catch(() => 'Unable to read error');
-      console.error('❌ Backend error details:', errorText);
+      serverDebugWarn('❌ Backend error details:', errorText);
       
       // Return graceful fallback instead of propagating error
       return NextResponse.json({ 
@@ -49,7 +51,7 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await res.json();
-    console.log("✅ Successfully fetched forgotten gems from backend");
+    serverDebugLog('✅ Successfully fetched forgotten gems from backend');
     return NextResponse.json(data);
 
   } catch (error) {

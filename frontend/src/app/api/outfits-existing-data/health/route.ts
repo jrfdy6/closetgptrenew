@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 
 // Force dynamic rendering to prevent static generation during build
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 [API] Health check endpoint called');
+    serverDebugLog('🔍 [API] Health check endpoint called');
     
     // Get backend URL from environment variables
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
     
     // Call the real backend
     const fullBackendUrl = `${backendUrl}/api/outfits-existing-data/health`;
-    console.log('🔍 [API] Backend URL:', fullBackendUrl);
+    serverDebugLog('🔍 [API] Backend URL:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
       method: 'GET',
@@ -21,7 +23,7 @@ export async function GET(request: NextRequest) {
       },
     });
     
-    console.log('🔍 [API] Backend response status:', response.status);
+    serverDebugLog('🔍 [API] Backend response status:', response.status);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -33,7 +35,7 @@ export async function GET(request: NextRequest) {
     }
     
     const data = await response.json();
-    console.log('✅ [API] Health check successful');
+    serverDebugLog('✅ [API] Health check successful');
     
     return NextResponse.json(data);
     
@@ -45,4 +47,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

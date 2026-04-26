@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog, serverDebugWarn } from '@/lib/server/debug';
 
 // Force dynamic rendering since we use request.url
 export const dynamic = 'force-dynamic';
@@ -34,15 +36,15 @@ function createFallbackResponse(
 
 export async function POST(request: Request) {
   try {
-    console.log("🌤️ Frontend weather API route called");
+    serverDebugLog("🌤️ Frontend weather API route called");
     const requestBody = await request.json();
-    console.log("🌤️ Frontend weather API called with:", requestBody);
+    serverDebugLog("🌤️ Frontend weather API called with:", requestBody);
 
     // Forward the request to the backend server
-    const backendUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/weather`;
-    console.log("🌤️ Forwarding to backend:", backendUrl);
+    const backendUrl = `${getBackendUrl()}/api/weather`;
+    serverDebugLog("🌤️ Forwarding to backend:", backendUrl);
     
-    console.log("🌤️ About to make fetch request to backend");
+    serverDebugLog("🌤️ About to make fetch request to backend");
     const response = await fetch(backendUrl, {
       method: 'POST',
       headers: {
@@ -53,7 +55,7 @@ export async function POST(request: Request) {
       signal: AbortSignal.timeout(15000), // 15 second timeout
     });
 
-    console.log("🌤️ Backend response status:", response.status);
+    serverDebugLog("🌤️ Backend response status:", response.status);
 
     if (!response.ok) {
       let parsedError: any = null;
@@ -62,7 +64,7 @@ export async function POST(request: Request) {
         rawError = await response.text();
         parsedError = rawError ? JSON.parse(rawError) : null;
       } catch (parseError) {
-        console.warn("🌤️ Backend returned non-JSON error payload", parseError);
+        serverDebugWarn("🌤️ Backend returned non-JSON error payload", parseError);
       }
 
       const reason =
@@ -79,7 +81,7 @@ export async function POST(request: Request) {
     }
 
     const weatherData = await response.json();
-    console.log("🌤️ Backend weather data received:", weatherData);
+    serverDebugLog("🌤️ Backend weather data received:", weatherData);
     
     // Return with CORS headers
     return NextResponse.json(weatherData, {
@@ -94,7 +96,7 @@ export async function POST(request: Request) {
     
     const message =
       error instanceof Error ? error.message : "Unknown weather fetch error";
-    console.log("🌤️ Backend unavailable or unexpected error, providing fallback weather data");
+    serverDebugLog("🌤️ Backend unavailable or unexpected error, providing fallback weather data");
     return createFallbackResponse(undefined, message);
   }
 }

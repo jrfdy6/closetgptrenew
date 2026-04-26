@@ -31,11 +31,12 @@ closetgptrenew/
    cd backend
    ```
 
-2. **Create virtual environment:**
+2. **Create virtual environment (Python 3.11):**
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   python3.11 -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
+   Use Python 3.11 for local backend work. The current dependency set does not install cleanly on Python 3.10 or 3.12.
 
 3. **Install dependencies:**
    ```bash
@@ -50,10 +51,10 @@ closetgptrenew/
 
 5. **Start the backend server:**
    ```bash
-   python start_backend.py
+   python run.py
    ```
    
-   The backend will run on port 3001.
+   The backend will run on port 8080.
 
 ### Frontend Setup
 
@@ -64,14 +65,15 @@ closetgptrenew/
 
 2. **Install dependencies:**
    ```bash
-   npm install
+   npm ci
    ```
 
 3. **Set up environment variables:**
    ```bash
-   cp .env.example .env.local
+   cp env.example .env.local
    # Edit .env.local with your configuration
    ```
+   `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_BACKEND_URL` should both point at the backend base URL.
 
 4. **Start the development server:**
    ```bash

@@ -5,8 +5,7 @@
 
 import { User } from 'firebase/auth';
 import { performanceService } from './performanceService';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-production.up.railway.app';
+import { buildPublicBackendUrl } from '@/lib/publicBackendUrl';
 
 export interface UsageData {
   outfit_generations: {
@@ -49,7 +48,7 @@ class UsageService {
     return performanceService.getUsage(user.uid, async () => {
       const token = await this.getAuthToken(user);
       
-      const response = await fetch(`${API_URL}/api/payments/usage/current`, {
+      const response = await fetch(buildPublicBackendUrl('/api/payments/usage/current'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -94,4 +93,3 @@ class UsageService {
 }
 
 export const usageService = new UsageService();
-

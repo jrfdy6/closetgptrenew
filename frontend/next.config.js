@@ -1,3 +1,21 @@
+const path = require('path');
+
+function normalizeBackendUrl(url) {
+  const trimmed = url.replace(/\/+$/, '');
+  return trimmed.endsWith('/api') ? trimmed.slice(0, -4) : trimmed;
+}
+
+const configuredBackendUrl =
+  process.env.BACKEND_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_URL;
+
+const rewriteBackendUrl = configuredBackendUrl
+  ? normalizeBackendUrl(configuredBackendUrl)
+  : process.env.NODE_ENV === 'development'
+    ? 'http://localhost:8080'
+    : null;
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   webpack: (config, { isServer }) => {
@@ -12,7 +30,7 @@ const nextConfig = {
     // Ensure proper TypeScript path resolution
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@': require('path').resolve(__dirname, 'src'),
+      '@': path.resolve(__dirname, 'src'),
     };
 
     return config;
@@ -65,12 +83,14 @@ const nextConfig = {
   },
   // Proxy all API calls to Railway backend
   async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'https://closetgptrenew-production.up.railway.app/api/:path*',
-      },
-    ];
+    return rewriteBackendUrl
+      ? [
+          {
+            source: '/api/:path*',
+            destination: `${rewriteBackendUrl}/api/:path*`,
+          },
+        ]
+      : [];
   },
   async headers() {
     return [

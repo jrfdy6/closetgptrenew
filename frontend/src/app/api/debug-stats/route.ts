@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Forward to backend to get debug stats updates
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
     
     const response = await fetch(`${backendUrl}/api/debug-stats?user_id=${userId}`, {
       method: 'GET',

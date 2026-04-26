@@ -18,13 +18,13 @@ We will test:
 
 1. **Start your development server** (if not already running):
    ```bash
-   cd /Users/johnniefields/Desktop/Cursor/closetgptrenew
-   cd frontend && npm run dev
+   cd /path/to/closetgptrenew/frontend
+   npm run dev
    ```
 
 2. **Navigate to the Wardrobe page**:
-   - Go to: https://my-app.vercel.app/wardrobe
-   - Or locally: http://localhost:3000/wardrobe
+   - Go to locally: http://localhost:3000/wardrobe
+   - Or production: https://easyoutfitapp.com/wardrobe
 
 3. **Open the Batch Upload Modal**:
    - Click the **"Upload"** button or **"Batch Upload with AI"** button
@@ -219,7 +219,7 @@ The **WardrobeItemDetails** modal should display the following metadata:
 Run the provided test script to check Firestore data:
 
 ```bash
-cd /Users/johnniefields/Desktop/Cursor/closetgptrenew
+cd /path/to/closetgptrenew
 node test_check_firebase_metadata.js
 ```
 
@@ -333,4 +333,3 @@ If you encounter issues:
 2. Check backend logs on Railway
 3. Verify Firebase configuration
 4. Provide specific error messages for debugging
-

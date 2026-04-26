@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 
 // DEPLOYMENT VERSION: 2025-10-11-v4-working-endpoint
 // Force this route to be treated as a dynamic server route
@@ -20,11 +22,11 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 DEBUG v4: Existing-data generate API route called - CONNECTING TO BACKEND');
+    serverDebugLog('🔍 DEBUG v4: Existing-data generate API route called - CONNECTING TO BACKEND');
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
-    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     if (!authHeader) {
       console.error('❌ No Authorization header provided');
@@ -35,19 +37,19 @@ export async function POST(request: NextRequest) {
     }
     
     // Get backend URL from environment variables
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
-    console.log('🔍 DEBUG: Backend URL:', backendUrl);
+    const backendUrl = getBackendUrl();
+    serverDebugLog('🔍 DEBUG: Backend URL:', backendUrl);
     
     // Get request body
     const body = await request.json();
-    console.log('🔍 DEBUG: Request body keys:', Object.keys(body));
-    console.log('🚨 CRITICAL: baseItemId in proxy body:', body.baseItemId);
-    console.log('🚨 CRITICAL: baseItemId type:', typeof body.baseItemId);
-    console.log('🚨 CRITICAL: baseItemId is undefined?', body.baseItemId === undefined);
+    serverDebugLog('🔍 DEBUG: Request body keys:', Object.keys(body));
+    serverDebugLog('🚨 CRITICAL: baseItemId in proxy body:', body.baseItemId);
+    serverDebugLog('🚨 CRITICAL: baseItemId type:', typeof body.baseItemId);
+    serverDebugLog('🚨 CRITICAL: baseItemId is undefined?', body.baseItemId === undefined);
     
     // Call the real backend generate endpoint (the one that actually exists!)
     const fullBackendUrl = `${backendUrl}/api/outfits-existing-data/generate-personalized`;
-    console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
+    serverDebugLog('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
       method: 'POST',
@@ -58,7 +60,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
     
-    console.log('🔍 DEBUG: Backend response received:', {
+    serverDebugLog('🔍 DEBUG: Backend response received:', {
       status: response.status,
       statusText: response.statusText,
       ok: response.ok
@@ -74,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
     
     const data = await response.json();
-    console.log('✅ DEBUG: Generated outfit received successfully');
+    serverDebugLog('✅ DEBUG: Generated outfit received successfully');
     
     return NextResponse.json(data);
     

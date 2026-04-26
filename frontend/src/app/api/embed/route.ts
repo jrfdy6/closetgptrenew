@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 // Force dynamic rendering since we use request.url
 export const dynamic = 'force-dynamic';
@@ -21,10 +22,7 @@ export async function POST(request: Request) {
     backendFormData.append('image', image);
     backendFormData.append('item_id', itemId);
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+    const baseUrl = getBackendUrl();
     const response = await fetch(`${baseUrl}/api/embed`, {
       method: 'POST',
       body: backendFormData,

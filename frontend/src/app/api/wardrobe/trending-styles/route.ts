@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { serverDebugLog } from '@/lib/server/debug';
 
 // Force dynamic rendering to prevent static generation
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  console.log('🔍 DEBUG: Frontend trending-styles route called!');
-  console.log('🔍 DEBUG: All headers:', Object.fromEntries(request.headers.entries()));
+  serverDebugLog('🔍 DEBUG: Frontend trending-styles route called!');
   
   try {
     // Try multiple variations of the authorization header
@@ -13,21 +13,12 @@ export async function GET(request: NextRequest) {
                       request.headers.get('Authorization') ||
                       request.headers.get('AUTHORIZATION');
     
-    console.log('🔍 DEBUG: Authorization header found:', !!authHeader);
-    console.log('🔍 DEBUG: Authorization header value:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
+    serverDebugLog('🔍 DEBUG: Authorization header found:', !!authHeader);
     
     // Temporarily bypass auth check to test functionality
-    console.log('🔍 DEBUG: TEMPORARILY BYPASSING AUTH CHECK FOR TESTING');
+    serverDebugLog('🔍 DEBUG: TEMPORARILY BYPASSING AUTH CHECK FOR TESTING');
     
-    // if (!authHeader) {
-    //   console.log('❌ Frontend API: No authorization header found');
-    //   return NextResponse.json(
-    //     { error: 'Authorization header required' },
-    //     { status: 401 }
-    //   );
-    // }
-
-    console.log('🔍 DEBUG: Authorization header found, returning fallback data...');
+    serverDebugLog('🔍 DEBUG: Authorization header found, returning fallback data...');
     
     // Return fallback data since production backend doesn't have trending styles yet
     const fallbackData = {
@@ -63,7 +54,7 @@ export async function GET(request: NextRequest) {
       message: "Fallback trending styles data (production backend setup in progress)"
     };
     
-    console.log('🔍 DEBUG: Returning fallback trending styles data');
+    serverDebugLog('🔍 DEBUG: Returning fallback trending styles data');
     return NextResponse.json(fallbackData, {
       headers: {
         'Access-Control-Allow-Origin': '*',

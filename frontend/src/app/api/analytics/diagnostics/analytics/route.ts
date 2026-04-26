@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticatedFetch } from '@/lib/utils/auth';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugWarn } from '@/lib/server/debug';
 
 // Force dynamic rendering since we use request.url
 export const dynamic = 'force-dynamic';
@@ -9,10 +11,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const queryString = searchParams.toString();
     
-    const backendUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
     
     // Try authenticated request first, fallback to regular fetch
     let response: Response;
@@ -28,7 +27,7 @@ export async function GET(request: NextRequest) {
       );
     } catch (authError) {
       // Fallback to regular fetch if auth fails
-      console.warn('Auth failed, trying without authentication:', authError);
+      serverDebugWarn('Auth failed, trying without authentication:', authError);
       response = await fetch(
         `${backendUrl}/analytics/diagnostics/analytics?${queryString}`,
         {

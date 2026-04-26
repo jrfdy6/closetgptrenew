@@ -5,6 +5,7 @@
 
 import { handleError, retryWithBackoff, CircuitBreaker } from './errorHandler';
 import { DataValidator } from './dataValidator';
+import { buildPublicBackendUrl } from './publicBackendUrl';
 
 export interface ApiClientConfig {
   baseUrl: string;
@@ -403,7 +404,7 @@ export async function generateOutfit(requestData: any, authToken?: string): Prom
     if (error?.status === 405 || error?.message?.includes('405') || error?.message?.includes('Method Not Allowed')) {
       console.warn('⚠️ Vercel proxy returned 405, falling back to direct Railway backend call');
       
-      const railwayBackendUrl = 'https://closetgptrenew-production.up.railway.app/api/outfits-existing-data/generate-personalized';
+      const railwayBackendUrl = buildPublicBackendUrl('/api/outfits-existing-data/generate-personalized');
       
       try {
         const directResponse = await fetch(railwayBackendUrl, {

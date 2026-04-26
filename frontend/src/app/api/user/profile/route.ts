@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
-import { getApps, initializeApp, cert } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { Timestamp } from "firebase-admin/firestore";
+import { getBackendUrl } from "@/lib/server/backendUrl";
+import {
+  getFirebaseAdminAuth,
+  getFirebaseAdminDb,
+  initFirebaseAdminApp,
+} from "@/lib/server/firebaseAdmin";
 
 // This endpoint MUST be fast/reliable. Previously it proxied to Railway and often hit Vercel's 10s limit,
 // causing 504s that blocked Profile (and onboarding quick checks).
@@ -17,44 +19,7 @@ const profileCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL_MS = 60 * 1000; // 1 minute (best-effort on warm instances)
 
 function initAdmin() {
-  if (getApps().length) return;
-
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-
-  // Prefer env-based credentials (recommended for production).
-  if (privateKey && projectId && clientEmail) {
-    initializeApp({
-      credential: cert({
-        projectId,
-        clientEmail,
-        privateKey,
-      }),
-    });
-    return;
-  }
-
-  // Fallback: local service account JSON (useful in dev/self-host; some deployments may bundle this file).
-  // NOTE: This is NOT recommended for typical Vercel deployments; prefer env vars.
-  const candidates = [
-    join(process.cwd(), "serviceAccountKey.json"),
-    join(process.cwd(), "frontend", "serviceAccountKey.json"),
-  ];
-  for (const p of candidates) {
-    try {
-      const raw = readFileSync(p, "utf8");
-      const svc = JSON.parse(raw);
-      initializeApp({
-        credential: cert(svc),
-      });
-      return;
-    } catch {
-      // try next candidate
-    }
-  }
-
-  throw new Error("Firebase Admin not configured (missing env vars and no serviceAccountKey.json found)");
+  initFirebaseAdminApp();
 }
 
 function getBearerToken(request: Request): string | null {
@@ -110,7 +75,7 @@ function normalizeProfileForClient(input: any, decoded: any, userId: string) {
 }
 
 async function fetchProfileFromRailway(authHeader: string, startMs: number) {
-  const backendUrl = "https://closetgptrenew-production.up.railway.app";
+  const backendUrl = getBackendUrl();
   const fullBackendUrl = `${backendUrl}/api/auth/profile`;
 
   const controller = new AbortController();
@@ -193,7 +158,7 @@ export async function GET(request: Request) {
     // fall back to Railway, which is known to be configured correctly for production.
     let decoded: any;
     try {
-      decoded = await getAuth().verifyIdToken(token);
+      decoded = await getFirebaseAdminAuth().verifyIdToken(token);
     } catch (e) {
       console.error("PROFILE API: verifyIdToken failed; falling back to Railway.", e);
       return fetchProfileFromRailway(authHeader, start);
@@ -202,7 +167,7 @@ export async function GET(request: Request) {
 
     let rawProfile: any = null;
     try {
-      const db = getFirestore();
+      const db = getFirebaseAdminDb();
       const userRef = db.collection("users").doc(userId);
       const snap = await userRef.get();
 
@@ -278,7 +243,7 @@ export async function POST(request: Request) {
     } catch (e) {
       console.error("PROFILE API: Firebase Admin init failed on POST; falling back to Railway.", e);
       // Railway expects PUT for update
-      const backendUrl = "https://closetgptrenew-production.up.railway.app";
+      const backendUrl = getBackendUrl();
       const fullBackendUrl = `${backendUrl}/api/auth/profile`;
 
       const body = await request.json().catch(() => ({}));
@@ -334,7 +299,7 @@ export async function POST(request: Request) {
       decoded = await getAuth().verifyIdToken(token);
     } catch (e) {
       console.error("PROFILE API: verifyIdToken failed on POST; falling back to Railway.", e);
-      const backendUrl = "https://closetgptrenew-production.up.railway.app";
+      const backendUrl = getBackendUrl();
       const fullBackendUrl = `${backendUrl}/api/auth/profile`;
 
       const body = await request.json().catch(() => ({}));
@@ -391,7 +356,7 @@ export async function POST(request: Request) {
       db = getFirestore();
     } catch (e: any) {
       console.error("PROFILE API: Firestore init failed on POST; falling back to Railway.", e);
-      const backendUrl = "https://closetgptrenew-production.up.railway.app";
+      const backendUrl = getBackendUrl();
       const fullBackendUrl = `${backendUrl}/api/auth/profile`;
 
       const controller = new AbortController();
@@ -472,7 +437,7 @@ export async function POST(request: Request) {
       console.error("PROFILE API: Firestore write failed.", { msg });
       if (looksLikeBadGoogleCreds) {
         console.error("PROFILE API: Firestore credentials issue on POST; falling back to Railway.");
-        const backendUrl = "https://closetgptrenew-production.up.railway.app";
+        const backendUrl = getBackendUrl();
         const fullBackendUrl = `${backendUrl}/api/auth/profile`;
 
         const controller = new AbortController();

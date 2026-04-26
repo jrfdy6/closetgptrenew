@@ -1,28 +1,35 @@
 import { NextResponse } from "next/server";
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 
 // Force dynamic rendering since we use request.url
 export const dynamic = 'force-dynamic';
+
+function normalizeBackendUrl(url: string): string {
+  const trimmed = url.replace(/\/+$/, '');
+  return trimmed.endsWith('/api') ? trimmed.slice(0, -4) : trimmed;
+}
 
 export async function POST(request: Request) {
   try {
     // Accept both { image } and { imageUrl }
     const body = await request.json();
-    console.log("🔍 Payload sent to backend:", JSON.stringify(body, null, 2));
+    serverDebugLog("🔍 Payload sent to backend:", JSON.stringify(body, null, 2));
 
     // Extract image from request body - handle nested format { image: { url: "..." } }
     let image;
     if (body.image && typeof body.image === "object" && body.image.url) {
       image = body.image.url;
-      console.log("🔍 Extracted image from nested format");
+      serverDebugLog("🔍 Extracted image from nested format");
     } else if (typeof body.image === "string") {
       image = body.image;
-      console.log("🔍 Extracted image from string format");
+      serverDebugLog("🔍 Extracted image from string format");
     } else {
       image = body.imageUrl;
-      console.log("🔍 Extracted image from imageUrl field");
+      serverDebugLog("🔍 Extracted image from imageUrl field");
     }
 
-    console.log("🔍 Extracted image:", image ? "Found" : "Not found");
+    serverDebugLog("🔍 Extracted image:", image ? "Found" : "Not found");
 
     if (!image || typeof image !== "string") {
       return NextResponse.json(
@@ -43,24 +50,27 @@ export async function POST(request: Request) {
     }
 
     // Debug: Log the environment variable and constructed URL
-    const backendUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
     const fullUrl = `${backendUrl}/analyze-image`;
-    console.log('🔍 Debug - Backend URL:', backendUrl);
-    console.log('🔍 Debug - Full URL:', fullUrl);
+    serverDebugLog('🔍 Debug - Backend URL:', backendUrl);
+    serverDebugLog('🔍 Debug - Full URL:', fullUrl);
 
     // Pull through Authorization header if provided by the client
     const authHeader = request.headers.get('authorization');
 
     // Forward the request to the real backend server with robust fallbacks
-    const candidateBaseUrls = Array.from(new Set([
-      backendUrl,
-              process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app',
-        process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-production.up.railway.app',
-              'https://closetgptrenew-production.up.railway.app',
-    ].filter(Boolean))) as string[];
+    const candidateBaseUrls = Array.from(
+      new Set(
+        [
+          backendUrl,
+          process.env.BACKEND_URL,
+          process.env.NEXT_PUBLIC_BACKEND_URL,
+          process.env.NEXT_PUBLIC_API_URL,
+        ]
+          .filter((url): url is string => Boolean(url))
+          .map(normalizeBackendUrl)
+      )
+    );
 
     const candidatePaths = [
       '/analyze-image',
@@ -86,7 +96,7 @@ export async function POST(request: Request) {
     let lastError: any = null;
     for (const attempt of attempts) {
       try {
-        console.log('🔁 Trying backend endpoint:', attempt.url);
+        serverDebugLog('🔁 Trying backend endpoint:', attempt.url);
         const resp = await fetch(attempt.url, {
           method: 'POST',
           headers: {

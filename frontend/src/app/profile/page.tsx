@@ -16,7 +16,19 @@ import { Lock, CheckCircle, XCircle } from 'lucide-react';
 import SpendingRangesCard from '@/components/SpendingRangesCard';
 import { subscriptionService, Subscription } from '@/lib/services/subscriptionService';
 
-console.log('🔍 DEBUG: Profile page file loaded');
+const PROFILE_DEBUG = process.env.NODE_ENV === 'development';
+
+function debugProfile(...args: unknown[]) {
+  if (PROFILE_DEBUG) {
+    globalThis.console.log(...args);
+  }
+}
+
+function debugProfileWarn(...args: unknown[]) {
+  if (PROFILE_DEBUG) {
+    globalThis.console.warn(...args);
+  }
+}
 
 interface UserProfile {
   id?: string;
@@ -137,7 +149,6 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
-  console.log('🔍 DEBUG: ProfilePage component rendered');
   const router = useRouter();
   const { user, loading: authLoading } = useFirebase();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -154,9 +165,9 @@ export default function ProfilePage() {
   const [linkPasswordSuccess, setLinkPasswordSuccess] = useState(false);
 
   useEffect(() => {
-    console.log('🔍 DEBUG: useEffect triggered, user:', !!user, 'authLoading:', authLoading);
+    debugProfile('🔍 DEBUG: useEffect triggered, user:', !!user, 'authLoading:', authLoading);
     if (user && !authLoading) {
-      console.log('🔍 DEBUG: Calling fetchProfile');
+      debugProfile('🔍 DEBUG: Calling fetchProfile');
       fetchProfile();
     }
   }, [user, authLoading]);
@@ -166,8 +177,8 @@ export default function ProfilePage() {
     if (user && !authLoading) {
       // Get providers directly from user object
       const providers = user.providerData.map(provider => provider.providerId);
-      console.log('🔍 DEBUG: Sign-in methods from user:', providers);
-      console.log('🔍 DEBUG: User providerData:', user.providerData);
+      debugProfile('🔍 DEBUG: Sign-in methods from user:', providers);
+      debugProfile('🔍 DEBUG: User providerData:', user.providerData);
       setSignInMethods(providers);
     } else {
       setSignInMethods([]);
@@ -176,10 +187,10 @@ export default function ProfilePage() {
 
   const fetchProfile = async () => {
     try {
-      console.log('🔍 DEBUG: fetchProfile called, user:', !!user);
+      debugProfile('🔍 DEBUG: fetchProfile called, user:', !!user);
       
       if (!user) {
-        console.log('🔍 DEBUG: No user, setting error');
+        debugProfile('🔍 DEBUG: No user, setting error');
         setError('Please sign in to view your profile');
         setLoading(false);
         return;
@@ -189,31 +200,11 @@ export default function ProfilePage() {
       setError(null);
       
       // Get Firebase ID token for authentication
-      console.log('🔍 DEBUG: Getting Firebase token...');
+      debugProfile('🔍 DEBUG: Getting Firebase token...');
       const token = await user.getIdToken();
-      console.log('🔍 DEBUG: Got token, length:', token.length);
-      console.log('🔍 DEBUG: Token starts with:', token.substring(0, 20) + '...');
+      debugProfile('🔍 DEBUG: Got token, length:', token.length);
       
-      // Decode token on client side to see what's in it
-      try {
-        const tokenParts = token.split('.');
-        console.log('🔍 DEBUG: Client - Token parts count:', tokenParts.length);
-        if (tokenParts.length === 3) {
-          // Firebase tokens use URL-safe base64, so we need to convert it
-          const base64Payload = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
-          // Add padding if needed
-          const paddedPayload = base64Payload + '='.repeat((4 - base64Payload.length % 4) % 4);
-          const payload = JSON.parse(atob(paddedPayload));
-          console.log('🔍 DEBUG: Client - Token payload:', payload);
-          console.log('🔍 DEBUG: Client - Available payload keys:', Object.keys(payload));
-          console.log('🔍 DEBUG: Client - Email from token:', payload.email);
-          console.log('🔍 DEBUG: Client - User ID from token:', payload.user_id || payload.sub);
-        }
-      } catch (tokenError) {
-        console.log('🔍 DEBUG: Client - Could not decode token:', tokenError);
-      }
-      
-      console.log('🔍 DEBUG: Making fetch request to /api/user/profile');
+      debugProfile('🔍 DEBUG: Making fetch request to /api/user/profile');
       const response = await fetch('/api/user/profile', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -221,8 +212,8 @@ export default function ProfilePage() {
         },
       });
       
-      console.log('🔍 DEBUG: Response status:', response.status);
-      console.log('🔍 DEBUG: Response ok:', response.ok);
+      debugProfile('🔍 DEBUG: Response status:', response.status);
+      debugProfile('🔍 DEBUG: Response ok:', response.ok);
       
       if (!response.ok) {
         if (response.status === 401) {
@@ -237,14 +228,14 @@ export default function ProfilePage() {
       }
       
       const data = await response.json();
-      console.log('🔍 DEBUG: Response data:', data);
+      debugProfile('🔍 DEBUG: Response data:', data);
       
       // Handle different response structures - backend returns data directly or nested under 'profile'
       const profileData = data.profile || data;
-      console.log('🔍 DEBUG: Profile data being set:', profileData);
-      console.log('🔍 DEBUG: Profile measurements:', profileData?.measurements);
-      console.log('🔍 DEBUG: Profile stylePreferences:', profileData?.stylePreferences);
-      console.log('🔍 DEBUG: Timestamp values:', {
+      debugProfile('🔍 DEBUG: Profile data being set:', profileData);
+      debugProfile('🔍 DEBUG: Profile measurements:', profileData?.measurements);
+      debugProfile('🔍 DEBUG: Profile stylePreferences:', profileData?.stylePreferences);
+      debugProfile('🔍 DEBUG: Timestamp values:', {
         createdAt: profileData.createdAt,
         created_at: profileData.created_at,
         updatedAt: profileData.updatedAt,
@@ -258,9 +249,9 @@ export default function ProfilePage() {
       try {
         const subData = await subscriptionService.getCurrentSubscription(user);
         setSubscription(subData);
-        console.log('✅ Subscription data loaded:', subData);
+        debugProfile('✅ Subscription data loaded:', subData);
       } catch (subError) {
-        console.warn('Could not load subscription:', subError);
+        debugProfileWarn('Could not load subscription:', subError);
         // Set default free tier if fetch fails
         setSubscription({
           role: 'tier1',
@@ -946,4 +937,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

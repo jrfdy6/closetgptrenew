@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog, serverDebugWarn } from '@/lib/server/debug';
 
 export const dynamic = 'force-dynamic';
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  'https://closetgptrenew-production.up.railway.app';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,11 +16,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    console.log('🔍 DEBUG: Mark worn request body:', body);
+    serverDebugLog('🔍 DEBUG: Mark worn request received');
 
-    const fullApiUrl = API_URL.startsWith('http') ? API_URL : `https://${API_URL}`;
-
-    const response = await fetch(`${fullApiUrl}/api/outfit-history/mark-worn`, {
+    const response = await fetch(`${getBackendUrl()}/api/outfit-history/mark-worn`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -34,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('🔍 DEBUG: Backend mark worn error:', errorData);
+      serverDebugWarn('🔍 DEBUG: Backend mark worn error:', errorData);
       return NextResponse.json(
         { error: errorData?.detail || errorData?.error || 'Failed to mark outfit as worn' },
         { status: response.status }
@@ -42,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log('🔍 DEBUG: Outfit marked as worn successfully:', data);
+    serverDebugLog('🔍 DEBUG: Outfit marked as worn successfully');
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error in mark worn route:', error);

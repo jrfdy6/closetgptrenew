@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirebase } from '@/lib/firebase-context';
 import { performanceService } from '@/lib/services/performanceService';
+import { buildPublicBackendUrl } from '@/lib/publicBackendUrl';
 import { 
   TrendingUp, 
   Calendar, 
@@ -94,8 +95,6 @@ export default function StyleTrendsVisualization({
 
     try {
       const token = await user.getIdToken();
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-production.up.railway.app';
-
       // Fetch trend data
       if (!propTrendData) {
         const trendCacheKey = `style-trends:${user.uid}:${months}`;
@@ -106,12 +105,15 @@ export default function StyleTrendsVisualization({
           setTrendData(cachedTrends.trendData);
           setApiSucceeded(true); // Mark as succeeded since we have cached data from previous successful API call
         } else {
-          console.log('🌐 [StyleTrends] Fetching trend data from API...', `${apiUrl}/api/style-trends?months=${months}`);
+          console.log(
+            '🌐 [StyleTrends] Fetching trend data from API...',
+            buildPublicBackendUrl(`/api/style-trends?months=${encodeURIComponent(String(months))}`)
+          );
           
           try {
             const trendResponse = await Promise.race([
               fetch(
-                `${apiUrl}/api/style-trends?months=${months}`,
+                buildPublicBackendUrl(`/api/style-trends?months=${encodeURIComponent(String(months))}`),
                 {
                   headers: {
                     'Authorization': `Bearer ${token}`,
@@ -514,4 +516,3 @@ export default function StyleTrendsVisualization({
     </Card>
   );
 }
-

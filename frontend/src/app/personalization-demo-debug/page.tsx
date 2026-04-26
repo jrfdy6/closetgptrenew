@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useFirebase } from '@/lib/firebase-context';
+import { getPublicBackendUrl } from '@/lib/publicBackendUrl';
 import Navigation from '@/components/Navigation';
 
 export default function PersonalizationDemoDebugPage() {
@@ -100,7 +101,7 @@ export default function PersonalizationDemoDebugPage() {
 
       // Test 5: Check environment variables
       addTestResult(`🔍 NEXT_PUBLIC_BACKEND_URL: ${process.env.NEXT_PUBLIC_BACKEND_URL || 'Not set'}`);
-      addTestResult(`🔍 API_BASE: https://closetgptrenew-production.up.railway.app`);
+      addTestResult(`🔍 API_BASE: ${getPublicBackendUrl() || 'same-origin /api fallback'}`);
 
     } catch (error) {
       addTestResult(`❌ Debug test failed: ${error}`);
@@ -213,12 +214,12 @@ export default function PersonalizationDemoDebugPage() {
                   <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
                     <span className="text-sm font-medium">Backend URL</span>
                     <Badge variant="outline">
-                      {process.env.NEXT_PUBLIC_BACKEND_URL || 'Default Railway URL'}
+                      {getPublicBackendUrl() || 'same-origin /api fallback'}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
                     <span className="text-sm font-medium">API Base</span>
-                    <Badge variant="outline">https://closetgptrenew-production.up.railway.app</Badge>
+                    <Badge variant="outline">{getPublicBackendUrl() || 'same-origin /api fallback'}</Badge>
                   </div>
                 </div>
               </CardContent>

@@ -3,17 +3,17 @@ import { NextRequest } from 'next/server';
 import { StyleProfile } from '@/types/style-quiz';
 import { getAuth } from '@clerk/nextjs/server';
 import { adminDb } from '@/lib/firebase-admin';
+import { serverDebugLog } from '@/lib/server/debug';
 
 export async function POST(req: NextRequest) {
   try {
     const { userId } = getAuth(req);
     if (!userId) {
-      console.error('No user ID found in request');
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const styleProfile: StyleProfile = await req.json();
-    console.log('Received style profile:', { userId, styleProfile });
+    serverDebugLog('Received style profile save request');
 
     if (!adminDb) {
       throw new Error('Firebase Admin DB not initialized');
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       }
     }, { merge: true });
 
-    console.log('Successfully saved style profile for user:', userId);
+    serverDebugLog('Successfully saved style profile');
     return new NextResponse('Style profile saved successfully', { status: 200 });
   } catch (error) {
     console.error('Error saving style profile:', error);

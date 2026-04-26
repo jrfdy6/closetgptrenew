@@ -839,8 +839,6 @@ const MOCK_QUIZ_QUESTIONS = [
 
 export async function GET() {
   try {
-    console.log('🔍 DEBUG: Style quiz questions API called - MOCK VERSION');
-    
     // Transform backend format to frontend format
     const frontendQuestions = MOCK_QUIZ_QUESTIONS.map(question => ({
       id: question.id,

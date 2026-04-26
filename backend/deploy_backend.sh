@@ -1,5 +1,9 @@
 #!/bin/bash
 
+RAILWAY_PROJECT_ID="97ed14e7-f7a6-4f86-b919-94f133ed478e"
+RAILWAY_ENVIRONMENT="production"
+RAILWAY_SERVICE="closetgptrenew-backend"
+
 echo "🚀 Deploying Easy Outfit Backend to Railway..."
 
 # Check if Railway CLI is installed
@@ -19,18 +23,17 @@ fi
 echo "🔐 Logging into Railway..."
 railway login
 
-# Create new project or link to existing
-echo "📦 Creating/linking Railway project..."
-railway init
-
-# Set environment variables
-echo "🔧 Setting environment variables..."
-railway variables set ENVIRONMENT=production
-railway variables set PORT=8080
+echo "🎯 Target project: $RAILWAY_PROJECT_ID"
+echo "🎯 Target environment: $RAILWAY_ENVIRONMENT"
+echo "🎯 Target service: $RAILWAY_SERVICE"
+echo "ℹ️  This script assumes service variables are already configured in Railway."
 
 # Deploy
 echo "🚀 Deploying to Railway..."
-railway up
+railway up \
+  --project "$RAILWAY_PROJECT_ID" \
+  --environment "$RAILWAY_ENVIRONMENT" \
+  --service "$RAILWAY_SERVICE"
 
 echo "✅ Backend deployment initiated!"
 echo "📋 Check the Railway dashboard for deployment status"

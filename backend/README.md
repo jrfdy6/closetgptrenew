@@ -11,25 +11,38 @@ This is the backend API for Easy Outfit, providing AI-powered clothing analysis 
 
 ## Quick Start
 
-1. **Install dependencies**:
+1. **Create a Python 3.11 virtual environment**:
    ```bash
-   pip install -r requirements-full.txt
+   python3.11 -m venv .venv
+   source .venv/bin/activate
    ```
 
-2. **Set environment variables**:
+2. **Install dependencies**:
    ```bash
-   export OPENAI_API_KEY="your-openai-api-key"
-   export FIREBASE_PROJECT_ID="your-firebase-project-id"
+   pip install -r requirements.txt
    ```
 
-3. **Run locally**:
+3. **Set environment variables**:
    ```bash
-   python -m uvicorn app:app --host 0.0.0.0 --port 8080 --reload
+   cp env.example .env
+   # Fill in Firebase and API credentials
    ```
 
-4. **Deploy to Railway**:
+4. **Run locally**:
    ```bash
-   railway up
+   python run.py
+   ```
+   The backend listens on port `8080`.
+
+5. **Deploy to Railway**:
+   ```bash
+   railway up --project 97ed14e7-f7a6-4f86-b919-94f133ed478e --environment production --service closetgptrenew-backend
+   ```
+
+6. **Deploy the background worker**:
+   ```bash
+   cd worker
+   railway up --project 97ed14e7-f7a6-4f86-b919-94f133ed478e --environment production --service background-processor
    ```
 
 ## API Endpoints
@@ -42,6 +55,7 @@ This is the backend API for Easy Outfit, providing AI-powered clothing analysis 
 
 - `OPENAI_API_KEY` - OpenAI API key for GPT-4 Vision
 - `FIREBASE_PROJECT_ID` - Firebase project ID
+- `FIREBASE_STORAGE_BUCKET` - Firebase Storage bucket name
 - `PORT` - Server port (default: 8080)
 
 ## Deployment

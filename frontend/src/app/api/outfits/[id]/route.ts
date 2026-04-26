@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 
 export const dynamic = 'force-dynamic';
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  'https://closetgptrenew-production.up.railway.app';
-
 function buildBackendUrl(path: string) {
-  return `${BACKEND_URL.replace(/\/$/, '')}${path}`;
+  return `${getBackendUrl().replace(/\/$/, '')}${path}`;
 }
 
 export async function GET(
@@ -64,23 +61,23 @@ export async function POST(
   try {
     // Handle the special case where id is "generate"
     if (params.id === 'generate') {
-      console.log('🔍 DEBUG: Outfits POST API route called for generate - CONNECTING TO BACKEND');
+      serverDebugLog('🔍 DEBUG: Outfits POST API route called for generate - CONNECTING TO BACKEND');
       
       // Get the authorization header
       const authHeader = request.headers.get('authorization');
-      console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+      serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
       
       // Get backend URL from environment variables
-      const backendUrl = 'https://closetgptrenew-production.up.railway.app';
-      console.log('🔍 DEBUG: Backend URL:', backendUrl);
+      const backendUrl = getBackendUrl();
+      serverDebugLog('🔍 DEBUG: Backend URL:', backendUrl);
       
       // Get request body
       const body = await request.json();
-      console.log('🔍 DEBUG: Request body:', body);
+      serverDebugLog('🔍 DEBUG: Request body:', body);
       
       // Call the real backend to generate outfit using robust service
       const fullBackendUrl = `${backendUrl}/api/outfits/generate`;
-      console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
+      serverDebugLog('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
       
       if (!authHeader) {
         console.error('❌ No Authorization header provided');
@@ -99,7 +96,7 @@ export async function POST(
         body: JSON.stringify(body),
       });
       
-      console.log('🔍 DEBUG: Backend response received:', {
+      serverDebugLog('🔍 DEBUG: Backend response received:', {
         status: response.status,
         statusText: response.statusText,
         ok: response.ok
@@ -115,7 +112,7 @@ export async function POST(
       }
       
       const data = await response.json();
-      console.log('✅ Successfully generated outfit from backend:', {
+      serverDebugLog('✅ Successfully generated outfit from backend:', {
         hasItems: data.items ? data.items.length : 'unknown',
         occasion: data.occasion,
         style: data.style
@@ -144,11 +141,11 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('🔍 DEBUG: Outfits PUT API route called - CONNECTING TO BACKEND');
+    serverDebugLog('🔍 DEBUG: Outfits PUT API route called - CONNECTING TO BACKEND');
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
-    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     if (!authHeader) {
       return NextResponse.json(
@@ -168,11 +165,11 @@ export async function PUT(
     
     // Get the request body
     const body = await request.json();
-    console.log('🔍 DEBUG: Updating outfit:', outfitId, 'with data:', body);
+    serverDebugLog('🔍 DEBUG: Updating outfit:', outfitId, 'with data:', body);
     
     // Call the production backend
     const fullBackendUrl = buildBackendUrl(`/api/outfits/${outfitId}`);
-    console.log('🔍 DEBUG: About to call backend PUT:', fullBackendUrl);
+    serverDebugLog('🔍 DEBUG: About to call backend PUT:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
       method: 'PUT',
@@ -183,8 +180,8 @@ export async function PUT(
       body: JSON.stringify(body),
     });
     
-    console.log('🔍 DEBUG: Backend PUT response status:', response.status);
-    console.log('🔍 DEBUG: Backend PUT response ok:', response.ok);
+    serverDebugLog('🔍 DEBUG: Backend PUT response status:', response.status);
+    serverDebugLog('🔍 DEBUG: Backend PUT response ok:', response.ok);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -210,7 +207,7 @@ export async function PUT(
     }
     
     const responseData = await response.json();
-    console.log('🔍 DEBUG: Backend PUT response received:', {
+    serverDebugLog('🔍 DEBUG: Backend PUT response received:', {
       success: responseData.success,
       message: responseData.message
     });
@@ -232,11 +229,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('🔍 DEBUG: Outfits DELETE API route called - CONNECTING TO BACKEND');
+    serverDebugLog('🔍 DEBUG: Outfits DELETE API route called - CONNECTING TO BACKEND');
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
-    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     if (!authHeader) {
       return NextResponse.json(
@@ -254,12 +251,11 @@ export async function DELETE(
       );
     }
     
-    console.log('🔍 DEBUG: Deleting outfit:', outfitId);
+    serverDebugLog('🔍 DEBUG: Deleting outfit:', outfitId);
     
     // Call the production backend
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
-    const fullBackendUrl = `${backendUrl}/api/outfits/${outfitId}`;
-    console.log('🔍 DEBUG: About to call backend DELETE:', fullBackendUrl);
+    const fullBackendUrl = buildBackendUrl(`/api/outfits/${outfitId}`);
+    serverDebugLog('🔍 DEBUG: About to call backend DELETE:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
       method: 'DELETE',
@@ -269,8 +265,8 @@ export async function DELETE(
       },
     });
     
-    console.log('🔍 DEBUG: Backend DELETE response status:', response.status);
-    console.log('🔍 DEBUG: Backend DELETE response ok:', response.ok);
+    serverDebugLog('🔍 DEBUG: Backend DELETE response status:', response.status);
+    serverDebugLog('🔍 DEBUG: Backend DELETE response ok:', response.ok);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -296,7 +292,7 @@ export async function DELETE(
     }
     
     const responseData = await response.json();
-    console.log('🔍 DEBUG: Backend DELETE response received:', {
+    serverDebugLog('🔍 DEBUG: Backend DELETE response received:', {
       success: responseData.success,
       message: responseData.message
     });

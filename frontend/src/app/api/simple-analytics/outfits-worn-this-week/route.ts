@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugWarn } from '@/lib/server/debug';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -19,9 +21,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get backend URL
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
-                      process.env.NEXT_PUBLIC_BACKEND_URL ||
-                      'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
     
     const fullUrl = `${backendUrl}/api/simple-analytics/outfits-worn-this-week`;
     
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       // Return fallback data if backend fails
-      console.log(`⚠️ Backend analytics unavailable (${response.status}), using fallback`);
+      serverDebugWarn(`⚠️ Backend analytics unavailable (${response.status}), using fallback`);
       return NextResponse.json({
         success: true,
         outfits_worn_this_week: 0,
@@ -57,4 +57,3 @@ export async function GET(request: NextRequest) {
     });
   }
 }
-

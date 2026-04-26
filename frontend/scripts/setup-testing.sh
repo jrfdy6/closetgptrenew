@@ -34,15 +34,15 @@ fi
 
 # Install dependencies
 print_status "Installing dependencies..."
-npm install
+npm ci
 
 # Check if backend is running
 print_status "Checking backend connection..."
-if curl -s http://localhost:3001/api/health > /dev/null 2>&1; then
-    print_status "Backend is running on port 3001"
+if curl -s http://localhost:8080/health > /dev/null 2>&1; then
+    print_status "Backend is running on port 8080"
 else
-    print_warning "Backend not running on port 3001. Please start the backend server."
-    echo "To start backend: cd ../backend && python app.py"
+    print_warning "Backend not running on port 8080. Please start the backend server."
+    echo "To start backend: cd ../backend && source .venv/bin/activate && python run.py"
 fi
 
 # Check environment variables
@@ -53,8 +53,9 @@ else
     print_warning "No .env.local file found. Creating template..."
     cat > .env.local << EOF
 # API Configuration
-NEXT_PUBLIC_API_URL=http://localhost:3001
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
+NEXT_PUBLIC_API_URL=http://localhost:8080
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8080
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
 
 # Firebase Configuration (if using)
 NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key

@@ -82,7 +82,7 @@ The system tracks which generation strategy is used:
 ### Base URL
 ```
 Production: https://closetgptrenew-production.up.railway.app/api/monitoring
-Local: http://localhost:3001/api/monitoring
+Local: http://localhost:8080/api/monitoring
 ```
 
 ### Available Endpoints
@@ -697,4 +697,3 @@ GET /api/monitoring/stats/user-funnel
 **Need Help?** All monitoring code is in:
 - `backend/src/services/production_monitoring_service.py`
 - `backend/src/routes/production_monitoring.py`
-

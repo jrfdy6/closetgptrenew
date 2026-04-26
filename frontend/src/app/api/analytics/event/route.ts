@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  process.env.BACKEND_URL ||
-  'https://closetgptrenew-production.up.railway.app';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
     // Forward the analytics event to the backend
-    const response = await fetch(`${BACKEND_URL}/api/analytics/event`, {
+    const response = await fetch(`${getBackendUrl()}/api/analytics/event`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

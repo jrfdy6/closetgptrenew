@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog, serverDebugWarn } from '@/lib/server/debug';
 
 // Simple JWT token decoder for client-side tokens
 function decodeFirebaseToken(token: string) {
@@ -33,10 +35,10 @@ function decodeFirebaseToken(token: string) {
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   try {
-    console.log('🚀 [Quiz Submit API v2] Received quiz submission at:', new Date().toISOString());
+    serverDebugLog('🚀 [Quiz Submit API v2] Received quiz submission at:', new Date().toISOString());
     const submission = await req.json();
-    console.log('⏱️ [Quiz Submit API] Parsed JSON in:', Date.now() - startTime, 'ms');
-    console.log('🚀 [Quiz Submit API] Submission data:', {
+    serverDebugLog('⏱️ [Quiz Submit API] Parsed JSON in:', Date.now() - startTime, 'ms');
+    serverDebugLog('🚀 [Quiz Submit API] Submission data:', {
       userId: submission.userId,
       hasToken: !!submission.token,
       answersCount: submission.answers?.length,
@@ -56,16 +58,16 @@ export async function POST(req: NextRequest) {
     
     try {
       const tokenPayload = decodeFirebaseToken(submission.token);
-      console.log('🔍 [Quiz Submit] Token payload:', tokenPayload);
+      serverDebugLog('🔍 [Quiz Submit] Token payload:', tokenPayload);
       userName = tokenPayload.name || tokenPayload.email?.split('@')[0] || 'Quiz User';
       userEmail = tokenPayload.email || 'quiz@example.com';
-      console.log('🔍 [Quiz Submit] Extracted user info:', { userName, userEmail });
+      serverDebugLog('🔍 [Quiz Submit] Extracted user info:', { userName, userEmail });
     } catch (e) {
-      console.warn('Could not decode token for user info:', e);
+      serverDebugWarn('Could not decode token for user info:', e);
     }
 
     // Map quiz answers to profile structure
-    console.log('⏱️ [Quiz Submit API] Mapping quiz answers to profile...');
+    serverDebugLog('⏱️ [Quiz Submit API] Mapping quiz answers to profile...');
     const mappingStart = Date.now();
     const profileUpdate = mapQuizAnswersToProfile(
       userAnswers, 
@@ -77,28 +79,27 @@ export async function POST(req: NextRequest) {
       userId,
       submission.spending_ranges || null
     );
-    console.log('⏱️ [Quiz Submit API] Profile mapping took:', Date.now() - mappingStart, 'ms');
+    serverDebugLog('⏱️ [Quiz Submit API] Profile mapping took:', Date.now() - mappingStart, 'ms');
 
-    console.log('🔍 [Quiz Submit] Profile update data:', JSON.stringify(profileUpdate, null, 2));
-    console.log('🔍 [Quiz Submit] User answers count:', Object.keys(userAnswers).length);
-    console.log('🔍 [Quiz Submit] Style preferences:', submission.stylePreferences);
-    console.log('🔍 [Quiz Submit] Color preferences:', submission.colorPreferences);
-    console.log('🔍 [Quiz Submit] Final stylePreferences in profile:', profileUpdate.stylePreferences);
-    console.log('🔍 [Quiz Submit] Final preferences.style in profile:', profileUpdate.preferences?.style);
-    console.log('🔍 [Quiz Submit] User info being saved:', { 
+    serverDebugLog('🔍 [Quiz Submit] Profile update data:', JSON.stringify(profileUpdate, null, 2));
+    serverDebugLog('🔍 [Quiz Submit] User answers count:', Object.keys(userAnswers).length);
+    serverDebugLog('🔍 [Quiz Submit] Style preferences:', submission.stylePreferences);
+    serverDebugLog('🔍 [Quiz Submit] Color preferences:', submission.colorPreferences);
+    serverDebugLog('🔍 [Quiz Submit] Final stylePreferences in profile:', profileUpdate.stylePreferences);
+    serverDebugLog('🔍 [Quiz Submit] Final preferences.style in profile:', profileUpdate.preferences?.style);
+    serverDebugLog('🔍 [Quiz Submit] User info being saved:', { 
       name: profileUpdate.name, 
       email: profileUpdate.email,
       userId: profileUpdate.userId 
     });
-    console.log('🔍 [Quiz Submit] Timestamp values being sent:', {
+    serverDebugLog('🔍 [Quiz Submit] Timestamp values being sent:', {
       createdAt: profileUpdate.createdAt,
       updatedAt: profileUpdate.updatedAt,
       created_at: profileUpdate.created_at,
       updated_at: profileUpdate.updated_at
     });
 
-    // Backend URL: hardcode production to avoid env mismatches between deployments
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
 
     // Save to user profile via backend API directly with timeout
     // Use null to distinguish "missing" from a leading 0.
@@ -106,16 +107,16 @@ export async function POST(req: NextRequest) {
     let wardrobeCountSource: string = 'none';
     
     try {
-      console.log('🔍 [Quiz Submit] Attempting to save profile to backend...');
-      console.log('🔍 [Quiz Submit] Backend URL:', backendUrl);
-      console.log('🔍 [Quiz Submit] Token present:', !!submission.token);
+      serverDebugLog('🔍 [Quiz Submit] Attempting to save profile to backend...');
+      serverDebugLog('🔍 [Quiz Submit] Backend URL:', backendUrl);
+      serverDebugLog('🔍 [Quiz Submit] Token present:', !!submission.token);
       
       // Add 10 second timeout for backend call
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
       const backendStart = Date.now();
-      console.log('⏱️ [Quiz Submit API] Calling backend at:', Date.now() - startTime, 'ms');
+      serverDebugLog('⏱️ [Quiz Submit API] Calling backend at:', Date.now() - startTime, 'ms');
       const backendResponse = await fetch(`${backendUrl}/api/auth/profile`, {
         method: 'PUT',
         headers: {
@@ -127,8 +128,8 @@ export async function POST(req: NextRequest) {
       });
 
       clearTimeout(timeoutId);
-      console.log('⏱️ [Quiz Submit API] Backend call took:', Date.now() - backendStart, 'ms');
-      console.log('🔍 [Quiz Submit] Backend response status:', backendResponse.status);
+      serverDebugLog('⏱️ [Quiz Submit API] Backend call took:', Date.now() - backendStart, 'ms');
+      serverDebugLog('🔍 [Quiz Submit] Backend response status:', backendResponse.status);
       
       if (!backendResponse.ok) {
         const errorText = await backendResponse.text();
@@ -136,11 +137,11 @@ export async function POST(req: NextRequest) {
         throw new Error(`Backend profile update failed: ${backendResponse.status} - ${errorText}`);
       } else {
         const responseData = await backendResponse.json();
-        console.log('✅ Successfully saved profile to backend:', responseData);
-        console.log('✅ Profile fields saved:', Object.keys(responseData));
-        console.log('🔍 [DEBUG] wardrobeCount field:', responseData.wardrobeCount);
-        console.log('🔍 [DEBUG] wardrobe_count field:', responseData.wardrobe_count);
-        console.log('🔍 [DEBUG] wardrobeItemCount field:', responseData.wardrobeItemCount);
+        serverDebugLog('✅ Successfully saved profile to backend:', responseData);
+        serverDebugLog('✅ Profile fields saved:', Object.keys(responseData));
+        serverDebugLog('🔍 [DEBUG] wardrobeCount field:', responseData.wardrobeCount);
+        serverDebugLog('🔍 [DEBUG] wardrobe_count field:', responseData.wardrobe_count);
+        serverDebugLog('🔍 [DEBUG] wardrobeItemCount field:', responseData.wardrobeItemCount);
         
         // Extract wardrobe count from backend response if available
         const extracted =
@@ -156,28 +157,28 @@ export async function POST(req: NextRequest) {
           : responseData?.wardrobeItemCount !== undefined ? 'wardrobeItemCount'
           : 'none';
 
-        console.log('📦 [Quiz Submit] Backend returned wardrobe count:', wardrobeCount);
-        console.log('📦 [Quiz Submit] Using count source:', wardrobeCountSource);
+        serverDebugLog('📦 [Quiz Submit] Backend returned wardrobe count:', wardrobeCount);
+        serverDebugLog('📦 [Quiz Submit] Using count source:', wardrobeCountSource);
       }
     } catch (apiError) {
       console.error('❌ Backend save failed:', apiError);
       
       // Fallback: Try to save directly to Firestore
       try {
-        console.log('🔄 [Quiz Submit] Attempting Firestore fallback...');
+        serverDebugLog('🔄 [Quiz Submit] Attempting Firestore fallback...');
         const { db } = await import('@/lib/firebase/config');
         const { doc, setDoc } = await import('firebase/firestore');
         
         const userRef = doc(db, 'users', userId);
         await setDoc(userRef, profileUpdate, { merge: true });
-        console.log('✅ Successfully saved profile to Firestore fallback');
+        serverDebugLog('✅ Successfully saved profile to Firestore fallback');
       } catch (firestoreError) {
         console.error('❌ Firestore fallback also failed:', firestoreError);
       }
     }
 
-    console.log('⏱️ [Quiz Submit API] TOTAL API TIME:', Date.now() - startTime, 'ms');
-    console.log('Quiz submission processed:', {
+    serverDebugLog('⏱️ [Quiz Submit API] TOTAL API TIME:', Date.now() - startTime, 'ms');
+    serverDebugLog('Quiz submission processed:', {
       userId,
       profileUpdate,
       userAnswers
@@ -189,10 +190,10 @@ export async function POST(req: NextRequest) {
       // Try to get from backend response first (most efficient)
       if (wardrobeCount !== null) {
         wardrobeItemCount = wardrobeCount;
-        console.log('✅ [Quiz Submit] Using wardrobeCount from profile update:', wardrobeItemCount);
+        serverDebugLog('✅ [Quiz Submit] Using wardrobeCount from profile update:', wardrobeItemCount);
       } else {
         // Fallback: Use cached count from profile (fast, no wardrobe scan)
-        console.log('⚠️ [Quiz Submit] Backend did not return wardrobe count, checking cached profile count...');
+        serverDebugLog('⚠️ [Quiz Submit] Backend did not return wardrobe count, checking cached profile count...');
         const profileCheckStart = Date.now();
 
         const profileResponse = await fetch(
@@ -220,15 +221,15 @@ export async function POST(req: NextRequest) {
             wardrobeCountSource = 'profileCache';
           }
 
-          console.log(
+          serverDebugLog(
             `📦 [Quiz Submit] Profile cached count check took ${Date.now() - profileCheckStart}ms, count: ${wardrobeItemCount}`
           );
         } else {
-          console.warn('⚠️ [Quiz Submit] Profile cached count check failed with status:', profileResponse.status);
+          serverDebugWarn('⚠️ [Quiz Submit] Profile cached count check failed with status:', profileResponse.status);
         }
       }
     } catch (error) {
-      console.warn('⚠️ [Quiz Submit] Could not get wardrobe count:', error);
+      serverDebugWarn('⚠️ [Quiz Submit] Could not get wardrobe count:', error);
       // Continue with 0, frontend will handle accordingly
     }
 
@@ -539,8 +540,8 @@ function determineStylePersona(userAnswers: Record<string, string>, stylePrefere
   
   const topPersona = sortedPersonas[0][0];
   
-  console.log('🎯 [Quiz Submit] Persona scores:', personaScores);
-  console.log('🎯 [Quiz Submit] Selected persona:', topPersona);
+  serverDebugLog('🎯 [Quiz Submit] Persona scores:', personaScores);
+  serverDebugLog('🎯 [Quiz Submit] Selected persona:', topPersona);
   
   return STYLE_PERSONAS[topPersona] || STYLE_PERSONAS.rebel;
 }

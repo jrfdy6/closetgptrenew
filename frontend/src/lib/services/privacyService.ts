@@ -4,8 +4,7 @@
  */
 
 import { User } from 'firebase/auth';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-production.up.railway.app';
+import { buildPublicBackendUrl } from '@/lib/publicBackendUrl';
 
 export interface PrivacySettings {
   share_analytics: boolean;
@@ -44,7 +43,7 @@ class PrivacyService {
   async getPrivacySettings(user: User | null): Promise<PrivacySettings> {
     const token = await this.getAuthToken(user);
     
-    const response = await fetch(`${API_URL}/api/privacy-settings`, {
+    const response = await fetch(buildPublicBackendUrl('/api/privacy-settings'), {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -65,7 +64,7 @@ class PrivacyService {
   ): Promise<PrivacySettings> {
     const token = await this.getAuthToken(user);
     
-    const response = await fetch(`${API_URL}/api/privacy-settings`, {
+    const response = await fetch(buildPublicBackendUrl('/api/privacy-settings'), {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -86,7 +85,7 @@ class PrivacyService {
   async getPrivacySummary(user: User | null): Promise<PrivacySummary> {
     const token = await this.getAuthToken(user);
     
-    const response = await fetch(`${API_URL}/api/privacy-summary`, {
+    const response = await fetch(buildPublicBackendUrl('/api/privacy-summary'), {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -108,8 +107,8 @@ class PrivacyService {
     const token = await this.getAuthToken(user);
     
     const url = dataType 
-      ? `${API_URL}/api/privacy-data?data_type=${dataType}`
-      : `${API_URL}/api/privacy-data`;
+      ? buildPublicBackendUrl(`/api/privacy-data?data_type=${encodeURIComponent(dataType)}`)
+      : buildPublicBackendUrl('/api/privacy-data');
     
     const response = await fetch(url, {
       method: 'DELETE',
@@ -129,4 +128,3 @@ class PrivacyService {
 }
 
 export const privacyService = new PrivacyService();
-

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 export async function GET(req: Request) {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
     const res = await fetch(`${backendUrl}/api/wardrobe/wardrobe-stats`, {
       method: "GET", // ✅ explicitly GET
       headers: {

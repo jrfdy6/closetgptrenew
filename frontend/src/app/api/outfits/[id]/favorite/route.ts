@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog, serverDebugWarn } from '@/lib/server/debug';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,12 +23,9 @@ export async function POST(
       );
     }
 
-    const backendUrl =
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
 
-    console.log(`❤️ [API] Toggling favorite for outfit ${outfitId}`);
+    serverDebugLog(`❤️ [API] Toggling favorite for outfit ${outfitId}`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -48,7 +47,7 @@ export async function POST(
       if (!outfitResponse.ok) {
         clearTimeout(timeoutId);
         const errorPayload = await outfitResponse.json().catch(() => ({}));
-        console.error(
+        serverDebugWarn(
           `❌ [API] Failed to load outfit ${outfitId} before toggling favorite`,
           errorPayload
         );
@@ -86,7 +85,7 @@ export async function POST(
       const data = await backendResponse.json().catch(() => ({}));
 
       if (!backendResponse.ok) {
-        console.error(
+        serverDebugWarn(
           `❌ [API] Backend error toggling favorite for outfit ${outfitId}:`,
           data
         );
@@ -100,7 +99,7 @@ export async function POST(
         );
       }
 
-      console.log(
+      serverDebugLog(
         `✅ [API] Successfully toggled favorite for outfit ${outfitId}`,
         data
       );
@@ -114,7 +113,7 @@ export async function POST(
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
-        console.error(
+        serverDebugWarn(
           `⏰ [API] Timeout toggling favorite for outfit ${outfitId}`
         );
         return NextResponse.json(
@@ -159,4 +158,3 @@ export async function POST(
 export async function OPTIONS() {
   return NextResponse.json({}, { status: 204 });
 }
-

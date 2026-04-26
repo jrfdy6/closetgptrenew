@@ -1,4 +1,5 @@
 import { User } from 'firebase/auth';
+import { getPublicBackendUrl } from '@/lib/publicBackendUrl';
 
 export interface DashboardData {
   totalItems: number;
@@ -363,7 +364,7 @@ class DashboardService {
       if (!user) return { stylePersona: null };
       
       const token = await user.getIdToken();
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+      const backendUrl = getPublicBackendUrl();
       
       // Quick health check first (5s timeout) - non-blocking, just for logging
       // Don't block profile request if health check fails - actual API calls will handle errors gracefully
@@ -432,7 +433,7 @@ class DashboardService {
       console.log('🔍 DEBUG: User email:', user.email);
       
       const token = await user.getIdToken();
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+      const backendUrl = getPublicBackendUrl();
       
       const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
       

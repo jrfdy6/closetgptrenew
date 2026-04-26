@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { getPublicBackendUrl } from '@/lib/publicBackendUrl';
 
 export interface LevelInfo {
   level: number;
@@ -113,7 +114,7 @@ export function useGamificationStats() {
       
       const token = await user.getIdToken();
       // Call backend directly to avoid Vercel API route timeout (10s limit)
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+      const backendUrl = getPublicBackendUrl();
       const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
       const timeout = isMobile ? 60000 : 30000; // 60s on mobile (matching wardrobe), 30s on desktop
       
@@ -266,7 +267,7 @@ export function useChallenges() {
       const token = await user.getIdToken();
       
       // Call backend directly to avoid Vercel API route timeout
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+      const backendUrl = getPublicBackendUrl();
       const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
       const timeout = isMobile ? 60000 : 30000; // 60s on mobile (matching wardrobe), 30s on desktop
       
@@ -363,4 +364,3 @@ export function useChallenges() {
     startChallenge
   };
 }
-

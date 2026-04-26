@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 
 // Force dynamic rendering since we use request.url
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 Frontend API: Wardrobe gaps endpoint called');
-    console.log('🔍 DEBUG: All headers:', Object.fromEntries(request.headers.entries()));
+    serverDebugLog('🔍 Frontend API: Wardrobe gaps endpoint called');
     
     // Get the authorization header - try multiple variations
     const authHeader = request.headers.get('authorization') || 
                       request.headers.get('Authorization') ||
                       request.headers.get('AUTHORIZATION');
-    console.log('🔍 Frontend API: Authorization header present:', !!authHeader);
-    console.log('🔍 DEBUG: Authorization header value:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
+    serverDebugLog('🔍 Frontend API: Authorization header present:', !!authHeader);
 
     // Require auth; callers are authenticated and this avoids sending null Authorization upstream.
     if (!authHeader) {
@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
     }
     
     // Get backend URL from environment variables
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
-    console.log('🔍 Frontend API: Backend URL:', backendUrl);
+    const backendUrl = getBackendUrl();
+    serverDebugLog('🔍 Frontend API: Backend URL:', backendUrl);
     
     // Get query parameters
     const { searchParams } = new URL(request.url);
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     
     const queryString = queryParams.toString();
     const fullBackendUrl = `${backendUrl}/api/wardrobe-analysis/gaps${queryString ? `?${queryString}` : ''}`;
-    console.log('🔍 Frontend API: Full backend URL:', fullBackendUrl);
+    serverDebugLog('🔍 Frontend API: Full backend URL:', fullBackendUrl);
     
     // Call the backend with a short timeout (this is non-critical; UI should proceed without it).
     const controller = new AbortController();
@@ -54,12 +54,12 @@ export async function GET(request: NextRequest) {
       signal: controller.signal,
     }).finally(() => clearTimeout(timeoutId));
     
-    console.log('🔍 Frontend API: Backend response status:', backendResponse.status);
+    serverDebugLog('🔍 Frontend API: Backend response status:', backendResponse.status);
     
     if (!backendResponse.ok) {
-      console.log('❌ Frontend API: Backend call failed:', backendResponse.status, backendResponse.statusText);
+      serverDebugLog('❌ Frontend API: Backend call failed:', backendResponse.status, backendResponse.statusText);
       const errorText = await backendResponse.text();
-      console.log('❌ Frontend API: Backend error response:', errorText);
+      serverDebugLog('❌ Frontend API: Backend error response:', errorText);
       // IMPORTANT: return 200 with safe empty data so dashboard/profile pages don't throw and
       // users don't get blocked by a "nice-to-have" endpoint.
       return NextResponse.json({
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     }
     
     const data = await backendResponse.json();
-    console.log('🔍 Frontend API: Backend data received successfully');
+    serverDebugLog('🔍 Frontend API: Backend data received successfully');
     return NextResponse.json(data);
     
   } catch (error) {

@@ -1,17 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  'https://closetgptrenew-production.up.railway.app';
+import { NextResponse } from 'next/server';
+import { serverDebugLog } from '@/lib/server/debug';
 
 // Force dynamic rendering since we use request.headers
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // For now, return mock data since the backend endpoint doesn't exist yet
-    console.log("📋 Returning mock validation rules data");
+    serverDebugLog('📋 Returning mock validation rules data');
     return NextResponse.json({
       success: true,
       rules: [

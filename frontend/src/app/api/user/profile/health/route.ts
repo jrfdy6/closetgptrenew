@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog, serverDebugWarn } from '@/lib/server/debug';
 
-// 🔥 ENHANCEMENT #2: Health check endpoint to verify backend connectivity
 export async function GET() {
   const startTime = Date.now();
   
   try {
-    console.log('🏥 PROFILE HEALTH: Checking backend connectivity...');
+    serverDebugLog('🏥 PROFILE HEALTH: Checking backend connectivity...');
     
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
     
     // Check main backend health
     const healthUrl = `${backendUrl}/health`;
@@ -42,7 +43,7 @@ export async function GET() {
       
       const authHealthDuration = Date.now() - authHealthStart;
       
-      console.log('🏥 PROFILE HEALTH: Health check complete', {
+      serverDebugLog('🏥 PROFILE HEALTH: Health check complete', {
         backend: healthResponse.ok ? 'healthy' : 'unhealthy',
         backendDuration: `${healthDuration}ms`,
         auth: authHealthStatus,
@@ -75,7 +76,7 @@ export async function GET() {
       
       const duration = Date.now() - startTime;
       
-      console.error('🏥 PROFILE HEALTH: Backend unreachable', {
+      serverDebugWarn('🏥 PROFILE HEALTH: Backend unreachable', {
         error: fetchError.message,
         isTimeout: fetchError.name === 'AbortError',
         duration: `${duration}ms`
@@ -101,7 +102,7 @@ export async function GET() {
   } catch (error) {
     const duration = Date.now() - startTime;
     
-    console.error('🏥 PROFILE HEALTH: Unexpected error:', error);
+    serverDebugWarn('🏥 PROFILE HEALTH: Unexpected error:', error);
     
     return NextResponse.json({
       status: 'error',
@@ -111,4 +112,3 @@ export async function GET() {
     }, { status: 500 });
   }
 }
-

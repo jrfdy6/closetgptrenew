@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 // Force dynamic rendering since we use request.headers
 export const dynamic = 'force-dynamic';
@@ -34,9 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get the backend URL with fallbacks
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
-                      process.env.NEXT_PUBLIC_BACKEND_URL || 
-                      'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
 
     // Forward request to backend with timeout
     const controller = new AbortController();

@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  process.env.BACKEND_URL ||
-  'https://closetgptrenew-production.up.railway.app';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 // Force dynamic rendering since we use request.headers
 export const dynamic = 'force-dynamic';
@@ -14,7 +9,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Forward the request to the backend
-    const response = await fetch(`${BACKEND_URL}/api/feedback/outfit`, {
+    const response = await fetch(`${getBackendUrl()}/api/feedback/outfit`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

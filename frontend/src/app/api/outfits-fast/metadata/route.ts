@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 // Force dynamic rendering since we use request.headers and search params
 export const dynamic = 'force-dynamic';
@@ -39,10 +40,7 @@ export async function GET(req: NextRequest) {
     if (is_favorite !== null) queryParams.append('is_favorite', is_favorite);
 
     // Forward request to backend
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+    const baseUrl = getBackendUrl();
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout

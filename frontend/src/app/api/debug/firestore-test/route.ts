@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { serverDebugLog } from '@/lib/server/debug';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
       where('user_id', '==', userId)
     );
     
-    console.log('🧪 Testing Firestore query for user:', userId);
+    serverDebugLog('🧪 Testing Firestore query for user:', userId);
     
     // Try both cached and fresh queries
     const cachedSnapshot = await getDocs(historyQuery);
@@ -91,4 +92,3 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-

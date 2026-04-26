@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  process.env.BACKEND_URL ||
-  'https://closetgptrenew-production.up.railway.app';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    const response = await fetch(`${BACKEND_URL}/api/apply-fix`, {
+    const response = await fetch(`${getBackendUrl()}/api/apply-fix`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

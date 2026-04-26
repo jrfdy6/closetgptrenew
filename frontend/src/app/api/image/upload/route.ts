@@ -1,3 +1,5 @@
+import { getBackendUrl } from '@/lib/server/backendUrl';
+
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
@@ -11,10 +13,7 @@ export async function POST(request: Request) {
       backendFormData.append(key, value as any);
     }
 
-    const backendUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
 
     const response = await fetch(`${backendUrl}/api/image/upload`, {
       method: 'POST',
@@ -39,4 +38,3 @@ export async function POST(request: Request) {
     });
   }
 }
-

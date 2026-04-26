@@ -4,10 +4,11 @@
 
 ### 1️⃣ Upload (2 min)
 ```
-1. Go to: https://my-app.vercel.app/wardrobe
-2. Click "Upload" button
-3. Drop image → Click "Upload All with AI"
-4. Wait for ✅ success notification
+1. Go to: http://localhost:3000/wardrobe
+2. Or production: https://easyoutfitapp.com/wardrobe
+3. Click "Upload" button
+4. Drop image → Click "Upload All with AI"
+5. Wait for ✅ success notification
 ```
 
 ### 2️⃣ Check Display (1 min)
@@ -135,4 +136,3 @@ node test_wardrobe_upload.js latest      # Show latest in detail
 ---
 
 **Ready? Start testing!** 🎯
-

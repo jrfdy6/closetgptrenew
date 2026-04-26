@@ -1,26 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  console.log("✅ /api/outfit-history route HIT:", req.method);
+  serverDebugLog("✅ /api/outfit-history route HIT:", req.method);
   
   try {
-    // Use hardcoded Railway URL to ensure correct backend is called
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
+    const authHeader = req.headers.get('authorization') || 'Bearer test';
+    const backendUrl = getBackendUrl();
     const fullBackendUrl = `${backendUrl}/api/outfit-history/${req.nextUrl.search}`;
-    console.log("🔍 DEBUG: Backend URL:", fullBackendUrl);
+    serverDebugLog("🔍 DEBUG: Backend URL:", fullBackendUrl);
 
     const res = await fetch(fullBackendUrl, {
       method: req.method,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer test', // Use test token for development
+        'Authorization': authHeader,
       },
     });
 
-    console.log("🔍 DEBUG: Backend response status:", res.status);
-    console.log("🔍 DEBUG: Backend response ok:", res.ok);
+    serverDebugLog("🔍 DEBUG: Backend response status:", res.status);
+    serverDebugLog("🔍 DEBUG: Backend response ok:", res.ok);
 
     // try to parse as JSON; fallback to text
     const contentType = res.headers.get('content-type');
@@ -29,7 +31,7 @@ export async function GET(req: NextRequest) {
         ? await res.json()
         : await res.text();
 
-    console.log("🔍 DEBUG: Backend response data:", data);
+    serverDebugLog("🔍 DEBUG: Backend response data:", data);
 
     return NextResponse.json(data, { status: res.status });
   } catch (err) {

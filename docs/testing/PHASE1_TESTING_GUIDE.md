@@ -7,9 +7,9 @@ Complete guide to testing all Phase 1 features locally and in production.
 ## Prerequisites
 
 **Backend:**
-- Backend server running on port 3001 [[memory:7132129]]
+- Backend server running on port 8080
 - Firebase credentials configured
-- Python environment activated
+- Python 3.11 environment activated
 
 **Frontend:**
 - Frontend server running (local or Vercel)
@@ -23,23 +23,21 @@ Complete guide to testing all Phase 1 features locally and in production.
 
 **Terminal 1 - Backend:**
 ```bash
-cd /Users/johnniefields/Desktop/Cursor/closetgptrenew
-cd backend
-source venv/bin/activate  # If using venv
-python start_backend.py
-# Should see: Server running on port 3001
+cd /path/to/closetgptrenew/backend
+source .venv/bin/activate
+python run.py
+# Should see: Server running on port 8080
 ```
 
 **Terminal 2 - Frontend:**
 ```bash
-cd /Users/johnniefields/Desktop/Cursor/closetgptrenew
-cd frontend
+cd /path/to/closetgptrenew/frontend
 npm run dev
 # Should see: Ready on http://localhost:3000
 ```
 
 **Or use Production URL:**
-- Production: https://my-app.vercel.app [[memory:7283786]]
+- Production: https://easyoutfitapp.com
 
 ---
 
@@ -54,7 +52,7 @@ New users are guided to upload 5 items immediately after the style quiz.
    ```bash
    # Open incognito window or clear cookies
    # Go to: http://localhost:3000/onboarding
-   # Or: https://my-app.vercel.app/onboarding
+   # Or: https://easyoutfitapp.com/onboarding
    ```
 
 2. **Complete Style Quiz**
@@ -126,7 +124,7 @@ Enhanced dashboard with weekly summary, utilization tracking, and style insights
 1. **Navigate to Dashboard**
    ```bash
    # Go to: http://localhost:3000/dashboard
-   # Or: https://my-app.vercel.app/dashboard
+   # Or: https://easyoutfitapp.com/dashboard
    # Must be signed in
    ```
 
@@ -221,7 +219,7 @@ Real-time learning from outfit feedback with personalized confirmation messages.
 1. **Generate an Outfit**
    ```bash
    # Go to: http://localhost:3000/outfits
-   # Or: https://my-app.vercel.app/outfits
+   # Or: https://easyoutfitapp.com/outfits
    # Click "Generate Outfit"
    ```
 
@@ -244,7 +242,7 @@ Real-time learning from outfit feedback with personalized confirmation messages.
 4. **Check Personalization Status**
    ```bash
    # API test (with your auth token):
-   curl -X GET "http://localhost:3001/api/feedback/personalization-status" \
+   curl -X GET "http://localhost:8080/api/feedback/personalization-status" \
      -H "Authorization: Bearer YOUR_TOKEN"
    
    # Should return:
@@ -499,7 +497,7 @@ import ErrorRecovery from '@/components/ErrorRecovery';
 ```bash
 # Get your auth token from browser (F12 → Application → Cookies → token)
 
-curl -X POST "http://localhost:3001/api/feedback/outfit" \
+curl -X POST "http://localhost:8080/api/feedback/outfit" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -518,7 +516,7 @@ curl -X POST "http://localhost:3001/api/feedback/outfit" \
 
 **Get Personalization Status:**
 ```bash
-curl -X GET "http://localhost:3001/api/feedback/personalization-status" \
+curl -X GET "http://localhost:8080/api/feedback/personalization-status" \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Expected response:
@@ -635,7 +633,7 @@ describe('Phase 1 Features', () => {
 
 ### Vercel Deployment
 
-**Test on production URL:** https://my-app.vercel.app [[memory:7283786]]
+**Test on production URL:** https://easyoutfitapp.com
 
 ```bash
 # Same tests as local, but using production URL
@@ -680,7 +678,7 @@ curl -X GET "https://closetgptrenew-production.up.railway.app/api/feedback/perso
 ### Issue: Feedback doesn't update preferences
 
 **Solutions:**
-1. Check: Backend running on port 3001?
+1. Check: Backend running on port 8080?
 2. Check: Firestore rules allow writes?
 3. Check: `feedback_processing_service.py` imported?
 4. Logs: Check backend console for Python errors
@@ -729,4 +727,3 @@ Before marking Phase 1 complete, verify:
 - Check service code in `/backend/src/services/`
 - Verify Firestore data structure
 - Test API endpoints with cURL
-

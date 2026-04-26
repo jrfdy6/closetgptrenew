@@ -1,20 +1,21 @@
 import { NextResponse } from "next/server";
-import { cookies } from 'next/headers';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    console.log("✨ Frontend style-inspiration API route called");
+    serverDebugLog("✨ Frontend style-inspiration API route called");
     const requestBody = await request.json();
-    console.log("✨ Style inspiration request:", requestBody);
+    serverDebugLog("✨ Style inspiration request:", requestBody);
 
     // Get authorization header from request
     const authHeader = request.headers.get('authorization') || 
                       request.headers.get('Authorization');
     
-    console.log("✨ Authorization header present:", !!authHeader);
+    serverDebugLog("✨ Authorization header present:", !!authHeader);
 
     // Check for auth header
     if (!authHeader) {
@@ -29,8 +30,8 @@ export async function POST(request: Request) {
     }
 
     // Forward the request to the backend server
-    const backendUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/style-inspiration/get-inspiration`;
-    console.log("✨ Forwarding to backend:", backendUrl);
+    const backendUrl = `${getBackendUrl()}/api/style-inspiration/get-inspiration`;
+    serverDebugLog("✨ Forwarding to backend:", backendUrl);
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     
     clearTimeout(timeoutId);
 
-    console.log("✨ Backend response status:", response.status);
+    serverDebugLog("✨ Backend response status:", response.status);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
     }
 
     const inspirationData = await response.json();
-    console.log("✨ Backend inspiration data received");
+    serverDebugLog("✨ Backend inspiration data received");
     
     // Return with CORS headers
     return NextResponse.json(inspirationData, {
@@ -106,4 +107,3 @@ export async function OPTIONS(request: Request) {
     },
   });
 }
-

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 
 // Force dynamic rendering since we use request.headers
 // Force production deployment - Oct 19 2025
@@ -21,17 +23,14 @@ export async function POST(req: NextRequest) {
 
     // Get request body
     const body = await req.json();
-    console.log('🔍 DEBUG: Mark worn request body:', body);
+    serverDebugLog('🔍 DEBUG: Mark worn request body:', body);
 
     // Forward request to backend
-    const baseUrl =
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+    const baseUrl = getBackendUrl();
     
     const backendUrl = `${baseUrl}/api/outfit-history/mark-worn`;
-    console.log('🔍 DEBUG: Calling backend URL:', backendUrl);
-    console.log('🔍 DEBUG: Request headers:', { Authorization: authHeader.substring(0, 20) + '...', 'Content-Type': 'application/json' });
-    console.log('🔍 DEBUG: Request body:', JSON.stringify(body));
+    serverDebugLog('🔍 DEBUG: Calling backend URL:', backendUrl);
+    serverDebugLog('🔍 DEBUG: Request body:', JSON.stringify(body));
     
     let response;
     try {
@@ -43,16 +42,16 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify(body),
       });
-      console.log('🔍 DEBUG: Fetch completed successfully');
+      serverDebugLog('🔍 DEBUG: Fetch completed successfully');
     } catch (fetchError) {
       console.error('❌ FETCH ERROR:', fetchError);
       throw new Error(`Failed to reach backend: ${fetchError instanceof Error ? fetchError.message : 'Network error'}`);
     }
 
-    console.log('🔍 DEBUG: Backend response status:', response.status);
+    serverDebugLog('🔍 DEBUG: Backend response status:', response.status);
     
     const data = await response.json();
-    console.log('🔍 DEBUG: Backend response data:', data);
+    serverDebugLog('🔍 DEBUG: Backend response data:', data);
 
     if (!response.ok) {
       console.error('❌ Backend returned error:', {

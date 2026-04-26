@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
+import { serverDebugLog } from '@/lib/server/debug';
 
 // Force dynamic rendering to prevent static generation
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  console.log("🏥 Returning mock health data");
+  serverDebugLog('🏥 Returning mock health data');
   return NextResponse.json({
     status: "healthy",
     timestamp: Math.floor(Date.now() / 1000),

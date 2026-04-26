@@ -68,6 +68,14 @@ import {
 
 // Gamification components removed - shuffle moved to outfit generation page
 
+const DASHBOARD_DEBUG = process.env.NODE_ENV === 'development';
+
+function debugDashboard(...args: unknown[]) {
+  if (DASHBOARD_DEBUG) {
+    globalThis.console.log(...args);
+  }
+}
+
 type WardrobeCategory = "top" | "bottom" | "shoe" | "accessory" | "jacket";
 
 const CATEGORY_CONFIG: Array<{ id: WardrobeCategory; keywords: string[] }> = [
@@ -158,7 +166,7 @@ export default function Dashboard() {
   // Debug: Log subscription info
   useEffect(() => {
     if (!planLoading && user) {
-      console.log('🔒 Subscription Plan Debug:', {
+      debugDashboard('🔒 Subscription Plan Debug:', {
         plan,
         subscriptionRole: subscription?.role,
         subscriptionStatus: subscription?.status,
@@ -206,8 +214,6 @@ export default function Dashboard() {
     return results;
   }, [dashboardData?.topItems]);
   
-  console.log('🔍 Dashboard mounted, weather state:', weather?.location);
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const query = window.matchMedia('(max-width: 640px)');
@@ -235,20 +241,20 @@ export default function Dashboard() {
 
   // Automatic location prompt when dashboard loads
   useEffect(() => {
-    console.log('🔍 Dashboard location prompt check:', { user: !!user, weather: weather?.location, hasAsked: sessionStorage.getItem('has-asked-for-location') });
+    debugDashboard('🔍 Dashboard location prompt check:', { user: !!user, weather: weather?.location, hasAsked: sessionStorage.getItem('has-asked-for-location') });
     
     if (user && weather && (weather.location === "Unknown Location" || weather.location === "Default Location")) {
       // Check if we've already asked for location in this session
       const hasAskedForLocation = sessionStorage.getItem('has-asked-for-location');
       
       if (!hasAskedForLocation) {
-        console.log('🌤️ Showing location prompt');
+        debugDashboard('🌤️ Showing location prompt');
         // Show custom modal for location permission
         setShowLocationModal(true);
         // Mark that we've asked for location in this session
         sessionStorage.setItem('has-asked-for-location', 'true');
       } else {
-        console.log('🌤️ Already asked for location in this session');
+        debugDashboard('🌤️ Already asked for location in this session');
       }
     }
   }, [user, weather, fetchWeatherByLocation]);
@@ -263,11 +269,11 @@ export default function Dashboard() {
   // Listen for outfit marked as worn events to refresh dashboard
   useEffect(() => {
     const handleOutfitMarkedAsWorn = (event: CustomEvent) => {
-      console.log('🔄 Dashboard: Outfit marked as worn, refreshing data...', event.detail);
+      debugDashboard('🔄 Dashboard: Outfit marked as worn, refreshing data...', event.detail);
       // Add a small delay to allow Firestore write to propagate
       // This ensures the query picks up the newly created outfit_history entry
       setTimeout(() => {
-        console.log('🔄 Dashboard: Fetching fresh data from server...');
+        debugDashboard('🔄 Dashboard: Fetching fresh data from server...');
         if (user) {
           fetchDashboardDataFresh();
         }
@@ -285,20 +291,20 @@ export default function Dashboard() {
     try {
       setIsLoading(true);
       setError(null);
-      console.log('🔍 DEBUG: Dashboard: Starting to fetch real data...');
+      debugDashboard('🔍 DEBUG: Dashboard: Starting to fetch real data...');
       
       if (!user) {
         throw new Error('User not authenticated');
       }
       
       const data = await dashboardService.getDashboardData(user);
-      console.log('🔍 DEBUG: Dashboard: Real data received:', data);
-      console.log('🔍 DEBUG: Dashboard: Data type:', typeof data);
-      console.log('🔍 DEBUG: Dashboard: Data keys:', Object.keys(data || {}));
-      console.log('🔍 DEBUG: Dashboard: Total items value:', data?.totalItems);
+      debugDashboard('🔍 DEBUG: Dashboard: Real data received:', data);
+      debugDashboard('🔍 DEBUG: Dashboard: Data type:', typeof data);
+      debugDashboard('🔍 DEBUG: Dashboard: Data keys:', Object.keys(data || {}));
+      debugDashboard('🔍 DEBUG: Dashboard: Total items value:', data?.totalItems);
       
       setDashboardData(data);
-      console.log('🔍 DEBUG: Dashboard: State update called with:', data);
+      debugDashboard('🔍 DEBUG: Dashboard: State update called with:', data);
     } catch (err) {
       console.error('🔍 DEBUG: Dashboard: Error fetching data:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
@@ -311,18 +317,18 @@ export default function Dashboard() {
     try {
       setIsLoading(true);
       setError(null);
-      console.log('🔍 DEBUG: Dashboard: Starting to fetch FRESH data (bypassing cache)...');
+      debugDashboard('🔍 DEBUG: Dashboard: Starting to fetch FRESH data (bypassing cache)...');
       
       if (!user) {
         throw new Error('User not authenticated');
       }
       
       const data = await dashboardService.getDashboardData(user, true); // Force fresh
-      console.log('🔍 DEBUG: Dashboard: FRESH data received:', data);
-      console.log('🔍 DEBUG: Dashboard: FRESH outfitsThisWeek:', data?.outfitsThisWeek);
+      debugDashboard('🔍 DEBUG: Dashboard: FRESH data received:', data);
+      debugDashboard('🔍 DEBUG: Dashboard: FRESH outfitsThisWeek:', data?.outfitsThisWeek);
       
       setDashboardData(data);
-      console.log('🔍 DEBUG: Dashboard: State update called with FRESH data:', data);
+      debugDashboard('🔍 DEBUG: Dashboard: State update called with FRESH data:', data);
     } catch (err) {
       console.error('🔍 DEBUG: Dashboard: Error fetching FRESH data:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
@@ -1077,7 +1083,7 @@ export default function Dashboard() {
               variant="outline"
               onClick={() => {
                 setShowLocationModal(false);
-                console.log('🌤️ User declined location prompt');
+                debugDashboard('🌤️ User declined location prompt');
               }}
               className="w-full sm:w-auto"
             >
@@ -1086,7 +1092,7 @@ export default function Dashboard() {
             <Button
               onClick={() => {
                 setShowLocationModal(false);
-                console.log('🌤️ User accepted location prompt, fetching location...');
+                debugDashboard('🌤️ User accepted location prompt, fetching location...');
                 fetchWeatherByLocation();
               }}
               className="w-full sm:w-auto gradient-copper-gold text-primary-foreground"

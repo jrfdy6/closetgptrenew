@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog, serverDebugWarn } from '@/lib/server/debug';
 
 export const dynamic = 'force-dynamic';
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  'https://closetgptrenew-production.up.railway.app';
 
 export async function POST(request: Request) {
   try {
@@ -19,11 +16,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    console.log('🔍 DEBUG: Rating request body:', body);
+    serverDebugLog('🔍 DEBUG: Rating request received');
 
-    const fullApiUrl = API_URL.startsWith('http') ? API_URL : `https://${API_URL}`;
-
-    const response = await fetch(`${fullApiUrl}/api/outfits/rate`, {
+    const response = await fetch(`${getBackendUrl()}/api/outfits/rate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -34,7 +29,7 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('🔍 DEBUG: Backend rating error:', errorData);
+      serverDebugWarn('🔍 DEBUG: Backend rating error:', errorData);
       return NextResponse.json(
         { error: errorData?.detail || errorData?.error || 'Failed to submit rating' },
         { status: response.status }
@@ -42,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    console.log('🔍 DEBUG: Rating submitted successfully:', data);
+    serverDebugLog('🔍 DEBUG: Rating submitted successfully');
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error in outfit rating route:', error);

@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 DEBUG: Outfits API route called - CONNECTING TO BACKEND');
+    serverDebugLog('🔍 DEBUG: Outfits API route called - CONNECTING TO BACKEND');
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
-    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     if (!authHeader) {
       return NextResponse.json(
@@ -18,20 +20,20 @@ export async function GET(request: NextRequest) {
     }
     
     // Get backend URL from environment variables
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
-    console.log('🔍 DEBUG: Backend URL:', backendUrl);
+    const backendUrl = getBackendUrl();
+    serverDebugLog('🔍 DEBUG: Backend URL:', backendUrl);
     
     // Get query parameters from the request
     const { searchParams } = new URL(request.url);
     const queryString = searchParams.toString();
-    console.log('🔍 DEBUG: Query parameters:', queryString);
+    serverDebugLog('🔍 DEBUG: Query parameters:', queryString);
     
     // Call the real backend to get outfits
     const fullBackendUrl = queryString 
       ? `${backendUrl}/api/outfits?${queryString}`
       : `${backendUrl}/api/outfits`;
     
-    console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
+    serverDebugLog('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
       method: 'GET',
@@ -41,7 +43,7 @@ export async function GET(request: NextRequest) {
       },
     });
     
-    console.log('🔍 DEBUG: Backend response received:', {
+    serverDebugLog('🔍 DEBUG: Backend response received:', {
       status: response.status,
       statusText: response.statusText,
       ok: response.ok
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
     }
     
     const data = await response.json();
-    console.log('✅ Successfully fetched outfits from backend:', {
+    serverDebugLog('✅ Successfully fetched outfits from backend:', {
       count: Array.isArray(data) ? data.length : 'unknown',
       type: Array.isArray(data) ? 'array' : typeof data
     });
@@ -75,11 +77,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 DEBUG: Outfits POST API route called - CONNECTING TO BACKEND');
+    serverDebugLog('🔍 DEBUG: Outfits POST API route called - CONNECTING TO BACKEND');
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
-    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     if (!authHeader) {
       console.error('❌ No Authorization header provided');
@@ -90,12 +92,12 @@ export async function POST(request: NextRequest) {
     }
     
     // Get backend URL from environment variables
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
-    console.log('🔍 DEBUG: Backend URL:', backendUrl);
+    const backendUrl = getBackendUrl();
+    serverDebugLog('🔍 DEBUG: Backend URL:', backendUrl);
     
     // Get request body
     const body = await request.json();
-    console.log('🔍 DEBUG: Request body:', body);
+    serverDebugLog('🔍 DEBUG: Request body:', body);
     
     // Determine if this is a manual outfit creation (has items array) or generation request
     const isManualCreation = body.items && Array.isArray(body.items) && body.items.length > 0;
@@ -105,9 +107,9 @@ export async function POST(request: NextRequest) {
     const endpoint = isManualCreation ? '/api/outfits/' : '/api/outfits/generate';
     const fullBackendUrl = `${backendUrl}${endpoint}`;
     
-    console.log('🔍 DEBUG: Request type:', isManualCreation ? 'MANUAL CREATION' : 'GENERATION');
-    console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
-    console.log('🔍 DEBUG: Items count:', body.items ? body.items.length : 0);
+    serverDebugLog('🔍 DEBUG: Request type:', isManualCreation ? 'MANUAL CREATION' : 'GENERATION');
+    serverDebugLog('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
+    serverDebugLog('🔍 DEBUG: Items count:', body.items ? body.items.length : 0);
 
     const response = await fetch(fullBackendUrl, {
       method: 'POST',
@@ -118,7 +120,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
     
-    console.log('🔍 DEBUG: Backend response received:', {
+    serverDebugLog('🔍 DEBUG: Backend response received:', {
       status: response.status,
       statusText: response.statusText,
       ok: response.ok
@@ -134,7 +136,7 @@ export async function POST(request: NextRequest) {
     }
     
     const data = await response.json();
-    console.log(`✅ Successfully ${isManualCreation ? 'created' : 'generated'} outfit from backend:`, {
+    serverDebugLog(`✅ Successfully ${isManualCreation ? 'created' : 'generated'} outfit from backend:`, {
       hasItems: data.items ? data.items.length : 'unknown',
       occasion: data.occasion,
       style: data.style

@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 DEBUG: Debug filter API route called - CONNECTING TO BACKEND');
+    serverDebugLog('🔍 DEBUG: Debug filter API route called - CONNECTING TO BACKEND');
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
-    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     if (!authHeader) {
       console.error('❌ No Authorization header provided');
@@ -19,16 +21,16 @@ export async function POST(request: NextRequest) {
     }
     
     // Get backend URL from environment variables
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
-    console.log('🔍 DEBUG: Backend URL:', backendUrl);
+    const backendUrl = getBackendUrl();
+    serverDebugLog('🔍 DEBUG: Backend URL:', backendUrl);
     
     // Get request body
     const body = await request.json();
-    console.log('🔍 DEBUG: Request body:', body);
+    serverDebugLog('🔍 DEBUG: Request body:', body);
     
     // Call the real backend debug endpoint
     const fullBackendUrl = `${backendUrl}/api/outfits/debug-filter`;
-    console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
+    serverDebugLog('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
       method: 'POST',
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
     
-    console.log('🔍 DEBUG: Backend response received:', {
+    serverDebugLog('🔍 DEBUG: Backend response received:', {
       status: response.status,
       statusText: response.statusText,
       ok: response.ok
@@ -55,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
     
     const data = await response.json();
-    console.log('🔍 DEBUG: Debug analysis received:', data);
+    serverDebugLog('🔍 DEBUG: Debug analysis received:', data);
     
     return NextResponse.json(data);
     

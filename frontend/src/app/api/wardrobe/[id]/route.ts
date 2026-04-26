@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 
 // Force dynamic rendering since we use request headers
 export const dynamic = 'force-dynamic';
@@ -9,11 +11,11 @@ export async function PUT(
 ) {
   try {
     const { id } = params;
-    console.log('🔍 DEBUG: Wardrobe PUT API route called for item:', id);
+    serverDebugLog('🔍 DEBUG: Wardrobe PUT API route called for item:', id);
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
-    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     if (!authHeader) {
       return NextResponse.json(
@@ -24,15 +26,15 @@ export async function PUT(
     
     // Get the request body
     const body = await request.json();
-    console.log('🔍 DEBUG: Update data:', body);
+    serverDebugLog('🔍 DEBUG: Update data:', body);
     
     // Get backend URL from environment variables
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
-    console.log('🔍 DEBUG: Backend URL:', backendUrl);
+    const backendUrl = getBackendUrl();
+    serverDebugLog('🔍 DEBUG: Backend URL:', backendUrl);
     
     // Call the real backend to update the item
     const fullBackendUrl = `${backendUrl}/api/wardrobe/${id}`;
-    console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
+    serverDebugLog('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
       method: 'PUT',
@@ -43,7 +45,7 @@ export async function PUT(
       body: JSON.stringify(body),
     });
     
-    console.log('🔍 DEBUG: Backend PUT response received:', {
+    serverDebugLog('🔍 DEBUG: Backend PUT response received:', {
       status: response.status,
       statusText: response.statusText,
       ok: response.ok
@@ -65,7 +67,7 @@ export async function PUT(
     }
     
     const responseData = await response.json();
-    console.log('🔍 DEBUG: Backend PUT response data:', responseData);
+    serverDebugLog('🔍 DEBUG: Backend PUT response data:', responseData);
     
     return NextResponse.json(responseData);
     
@@ -88,11 +90,11 @@ export async function DELETE(
 ) {
   try {
     const { id } = params;
-    console.log('🔍 DEBUG: Wardrobe DELETE API route called for item:', id);
+    serverDebugLog('🔍 DEBUG: Wardrobe DELETE API route called for item:', id);
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
-    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     if (!authHeader) {
       return NextResponse.json(
@@ -102,12 +104,12 @@ export async function DELETE(
     }
     
     // Get backend URL from environment variables
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
-    console.log('🔍 DEBUG: Backend URL:', backendUrl);
+    const backendUrl = getBackendUrl();
+    serverDebugLog('🔍 DEBUG: Backend URL:', backendUrl);
     
     // Call the real backend to delete the item
     const fullBackendUrl = `${backendUrl}/api/wardrobe/${id}`;
-    console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
+    serverDebugLog('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
       method: 'DELETE',
@@ -117,7 +119,7 @@ export async function DELETE(
       },
     });
     
-    console.log('🔍 DEBUG: Backend DELETE response received:', {
+    serverDebugLog('🔍 DEBUG: Backend DELETE response received:', {
       status: response.status,
       statusText: response.statusText,
       ok: response.ok
@@ -139,7 +141,7 @@ export async function DELETE(
     }
     
     const responseData = await response.json();
-    console.log('🔍 DEBUG: Backend DELETE response data:', responseData);
+    serverDebugLog('🔍 DEBUG: Backend DELETE response data:', responseData);
     
     return NextResponse.json({
       success: true,

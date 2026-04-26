@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog, serverDebugWarn } from '@/lib/server/debug';
 
 // Force dynamic rendering since we use request.headers
 export const dynamic = 'force-dynamic';
@@ -9,7 +11,7 @@ export const maxDuration = 60;
 
 export async function GET(request: Request) {
   try {
-    console.log('🔍 DEBUG: Wardrobe API route called - CONNECTING TO BACKEND');
+    serverDebugLog('🔍 DEBUG: Wardrobe API route called - CONNECTING TO BACKEND');
     
     // Check if this is a request for outfit history (temporary workaround)
     const url = new URL(request.url);
@@ -19,15 +21,13 @@ export async function GET(request: Request) {
     
     // Check if this is a count-only request (faster for quiz completion checks)
     const countOnly = url.searchParams.get('count_only') === 'true';
-    console.log('🔍 DEBUG: Count-only request:', countOnly);
+    serverDebugLog('🔍 DEBUG: Count-only request:', countOnly);
     
     // Get the authorization header - try multiple variations
     const authHeader = request.headers.get('authorization') || 
                       request.headers.get('Authorization') ||
                       request.headers.get('AUTHORIZATION');
-    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
-    console.log('🔍 DEBUG: Authorization header value:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
-    console.log('🔍 DEBUG: All headers:', Object.fromEntries(request.headers.entries()));
+    serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     // Check for auth header
     if (!authHeader) {
@@ -45,10 +45,10 @@ export async function GET(request: Request) {
     }
     
     // Get backend URL from environment variables
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app'; // Force correct backend URL
-    console.log('🔍 DEBUG: Backend URL:', backendUrl);
-    console.log('🔍 DEBUG: Environment variable NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
-    console.log('🔍 DEBUG: Using hardcoded backend URL to ensure correct backend is called');
+    const backendUrl = getBackendUrl();
+    serverDebugLog('🔍 DEBUG: Backend URL:', backendUrl);
+    serverDebugLog('🔍 DEBUG: Environment variable NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
+    serverDebugLog('🔍 DEBUG: Using resolved backend URL');
 
     // FAST PATH: count-only requests should use cached profile count (no wardrobe scan)
     // This avoids slow Firestore queries on the wardrobe collection during onboarding redirects.
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
         const profileTimeoutId = setTimeout(() => profileController.abort(), 2500);
 
         const profileUrl = `${backendUrl}/api/auth/profile`;
-        console.log('🔍 DEBUG: Count-only fast path - calling profile endpoint:', profileUrl);
+        serverDebugLog('🔍 DEBUG: Count-only fast path - calling profile endpoint:', profileUrl);
 
         const profileResponse = await fetch(profileUrl, {
           method: 'GET',
@@ -79,7 +79,7 @@ export async function GET(request: Request) {
             profileData?.wardrobe_count ??
             null;
 
-          console.log('🔍 DEBUG: Count-only fast path - profile cached count:', cachedCount);
+          serverDebugLog('🔍 DEBUG: Count-only fast path - profile cached count:', cachedCount);
 
           if (typeof cachedCount === 'number') {
             return NextResponse.json(
@@ -101,10 +101,10 @@ export async function GET(request: Request) {
           }
         } else {
           const errorText = await profileResponse.text().catch(() => 'Unable to read error');
-          console.warn('⚠️ DEBUG: Count-only fast path - profile endpoint failed:', profileResponse.status, errorText);
+          serverDebugWarn('⚠️ DEBUG: Count-only fast path - profile endpoint failed:', profileResponse.status, errorText);
         }
       } catch (e) {
-        console.warn('⚠️ DEBUG: Count-only fast path - failed, falling back to wardrobe count_only:', e);
+        serverDebugWarn('⚠️ DEBUG: Count-only fast path - failed, falling back to wardrobe count_only:', e);
       }
       // Continue to slow-path wardrobe count_only below if profile fast-path fails.
     }
@@ -115,10 +115,10 @@ export async function GET(request: Request) {
     const fullBackendUrl = countOnly 
       ? `${backendUrl}/api/wardrobe/?count_only=true`
       : `${backendUrl}/api/wardrobe/`;
-    console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
+    serverDebugLog('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
     
-    console.log('🔍 DEBUG: About to call backend with URL:', fullBackendUrl);
-    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    serverDebugLog('🔍 DEBUG: About to call backend with URL:', fullBackendUrl);
+    serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     // Add retry logic with exponential backoff for mobile network issues
     const userAgent = request.headers.get('user-agent') || '';
@@ -129,7 +129,7 @@ export async function GET(request: Request) {
       : (isMobile ? 30000 : 45000); // 30s mobile / 45s desktop for full wardrobe
     const maxRetries = countOnly ? 0 : (isMobile ? 1 : 1); // No retries for count-only
     
-    console.log('🔍 DEBUG: Wardrobe API route - isMobile:', isMobile, 'timeout:', timeoutMs, 'maxRetries:', maxRetries);
+    serverDebugLog('🔍 DEBUG: Wardrobe API route - isMobile:', isMobile, 'timeout:', timeoutMs, 'maxRetries:', maxRetries);
     
     let lastError: Error | null = null;
     let response: Response | null = null;
@@ -143,8 +143,8 @@ export async function GET(request: Request) {
         }, timeoutMs);
         
         try {
-          console.log(`🔍 DEBUG: Attempt ${attempt + 1}/${maxRetries + 1} - Fetching from backend...`);
-          console.log(`🔍 DEBUG: Backend URL: ${fullBackendUrl}`);
+          serverDebugLog(`🔍 DEBUG: Attempt ${attempt + 1}/${maxRetries + 1} - Fetching from backend...`);
+          serverDebugLog(`🔍 DEBUG: Backend URL: ${fullBackendUrl}`);
           const startTime = Date.now();
           
           response = await fetch(fullBackendUrl, {
@@ -157,7 +157,7 @@ export async function GET(request: Request) {
           });
           
           const duration = Date.now() - startTime;
-          console.log(`✅ DEBUG: Attempt ${attempt + 1} succeeded in ${duration}ms`);
+          serverDebugLog(`✅ DEBUG: Attempt ${attempt + 1} succeeded in ${duration}ms`);
           
           clearTimeout(timeoutId);
           break; // Success, exit retry loop
@@ -181,7 +181,7 @@ export async function GET(request: Request) {
         // Don't retry on last attempt
         if (attempt < maxRetries) {
           const delay = Math.pow(2, attempt) * 1000; // 1s, 2s
-          console.log(`⏳ DEBUG: Waiting ${delay}ms before retry...`);
+          serverDebugLog(`⏳ DEBUG: Waiting ${delay}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
@@ -198,7 +198,7 @@ export async function GET(request: Request) {
       throw lastError || new Error(errorMessage);
     }
     
-    console.log('🔍 DEBUG: Backend response received:', {
+    serverDebugLog('🔍 DEBUG: Backend response received:', {
       status: response.status,
       statusText: response.statusText,
       ok: response.ok
@@ -230,7 +230,7 @@ export async function GET(request: Request) {
     }
     
     const wardrobeData = await response.json();
-    console.log('🔍 DEBUG: Backend wardrobe data received:', {
+    serverDebugLog('🔍 DEBUG: Backend wardrobe data received:', {
       success: wardrobeData.success,
       count: wardrobeData.count || wardrobeData.items?.length,
       hasItems: !!wardrobeData.items,
@@ -359,17 +359,17 @@ export async function OPTIONS(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    console.log('🔍 DEBUG: Wardrobe POST API route called - CONNECTING TO BACKEND');
+    serverDebugLog('🔍 DEBUG: Wardrobe POST API route called - CONNECTING TO BACKEND');
     
     // Get the authorization header - try multiple variations
     const authHeader = request.headers.get('authorization') || 
                       request.headers.get('Authorization') ||
                       request.headers.get('AUTHORIZATION');
-    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
-    console.log('🔍 DEBUG: Authorization header value:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
+    serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
+    serverDebugLog('🔍 DEBUG: Authorization header value:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
     
     // Temporarily bypass auth check to test functionality
-    console.log('🔍 DEBUG: TEMPORARILY BYPASSING AUTH CHECK FOR TESTING');
+    serverDebugLog('🔍 DEBUG: TEMPORARILY BYPASSING AUTH CHECK FOR TESTING');
     
     // if (!authHeader) {
     //   return NextResponse.json(
@@ -382,7 +382,7 @@ export async function POST(request: Request) {
     let requestBody;
     try {
       requestBody = await request.json();
-      console.log('🔍 DEBUG: Request body:', requestBody);
+      serverDebugLog('🔍 DEBUG: Request body:', requestBody);
     } catch (bodyError) {
       console.error('🔍 DEBUG: Failed to parse request body:', bodyError);
       return NextResponse.json(
@@ -399,13 +399,12 @@ export async function POST(request: Request) {
     }
     
     // Get backend URL from environment variables
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
-    console.log('🔍 DEBUG: Backend URL:', backendUrl);
+    const backendUrl = getBackendUrl();
+    serverDebugLog('🔍 DEBUG: Backend URL:', backendUrl);
     
     // Call the real backend to add the item - using direct endpoint to bypass router issues
-    console.log('🔍 DEBUG: About to call backend POST:', `${backendUrl}/api/wardrobe/add-direct`);
-    console.log('🔍 DEBUG: Request body:', JSON.stringify(requestBody, null, 2));
-    console.log('🔍 DEBUG: Authorization header:', authHeader);
+    serverDebugLog('🔍 DEBUG: About to call backend POST:', `${backendUrl}/api/wardrobe/add-direct`);
+    serverDebugLog('🔍 DEBUG: Request body:', JSON.stringify(requestBody, null, 2));
     
     const response = await fetch(`${backendUrl}/api/wardrobe/add-direct`, {
       method: 'POST',
@@ -416,14 +415,14 @@ export async function POST(request: Request) {
       body: JSON.stringify(requestBody),
     });
     
-    console.log('🔍 DEBUG: Backend response status:', response.status);
-    console.log('🔍 DEBUG: Backend response ok:', response.ok);
-    console.log('🔍 DEBUG: Backend response headers:', Object.fromEntries(response.headers.entries()));
+    serverDebugLog('🔍 DEBUG: Backend response status:', response.status);
+    serverDebugLog('🔍 DEBUG: Backend response ok:', response.ok);
+    serverDebugLog('🔍 DEBUG: Backend response headers:', Object.fromEntries(response.headers.entries()));
     
     // Get the response text first to see what we're actually getting
     const responseText = await response.text();
-    console.log('🔍 DEBUG: Backend response text (v2):', responseText);
-    console.log('🔍 DEBUG: Response text length:', responseText.length);
+    serverDebugLog('🔍 DEBUG: Backend response text (v2):', responseText);
+    serverDebugLog('🔍 DEBUG: Response text length:', responseText.length);
     
     if (!response.ok) {
       console.error('🔍 DEBUG: Backend response not ok:', response.status, response.statusText);
@@ -459,7 +458,7 @@ export async function POST(request: Request) {
     let responseData;
     try {
       responseData = JSON.parse(responseText);
-      console.log('🔍 DEBUG: Backend POST response received:', {
+      serverDebugLog('🔍 DEBUG: Backend POST response received:', {
         success: responseData.success,
         hasItem: !!responseData.item
       });
@@ -519,24 +518,24 @@ export async function POST(request: Request) {
 // Temporary outfit history handler (workaround for Vercel deployment issue)
 async function handleOutfitHistory(request: Request) {
   try {
-    console.log('🔍 DEBUG: Handling outfit history request via wardrobe route');
+    serverDebugLog('🔍 DEBUG: Handling outfit history request via wardrobe route');
     
     // Get the authorization header - try multiple variations
     const authHeader = request.headers.get('authorization') || 
                       request.headers.get('Authorization') ||
                       request.headers.get('AUTHORIZATION');
-    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     // Temporarily bypass auth check to test functionality
-    console.log('🔍 DEBUG: TEMPORARILY BYPASSING AUTH CHECK FOR TESTING');
+    serverDebugLog('🔍 DEBUG: TEMPORARILY BYPASSING AUTH CHECK FOR TESTING');
     
     // if (!authHeader) {
     //   return NextResponse.json({ error: 'Authorization header required' }, { status: 401 });
     // }
     
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getBackendUrl();
     const fullBackendUrl = `${backendUrl}/api/outfit-history/`;
-    console.log('🔍 DEBUG: Outfit history backend URL:', fullBackendUrl);
+    serverDebugLog('🔍 DEBUG: Outfit history backend URL:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
       method: 'GET',
@@ -546,7 +545,7 @@ async function handleOutfitHistory(request: Request) {
       },
     });
     
-    console.log('🔍 DEBUG: Outfit history backend response status:', response.status);
+    serverDebugLog('🔍 DEBUG: Outfit history backend response status:', response.status);
     
     if (!response.ok) {
       console.error('🔍 DEBUG: Outfit history backend response not ok:', response.status);
@@ -564,7 +563,7 @@ async function handleOutfitHistory(request: Request) {
     }
     
     const data = await response.json();
-    console.log('🔍 DEBUG: Outfit history data received:', data);
+    serverDebugLog('🔍 DEBUG: Outfit history data received:', data);
     
     return NextResponse.json(data, { 
       status: response.status,

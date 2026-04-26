@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Upload, Image as ImageIcon, TrendingUp, BarChart3 } from 'lucide-react';
+import { buildPublicBackendUrl } from '@/lib/publicBackendUrl';
 
 interface StyleMatch {
   style_name: string;
@@ -46,7 +47,7 @@ const StyleAnalysis: React.FC = () => {
     setError(null);
 
     try {
-      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/style-analysis/${endpoint}`;
+      const url = buildPublicBackendUrl(`/api/style-analysis/${endpoint}`);
       
       const response = await fetch(url, {
         method: 'POST',

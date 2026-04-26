@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
 
 // Force dynamic rendering since we use request.headers
 export const dynamic = 'force-dynamic';
@@ -25,10 +26,7 @@ export async function PATCH(
     const body = await req.json();
 
     // Forward request to backend
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+    const baseUrl = getBackendUrl();
     const response = await fetch(`${baseUrl}/api/outfit-history/${params.id}`, {
       method: 'PATCH',
       headers: {
@@ -85,10 +83,7 @@ export async function DELETE(
     }
 
     // Forward request to backend
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+    const baseUrl = getBackendUrl();
     const response = await fetch(`${baseUrl}/api/outfit-history/${params.id}`, {
       method: 'DELETE',
       headers: {

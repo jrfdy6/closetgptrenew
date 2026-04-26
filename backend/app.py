@@ -12,6 +12,7 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO))
 logger = logging.getLogger(__name__)
 logger.info(f"🔧 Logging configured at level: {LOG_LEVEL}")
+ROUTER_DEBUG = os.getenv("ROUTER_DEBUG", "").lower() in {"1", "true", "yes", "on"}
 
 # Import startup module for version tracking and guarded imports
 try:
@@ -160,7 +161,6 @@ except Exception as e:
 
 # Router loading section - removed outer try-catch to allow individual routers to load
 ROUTERS = [
-    ("src.routes.test_simple", ""),      # Simple test router to verify loading works
     ("src.routes.test_category", "/api/test"),  # Test category mapping fix
     ("src.routes.image_processing_minimal_test", "/api/image-test"),  # Minimal test router
     ("src.routes.wardrobe_analysis", "/api/wardrobe-analysis"), # Router mounted at /api/wardrobe-analysis - ENABLED for gap analysis
@@ -249,15 +249,16 @@ def include_router_safe(module_name: str, prefix: str):
         # Router loaded successfully
         
         # Log all routes in the router
-        print(f"🔍 DEBUG: Router {module_name} has {len(router.routes)} routes")
-        if hasattr(router, 'routes'):
-            for route in router.routes:
-                if hasattr(route, 'path') and hasattr(route, 'methods'):
-                    print(f"🔍 DEBUG: Route {route.path} with methods {route.methods}")
-        
-        print(f"🔍 DEBUG: About to mount router {module_name} with prefix '{prefix}'")
+        if ROUTER_DEBUG:
+            print(f"🔍 DEBUG: Router {module_name} has {len(router.routes)} routes")
+            if hasattr(router, 'routes'):
+                for route in router.routes:
+                    if hasattr(route, 'path') and hasattr(route, 'methods'):
+                        print(f"🔍 DEBUG: Route {route.path} with methods {route.methods}")
+            print(f"🔍 DEBUG: About to mount router {module_name} with prefix '{prefix}'")
         app.include_router(router, prefix=prefix)
-        print(f"✅ DEBUG: Successfully mounted router {module_name}")
+        if ROUTER_DEBUG:
+            print(f"✅ DEBUG: Successfully mounted router {module_name}")
         # Router mounted
         
     except Exception as e:
@@ -277,7 +278,8 @@ def include_router_safe(module_name: str, prefix: str):
 # Direct import test to force visibility of import errors
 try:
     from src.routes import outfits
-    print("✅ outfits.py imported successfully")
+    if ROUTER_DEBUG:
+        print("✅ outfits.py imported successfully")
 except Exception as e:
     import traceback
     print("❌ outfits.py import failed")
@@ -291,21 +293,19 @@ for mod, prefix in ROUTERS:
 
 # Debug: Print all registered routes (as requested)
 registered_routes = [f"{r.path} {r.methods}" if hasattr(r, 'path') and hasattr(r, 'methods') else str(r) for r in app.routes]
-print("✅ ROUTES REGISTERED:", registered_routes)
+if ROUTER_DEBUG:
+    print("✅ ROUTES REGISTERED:", registered_routes)
 
 # Store routes for debugging endpoint
 REGISTERED_ROUTES = registered_routes
 
-# Debug: Log all registered routes
-import logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-logger.info("=== ALL REGISTERED ROUTES ===")
-for route in app.routes:
-    if hasattr(route, 'path') and hasattr(route, 'methods'):
-        logger.info(f"PATH={route.path}, METHODS={route.methods}, NAME={route.name}")
-logger.info("=== END ROUTE LIST ===")
+# Debug: Log all registered routes only when explicitly requested
+if ROUTER_DEBUG:
+    logger.info("=== ALL REGISTERED ROUTES ===")
+    for route in app.routes:
+        if hasattr(route, 'path') and hasattr(route, 'methods'):
+            logger.info(f"PATH={route.path}, METHODS={route.methods}, NAME={route.name}")
+    logger.info("=== END ROUTE LIST ===")
 
 # Startup events section
 
@@ -720,7 +720,7 @@ async def simple_health_check():
     return {
         "status": "healthy",
         "message": "Full app is working",
-        "port": os.getenv("PORT", "8000")
+        "port": os.getenv("PORT", "8080")
     }
 
 # Removed duplicate root route

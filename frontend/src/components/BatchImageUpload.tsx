@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useFirebase } from "@/lib/firebase-context";
+import { getPublicBackendUrl } from "@/lib/publicBackendUrl";
 
 interface BatchImageUploadProps {
   onUploadComplete?: (items: any[]) => void;
@@ -172,7 +173,7 @@ const uploadImageToFirebaseStorage = async (file: File, userId: string, user: an
     formData.append('name', file.name || 'uploaded-item');
 
     // Upload to backend Firebase Storage (secure)
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getPublicBackendUrl();
     const response = await fetch(`${backendUrl}/api/image/upload`, {
       method: 'POST',
       body: formData,
@@ -212,7 +213,7 @@ const generateImageHashAndMetadata = async (file: File, user: any): Promise<{
     const imageUrl = await uploadImageToFirebaseStorage(file, user.uid, user);
     
     // Then call backend to generate hash and metadata
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getPublicBackendUrl();
     const response = await fetch(`${backendUrl}/generate-image-hash`, {
       method: 'POST',
       headers: {
@@ -362,7 +363,7 @@ const generateHashForExistingImageUrl = async (imageUrl: string, user: any): Pro
   }
 
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = getPublicBackendUrl();
     const response = await fetch(`${backendUrl}/generate-image-hash`, {
       method: 'POST',
       headers: {
@@ -770,7 +771,7 @@ export default function BatchImageUpload({
           console.log(`✅ Uploaded to storage: ${imageUrl}`);
 
           // 2️⃣ Trigger backend analysis
-          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+          const backendUrl = getPublicBackendUrl();
           const payload = { image: { url: imageUrl } };
           
           console.log("POSTing to backend:", backendUrl + "/analyze-image");

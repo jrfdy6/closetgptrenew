@@ -48,11 +48,12 @@ def start_backend():
     
     set_environment_variables(service_account)
     
-    print("🚀 Starting backend on port 3001...")
+    print("🚀 Starting backend on port 8080...")
+    os.environ.setdefault("PORT", "8080")
     
     # Start the backend
     try:
-        subprocess.run([sys.executable, 'app.py'], check=True)
+        subprocess.run([sys.executable, 'run.py'], check=True)
     except KeyboardInterrupt:
         print("\n🛑 Backend stopped by user")
     except Exception as e:

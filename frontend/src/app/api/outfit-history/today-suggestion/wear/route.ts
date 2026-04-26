@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog } from '@/lib/server/debug';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
-  console.log("👕 Mark today's suggestion as worn API route called");
+  serverDebugLog("👕 Mark today's suggestion as worn API route called");
   
   try {
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/today-suggestion/wear`;
-    console.log("🔗 Proxying to backend URL:", backendUrl);
+    const backendUrl = `${getBackendUrl()}/api/today-suggestion/wear`;
+    serverDebugLog("🔗 Proxying to backend URL:", backendUrl);
     
     const authHeader = req.headers.get('authorization');
-    console.log("🔍 Authorization header:", authHeader ? 'Present' : 'Missing');
+    serverDebugLog("🔍 Authorization header:", authHeader ? 'Present' : 'Missing');
     
     const body = await req.json();
-    console.log("📦 Request body:", body);
+    serverDebugLog("📦 Request body:", body);
     
     const res = await fetch(backendUrl, {
       method: 'POST',
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json();
-    console.log("✅ Successfully marked today's suggestion as worn");
+    serverDebugLog("✅ Successfully marked today's suggestion as worn");
     return NextResponse.json(data);
 
   } catch (error) {

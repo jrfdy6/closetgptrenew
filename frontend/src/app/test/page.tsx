@@ -9,6 +9,7 @@ import { useFirebase } from '@/lib/firebase-context';
 import { performanceService } from '@/lib/services/performanceService';
 import { usageService } from '@/lib/services/usageService';
 import { privacyService } from '@/lib/services/privacyService';
+import { buildPublicBackendUrl } from '@/lib/publicBackendUrl';
 import PersonalizationStatusCard from '@/components/PersonalizationStatusCard';
 import UsageIndicator from '@/components/UsageIndicator';
 import MonthlyStyleReport from '@/components/MonthlyStyleReport';
@@ -143,8 +144,7 @@ export default function TestPage() {
       try {
         if (user) {
           const token = await user.getIdToken();
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-production.up.railway.app';
-          const response = await fetch(`${apiUrl}/api/style-report`, {
+          const response = await fetch(buildPublicBackendUrl('/api/style-report'), {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -426,4 +426,3 @@ export default function TestPage() {
     </div>
   );
 }
-

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { serverDebugLog, serverDebugWarn } from '@/lib/server/debug';
 
 // Function to calculate quiz results (matching frontend logic)
 function calculateQuizResults(answers: any[]) {
-  console.log('🎯 [Persona] User answers:', answers.reduce((acc, answer) => {
+  serverDebugLog('🎯 [Persona] User answers:', answers.reduce((acc, answer) => {
     acc[answer.question_id] = answer.selected_option;
     return acc;
   }, {}));
@@ -30,7 +31,7 @@ function calculateQuizResults(answers: any[]) {
     }
   });
 
-  console.log('🎯 [Persona] Style preferences:', stylePreferences);
+  serverDebugLog('🎯 [Persona] Style preferences:', stylePreferences);
 
   // Map style preferences to personas (simplified version)
   if (stylePreferences['minimalist'] || stylePreferences['clean minimal']) {
@@ -67,9 +68,9 @@ function calculateQuizResults(answers: any[]) {
   const sortedPersonas = Object.entries(personaScores).sort(([,a], [,b]) => b - a);
   const selectedPersona = sortedPersonas[0][0];
 
-  console.log('🎯 [Persona] Persona scores:', personaScores);
-  console.log('🎯 [Persona] Sorted personas:', sortedPersonas);
-  console.log('🎯 [Persona] Selected persona:', selectedPersona);
+  serverDebugLog('🎯 [Persona] Persona scores:', personaScores);
+  serverDebugLog('🎯 [Persona] Sorted personas:', sortedPersonas);
+  serverDebugLog('🎯 [Persona] Selected persona:', selectedPersona);
 
   return {
     persona: selectedPersona,
@@ -98,7 +99,7 @@ function generateHybridStyleName(aestheticScores: Record<string, number>): strin
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('🔍 DEBUG: Style quiz analyze API called - MOCK VERSION');
+    serverDebugLog('🔍 DEBUG: Style quiz analyze API called - MOCK VERSION');
     
     // Get the authorization header
     const authHeader = req.headers.get('authorization');
@@ -130,19 +131,19 @@ export async function POST(req: NextRequest) {
         userEmail = payload.email || userEmail;
         userName = payload.name || payload.email?.split('@')[0] || userName;
         userId = payload.user_id || payload.sub || userId;
-        console.log('🔍 DEBUG: Extracted user info from token:', { userEmail, userName, userId });
+        serverDebugLog('🔍 DEBUG: Extracted user info from token:', { userEmail, userName, userId });
       }
     } catch (tokenError) {
-      console.log('🔍 DEBUG: Could not decode token, using fallback values:', tokenError);
+      serverDebugWarn('🔍 DEBUG: Could not decode token, using fallback values:', tokenError);
     }
 
     const submission = await req.json();
-    console.log('🔍 DEBUG: Quiz submission:', submission);
+    serverDebugLog('🔍 DEBUG: Quiz submission:', submission);
 
     // Calculate quiz results
     const quizResults = calculateQuizResults(submission.answers);
     
-    console.log('🔍 DEBUG: Quiz Results:', quizResults);
+    serverDebugLog('🔍 DEBUG: Quiz Results:', quizResults);
 
     // Return mock success response (no database saving in mock version)
     return NextResponse.json({ 

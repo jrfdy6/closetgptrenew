@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/server/backendUrl';
+import { serverDebugLog, serverDebugWarn } from '@/lib/server/debug';
 
 export const dynamic = 'force-dynamic';
 // Fix 405 errors - connect outfits page to working stats
 
 export async function GET(req: NextRequest) {
-  console.log("🔍 [API] /api/outfits/stats GET route called");
-  
+  serverDebugLog('🔍 [API] /api/outfits/stats GET route called');
+
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
   try {
     const authHeader = req.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -18,15 +22,12 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const days = searchParams.get('days') || '7';
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+    const baseUrl = getBackendUrl();
     
-    console.log("🔍 [API] Proxying to backend URL:", `${baseUrl}/api/outfit-stats/stats`);
+    serverDebugLog('🔍 [API] Proxying to backend URL:', `${baseUrl}/api/outfit-stats/stats`);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    timeoutId = setTimeout(() => controller.abort(), 15000);
 
     const res = await fetch(`${baseUrl}/api/outfit-stats/stats?days=${encodeURIComponent(days)}`, {
       method: 'GET',
@@ -40,14 +41,14 @@ export async function GET(req: NextRequest) {
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      console.error('❌ [API] Backend responded with:', res.status, res.statusText);
+      serverDebugWarn('❌ [API] Backend responded with:', res.status, res.statusText);
       const errorText = await res.text().catch(() => 'Unable to read error response');
-      console.error('❌ [API] Backend error details:', errorText);
+      serverDebugWarn('❌ [API] Backend error details:', errorText);
       
       // Special handling for auth errors
       if (res.status === 403 || res.status === 401) {
-        console.error('🔐 AUTH ERROR: Token may be invalid or expired');
-        console.error('🔐 AUTH DEBUG: Auth header sent:', authHeader ? 'Yes' : 'No');
+        serverDebugWarn('🔐 AUTH ERROR: Token may be invalid or expired');
+        serverDebugWarn('🔐 AUTH DEBUG: Auth header sent:', authHeader ? 'Yes' : 'No');
       }
       
       return NextResponse.json({ 
@@ -58,10 +59,12 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await res.json();
-    console.log("✅ [API] Successfully fetched stats from backend");
+    serverDebugLog('✅ [API] Successfully fetched stats from backend');
     return NextResponse.json(data);
   } catch (error: any) {
-    clearTimeout(timeoutId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
     if (error.name === 'AbortError') {
       return NextResponse.json(
         { success: false, error: 'Backend request timeout' },

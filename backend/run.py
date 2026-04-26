@@ -11,13 +11,13 @@ sys.path.append(str(backend_dir))
 env_path = backend_dir / '.env'
 load_dotenv(dotenv_path=env_path)
 
-# Debug: Print the API key (first few characters)
+# Basic startup validation without leaking secrets into logs
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     print("⚠️  WARNING: No OpenAI API key found in environment variables")
     print("   This may cause issues with AI-powered features")
 else:
-    print(f"✅ API Key loaded (first 10 chars): {api_key[:10]}...")
+    print("✅ OpenAI API key loaded")
 
 # Now we can import the app
 from app import app
@@ -39,8 +39,6 @@ if __name__ == "__main__":
         print(f"⚠️  No PORT environment variable, using default: {port}")
     
     print(f"🚀 Starting server on host=0.0.0.0, port={port}")
-    print(f"🔍 Environment PORT: {os.getenv('PORT')}")
-    print(f"🔍 All environment variables: {sorted(os.environ.keys())}")
     
     try:
         uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
