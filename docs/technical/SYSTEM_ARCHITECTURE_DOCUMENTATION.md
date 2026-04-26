@@ -408,7 +408,9 @@ print(result['debug_analysis'])  # Why each item passed/failed
 #### 2.5 `/personalization-demo/page.tsx`
 **Location**: `frontend/src/app/personalization-demo/page.tsx`
 
-**Purpose**: User interface for testing semantic filtering with toggle and debug output
+**Purpose**: Internal user interface for testing semantic filtering with toggle and debug output
+
+**Access Control**: This route is intended for local or explicitly enabled internal use. In production it is blocked by frontend middleware unless `ENABLE_INTERNAL_DEBUG_PAGES=true` is set.
 
 **Key State Variables**:
 
@@ -956,7 +958,7 @@ FIREBASE_CLIENT_EMAIL=...
 
 **URL**: https://closetgpt-frontend.vercel.app
 
-**Demo Page**: https://closetgpt-frontend.vercel.app/personalization-demo
+**Internal Demo Page**: `/personalization-demo` (blocked in production unless `ENABLE_INTERNAL_DEBUG_PAGES=true`)
 
 **Build Configuration**:
 ```json
@@ -1117,4 +1119,3 @@ curl -X POST "https://closetgptrenew-backend-production.up.railway.app/api/outfi
 **Last Updated**: October 7, 2025  
 **Maintained By**: Development Team  
 **Status**: ✅ Complete and Current
-

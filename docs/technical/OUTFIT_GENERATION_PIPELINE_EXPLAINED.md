@@ -11,6 +11,8 @@ When you click "Generate Outfit" on the frontend, here's the complete journey fr
 ### **1. User Clicks "Generate Outfit"** 
 `frontend/src/app/personalization-demo/page.tsx`
 
+Note: `/personalization-demo` is an internal testing page. In production it is blocked unless `ENABLE_INTERNAL_DEBUG_PAGES=true` is explicitly set.
+
 ```typescript
 User selects:
 - Occasion: "Athletic"
@@ -680,4 +682,3 @@ Your system now:
 7. ✅ Returns outfit to frontend for display
 
 **The metadata in Firestore is the FOUNDATION of the entire system!** Without proper `occasion`, `style`, and `mood` arrays, items would be filtered out or scored poorly.
-

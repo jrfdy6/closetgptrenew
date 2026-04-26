@@ -6,9 +6,16 @@ Allow: /
 
 # Disallow admin and API routes
 Disallow: /api/
-Disallow: /debug/
-Disallow: /test/
+Disallow: /debug
+Disallow: /test
 Disallow: /admin/
+Disallow: /dark-mode-test
+Disallow: /debug-token
+Disallow: /debug-wardrobe
+Disallow: /personalization-demo
+Disallow: /personalization-demo-debug
+Disallow: /test-flatlay
+Disallow: /test-personalization
 
 # Allow important pages
 Allow: /
@@ -26,4 +33,3 @@ Sitemap: https://www.easyoutfitapp.com/sitemap.xml
 
 # Crawl-delay (optional, adjust as needed)
 Crawl-delay: 1
-

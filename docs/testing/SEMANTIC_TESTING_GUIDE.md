@@ -20,9 +20,20 @@ This guide shows you how to verify that the semantic expansion actually improves
 
 ## 📊 Quick Visual Test (5 minutes)
 
+Use a local frontend by default:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Then open `http://localhost:3000/personalization-demo`.
+
+`/personalization-demo` is treated as an internal route. In production it is blocked unless `ENABLE_INTERNAL_DEBUG_PAGES=true` is explicitly set.
+
 ### Step 1: Test Traditional Filtering (Semantic OFF)
 
-1. Go to: https://my-app.vercel.app/personalization-demo
+1. Go to: `http://localhost:3000/personalization-demo`
 2. Set filters:
    - Occasion: **Business**
    - Style: **Classic**
@@ -289,4 +300,3 @@ Create a simple table:
    ```
 
 4. If none of these appear → deployment might not have finished (wait 2-3 min)
-

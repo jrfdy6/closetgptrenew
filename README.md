@@ -74,6 +74,7 @@ closetgptrenew/
    # Edit .env.local with your configuration
    ```
    `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_BACKEND_URL` should both point at the backend base URL.
+   Leave `ENABLE_INTERNAL_DEBUG_PAGES=false` unless you intentionally need internal demo or debug routes exposed in production.
 
 4. **Start the development server:**
    ```bash

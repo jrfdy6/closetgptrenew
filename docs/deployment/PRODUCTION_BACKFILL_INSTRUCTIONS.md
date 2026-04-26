@@ -164,10 +164,11 @@ FEATURE_DEBUG_OUTPUT=true
 ```
 
 ### Test Semantic Filtering
-1. Go to `/personalization-demo`
-2. Toggle "Semantic Matching" ON
-3. Generate outfits with different style preferences
-4. Verify semantic matches work (e.g., "Classic" matches "Business Casual")
+1. Prefer a local frontend at `http://localhost:3000/personalization-demo`
+2. If you must test against a production deployment, only expose the route temporarily by setting `ENABLE_INTERNAL_DEBUG_PAGES=true` in a private environment
+3. Toggle "Semantic Matching" ON
+4. Generate outfits with different style preferences
+5. Verify semantic matches work (e.g., "Classic" matches "Business Casual")
 
 ---
 
@@ -238,4 +239,3 @@ If you encounter issues:
 5. ✅ Optimize semantic compatibility rules based on data
 
 Good luck! 🚀
-
