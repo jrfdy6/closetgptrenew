@@ -122,10 +122,11 @@ We discovered and fixed a **critical bug** in the semantic matching system: **mi
 
 ### Quick Test (3 minutes):
 1. Wait 2-3 minutes for Railway deployment
-2. Go to: https://my-app.vercel.app/personalization-demo
-3. Set: **Business + Classic + Bold**
-4. **Enable** "Semantic (Compatible Styles)"
-5. Click **"Debug Item Filtering"**
+2. Prefer a local frontend: `http://localhost:3000/personalization-demo`
+3. If you need to test against production, temporarily enable `ENABLE_INTERNAL_DEBUG_PAGES=true` first because `/personalization-demo` is an internal route
+4. Set: **Business + Classic + Bold**
+5. **Enable** "Semantic (Compatible Styles)"
+6. Click **"Debug Item Filtering"**
 
 ### Expected Results:
 **Before this fix:** ~95 items pass (60%)  
@@ -198,4 +199,3 @@ We discovered and fixed a **critical bug** in the semantic matching system: **mi
 - More accurate semantic matching
 
 🚀 **The system is now ready for production use!**
-

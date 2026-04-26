@@ -199,9 +199,10 @@ All styles have bidirectional matching and logical groupings.
 ## 🧪 Testing Instructions
 
 1. **Wait 2-3 minutes** for Railway deployment
-2. Go to: https://my-app.vercel.app/personalization-demo
-3. **Enable "Semantic (Compatible Styles)"**
-4. Try various combinations:
+2. Prefer a local frontend: `http://localhost:3000/personalization-demo`
+3. If you need to test against production, temporarily enable `ENABLE_INTERNAL_DEBUG_PAGES=true` first because `/personalization-demo` is an internal route
+4. **Enable "Semantic (Compatible Styles)"**
+5. Try various combinations:
 
 **Test 1: Business + Bold + Classic**
 - Expected: High pass rate, business-appropriate items
@@ -257,4 +258,3 @@ This creates a **highly flexible, intelligent matching system** that:
 - Provides excellent user experience with fewer "no items found" errors
 
 **The system is production-ready and should dramatically improve outfit generation success rates! 🚀**
-

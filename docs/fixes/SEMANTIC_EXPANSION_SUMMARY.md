@@ -88,10 +88,11 @@ Added more synonyms for moods like "bold", "comfortable", "confident" to be more
 ## 🧪 Testing Instructions
 
 1. **Wait 2-3 minutes** for Railway to deploy the new code
-2. Go to: https://my-app.vercel.app/personalization-demo
-3. Set filters to: **Business + Classic + Bold**
-4. **Toggle "Semantic (Compatible Styles)" to ON**
-5. Click **"Debug Item Filtering"**
+2. Prefer a local frontend: `http://localhost:3000/personalization-demo`
+3. If you need to test against production, temporarily enable `ENABLE_INTERNAL_DEBUG_PAGES=true` first because `/personalization-demo` is an internal route
+4. Set filters to: **Business + Classic + Bold**
+5. **Toggle "Semantic (Compatible Styles)" to ON**
+6. Click **"Debug Item Filtering"**
 
 ### What to Look For:
 
@@ -159,4 +160,3 @@ If the semantic expansion is too broad:
 - **Pushed to main:** ✅ 
 - **Railway deployment:** 🔄 In progress (wait 2-3 minutes)
 - **Version marker:** `2025-10-11-EXPANDED`
-
