@@ -1,5 +1,9 @@
 # Easy Outfit Production Architecture
 
+Canonical operator playbook:
+
+- [docs/technical/EASYOUTFIT_OPERATOR_PLAYBOOK.md](/Users/neo/Desktop/closetgptrenew/docs/technical/EASYOUTFIT_OPERATOR_PLAYBOOK.md:1)
+
 ## Current Production Topology
 
 - **Repo:** `closetgptrenew` (EasyOutfit) is separate from `aiclone`

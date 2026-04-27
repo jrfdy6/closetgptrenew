@@ -2,6 +2,10 @@
 
 This is the backend API for Easy Outfit, providing AI-powered clothing analysis and outfit recommendations.
 
+Canonical operator playbook:
+
+- [docs/technical/EASYOUTFIT_OPERATOR_PLAYBOOK.md](/Users/neo/Desktop/closetgptrenew/docs/technical/EASYOUTFIT_OPERATOR_PLAYBOOK.md:1)
+
 ## Features
 
 - **Image Analysis**: Analyze clothing items using GPT-4 Vision and CLIP
@@ -105,6 +109,7 @@ The launch agent reads local secrets from `.env.easyoutfit_codex_bridge`, which 
 The backend is configured to deploy to Railway with the correct app entry point.
 - Production internal/test/debug routes are blocked by default unless `ENABLE_INTERNAL_DEBUG_ROUTES=true` is set.
 - EasyOutfit deploys from `main`. The remote `production` branch is stale historical state and should not be treated as the live deploy source.
+- If repo/runtime truth drifts between this repo and OpenClaw workspace docs, treat the canonical operator playbook as authoritative and update the OpenClaw pointer docs to match it.
 # Clean deployment
 # Railway deployment trigger - Tue Aug 12 06:47:16 EDT 2025
 # Force deployment Mon Sep  8 06:28:18 EDT 2025

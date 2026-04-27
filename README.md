@@ -88,6 +88,7 @@ closetgptrenew/
 ## 🚦 Deploy Truth
 
 - **Repo:** `closetgptrenew` is the EasyOutfit repo. It is separate from the `aiclone` repo.
+- **Canonical operator playbook:** [docs/technical/EASYOUTFIT_OPERATOR_PLAYBOOK.md](/Users/neo/Desktop/closetgptrenew/docs/technical/EASYOUTFIT_OPERATOR_PLAYBOOK.md:1)
 - **Live deploy branch:** `main`
 - **Legacy branch:** `production` is stale historical state and is not the live deploy branch for EasyOutfit.
 - **Railway root-link policy:** for this repo, option 1 is intentional.
@@ -98,6 +99,7 @@ closetgptrenew/
 - **Legacy non-production Railway services:** `closetgpt-backend`, `closetgptrenew-backend`
 
 If a local Railway link points anywhere else, treat it as drift and fix it before deploying.
+If OpenClaw workspace docs disagree with EasyOutfit deploy/runtime truth, use the canonical operator playbook above and then update the OpenClaw pointer docs.
 
 ### Backend Deployment
 - **Railway:** Use `deploy_to_railway.sh`
