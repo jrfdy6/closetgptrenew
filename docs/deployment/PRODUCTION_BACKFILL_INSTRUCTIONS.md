@@ -12,7 +12,8 @@ This guide walks you through executing the production database backfill to norma
 
 ### Access Railway Console
 1. Go to [Railway Dashboard](https://railway.app/)
-2. Select your `closetgptrenew-backend-production` project
+2. Select the Railway project `closetgpt-backend`
+3. Use the live backend service `closetgptrenew`
 3. Click on the backend service
 4. Open the **"Console"** tab (or Shell)
 

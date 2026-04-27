@@ -111,13 +111,13 @@ export FEATURE_SEMANTIC_MATCH=true
 ### Monitor Telemetry
 ```bash
 # Check current metrics
-curl https://closetgptrenew-backend-production.up.railway.app/api/semantic-telemetry/status
+curl https://closetgptrenew-production.up.railway.app/api/semantic-telemetry/status
 
 # Check alerts
-curl https://closetgptrenew-backend-production.up.railway.app/api/semantic-telemetry/alerts
+curl https://closetgptrenew-production.up.railway.app/api/semantic-telemetry/alerts
 
 # Get comprehensive summary
-curl https://closetgptrenew-backend-production.up.railway.app/api/semantic-telemetry/metrics/summary
+curl https://closetgptrenew-production.up.railway.app/api/semantic-telemetry/metrics/summary
 ```
 
 ### Emergency Rollback

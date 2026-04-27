@@ -3,7 +3,7 @@
 ## 🚀 **Your Production URLs**
 
 - **Frontend**: https://closetgpt-frontend.vercel.app
-- **Backend**: https://closetgptrenew-backend-production.up.railway.app
+- **Backend**: https://closetgptrenew-production.up.railway.app
 
 ## 🧪 **How to Test the Enhanced Validation Rules in Production**
 

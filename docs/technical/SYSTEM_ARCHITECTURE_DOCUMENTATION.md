@@ -933,7 +933,7 @@ python3 test_edge_cases_stress.py
 
 ### Backend (Railway)
 
-**URL**: https://closetgptrenew-backend-production.up.railway.app
+**URL**: https://closetgptrenew-production.up.railway.app
 
 **Environment Variables**:
 ```
@@ -1082,10 +1082,10 @@ python3 test_edge_cases_stress.py
 python3 LOCAL_BACKFILL_SCRIPT.py --environment production
 
 # Check backend health
-curl https://closetgptrenew-backend-production.up.railway.app/health
+curl https://closetgptrenew-production.up.railway.app/health
 
 # Test semantic filtering
-curl -X POST "https://closetgptrenew-backend-production.up.railway.app/api/outfits/debug-filter?semantic=true" \
+curl -X POST "https://closetgptrenew-production.up.railway.app/api/outfits/debug-filter?semantic=true" \
   -H "Content-Type: application/json" \
   -d '{"style": "classic", "occasion": "business", "mood": "professional"}'
 ```

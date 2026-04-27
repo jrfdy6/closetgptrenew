@@ -7,7 +7,7 @@
    - Log in if needed
 
 2. **Select Your Project**
-   - Click on "closetgpt-backend" project (or your project name)
+   - Click on `closetgpt-backend`
 
 3. **Select the Worker Service**
    - Look for the service named "background-processor"
@@ -68,5 +68,4 @@ Look for:
 - A "Shell" button
 - A "Connect" button
 - Or in Deployments → Latest deployment → "Shell" or "Connect"
-
 

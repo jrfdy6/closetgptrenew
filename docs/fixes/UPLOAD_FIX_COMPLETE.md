@@ -1,5 +1,7 @@
 # ✅ Upload Fix Complete
 
+> Historical note: this file records an old upload incident. The live backend service is `https://closetgptrenew-production.up.railway.app`, not `closetgptrenew-backend-production`.
+
 ## 🎉 All Issues Resolved!
 
 ### Fixed Issues
@@ -47,9 +49,9 @@ Run this in browser console after deployment completes:
 ```javascript
 // Test all endpoints are active
 Promise.all([
-  fetch('https://closetgptrenew-backend-production.up.railway.app/api/image/upload', { method: 'OPTIONS' }),
-  fetch('https://closetgptrenew-backend-production.up.railway.app/generate-image-hash', { method: 'OPTIONS' }),
-  fetch('https://closetgptrenew-backend-production.up.railway.app/analyze-image', { method: 'OPTIONS' })
+  fetch('https://closetgptrenew-production.up.railway.app/api/image/upload', { method: 'OPTIONS' }),
+  fetch('https://closetgptrenew-production.up.railway.app/generate-image-hash', { method: 'OPTIONS' }),
+  fetch('https://closetgptrenew-production.up.railway.app/analyze-image', { method: 'OPTIONS' })
 ]).then(responses => {
   console.log('Upload endpoint:', responses[0].status === 200 ? '✅' : '❌');
   console.log('Hash endpoint:', responses[1].status === 200 ? '✅' : '❌');
@@ -225,4 +227,3 @@ If all tests pass → **Feature is production-ready!** 🎉
 ---
 
 **Test it now!** Go to https://my-app.vercel.app/wardrobe and upload an item! 🚀
-

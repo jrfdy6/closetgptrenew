@@ -1,5 +1,7 @@
 # Production Deployment Status - Metadata Compatibility System
 
+> Historical note: this document refers to an internal debug endpoint. Production now blocks internal backend debug routes by default unless `ENABLE_INTERNAL_DEBUG_ROUTES=true`.
+
 ## ✅ Successfully Deployed
 
 **Commits:**
@@ -29,7 +31,7 @@ But you confirmed the beige sweater with full visualAttributes exists in Firesto
 
 ### **Debug Endpoint Deployed:**
 
-**URL:** `https://closetgptrenew-backend-production.up.railway.app/api/wardrobe/debug-metadata-public`
+**URL:** `https://closetgptrenew-production.up.railway.app/api/wardrobe/debug-metadata-public`
 
 **What it checks:**
 - Does metadata exist in Firestore?
@@ -40,7 +42,7 @@ But you confirmed the beige sweater with full visualAttributes exists in Firesto
 
 **Call this endpoint after deployment completes:**
 ```bash
-curl https://closetgptrenew-backend-production.up.railway.app/api/wardrobe/debug-metadata-public
+curl https://closetgptrenew-production.up.railway.app/api/wardrobe/debug-metadata-public
 ```
 
 ---
@@ -109,7 +111,7 @@ curl https://closetgptrenew-backend-production.up.railway.app/api/wardrobe/debug
 
 Wait ~2 minutes for Railway to deploy, then call:
 ```bash
-curl https://closetgptrenew-backend-production.up.railway.app/api/wardrobe/debug-metadata-public
+curl https://closetgptrenew-production.up.railway.app/api/wardrobe/debug-metadata-public
 ```
 
 ### **Step 2: Based on Results:**
@@ -153,4 +155,3 @@ The system deployed successfully and is:
 - ✅ Providing good outfit combinations
 
 **The enhancement is live - we just need to verify why visualAttributes isn't loading to unlock the full potential!**
-

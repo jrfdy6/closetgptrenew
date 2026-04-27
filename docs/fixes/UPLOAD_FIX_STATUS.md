@@ -1,5 +1,7 @@
 # 🔧 Upload Fix Status
 
+> Historical note: this file records an old upload incident. The live backend service is `https://closetgptrenew-production.up.railway.app`, not `closetgptrenew-backend-production`.
+
 ## Issue Identified
 
 **Problem**: Upload was failing with **405 Method Not Allowed** error
@@ -51,7 +53,7 @@ Railway automatically redeploys when you push to `main`. Wait ~2-3 minutes, then
 **Option A: Browser Console**
 ```javascript
 // Paste in browser console
-fetch('https://closetgptrenew-backend-production.up.railway.app/api/image/upload', {
+fetch('https://closetgptrenew-production.up.railway.app/api/image/upload', {
   method: 'OPTIONS'
 }).then(r => console.log('Status:', r.status, r.ok ? '✅' : '❌'));
 ```
@@ -59,7 +61,7 @@ fetch('https://closetgptrenew-backend-production.up.railway.app/api/image/upload
 
 **Option B: Terminal**
 ```bash
-curl -X OPTIONS https://closetgptrenew-backend-production.up.railway.app/api/image/upload -v
+curl -X OPTIONS https://closetgptrenew-production.up.railway.app/api/image/upload -v
 ```
 **Expected**: `HTTP/2 200`
 
@@ -98,7 +100,7 @@ After upload, click the item and verify:
 3. **Check Railway logs**:
    ```
    https://railway.app/dashboard
-   → Select closetgptrenew-backend-production
+   → Select service `closetgptrenew`
    → View Deployments
    → Check latest deployment
    ```
@@ -198,7 +200,7 @@ After ~3 minutes, run this in browser console to test:
 (async () => {
   try {
     // Test OPTIONS (CORS preflight)
-    const options = await fetch('https://closetgptrenew-backend-production.up.railway.app/api/image/upload', {
+    const options = await fetch('https://closetgptrenew-production.up.railway.app/api/image/upload', {
       method: 'OPTIONS'
     });
     console.log('✅ OPTIONS:', options.status);
@@ -235,4 +237,3 @@ Upload process is fixed when:
 **Time to Test**: ~5 minutes (2-3 min for deployment + 2 min for upload test)
 
 **Estimated Fix**: This should resolve the 405 error completely! 🎉
-

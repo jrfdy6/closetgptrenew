@@ -75,6 +75,7 @@ logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO))
 1. **Go to Railway Dashboard:**
    - Navigate to: https://railway.app
    - Select project: `closetgpt-backend`
+   - Use service: `closetgptrenew` for the live API
    - Click on your backend service
 
 2. **Add Environment Variable:**
@@ -204,4 +205,3 @@ If issues persist after setting `LOG_LEVEL=WARNING`:
 **Commits:**
 - `71899381c` - fix: reduce excessive logging in production
 - `9f73a3fd1` - feat: add environment-based logging configuration
-

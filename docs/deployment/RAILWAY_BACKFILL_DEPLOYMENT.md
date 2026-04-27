@@ -6,7 +6,7 @@ This guide shows how to deploy and run the database backfill as a one-time job o
 ## 📋 Step 1: Deploy the Backfill Job
 
 ### In Railway Dashboard:
-1. **Go to your project** (`closetgptrenew-backend`)
+1. **Go to your project** (`closetgpt-backend`)
 2. **Click "New Service"** or **"Deploy from GitHub"**
 3. **Select your repository** (`closetgptrenew`)
 4. **Configure the service:**
