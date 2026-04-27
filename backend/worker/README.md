@@ -2,6 +2,8 @@
 
 This worker service runs alpha matting on uploaded wardrobe items in the background, providing "stealth mode" image upgrades.
 
+The worker intentionally uses its local `subscription_utils.py` helper for quota logic. Railway runs this service with `backend/worker` as the root directory, so it should not rely on importing `backend/src` at runtime.
+
 ## How It Works
 
 1. **User uploads** wardrobe item → saved immediately with `processing_status: "pending"`
@@ -98,6 +100,7 @@ When worker finishes, Firestore updates trigger automatic UI refresh.
 - Alpha matting is memory-intensive
 - Upgrade Railway plan if OOM errors occur
 - Or disable alpha matting (use fast mode) in `main.py`
+- If you change subscription quota logic in the main backend, mirror the same change in `backend/worker/subscription_utils.py`
 
 ## Local Development
 
@@ -111,4 +114,3 @@ export FIREBASE_PROJECT_ID=closetgptrenew
 
 python main.py
 ```
-

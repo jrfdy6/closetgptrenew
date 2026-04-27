@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+"""Worker-local subscription quota helpers.
+
+Keep this file in sync with backend/src/services/subscription_utils.py.
+The Railway worker runs with backend/worker as its root directory, so it
+cannot depend on importing the main backend src tree at runtime.
+"""
+
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 
@@ -59,5 +66,4 @@ def quotas_defaults(
         "flatlaysRemaining": limit,
         "lastRefillAt": now_timestamp,
     }
-
 

@@ -11,96 +11,16 @@ print("🔍 Worker script starting...", file=sys.stderr, flush=True)
 print("🔍 Python version:", sys.version, file=sys.stderr, flush=True)
 print("🔍 Using railway.worker.toml config with NIXPACKS builder (root railway.toml removed)", file=sys.stderr, flush=True)
 
-# ============================================================================
-# CRITICAL: Add backend/src to sys.path BEFORE any imports from src/
-# This allows the worker (running from backend/worker/) to import from backend/src/
-# ============================================================================
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))  # /app (backend/worker in container)
-WORKING_DIR = os.getcwd()  # /app (usually same as CURRENT_DIR in Railway)
-
-# Calculate potential src/ locations
-# In Railway with root=backend/worker, the container has:
-# - /app = backend/worker (current directory)
-# - We need to find backend/src/ which might be at /app/../src or elsewhere
-
-potential_src_paths = [
-    os.path.join(CURRENT_DIR, "..", "src"),  # /app/../src (most likely)
-    os.path.join(WORKING_DIR, "..", "src"),   # Same but from cwd
-    "/app/../src",                            # Explicit relative path
-    "/src",                                   # Absolute (unlikely but try)
-    os.path.join(CURRENT_DIR, "src"),        # /app/src (fallback)
-    os.path.join(WORKING_DIR, "src"),         # Same from cwd
-]
-
-# Try each path and add the first one that exists
-src_dir_added = False
-for src_path in potential_src_paths:
-    abs_path = os.path.abspath(src_path)
-    if os.path.exists(abs_path) and os.path.isdir(abs_path):
-        if abs_path not in sys.path:
-            sys.path.insert(0, abs_path)
-            print(f"✅ Added {abs_path} to sys.path", file=sys.stderr, flush=True)
-            src_dir_added = True
-            break
-    # Also try the path as-is (might be absolute already)
-    if os.path.exists(src_path) and os.path.isdir(src_path) and src_path not in sys.path:
-        sys.path.insert(0, src_path)
-        print(f"✅ Added {src_path} to sys.path (as-is)", file=sys.stderr, flush=True)
-        src_dir_added = True
-        break
-
-if not src_dir_added:
-    print(f"⚠️  Warning: Could not find src/ directory.", file=sys.stderr, flush=True)
-    print(f"   Current directory: {CURRENT_DIR}", file=sys.stderr, flush=True)
-    print(f"   Working directory: {WORKING_DIR}", file=sys.stderr, flush=True)
-    print(f"   Tried paths: {potential_src_paths[:3]}...", file=sys.stderr, flush=True)
-    print(f"   sys.path: {sys.path[:3]}...", file=sys.stderr, flush=True)
-    # List what's actually in the current directory
-    try:
-        parent_dir = os.path.dirname(CURRENT_DIR)
-        if os.path.exists(parent_dir):
-            print(f"   Parent directory ({parent_dir}) contents: {os.listdir(parent_dir)[:5]}...", file=sys.stderr, flush=True)
-    except Exception as e:
-        print(f"   Could not list parent directory: {e}", file=sys.stderr, flush=True)
-
-# Now we can import from src.services
-try:
-    from services.subscription_utils import (
-        DEFAULT_SUBSCRIPTION_TIER,
-        TIER_LIMITS,
-        WEEKLY_ALLOWANCE_SECONDS,
-        parse_iso8601,
-        format_iso8601,
-        subscription_defaults,
-    )
-    print("✅ Successfully imported from services.subscription_utils", file=sys.stderr, flush=True)
-except ImportError as e:
-    # Fallback: try old import path
-    try:
-        from src.services.subscription_utils import (
-            DEFAULT_SUBSCRIPTION_TIER,
-            TIER_LIMITS,
-            WEEKLY_ALLOWANCE_SECONDS,
-            parse_iso8601,
-            format_iso8601,
-            subscription_defaults,
-        )
-        print("✅ Successfully imported from src.services.subscription_utils (fallback)", file=sys.stderr, flush=True)
-    except ImportError:
-        # Last resort: try local subscription_utils
-        try:
-            from subscription_utils import (
-                DEFAULT_SUBSCRIPTION_TIER,
-                TIER_LIMITS,
-                WEEKLY_ALLOWANCE_SECONDS,
-                parse_iso8601,
-                format_iso8601,
-                subscription_defaults,
-            )
-            print("✅ Successfully imported from local subscription_utils (last resort)", file=sys.stderr, flush=True)
-        except ImportError:
-            print(f"❌ CRITICAL: Could not import subscription_utils. Error: {e}", file=sys.stderr, flush=True)
-            raise
+from subscription_utils import (
+    DEFAULT_SUBSCRIPTION_TIER,
+    TIER_LIMITS,
+    WEEKLY_ALLOWANCE_SECONDS,
+    parse_iso8601,
+    format_iso8601,
+    quotas_defaults,
+    subscription_defaults,
+)
+print("✅ Loaded worker-local subscription_utils", file=sys.stderr, flush=True)
 
 # Continue with other imports
 import base64
@@ -437,11 +357,6 @@ def reserve_openai_flatlay_slot(user_id: str | None) -> dict:
             txn.update(doc_ref, update_payload)
         else:
             # Create new user document with proper structure (should rarely happen - users created via auth.py)
-            try:
-                from subscription_utils import quotas_defaults
-            except ImportError:
-                from services.subscription_utils import quotas_defaults
-            
             subscription_payload = subscription_defaults(tier=role, now=now)
             subscription_payload["last_updated"] = firestore.SERVER_TIMESTAMP
             quotas_payload = quotas_defaults(tier=role, now=now)
