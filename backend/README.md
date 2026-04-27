@@ -57,10 +57,37 @@ This is the backend API for Easy Outfit, providing AI-powered clothing analysis 
 
 ## Environment Variables
 
-- `OPENAI_API_KEY` - OpenAI API key for GPT-4 Vision
+- `OPENAI_API_KEY` - OpenAI API key for the hosted EasyOutfit AI runtime
+- `EASYOUTFIT_OPENAI_TIMEOUT_SECONDS` - default request timeout for hosted AI calls
+- `EASYOUTFIT_OPENAI_VISION_MODEL` - sync clothing-analysis model override
+- `EASYOUTFIT_OPENAI_EMBEDDING_MODEL` - embedding model override
+- `EASYOUTFIT_OPENAI_IMAGE_EDIT_MODEL` - worker flat-lay image-edit model override
+- `EASYOUTFIT_OPENAI_IMAGE_EDIT_TIMEOUT_SECONDS` - worker image-edit timeout override
 - `FIREBASE_PROJECT_ID` - Firebase project ID
 - `FIREBASE_STORAGE_BUCKET` - Firebase Storage bucket name
 - `PORT` - Server port (default: 8080)
+
+## AI Runtime Notes
+
+- The current production backend still uses direct OpenAI-hosted inference for sync image analysis and worker-driven flat-lay enhancement.
+- The planned migration toward the `aiclone` Codex-runner model is documented in [docs/technical/EASYOUTFIT_CODEX_MIGRATION_PLAN.md](/Users/neo/Desktop/closetgptrenew/docs/technical/EASYOUTFIT_CODEX_MIGRATION_PLAN.md:1).
+- The intended first step is to centralize AI calls behind a runtime layer before introducing any EasyOutfit-local Codex job queue.
+- The first EasyOutfit-local Codex queue path is now `POST /api/codex-jobs` with Firestore-backed state and the bridge script at [scripts/local_codex_bridge_easyoutfit.py](/Users/neo/Desktop/closetgptrenew/scripts/local_codex_bridge_easyoutfit.py:1).
+- Bridge claim/complete/fail endpoints require `EASYOUTFIT_LOCAL_CODEX_TOKEN`.
+- User-facing Codex job endpoints are operator-only by default. Set `EASYOUTFIT_CODEX_OPERATOR_USER_IDS` or `EASYOUTFIT_CODEX_JOB_ACCESS=authenticated` if you intentionally want broader access.
+
+## Local Codex Bridge
+
+Minimal setup for the first EasyOutfit Codex job lane:
+
+```bash
+export EASYOUTFIT_LOCAL_CODEX_TOKEN=replace_with_long_random_token
+export EASYOUTFIT_CODEX_API_BASE_URL=http://localhost:8080/api/codex-jobs
+export EASYOUTFIT_CODEX_OPERATOR_USER_IDS=your_firebase_uid
+python3 scripts/local_codex_bridge_easyoutfit.py
+```
+
+The first supported job kind is `wardrobe_metadata_audit`.
 
 ## Deployment
 

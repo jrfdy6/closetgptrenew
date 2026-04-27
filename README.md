@@ -125,6 +125,12 @@ For production checks, use:
 - All Firebase access goes through the backend
 - No direct Firebase initialization from the frontend
 
+## 🤖 AI Runtime
+
+- EasyOutfit currently uses OpenAI directly for sync clothing-image analysis and worker-based flat-lay enhancement.
+- The researched migration path toward the `aiclone` Codex-runner architecture is documented in [docs/technical/EASYOUTFIT_CODEX_MIGRATION_PLAN.md](/Users/neo/Desktop/closetgptrenew/docs/technical/EASYOUTFIT_CODEX_MIGRATION_PLAN.md:1).
+- The recommended first move is to centralize AI boundaries inside the backend before migrating any workload onto a local Codex queue.
+
 ## 📱 Features
 
 - AI-powered outfit generation

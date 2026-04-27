@@ -103,11 +103,32 @@ CATEGORY_SHADOW_OVERRIDES = {
     "shoes": {"blur": 8, "opacity": 0.26},
 }
 
+
+def _read_positive_float_env(name: str, default: float) -> float:
+    raw = (os.environ.get(name) or "").strip()
+    if raw:
+        try:
+            value = float(raw)
+            if value > 0:
+                return value
+        except ValueError:
+            pass
+    return default
+
+
+OPENAI_TIMEOUT_SECONDS = _read_positive_float_env("EASYOUTFIT_OPENAI_TIMEOUT_SECONDS", 45.0)
+OPENAI_IMAGE_EDIT_TIMEOUT_SECONDS = _read_positive_float_env(
+    "EASYOUTFIT_OPENAI_IMAGE_EDIT_TIMEOUT_SECONDS",
+    120.0,
+)
+OPENAI_IMAGE_EDIT_MODEL = (os.environ.get("EASYOUTFIT_OPENAI_IMAGE_EDIT_MODEL") or "gpt-image-1").strip() or "gpt-image-1"
+OPENAI_IMAGE_EDIT_API_URL = "https://api.openai.com/v1/images/edits"
+
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 if OPENAI_API_KEY:
     try:
-        openai_client = OpenAI(api_key=OPENAI_API_KEY)
-        print("✅ OpenAI client initialized for flat lay generation")
+        openai_client = OpenAI(api_key=OPENAI_API_KEY, timeout=OPENAI_TIMEOUT_SECONDS)
+        print(f"✅ OpenAI client initialized for flat lay generation ({OPENAI_IMAGE_EDIT_MODEL})")
     except Exception as openai_init_error:
         print(f"⚠️  Failed to initialize OpenAI client: {openai_init_error}")
         openai_client = None
@@ -277,6 +298,65 @@ def _extract_image_bytes_from_openai_response(response) -> bytes | None:
                 return base64.b64decode(b64_data)
     except Exception as fallback_error:
         print(f"⚠️  Error parsing OpenAI legacy response: {fallback_error}")
+
+    return None
+
+
+def get_openai_image_edit_runtime_config() -> dict[str, str | float]:
+    """
+    Mirror the backend AI runtime image-edit config locally.
+
+    Railway deploys the worker with `backend/worker` as the root directory, so this
+    service cannot import `backend/src/services/ai_runtime` at runtime.
+    """
+    return {
+        "api_url": OPENAI_IMAGE_EDIT_API_URL,
+        "model": OPENAI_IMAGE_EDIT_MODEL,
+        "timeout_seconds": OPENAI_IMAGE_EDIT_TIMEOUT_SECONDS,
+    }
+
+
+def _build_openai_image_edit_headers() -> dict[str, str]:
+    if openai_client is None or not getattr(openai_client, "api_key", None):
+        raise RuntimeError("openai_client_unavailable")
+    return {"Authorization": f"Bearer {openai_client.api_key}"}
+
+
+def _load_image_from_openai_image_response(response_data: dict, debug_prefix: str) -> Image.Image | None:
+    enhanced_url = None
+    enhanced_b64 = None
+
+    if response_data.get("data") and len(response_data["data"]) > 0:
+        first_item = response_data["data"][0]
+        if isinstance(first_item, dict):
+            enhanced_url = first_item.get("url")
+            enhanced_b64 = first_item.get("b64_json")
+        print(f"{debug_prefix}: Found data array response")
+    elif "url" in response_data:
+        enhanced_url = response_data.get("url")
+        print(f"{debug_prefix}: Found top-level URL response")
+    elif "b64_json" in response_data:
+        enhanced_b64 = response_data.get("b64_json")
+        print(f"{debug_prefix}: Found top-level base64 response")
+    elif "output_images" in response_data:
+        output_images = response_data.get("output_images", [])
+        if output_images:
+            first_output = output_images[0]
+            if isinstance(first_output, dict):
+                enhanced_url = first_output.get("url")
+                enhanced_b64 = first_output.get("b64_json")
+        print(f"{debug_prefix}: Found output_images response")
+
+    if enhanced_url:
+        print(f"{debug_prefix}: Downloading generated image from URL...")
+        enhanced_response = requests.get(enhanced_url, timeout=30)
+        enhanced_response.raise_for_status()
+        return Image.open(BytesIO(enhanced_response.content)).convert("RGBA")
+
+    if enhanced_b64:
+        print(f"{debug_prefix}: Decoding generated image from base64...")
+        enhanced_bytes = base64.b64decode(enhanced_b64)
+        return Image.open(BytesIO(enhanced_bytes)).convert("RGBA")
 
     return None
 
@@ -510,6 +590,7 @@ def generate_openai_flatlay_image(
     if openai_client is None:
         return None, "openai_client_unavailable"
 
+    runtime_config = get_openai_image_edit_runtime_config()
     prompt = build_flatlay_prompt(processed_images, outfit_data)
 
     # Collect image URLs for gpt-image-1
@@ -572,7 +653,7 @@ def generate_openai_flatlay_image(
         )
         
         print(f"🎨 Using gpt-image-1 for flatlay generation")
-        print(f"   Model: gpt-image-1")
+        print(f"   Model: {runtime_config['model']}")
         print(f"   Image URLs: {len(image_urls)}")
         print(f"   Prompt: {prompt[:80]}...")
         
@@ -617,15 +698,13 @@ def generate_openai_flatlay_image(
         # Use first image as base, others as additional inputs
         # Note: edits endpoint typically takes one base image
         # For multiple images, we may need to use a different approach
-        api_url = "https://api.openai.com/v1/images/edits"
-        headers = {
-            "Authorization": f"Bearer {openai_client.api_key}",
-        }
+        api_url = str(runtime_config["api_url"])
+        headers = _build_openai_image_edit_headers()
         
         # Prepare multipart form data
         files = {
             'image': (image_files[0][1][0], image_files[0][1][1], image_files[0][1][2]),
-            'model': (None, 'gpt-image-1'),
+            'model': (None, str(runtime_config["model"])),
             'prompt': (None, prompt),
             'size': (None, '1024x1024'),
             'n': (None, '1'),
@@ -637,7 +716,12 @@ def generate_openai_flatlay_image(
             print(f"⚠️  Multiple images detected, but edits endpoint may only accept one base image")
             print(f"⚠️  Using first image as base, others may be ignored by API")
         
-        api_response = requests.post(api_url, headers=headers, files=files, timeout=120)
+        api_response = requests.post(
+            api_url,
+            headers=headers,
+            files=files,
+            timeout=float(runtime_config["timeout_seconds"]),
+        )
         if not api_response.ok:
             error_text = api_response.text
             print(f"⚠️  API error response: {api_response.status_code} - {error_text[:500]}")
@@ -650,38 +734,10 @@ def generate_openai_flatlay_image(
         
         response_data = api_response.json()
         
-        # Convert to SDK-like response object
-        class ImageData:
-            def __init__(self, data):
-                self.url = data.get("url")
-                self.b64_json = data.get("b64_json")
-        
-        class ImageResponse:
-            def __init__(self, data):
-                self.data = [ImageData(item) for item in data.get("data", [])]
-        
-        response = ImageResponse(response_data)
-        
-        # Extract image from response
-        if not hasattr(response, "data") or not response.data:
-            print(f"⚠️  gpt-image-1 response has no data")
-            return None, "no_image_returned"
-
-        # Check for b64_json (base64 encoded image)
-        image_data = response.data[0]
-        if hasattr(image_data, "b64_json") and image_data.b64_json:
-            image_bytes = base64.b64decode(image_data.b64_json)
-        elif hasattr(image_data, "url") and image_data.url:
-            # Download from URL if b64_json not available
-            print(f"✅ gpt-image-1 generated image URL: {image_data.url[:80]}...")
-            img_response = requests.get(image_data.url, timeout=30)
-            img_response.raise_for_status()
-            image_bytes = img_response.content
-        else:
-            print(f"⚠️  gpt-image-1 response has no image data")
+        image = _load_image_from_openai_image_response(response_data, "✅ gpt-image-1")
+        if image is None:
+            print(f"⚠️  gpt-image-1 response has no usable image data")
             return None, "no_image_data"
-
-        image = Image.open(BytesIO(image_bytes)).convert("RGBA")
 
         TARGET_SIZE = 1024
         if image.width < TARGET_SIZE or image.height < TARGET_SIZE:
@@ -1425,6 +1481,7 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
         # If we have a compositor image and OpenAI is available, enhance it
         if compositor_canvas and openai_client and user_id:
             print(f"🎨 Outfit {doc_id}: Enhancing compositor image with OpenAI...")
+            runtime_config = get_openai_image_edit_runtime_config()
             
             # Convert compositor image directly to bytes (no storage needed)
             compositor_buffer = BytesIO()
@@ -1435,10 +1492,8 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
             # Use OpenAI to enhance the compositor image
             try:
                 # Use images.edits to enhance the compositor flatlay
-                api_url = "https://api.openai.com/v1/images/edits"
-                headers = {
-                    "Authorization": f"Bearer {openai_client.api_key}",
-                }
+                api_url = str(runtime_config["api_url"])
+                headers = _build_openai_image_edit_headers()
                 
                 # Build explicit list of items that MUST be included (deduplicated by ID)
                 seen_item_ids = set()
@@ -1492,13 +1547,18 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                 
                 files = {
                     'image': ('compositor.png', compositor_bytes, 'image/png'),
-                    'model': (None, 'gpt-image-1'),
+                    'model': (None, str(runtime_config["model"])),
                     'prompt': (None, enhance_prompt),
                     'size': (None, '1024x1024'),
                     'n': (None, '1'),
                 }
                 
-                api_response = requests.post(api_url, headers=headers, files=files, timeout=120)
+                api_response = requests.post(
+                    api_url,
+                    headers=headers,
+                    files=files,
+                    timeout=float(runtime_config["timeout_seconds"]),
+                )
                 
                 if not api_response.ok:
                     # Log detailed error information
@@ -1516,50 +1576,12 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                     try:
                         response_data = api_response.json()
                         print(f"🔍 Outfit {doc_id}: OpenAI response structure: {list(response_data.keys())}")
-                        
-                        # Check for different response formats
-                        enhanced_url = None
-                        enhanced_b64 = None
-                        
-                        # Format 1: Standard images API response with data array
-                        if response_data.get("data") and len(response_data["data"]) > 0:
-                            first_item = response_data["data"][0]
-                            enhanced_url = first_item.get("url")
-                            enhanced_b64 = first_item.get("b64_json")
-                            print(f"🔍 Outfit {doc_id}: Found data array, first item keys: {list(first_item.keys()) if isinstance(first_item, dict) else 'not a dict'}")
-                        
-                        # Format 2: Direct URL or b64_json at top level
-                        elif "url" in response_data:
-                            enhanced_url = response_data.get("url")
-                            print(f"🔍 Outfit {doc_id}: Found URL at top level")
-                        elif "b64_json" in response_data:
-                            enhanced_b64 = response_data.get("b64_json")
-                            print(f"🔍 Outfit {doc_id}: Found b64_json at top level")
-                        
-                        # Format 3: Check for output_images (Responses API format)
-                        elif "output_images" in response_data:
-                            output_images = response_data.get("output_images", [])
-                            if output_images and len(output_images) > 0:
-                                first_output = output_images[0]
-                                if isinstance(first_output, dict):
-                                    enhanced_url = first_output.get("url")
-                                    enhanced_b64 = first_output.get("b64_json")
-                                print(f"🔍 Outfit {doc_id}: Found output_images array")
-                        
-                        if enhanced_url:
-                            # Download enhanced image from URL
-                            print(f"🔍 Outfit {doc_id}: Downloading enhanced image from URL...")
-                            enhanced_response = requests.get(enhanced_url, timeout=30)
-                            enhanced_response.raise_for_status()
-                            enhanced_bytes = enhanced_response.content
-                            enhanced_image = Image.open(BytesIO(enhanced_bytes)).convert("RGBA")
-                        elif enhanced_b64:
-                            # Decode base64 image
-                            print(f"🔍 Outfit {doc_id}: Decoding base64 enhanced image...")
-                            import base64
-                            enhanced_bytes = base64.b64decode(enhanced_b64)
-                            enhanced_image = Image.open(BytesIO(enhanced_bytes)).convert("RGBA")
-                        else:
+
+                        enhanced_image = _load_image_from_openai_image_response(
+                            response_data,
+                            f"🔍 Outfit {doc_id}",
+                        )
+                        if enhanced_image is None:
                             print(f"⚠️  Outfit {doc_id}: OpenAI response missing URL or b64_json")
                             print(f"⚠️  Full response structure: {response_data}")
                             if reservation and not reservation.get("bypassed"):

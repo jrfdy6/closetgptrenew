@@ -292,6 +292,7 @@ ROUTERS = [
     ("src.routes.simple_analytics", ""),                     # NEW: Simple, reliable analytics - no prefix needed
     ("src.routes.outfit_history", "/api/outfit-history"),   # Full outfit history router with daily generation
     ("src.routes.style_inspiration", "/api/style-inspiration"), # Style inspiration recommendations - NEW
+    ("src.routes.codex_jobs", ""),  # Firestore-backed EasyOutfit local Codex job queue
     ("src.routes.rag_ingest", "/api"),  # RAG ingestion endpoint at /api/ingest_drive
     ("src.routes.knowledge", "/api"),  # Knowledge endpoints: /api/chat, /api/knowledge/*
     ("src.routes.payments", "/api/payments"),  # Payment and subscription management

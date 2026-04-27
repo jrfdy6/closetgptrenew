@@ -22,9 +22,9 @@ from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
 import hashlib
-import openai
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import normalize
+from .ai_runtime.embedding_runtime import generate_text_embedding
 
 logger = logging.getLogger(__name__)
 
@@ -65,13 +65,9 @@ class EmbeddingService:
     """
     
     def __init__(self, openai_api_key: Optional[str] = None):
-        self.openai_api_key = openai_api_key or "your-openai-api-key"
+        self.openai_api_key = (openai_api_key or "").strip()
         self.embedding_dimension = 1536  # OpenAI text-embedding-ada-002 dimension
-        
-        # Initialize OpenAI client
-        if self.openai_api_key and self.openai_api_key != "your-openai-api-key":
-            openai.api_key = self.openai_api_key
-        
+
         # In-memory storage for demo (replace with vector database in production)
         self.embeddings: Dict[str, EmbeddingData] = {}
         self.user_embeddings: Dict[str, np.ndarray] = {}
@@ -173,7 +169,7 @@ class EmbeddingService:
         """
         try:
             # Get current user embedding
-            current_embedding = user_embeddings.get(user_id, np.zeros(self.embedding_dimension) if user_embeddings else np.zeros(self.embedding_dimension))
+            current_embedding = self.user_embeddings.get(user_id, np.zeros(self.embedding_dimension))
             
             # Get item/outfit embedding
             if interaction.item_id:
@@ -207,7 +203,7 @@ class EmbeddingService:
             
         except Exception as e:
             logger.error(f"❌ Failed to update user embedding: {e}")
-            return user_embeddings.get(user_id, np.zeros(self.embedding_dimension) if user_embeddings else np.zeros(self.embedding_dimension))
+            return self.user_embeddings.get(user_id, np.zeros(self.embedding_dimension))
     
     async def get_personalized_recommendations(
         self, 
@@ -222,7 +218,7 @@ class EmbeddingService:
         """
         try:
             # Get user embedding
-            user_embedding = user_embeddings.get(user_id) if user_embeddings else None
+            user_embedding = self.user_embeddings.get(user_id)
             if user_embedding is None:
                 logger.warning(f"No user embedding found for {user_id}")
                 return candidate_outfits[:top_k]
@@ -358,17 +354,16 @@ class EmbeddingService:
     async def _generate_embedding_with_openai(self, text: str) -> np.ndarray:
         """Generate embedding using OpenAI API"""
         try:
-            if self.openai_api_key == "your-openai-api-key":
-                # Fallback to random embedding for demo
-                logger.warning("Using random embedding (OpenAI API key not configured)")
+            api_key_override = None
+            if self.openai_api_key and self.openai_api_key != "your-openai-api-key":
+                api_key_override = self.openai_api_key
+
+            embedding = await generate_text_embedding(text, api_key=api_key_override)
+            if not embedding:
+                logger.warning("Embedding runtime returned no embedding; using random fallback")
                 return np.random.normal(0, 1, self.embedding_dimension)
-            
-            response = await openai.Embedding.acreate(
-                input=text,
-                model="text-embedding-ada-002"
-            )
-            
-            return np.array(response['data'][0]['embedding'])
+
+            return np.array(embedding)
             
         except Exception as e:
             logger.error(f"❌ OpenAI embedding generation failed: {e}")
@@ -410,7 +405,7 @@ class EmbeddingService:
     
     def get_user_embedding_stats(self, user_id: str) -> Dict[str, Any]:
         """Get statistics about user's embedding and interactions"""
-        user_embedding = user_embeddings.get(user_id) if user_embeddings else None
+        user_embedding = self.user_embeddings.get(user_id)
         user_interactions = [i for i in self.user_interactions if i.user_id == user_id]
         
         return {

@@ -1,11 +1,5 @@
-import os
-import base64
-import json
 import logging
-from openai import OpenAI
-from PIL import Image
-import tempfile
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List
 from dotenv import load_dotenv
 from .openai_service import analyze_image_with_gpt4
 
@@ -15,9 +9,6 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 class SimpleImageAnalysisService:
-    def __init__(self):
-        self.openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    
     async def analyze_clothing_item(self, image_path: str) -> Dict:
         """
         Simple clothing item analysis using only GPT-4 Vision

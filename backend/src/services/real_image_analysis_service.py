@@ -1,12 +1,8 @@
-import os
-import base64
-import json
 import logging
-from openai import OpenAI
-from PIL import Image
-import tempfile
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional
 from dotenv import load_dotenv
+from .ai_runtime.runtime_config import is_openai_configured
+from .ai_runtime.vision_runtime import analyze_image_url_with_openai_vision
 
 # Load environment variables
 load_dotenv()
@@ -15,13 +11,10 @@ logger = logging.getLogger(__name__)
 
 class RealImageAnalysisService:
     def __init__(self):
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
+        if not is_openai_configured():
             logger.warning("OPENAI_API_KEY not found in environment variables")
-            self.openai_client = None
         else:
-            self.openai_client = OpenAI(api_key=api_key)
-            logger.info("OpenAI client initialized successfully")
+            logger.info("OpenAI vision runtime available")
     
     async def analyze_clothing_item(self, image_url: str) -> Dict:
         """
@@ -37,91 +30,15 @@ class RealImageAnalysisService:
             logger.info(f"Starting real clothing item analysis for: {image_url}")
             
             # Check if OpenAI client is available
-            if not self.openai_client:
+            if not is_openai_configured():
                 logger.error("OpenAI client not available - API key missing")
                 return self._get_fallback_response("OpenAI API key not configured")
             
-            # Create the GPT-4 Vision prompt
-            prompt = """
-            Analyze this clothing item and provide detailed information in the following JSON format:
-            {
-                "type": "clothing type (e.g., shirt, pants, dress, etc.)",
-                "dominantColors": ["color1", "color2", "color3"],
-                "style": ["style1", "style2", "style3"],
-                "occasion": ["occasion1", "occasion2", "occasion3"],
-                "season": ["season1", "season2", "season3"],
-                "fit": "fit description (e.g., loose, fitted, oversized)",
-                "material": "material description",
-                "pattern": "pattern description if any",
-                "brand": "brand if visible",
-                "confidence": 0.95
-            }
-            
-            Be specific and accurate. Focus on:
-            - Exact clothing type
-            - Primary and secondary colors
-            - Style categories (casual, formal, streetwear, etc.)
-            - Appropriate occasions
-            - Seasonal appropriateness
-            - Fit and material details
-            """
-            
-            logger.info("Calling GPT-4 Vision API...")
-            
-            # Call GPT-4 Vision with current model
-            response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": prompt
-                            },
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": image_url
-                                }
-                            }
-                        ]
-                    }
-                ],
-                max_tokens=1000,
-                temperature=0.1
-            )
-            
-            # Parse the response
-            content = response.choices[0].message.content
-            logger.info(f"GPT-4 Vision response: {content}")
-            
-            # Try to extract JSON from the response
-            try:
-                # Look for JSON in the response
-                start_idx = content.find('{')
-                end_idx = content.rfind('}') + 1
-                if start_idx != -1 and end_idx != 0:
-                    json_str = content[start_idx:end_idx]
-                    analysis = json.loads(json_str)
-                    logger.info(f"Successfully parsed JSON: {analysis}")
-                else:
-                    # Fallback: create structured response from text
-                    logger.info("No JSON found, parsing text response")
-                    analysis = self._parse_text_response(content)
-                
-                # Enhance the analysis
-                enhanced_analysis = self._enhance_analysis(analysis)
-                
-                logger.info("Real analysis completed successfully")
-                return enhanced_analysis
-                
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse JSON response: {e}")
-                # Fallback to text parsing
-                analysis = self._parse_text_response(content)
-                enhanced_analysis = self._enhance_analysis(analysis)
-                return enhanced_analysis
+            logger.info("Calling centralized vision runtime...")
+            analysis = await analyze_image_url_with_openai_vision(image_url)
+            enhanced_analysis = self._enhance_analysis(analysis)
+            logger.info("Real analysis completed successfully")
+            return enhanced_analysis
                 
         except Exception as e:
             logger.error(f"Error in real analysis: {str(e)}")

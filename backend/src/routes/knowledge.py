@@ -23,13 +23,7 @@ except ImportError:
         firebase_initialized = False
         logger.warning("Firebase not available for knowledge routes")
 
-# Try to import OpenAI for embeddings
-try:
-    from openai import OpenAI
-    openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY")) if os.getenv("OPENAI_API_KEY") else None
-except ImportError:
-    openai_client = None
-    logger.warning("OpenAI client not available")
+from ..services.ai_runtime.embedding_runtime import generate_text_embedding
 
 
 class ChatRequest(BaseModel):
@@ -52,19 +46,8 @@ def _chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[s
 
 
 async def _generate_embedding(text: str) -> Optional[List[float]]:
-    """Generate embedding for text using OpenAI"""
-    if not openai_client:
-        return None
-    
-    try:
-        response = openai_client.embeddings.create(
-            model="text-embedding-ada-002",
-            input=text
-        )
-        return response.data[0].embedding
-    except Exception as e:
-        logger.error(f"Error generating embedding: {e}")
-        return None
+    """Generate embedding for text using the centralized embedding runtime."""
+    return await generate_text_embedding(text)
 
 
 def _cosine_similarity(a: List[float], b: List[float]) -> float:
@@ -210,4 +193,3 @@ async def knowledge_get(chunk_id: str = Query(..., description="Chunk ID to retr
     except Exception as e:
         logger.exception(f"Error retrieving chunk: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve chunk: {str(e)}")
-

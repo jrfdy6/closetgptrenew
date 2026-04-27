@@ -24,12 +24,7 @@ except ImportError:
         firebase_initialized = False
         logger.warning("Firebase not available for RAG ingestion")
 
-try:
-    from openai import OpenAI
-    openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY")) if os.getenv("OPENAI_API_KEY") else None
-except ImportError:
-    openai_client = None
-    logger.warning("OpenAI client not available for embeddings")
+from ..services.ai_runtime.embedding_runtime import generate_text_embedding
 
 # Import Google Drive functions
 # We'll implement these directly since the ingest_drive module is in a different location
@@ -116,20 +111,11 @@ def _chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[s
 
 
 async def _generate_embedding(text: str) -> Optional[List[float]]:
-    """Generate embedding for text using OpenAI"""
-    if not openai_client:
-        logger.warning("OpenAI client not available, skipping embedding generation")
-        return None
-    
-    try:
-        response = openai_client.embeddings.create(
-            model="text-embedding-ada-002",
-            input=text[:8000]  # Limit input length
-        )
-        return response.data[0].embedding
-    except Exception as e:
-        logger.error(f"Error generating embedding: {e}")
-        return None
+    """Generate embedding for text using the centralized embedding runtime."""
+    embedding = await generate_text_embedding(text, max_input_chars=8000)
+    if embedding is None:
+        logger.warning("Embedding runtime unavailable, skipping embedding generation")
+    return embedding
 
 
 async def _process_and_store_chunks(
@@ -318,4 +304,3 @@ async def ingest_drive_rag(
         "max_files": req.max_files or 10,
         "status": "pending"
     }
-

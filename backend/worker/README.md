@@ -46,6 +46,15 @@ FIREBASE_CLIENT_X509_CERT_URL=(from Railway)
 FIREBASE_PRIVATE_KEY_ID=(from Railway)
 ```
 
+Optional AI runtime overrides for flat-lay enhancement:
+
+```
+OPENAI_API_KEY=(from Railway)
+EASYOUTFIT_OPENAI_TIMEOUT_SECONDS=45
+EASYOUTFIT_OPENAI_IMAGE_EDIT_MODEL=gpt-image-1
+EASYOUTFIT_OPENAI_IMAGE_EDIT_TIMEOUT_SECONDS=120
+```
+
 ## Monitoring
 
 The worker logs to stdout. Check Railway logs for:
