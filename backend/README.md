@@ -13,9 +13,10 @@ This is the backend API for Easy Outfit, providing AI-powered clothing analysis 
 
 1. **Create a Python 3.11 virtual environment**:
    ```bash
-   python3.11 -m venv .venv
-   source .venv/bin/activate
+   python3.11 -m venv .venv311
+   source .venv311/bin/activate
    ```
+   Use `.venv311` as the canonical local backend environment. The older `venv` and `local_test_env` directories in this repo are stale.
 
 2. **Install dependencies**:
    ```bash
@@ -27,6 +28,7 @@ This is the backend API for Easy Outfit, providing AI-powered clothing analysis 
    cp env.example .env
    # Fill in Firebase and API credentials
    ```
+   Leave `ENABLE_INTERNAL_DEBUG_ROUTES=false` unless you intentionally need internal backend debug routes exposed in a non-local environment.
 
 4. **Run locally**:
    ```bash
@@ -36,8 +38,9 @@ This is the backend API for Easy Outfit, providing AI-powered clothing analysis 
 
 5. **Deploy to Railway**:
    ```bash
-   railway up --project 97ed14e7-f7a6-4f86-b919-94f133ed478e --environment production --service closetgptrenew-backend
+   railway up --project 97ed14e7-f7a6-4f86-b919-94f133ed478e --environment production --service closetgptrenew
    ```
+   The live API service is `closetgptrenew`. The separate `closetgptrenew-backend` service in Railway is currently stopped and is not the production backend Vercel uses.
 
 6. **Deploy the background worker**:
    ```bash
@@ -60,7 +63,9 @@ This is the backend API for Easy Outfit, providing AI-powered clothing analysis 
 
 ## Deployment
 
-The backend is configured to deploy to Railway with the correct app entry point. # Clean deployment
+The backend is configured to deploy to Railway with the correct app entry point.
+- Production internal/test/debug routes are blocked by default unless `ENABLE_INTERNAL_DEBUG_ROUTES=true` is set.
+# Clean deployment
 # Railway deployment trigger - Tue Aug 12 06:47:16 EDT 2025
 # Force deployment Mon Sep  8 06:28:18 EDT 2025
 # Trigger Railway deployment

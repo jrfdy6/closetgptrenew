@@ -671,7 +671,7 @@ async def test_wardrobe_endpoint() -> Dict[str, Any]:
         "success": True,
         "message": "Wardrobe endpoint is working",
         "timestamp": "2024-01-01T00:00:00Z",
-        "backend": "closetgptrenew-backend-production"
+        "backend": "closetgptrenew-production"
     }
 
 @router.get("/count", include_in_schema=False)

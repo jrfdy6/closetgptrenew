@@ -122,10 +122,10 @@ The **WardrobeItemDetails** modal should display the following metadata:
    - Go to Application/Storage → Local Storage
    - Copy your Firebase auth token
 
-2. **Call the debug endpoint**:
+  2. **Call the debug endpoint**:
    ```bash
    curl -X GET \
-     https://closetgptrenew-backend-production.up.railway.app/api/wardrobe/ \
+     https://closetgptrenew-production.up.railway.app/api/wardrobe/ \
      -H "Authorization: Bearer YOUR_AUTH_TOKEN_HERE"
    ```
 

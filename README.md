@@ -33,10 +33,10 @@ closetgptrenew/
 
 2. **Create virtual environment (Python 3.11):**
    ```bash
-   python3.11 -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   python3.11 -m venv .venv311
+   source .venv311/bin/activate  # On Windows: .venv311\Scripts\activate
    ```
-   Use Python 3.11 for local backend work. The current dependency set does not install cleanly on Python 3.10 or 3.12.
+   Use Python 3.11 and keep `.venv311` as the canonical local backend environment. The current dependency set does not install cleanly on Python 3.10 or 3.12.
 
 3. **Install dependencies:**
    ```bash

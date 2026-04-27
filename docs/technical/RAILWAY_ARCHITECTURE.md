@@ -1,111 +1,79 @@
-# 🏗️ Railway Project Architecture
+# Railway Architecture
 
-## Your Railway Project: `closetgptrenew`
+## Project
 
-### Two Services in One Project
+- **Railway project:** `closetgpt-backend`
+- **Environment:** `production`
+- **Project ID:** `97ed14e7-f7a6-4f86-b919-94f133ed478e`
 
-```
-Railway Project: closetgptrenew
-├── Service 1: closetgptrenew-production (Main App)
-│   ├── URL: https://closetgptrenew-production.up.railway.app
-│   ├── Code: /backend (main FastAPI app)
-│   ├── Start: python run.py
-│   └── Database: Firebase/Firestore
-│
-└── Service 2: closetgptrenewopenaisdk (MCP Server) ← NEW
-    ├── URL: https://closetgptrenewopenaisdk-xxxxx.up.railway.app
-    ├── Code: /backend (MCP server only)
-    ├── Start: bash start_mcp.sh
-    └── Connects to: Service 1 API
-```
+## Services
 
-## How They Communicate
+### Live API
 
-```
-ChatGPT User
-    ↓ (MCP Protocol)
-Service 2: MCP Server (closetgptrenewopenaisdk)
-    ↓ (HTTP with API_KEY)
-Service 1: Main API (closetgptrenew-production)
-    ↓
-Firebase/Firestore
-```
+- **Service:** `closetgptrenew`
+- **Public URL:** `https://closetgptrenew-production.up.railway.app`
+- **Status:** production backend in active use by Vercel
+- **Code path:** `backend/`
 
-## Benefits of This Setup
+### Background Worker
 
-### Same Project ✅
-- **Unified billing** - One Railway project
-- **Organized** - Related services together
-- **Easy management** - View both in one dashboard
-- **Shared resources** - Can share databases if needed
+- **Service:** `background-processor`
+- **Role:** async/background wardrobe processing
+- **Code path:** `backend/worker/`
 
-### Separate Services ✅
-- **Independent deployments** - Update MCP without touching main app
-- **Independent scaling** - Scale each based on usage
-- **Isolated failures** - MCP crash won't break main app
-- **Separate logs** - Debug each independently
-- **Different configs** - Different environment variables
+### OpenAI SDK Gateway
 
-## Deployment
+- **Service:** `closetgptrenewopenaisdk`
+- **Role:** OpenAI Apps / MCP-style gateway
 
-### Service 1: Main App (Existing - No Changes)
-Already deployed at `closetgptrenew-production.up.railway.app`
+### Legacy or Stopped Service
 
-### Service 2: MCP Server (New)
-Deploy with:
+- **Service:** `closetgptrenew-backend`
+- **Public URL:** `https://closetgptrenew-backend-production.up.railway.app`
+- **Status:** stopped / not the production API Vercel uses
+- **Rule:** do not deploy backend changes here unless you intentionally revive that service
+
+## Deployment Commands
+
+### Backend API
+
 ```bash
-./deploy-mcp-service-same-project.sh
+cd backend
+railway up --project 97ed14e7-f7a6-4f86-b919-94f133ed478e --environment production --service closetgptrenew
 ```
 
-## Environment Variables
+### Background Worker
 
-### Service 1: Main App
-- `OPENAI_API_KEY`
-- `FIREBASE_CREDENTIALS_JSON`
-- `PORT=3001`
-- (all your existing vars)
-
-### Service 2: MCP Server
-- `MAIN_API_URL=https://closetgptrenew-production.up.railway.app`
-- `API_KEY=dqvNQIiCRXmUSsEHFpVvWhotNkwAspNGS4nH3u2r844`
-- `PORT=3002`
-
-**Note:** Each service has its own environment variables. They don't interfere.
-
-## Viewing in Railway Dashboard
-
-In your Railway dashboard, you'll see:
-
-```
-Project: closetgptrenew
-├─ Service: closetgptrenew-production
-│  └─ Status: ✅ Running
-│
-└─ Service: closetgptrenewopenaisdk
-   └─ Status: ✅ Running
+```bash
+cd backend/worker
+railway up --project 97ed14e7-f7a6-4f86-b919-94f133ed478e --environment production --service background-processor
 ```
 
-Click each service to see its logs, metrics, and settings independently.
+## Linking Rules
 
-## Cost
+- Link `backend/` to service `closetgptrenew`
+- Link `backend/worker/` to service `background-processor`
+- Do not trust the repo root Railway link for backend deployment work
 
-Same Railway project = same billing.
-But you have:
-- Better organization
-- Independent services
-- Easier debugging
+## Environment Notes
 
-## URLs
+- Railway injects `RAILWAY_PROJECT_ID`, `RAILWAY_PUBLIC_DOMAIN`, and `RAILWAY_STATIC_URL` into deployed services.
+- The backend uses those variables to recognize deployed Railway environments and block internal debug/test/admin routes unless `ENABLE_INTERNAL_DEBUG_ROUTES=true`.
 
-Both services get their own public URLs:
-- Main App: `https://closetgptrenew-production.up.railway.app`
-- MCP Server: `https://closetgptrenewopenaisdk-production.up.railway.app`
+## Verification
 
-(Railway auto-generates the full domain)
+The live API should answer:
 
-## Summary
+```bash
+curl https://closetgptrenew-production.up.railway.app/health
+curl https://closetgptrenew-production.up.railway.app/health/simple
+curl https://closetgptrenew-production.up.railway.app/api/health
+```
 
-✅ Same project = organized
-✅ Separate services = safe & independent
-✅ Clean architecture = easy to maintain
+And the following should be blocked in production:
 
+```bash
+curl -I https://closetgptrenew-production.up.railway.app/debug/routes
+curl -I https://closetgptrenew-production.up.railway.app/api/test-inline
+curl -I https://closetgptrenew-production.up.railway.app/api/monitoring/dashboard
+```

@@ -57,6 +57,86 @@ app = FastAPI(
     version="1.0.0"
 )
 
+TRUTHY_ENV_VALUES = {"1", "true", "yes", "on"}
+INTERNAL_BACKEND_ROUTE_EXACT_PATHS = {
+    "/api/outfits/check-outfits-db",
+    "/api/wardrobe/initialize-my-wardrobe-count",
+    "/openapi.json",
+    "/docs",
+    "/docs/oauth2-redirect",
+    "/redoc",
+}
+INTERNAL_BACKEND_ROUTE_PREFIXES = (
+    "/__",
+    "/debug",
+    "/api/monitoring",
+    "/api/backfill",
+    "/api/reprocess",
+)
+INTERNAL_BACKEND_ROUTE_SEGMENTS = {
+    "admin",
+    "debug",
+    "docs",
+    "monitoring",
+    "openapi.json",
+    "redoc",
+    "test",
+}
+INTERNAL_BACKEND_ROUTE_SEGMENT_PREFIXES = (
+    "admin-",
+    "debug-",
+    "seed-",
+    "test-",
+    "verify-",
+)
+INTERNAL_BACKEND_ROUTE_SEGMENT_SUFFIXES = (
+    "-debug",
+    "-test",
+)
+
+
+def env_flag_enabled(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in TRUTHY_ENV_VALUES
+
+
+def internal_backend_routes_enabled() -> bool:
+    if env_flag_enabled("ENABLE_INTERNAL_DEBUG_ROUTES"):
+        return True
+
+    if any(os.getenv(name) for name in ("RAILWAY_PROJECT_ID", "RAILWAY_PUBLIC_DOMAIN", "RAILWAY_STATIC_URL")):
+        return False
+
+    return os.getenv("ENVIRONMENT", "development").strip().lower() != "production"
+
+
+def is_internal_backend_path(path: str) -> bool:
+    normalized = path.rstrip("/") or "/"
+    if normalized in INTERNAL_BACKEND_ROUTE_EXACT_PATHS:
+        return True
+
+    if any(
+        normalized == prefix or normalized.startswith(f"{prefix}/")
+        for prefix in INTERNAL_BACKEND_ROUTE_PREFIXES
+    ):
+        return True
+
+    segments = [segment for segment in normalized.split("/") if segment]
+    return any(
+        segment in INTERNAL_BACKEND_ROUTE_SEGMENTS
+        or any(segment.startswith(prefix) for prefix in INTERNAL_BACKEND_ROUTE_SEGMENT_PREFIXES)
+        or any(segment.endswith(suffix) for suffix in INTERNAL_BACKEND_ROUTE_SEGMENT_SUFFIXES)
+        for segment in segments
+    )
+
+
+@app.middleware("http")
+async def block_internal_backend_routes(request: Request, call_next):
+    if not internal_backend_routes_enabled() and is_internal_backend_path(request.url.path):
+        logger.warning("Blocked internal backend route in protected environment: %s", request.url.path)
+        return Response(content="Not Found", status_code=404)
+
+    return await call_next(request)
+
 # Configure CORS first
 allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://localhost:3000,https://easyoutfit-clean.vercel.app")
 allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
@@ -890,7 +970,7 @@ async def test_wardrobe_direct():
     return {
         "success": True,
         "message": "Direct wardrobe test endpoint is working - updated",
-        "backend": "closetgptrenew-backend-production",
+        "backend": "closetgptrenew-production",
         "timestamp": "2024-01-01T00:00:00Z"
     }
 

@@ -7,7 +7,7 @@ set -e  # Exit on any error
 
 RAILWAY_PROJECT_ID="97ed14e7-f7a6-4f86-b919-94f133ed478e"
 RAILWAY_ENVIRONMENT="production"
-RAILWAY_SERVICE="closetgptrenew-backend"
+RAILWAY_SERVICE="closetgptrenew"
 
 echo "🚀 Deploying Easy Outfit Backend to Railway..."
 echo ""
