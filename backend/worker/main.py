@@ -89,14 +89,14 @@ except ImportError as e:
     except ImportError:
         # Last resort: try local subscription_utils
         try:
-    from subscription_utils import (
-        DEFAULT_SUBSCRIPTION_TIER,
-        TIER_LIMITS,
-        WEEKLY_ALLOWANCE_SECONDS,
-        parse_iso8601,
-        format_iso8601,
-        subscription_defaults,
-    )
+            from subscription_utils import (
+                DEFAULT_SUBSCRIPTION_TIER,
+                TIER_LIMITS,
+                WEEKLY_ALLOWANCE_SECONDS,
+                parse_iso8601,
+                format_iso8601,
+                subscription_defaults,
+            )
             print("✅ Successfully imported from local subscription_utils (last resort)", file=sys.stderr, flush=True)
         except ImportError:
             print(f"❌ CRITICAL: Could not import subscription_utils. Error: {e}", file=sys.stderr, flush=True)
@@ -2058,4 +2058,3 @@ if __name__ == "__main__":
         print(f"   Traceback:")
         traceback.print_exc()
         raise
-
