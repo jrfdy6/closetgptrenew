@@ -130,6 +130,7 @@ For production checks, use:
 - EasyOutfit currently uses OpenAI directly for sync clothing-image analysis and worker-based flat-lay enhancement.
 - The researched migration path toward the `aiclone` Codex-runner architecture is documented in [docs/technical/EASYOUTFIT_CODEX_MIGRATION_PLAN.md](/Users/neo/Desktop/closetgptrenew/docs/technical/EASYOUTFIT_CODEX_MIGRATION_PLAN.md:1).
 - The recommended first move is to centralize AI boundaries inside the backend before migrating any workload onto a local Codex queue.
+- Admin upload analysis can now run in a parallel Codex-only cohort. The backend queues those uploads into the Firestore-backed local Codex runner lane, saves placeholder items as `codex_pending`, and promotes them into the normal worker pipeline after Codex writes the final metadata.
 
 ## 📱 Features
 

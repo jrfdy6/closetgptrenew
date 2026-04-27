@@ -8,6 +8,12 @@ from typing import Any
 
 from firebase_admin import firestore
 
+from .codex_image_analysis import (
+    UPLOAD_IMAGE_ANALYSIS_JOB_KIND,
+    build_upload_image_analysis_output_schema,
+    normalize_codex_upload_analysis_result,
+)
+
 try:
     from src.config.firebase import db, firebase_initialized
 except ImportError:  # pragma: no cover
@@ -23,7 +29,7 @@ CODEX_JOBS_COLLECTION = "codex_jobs"
 CODEX_JOB_ARTIFACTS_SUBCOLLECTION = "artifacts"
 DEFAULT_WORKSPACE_SLUG = "easyoutfitapp"
 DEFAULT_JOB_KIND = "wardrobe_metadata_audit"
-SUPPORTED_JOB_KINDS = {DEFAULT_JOB_KIND}
+SUPPORTED_JOB_KINDS = {DEFAULT_JOB_KIND, UPLOAD_IMAGE_ANALYSIS_JOB_KIND}
 MAX_AUDIT_ITEMS = 50
 MAX_ARTIFACT_CONTENT_CHARS = 200_000
 
@@ -267,27 +273,52 @@ def _build_wardrobe_audit_prompt(*, user_id: str, selected_items: list[dict[str,
     )
 
 
-def _build_job_context(job_kind: str, *, requested_by: str, request_payload: dict[str, Any]) -> dict[str, Any]:
-    if job_kind != DEFAULT_JOB_KIND:
-        raise ValueError(f"Unsupported codex job kind: {job_kind}")
+def _build_upload_image_analysis_context(*, requested_by: str, request_payload: dict[str, Any]) -> dict[str, Any]:
+    image_url = str(request_payload.get("image_url") or "").strip()
+    if not image_url:
+        raise ValueError("Image URL is required for Codex image analysis")
 
-    raw_item_ids = request_payload.get("item_ids") or []
-    item_ids = [str(item_id).strip() for item_id in raw_item_ids if str(item_id).strip()]
-    max_items = min(int(request_payload.get("max_items") or 20), MAX_AUDIT_ITEMS)
-    note = str(request_payload.get("note") or "").strip() or None
-    selected_items = _fetch_user_wardrobe_items(requested_by, item_ids=item_ids, max_items=max_items)
-    if not selected_items:
-        raise ValueError("No wardrobe items available for Codex audit")
+    item_id = str(request_payload.get("item_id") or "").strip()
+    if not item_id:
+        raise ValueError("Item ID is required for Codex image analysis")
 
+    file_name = str(request_payload.get("file_name") or "").strip() or None
     return {
         "workspace_slug": _normalize_workspace_slug(request_payload.get("workspace_slug")),
-        "prompt": _build_wardrobe_audit_prompt(user_id=requested_by, selected_items=selected_items, note=note),
-        "output_schema": _build_wardrobe_audit_output_schema(),
-        "selected_item_ids": [str(item.get("id") or "") for item in selected_items],
-        "selected_item_count": len(selected_items),
-        "selected_items": selected_items,
-        "note": note,
+        "image_url": image_url,
+        "item_id": item_id,
+        "file_name": file_name,
+        "source_name": file_name,
+        "output_schema": build_upload_image_analysis_output_schema(),
+        "prompt_template": "codex_upload_image_analysis_v1",
+        "requested_by": requested_by,
     }
+
+
+def _build_job_context(job_kind: str, *, requested_by: str, request_payload: dict[str, Any]) -> dict[str, Any]:
+    if job_kind == DEFAULT_JOB_KIND:
+        raw_item_ids = request_payload.get("item_ids") or []
+        item_ids = [str(item_id).strip() for item_id in raw_item_ids if str(item_id).strip()]
+        max_items = min(int(request_payload.get("max_items") or 20), MAX_AUDIT_ITEMS)
+        note = str(request_payload.get("note") or "").strip() or None
+        selected_items = _fetch_user_wardrobe_items(requested_by, item_ids=item_ids, max_items=max_items)
+        if not selected_items:
+            raise ValueError("No wardrobe items available for Codex audit")
+
+        return {
+            "workspace_slug": _normalize_workspace_slug(request_payload.get("workspace_slug")),
+            "prompt": _build_wardrobe_audit_prompt(user_id=requested_by, selected_items=selected_items, note=note),
+            "output_schema": _build_wardrobe_audit_output_schema(),
+            "selected_item_ids": [str(item.get("id") or "") for item in selected_items],
+            "selected_item_count": len(selected_items),
+            "selected_items": selected_items,
+            "note": note,
+        }
+
+    if job_kind == UPLOAD_IMAGE_ANALYSIS_JOB_KIND:
+        return _build_upload_image_analysis_context(requested_by=requested_by, request_payload=request_payload)
+
+    raise ValueError(f"Unsupported codex job kind: {job_kind}")
 
 
 def queue_codex_job(*, requested_by: str, job_kind: str, request_payload: dict[str, Any]) -> dict[str, Any]:
@@ -340,6 +371,133 @@ def get_codex_job_for_user(job_id: str, requested_by: str) -> dict[str, Any] | N
     if str(job.get("requested_by") or "") != requested_by:
         return None
     return job
+
+
+def _codex_job_linked_item_id(job: dict[str, Any]) -> str | None:
+    context = job.get("context_packet") if isinstance(job.get("context_packet"), dict) else {}
+    item_id = str(context.get("item_id") or "").strip()
+    return item_id or None
+
+
+def _build_codex_analysis_tracking(job_id: str, status: str) -> dict[str, Any]:
+    return {
+        "provider": "codex",
+        "status": status,
+        "job_id": job_id,
+    }
+
+
+def _merge_codex_analysis_metadata(existing_metadata: dict[str, Any], analysis: dict[str, Any], *, job_id: str, status: str) -> dict[str, Any]:
+    metadata = dict(existing_metadata)
+    metadata["naturalDescription"] = (analysis.get("metadata") or {}).get("naturalDescription") or metadata.get("naturalDescription", "")
+    metadata["visualAttributes"] = (analysis.get("metadata") or {}).get("visualAttributes") or metadata.get("visualAttributes") or {}
+    metadata["aiAnalysis"] = analysis
+    metadata["codex_analysis"] = _build_codex_analysis_tracking(job_id, status)
+    metadata["codex_job_id"] = job_id
+    return metadata
+
+
+def _build_upload_analysis_item_update(existing_item: dict[str, Any], analysis: dict[str, Any], *, job_id: str) -> dict[str, Any]:
+    metadata = existing_item.get("metadata") if isinstance(existing_item.get("metadata"), dict) else {}
+    style = analysis.get("style") if isinstance(analysis.get("style"), list) else []
+    occasion = analysis.get("occasion") if isinstance(analysis.get("occasion"), list) else []
+    season = analysis.get("season") if isinstance(analysis.get("season"), list) else []
+    mood = analysis.get("mood") if isinstance(analysis.get("mood"), list) else []
+    return {
+        "name": str(analysis.get("name") or existing_item.get("name") or "Processing item"),
+        "type": str(analysis.get("type") or existing_item.get("type") or "unknown"),
+        "subType": str(analysis.get("subType") or existing_item.get("subType") or ""),
+        "color": str(analysis.get("color") or existing_item.get("color") or "unknown"),
+        "style": style,
+        "occasion": occasion,
+        "season": season,
+        "mood": mood,
+        "brand": str(analysis.get("brand") or existing_item.get("brand") or ""),
+        "dominantColors": analysis.get("dominantColors") or existing_item.get("dominantColors") or [],
+        "matchingColors": analysis.get("matchingColors") or existing_item.get("matchingColors") or [],
+        "gender": str(analysis.get("gender") or existing_item.get("gender") or "unisex"),
+        "backgroundRemoved": bool(existing_item.get("backgroundRemoved") or False),
+        "processing_status": "pending",
+        "updatedAt": _utc_now_ms(),
+        "metadata": _merge_codex_analysis_metadata(metadata, analysis, job_id=job_id, status="completed"),
+    }
+
+
+def sync_completed_upload_analysis_to_wardrobe(job_id: str) -> dict[str, Any] | None:
+    job = get_codex_job(job_id)
+    if not job:
+        return None
+    if str(job.get("job_kind") or "") != UPLOAD_IMAGE_ANALYSIS_JOB_KIND:
+        return None
+    if str(job.get("status") or "") != "completed":
+        return None
+
+    item_id = _codex_job_linked_item_id(job)
+    if not item_id:
+        return job
+
+    firestore_db = _require_db()
+    item_ref = firestore_db.collection("wardrobe").document(item_id)
+    item_snapshot = item_ref.get()
+    if not item_snapshot.exists:
+        return job
+
+    item_payload = item_snapshot.to_dict() or {}
+    if str(item_payload.get("userId") or "") != str(job.get("requested_by") or ""):
+        return job
+
+    context = job.get("context_packet") if isinstance(job.get("context_packet"), dict) else {}
+    file_name = str(context.get("file_name") or "").strip() or None
+    raw_result = job.get("result_payload") if isinstance(job.get("result_payload"), dict) else {}
+    analysis = normalize_codex_upload_analysis_result(raw_result, file_name=file_name)
+    item_ref.update(_build_upload_analysis_item_update(item_payload, analysis, job_id=job_id))
+    return job
+
+
+def merge_completed_upload_analysis_into_item_data(*, requested_by: str, item_data: dict[str, Any]) -> dict[str, Any]:
+    metadata = item_data.get("metadata") if isinstance(item_data.get("metadata"), dict) else {}
+    job_id = str(
+        item_data.get("codex_job_id")
+        or metadata.get("codex_job_id")
+        or ((metadata.get("codex_analysis") or {}).get("job_id") if isinstance(metadata.get("codex_analysis"), dict) else "")
+        or ""
+    ).strip()
+    if not job_id:
+        return item_data
+
+    job = get_codex_job(job_id)
+    if not job or str(job.get("requested_by") or "") != requested_by:
+        return item_data
+    if str(job.get("job_kind") or "") != UPLOAD_IMAGE_ANALYSIS_JOB_KIND:
+        return item_data
+
+    if str(job.get("status") or "") != "completed":
+        next_item = dict(item_data)
+        next_item["processing_status"] = "codex_pending"
+        next_metadata = dict(metadata)
+        next_metadata["codex_analysis"] = _build_codex_analysis_tracking(job_id, str(job.get("status") or "pending"))
+        next_metadata["codex_job_id"] = job_id
+        next_item["metadata"] = next_metadata
+        return next_item
+
+    context = job.get("context_packet") if isinstance(job.get("context_packet"), dict) else {}
+    file_name = str(context.get("file_name") or "").strip() or None
+    raw_result = job.get("result_payload") if isinstance(job.get("result_payload"), dict) else {}
+    analysis = normalize_codex_upload_analysis_result(raw_result, file_name=file_name)
+    merged = dict(item_data)
+    merged["analysis"] = analysis
+    merged["name"] = analysis.get("name") or merged.get("name")
+    merged["type"] = analysis.get("type") or merged.get("type")
+    merged["color"] = analysis.get("color") or merged.get("color")
+    merged["style"] = analysis.get("style") or merged.get("style") or []
+    merged["occasion"] = analysis.get("occasion") or merged.get("occasion") or []
+    merged["season"] = analysis.get("season") or merged.get("season") or []
+    merged["brand"] = analysis.get("brand") or merged.get("brand") or ""
+    merged["subType"] = analysis.get("subType") or merged.get("subType") or ""
+    merged["mood"] = analysis.get("mood") or merged.get("mood") or []
+    merged["processing_status"] = "pending"
+    merged["metadata"] = _merge_codex_analysis_metadata(metadata, analysis, job_id=job_id, status="completed")
+    return merged
 
 
 def claim_next_codex_job(*, worker_id: str, workspace_slug: str | None, job_kinds: list[str] | None = None) -> dict[str, Any] | None:
@@ -473,6 +631,8 @@ def complete_codex_job(
     if model:
         update_payload["completed_model"] = model
     _job_ref(job_id).update(update_payload)
+    if str(job.get("job_kind") or "") == UPLOAD_IMAGE_ANALYSIS_JOB_KIND:
+        sync_completed_upload_analysis_to_wardrobe(job_id)
     return get_codex_job(job_id)
 
 

@@ -1,24 +1,28 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
-from pydantic import BaseModel
-from openai import OpenAI
-import os
+import asyncio
+import base64
+import json
 import logging
-from dotenv import load_dotenv
-import requests
+import os
+import tempfile
+import uuid
+from datetime import datetime
 from io import BytesIO
+from typing import Any, List, Optional
+
+import requests
 from PIL import Image
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from pydantic import BaseModel
+from dotenv import load_dotenv
 try:
     import pillow_heif
     HEIC_SUPPORT = True
 except ImportError:
     HEIC_SUPPORT = False
     # print("⚠️ pillow_heif not available - HEIC image support disabled")
-import tempfile
 import mimetypes
-import base64
-import json
-from typing import List, Optional
-from datetime import datetime
+
+logger = logging.getLogger("image_analysis")
 
 # Debug imports with try/except blocks
 try:
@@ -70,11 +74,34 @@ except Exception as e:
     log_analytics_event = None
 # Import auth dependency
 try:
-    from src.auth.auth_service import get_current_user_id
+    from ..auth.auth_service import get_current_user, get_current_user_id
     AUTH_AVAILABLE = True
 except ImportError:
     AUTH_AVAILABLE = False
+    get_current_user = None
+    get_current_user_id = None
     logger.warning("Auth service not available, analysis will be anonymous")
+
+try:
+    from ..services.ai_runtime import (
+        UPLOAD_IMAGE_ANALYSIS_JOB_KIND,
+        build_pending_codex_analysis,
+        codex_fast_path_poll_ms,
+        codex_fast_path_timeout_ms,
+        get_codex_job_for_user,
+        is_codex_image_analysis_user,
+        normalize_codex_upload_analysis_result,
+        queue_codex_job,
+    )
+except Exception:
+    UPLOAD_IMAGE_ANALYSIS_JOB_KIND = "upload_image_analysis"
+    build_pending_codex_analysis = None
+    codex_fast_path_poll_ms = None
+    codex_fast_path_timeout_ms = None
+    get_codex_job_for_user = None
+    is_codex_image_analysis_user = None
+    normalize_codex_upload_analysis_result = None
+    queue_codex_job = None
 
 # Set up logging with fallback
 if get_logger:
@@ -91,7 +118,126 @@ router = APIRouter(tags=["image-analysis"])
 
 class AnalyzeImagePayload(BaseModel):
     image_url: Optional[str] = None
-    image: Optional[dict] = None
+    image: Optional[Any] = None
+    client_item_id: Optional[str] = None
+    file_name: Optional[str] = None
+
+
+def _current_user_id(current_user: Any) -> str:
+    return str(getattr(current_user, "id", "") or "anonymous")
+
+
+def _current_user_email(current_user: Any) -> str:
+    return str(getattr(current_user, "email", "") or "")
+
+
+def _extract_image_url(payload: AnalyzeImagePayload) -> str | None:
+    image_url = payload.image_url
+    if image_url:
+        return image_url
+    if isinstance(payload.image, dict):
+        return str(payload.image.get("url") or payload.image.get("imageUrl") or "").strip() or None
+    if isinstance(payload.image, str):
+        return payload.image
+    return None
+
+
+def _normalize_direct_analysis(analysis: dict[str, Any]) -> dict[str, Any]:
+    dominant_colors = analysis.get("dominantColors", []) if isinstance(analysis, dict) else []
+    return {
+        "name": (analysis.get("name", "Unknown Item") if analysis else "Unknown Item"),
+        "type": (analysis.get("type", "clothing") if analysis else "clothing"),
+        "subType": (analysis.get("subType", "") if analysis else ""),
+        "clothing_type": analysis.get("type", "clothing"),  # Map type to clothing_type
+        "color": analysis.get("dominantColors", [{}])[0].get("name", "unknown") if dominant_colors else "unknown",
+        "primary_color": analysis.get("dominantColors", [{}])[0].get("name", "unknown") if dominant_colors else "unknown",
+        "dominantColors": dominant_colors,
+        "matchingColors": analysis.get("matchingColors", []),
+        "style": (analysis.get("style", []) if analysis else []),
+        "season": (analysis.get("season", []) if analysis else []),
+        "occasion": (analysis.get("occasion", []) if analysis else []),
+        "brand": (analysis.get("brand", "") if analysis else ""),
+        "material": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("material", "unknown"),
+        "fit": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("fit", "unknown"),
+        "sleeveLength": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("sleeveLength", "unknown"),
+        "pattern": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("pattern", "unknown"),
+        "gender": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("genderTarget", "unisex"),
+        "formalLevel": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("formalLevel", "casual"),
+        "mood": (analysis.get("mood", []) if analysis else []),
+        "metadata": (analysis.get("metadata", {}) if analysis else {}),
+    }
+
+
+async def _wait_for_codex_image_analysis(
+    *,
+    current_user_id: str,
+    job_id: str,
+    file_name: str | None,
+    client_item_id: str,
+) -> dict[str, Any]:
+    timeout_ms = codex_fast_path_timeout_ms() if codex_fast_path_timeout_ms else 2500
+    poll_ms = codex_fast_path_poll_ms() if codex_fast_path_poll_ms else 250
+    deadline = asyncio.get_running_loop().time() + (timeout_ms / 1000)
+    while True:
+        job = get_codex_job_for_user(job_id, current_user_id) if get_codex_job_for_user else None
+        if job:
+            status = str(job.get("status") or "")
+            if status == "completed":
+                raw_result = job.get("result_payload") if isinstance(job.get("result_payload"), dict) else {}
+                normalized = normalize_codex_upload_analysis_result(raw_result, file_name=file_name) if normalize_codex_upload_analysis_result else raw_result
+                return {
+                    "analysis": normalized,
+                    "analysis_provider": "codex",
+                    "analysis_status": "completed",
+                    "codex_job_id": job_id,
+                    "client_item_id": client_item_id,
+                }
+            if status == "failed":
+                raise HTTPException(status_code=502, detail=str(job.get("error_message") or "Codex image analysis failed"))
+        if timeout_ms <= 0 or asyncio.get_running_loop().time() >= deadline:
+            break
+        await asyncio.sleep(poll_ms / 1000)
+
+    pending_analysis = build_pending_codex_analysis(file_name=file_name) if build_pending_codex_analysis else {"name": "Processing item", "type": "unknown", "color": "unknown"}
+    return {
+        "analysis": pending_analysis,
+        "analysis_provider": "codex",
+        "analysis_status": "pending",
+        "codex_job_id": job_id,
+        "client_item_id": client_item_id,
+    }
+
+
+async def _queue_codex_image_analysis(
+    *,
+    current_user: Any,
+    payload: AnalyzeImagePayload,
+    image_url: str,
+) -> dict[str, Any]:
+    if not queue_codex_job:
+        raise HTTPException(status_code=503, detail="Codex image analysis queue is unavailable")
+
+    client_item_id = str(payload.client_item_id or "").strip() or str(uuid.uuid4())
+
+    job = queue_codex_job(
+        requested_by=_current_user_id(current_user),
+        job_kind=UPLOAD_IMAGE_ANALYSIS_JOB_KIND,
+        request_payload={
+            "workspace_slug": "easyoutfitapp",
+            "image_url": image_url,
+            "item_id": client_item_id,
+            "file_name": payload.file_name,
+        },
+    )
+    job_id = str(job.get("id") or "")
+    if not job_id:
+        raise HTTPException(status_code=500, detail="Codex image analysis job was not created")
+    return await _wait_for_codex_image_analysis(
+        current_user_id=_current_user_id(current_user),
+        job_id=job_id,
+        file_name=payload.file_name,
+        client_item_id=client_item_id,
+    )
 
 def convert_to_jpeg(image_url: str) -> str:
     """Convert image to JPEG format for analysis"""
@@ -141,12 +287,13 @@ def convert_to_jpeg(image_url: str) -> str:
 @router.post("/analyze")
 async def analyze_image(
     file: UploadFile = File(...),
-    current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
+    current_user: Any = Depends(get_current_user) if AUTH_AVAILABLE and get_current_user else None
 ):
     """
     Enhanced image analysis using both GPT-4 Vision and CLIP style analysis
     """
     try:
+        current_user_id = _current_user_id(current_user)
         # Create a temporary file to store the uploaded image
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp_file:
             content = await file.read()
@@ -274,24 +421,28 @@ async def analyze_image(
 @router.post("/analyze-image")
 async def analyze_single_image(
     payload: AnalyzeImagePayload,
-    current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
+    current_user: Any = Depends(get_current_user) if AUTH_AVAILABLE and get_current_user else None
 ):
     """
     Enhanced single image analysis using GPT-4 Vision + CLIP
     """
     try:
-        # Try to resolve image URL from different payload formats
-        image_url = payload.image_url
-        if not image_url and payload.image and "url" in payload.image:
-            image_url = payload.image["url"]
-        
+        current_user_id = _current_user_id(current_user)
+        image_url = _extract_image_url(payload)
         if not image_url:
-            # print("❌ No image URL provided in request")
             raise HTTPException(status_code=400, detail="Image URL is required")
-        
-        # print(f"🔍 Processing image URL: {image_url[:100]}...")
-        # print(f"🔍 Image URL type: {'data URL' if image_url.startswith('data:') else 'regular URL'}")
-        
+
+        if (
+            current_user
+            and is_codex_image_analysis_user
+            and is_codex_image_analysis_user(user_id=current_user_id, email=_current_user_email(current_user))
+        ):
+            return await _queue_codex_image_analysis(
+                current_user=current_user,
+                payload=payload,
+                image_url=image_url,
+            )
+
         # Handle both data URLs and regular URLs
         response = None  # Initialize response variable
         if image_url.startswith('data:'):
@@ -367,44 +518,25 @@ async def analyze_single_image(
                 }
                 # print(f"🔍 Using fallback analysis: {analysis}")
             
-            # Map AI analysis to wardrobe item schema
-            normalized_analysis = {
-                "name": (analysis.get("name", "Unknown Item") if analysis else "Unknown Item"),
-                "type": (analysis.get("type", "clothing") if analysis else "clothing"),
-                "subType": (analysis.get("subType", "") if analysis else ""),
-                "clothing_type": analysis.get("type", "clothing"),  # Map type to clothing_type
-                "color": analysis.get("dominantColors", [{}])[0].get("name", "unknown") if analysis.get("dominantColors") else "unknown",
-                "primary_color": analysis.get("dominantColors", [{}])[0].get("name", "unknown") if analysis.get("dominantColors") else "unknown",
-                "dominantColors": analysis.get("dominantColors", []),
-                "matchingColors": analysis.get("matchingColors", []),
-                "style": (analysis.get("style", []) if analysis else []),
-                "season": (analysis.get("season", []) if analysis else []),
-                "occasion": (analysis.get("occasion", []) if analysis else []),
-                "brand": (analysis.get("brand", "") if analysis else ""),
-                "material": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("material", "unknown"),
-                "fit": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("fit", "unknown"),
-                "sleeveLength": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("sleeveLength", "unknown"),
-                "pattern": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("pattern", "unknown"),
-                "gender": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("genderTarget", "unisex"),
-                "formalLevel": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("formalLevel", "casual")
-            }
+            normalized_analysis = _normalize_direct_analysis(analysis)
             
             # print(f"🔍 Mapped analysis for wardrobe: {normalized_analysis}")
             
             # Log analytics event
-            file_size = len(response.content) if response else 0
-            analytics_event = AnalyticsEvent(
-                user_id=current_user_id,
-                event_type="single_image_analyzed",
-                metadata={
-                    "analysis_type": "gpt4_vision_direct",
-                    "image_url": image_url,
-                    "file_size": file_size,
-                    "has_clothing_detected": bool((analysis.get("type") if analysis else None)),
-                    "confidence_score": 0.85
-                }
-            )
-            log_analytics_event(analytics_event)
+            if AnalyticsEvent and log_analytics_event:
+                file_size = len(response.content) if response else 0
+                analytics_event = AnalyticsEvent(
+                    user_id=current_user_id,
+                    event_type="single_image_analyzed",
+                    metadata={
+                        "analysis_type": "gpt4_vision_direct",
+                        "image_url": image_url,
+                        "file_size": file_size,
+                        "has_clothing_detected": bool((analysis.get("type") if analysis else None)),
+                        "confidence_score": 0.85
+                    }
+                )
+                log_analytics_event(analytics_event)
             
             return {"analysis": normalized_analysis}
         finally:

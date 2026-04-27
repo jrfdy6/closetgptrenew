@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
+import mimetypes
 import os
 import socket
 import subprocess
@@ -12,6 +14,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+from urllib.parse import urlparse
 from typing import Any
 
 
@@ -26,13 +29,14 @@ DEFAULT_WORKSPACE_ROOT = os.getenv(
 DEFAULT_WORKSPACE_SLUG = os.getenv("EASYOUTFIT_LOCAL_CODEX_WORKSPACE_SLUG", "easyoutfitapp")
 DEFAULT_MODEL = os.getenv("EASYOUTFIT_LOCAL_CODEX_BRIDGE_MODEL", "gpt-5.4-mini")
 DEFAULT_REASONING_EFFORT = os.getenv("EASYOUTFIT_LOCAL_CODEX_BRIDGE_REASONING_EFFORT", "medium")
-DEFAULT_POLL_SECONDS = float(os.getenv("EASYOUTFIT_LOCAL_CODEX_BRIDGE_POLL_SECONDS", "5"))
+DEFAULT_POLL_SECONDS = float(os.getenv("EASYOUTFIT_LOCAL_CODEX_BRIDGE_POLL_SECONDS", "1"))
 DEFAULT_TIMEOUT_SECONDS = int(os.getenv("EASYOUTFIT_LOCAL_CODEX_BRIDGE_TIMEOUT_SECONDS", "420"))
 DEFAULT_HTTP_TIMEOUT_SECONDS = int(os.getenv("EASYOUTFIT_LOCAL_CODEX_HTTP_TIMEOUT_SECONDS", "45"))
 DEFAULT_HTTP_RETRIES = int(os.getenv("EASYOUTFIT_LOCAL_CODEX_HTTP_RETRIES", "3"))
 DEFAULT_ERROR_BACKOFF_SECONDS = float(os.getenv("EASYOUTFIT_LOCAL_CODEX_ERROR_BACKOFF_SECONDS", "8"))
 DEFAULT_MAX_ERROR_BACKOFF_SECONDS = float(os.getenv("EASYOUTFIT_LOCAL_CODEX_MAX_ERROR_BACKOFF_SECONDS", "60"))
 RETRYABLE_HTTP_STATUS_CODES = {502, 503, 504}
+SUPPORTED_JOB_KINDS = ["wardrobe_metadata_audit", "upload_image_analysis"]
 
 
 def _headers(token: str | None) -> dict[str, str]:
@@ -86,7 +90,7 @@ def _claim_next_job(*, api_base: str, token: str | None, worker_id: str, workspa
         payload={
             "worker_id": worker_id,
             "workspace_slug": workspace_slug,
-            "job_kinds": ["wardrobe_metadata_audit"],
+            "job_kinds": SUPPORTED_JOB_KINDS,
         },
     )
     if not isinstance(payload, dict) or not payload.get("job_available"):
@@ -260,6 +264,95 @@ def _build_json_artifact(result_payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _workspace_temp_dir(workspace_root: Path) -> Path:
+    temp_root = workspace_root / ".codex-job-tmp"
+    temp_root.mkdir(parents=True, exist_ok=True)
+    return temp_root
+
+
+def _guess_suffix_from_url(image_url: str) -> str:
+    parsed = urlparse(image_url)
+    extension = Path(parsed.path).suffix.strip()
+    if extension:
+        return extension
+    return ".jpg"
+
+
+def _stage_image_for_codex(*, workspace_root: Path, image_url: str) -> tuple[Path, tempfile.TemporaryDirectory[str]]:
+    temp_dir = tempfile.TemporaryDirectory(
+        prefix="upload-analysis-",
+        dir=str(_workspace_temp_dir(workspace_root)),
+    )
+    temp_path = Path(temp_dir.name)
+
+    if image_url.startswith("data:"):
+        header, encoded = image_url.split(",", 1)
+        mime_type = header.split(";")[0].replace("data:", "").strip()
+        suffix = mimetypes.guess_extension(mime_type) or ".jpg"
+        image_path = temp_path / f"upload{suffix}"
+        image_path.write_bytes(base64.b64decode(encoded))
+        return image_path, temp_dir
+
+    suffix = _guess_suffix_from_url(image_url)
+    image_path = temp_path / f"upload{suffix}"
+    request = urllib.request.Request(image_url, headers={"User-Agent": "easyoutfit-codex-bridge/1.0"})
+    with urllib.request.urlopen(request, timeout=DEFAULT_HTTP_TIMEOUT_SECONDS) as response:
+        image_path.write_bytes(response.read())
+    return image_path, temp_dir
+
+
+def _build_upload_image_prompt(*, image_path: Path, source_name: str | None, source_url: str | None) -> str:
+    relative_path = image_path.as_posix()
+    source_name_line = f"Source filename: {source_name}\n" if source_name else ""
+    source_url_line = f"Source URL: {source_url}\n" if source_url else ""
+    return (
+        "You are analyzing a single clothing item image for EasyOutfit.\n"
+        "Inspect the local image file and return JSON that matches the provided schema exactly.\n"
+        "Be conservative and precise. Do not invent garments, colors, or brands that are not visible.\n"
+        "Use normalized lowercase values for style, season, occasion, and mood arrays.\n"
+        "If a field is unclear, use 'unknown' or an empty string rather than guessing.\n\n"
+        f"{source_name_line}"
+        f"{source_url_line}"
+        f"Local image path: {relative_path}\n"
+    )
+
+
+def _run_upload_image_analysis_job(
+    *,
+    workspace_root: Path,
+    model: str,
+    reasoning_effort: str,
+    timeout_seconds: int,
+    context_packet: dict[str, Any],
+) -> tuple[dict[str, Any], str, str, str]:
+    image_url = str(context_packet.get("image_url") or "").strip()
+    if not image_url:
+        raise RuntimeError("Upload image analysis job missing image_url")
+    output_schema = context_packet.get("output_schema") if isinstance(context_packet.get("output_schema"), dict) else None
+    if not output_schema:
+        raise RuntimeError("Upload image analysis job missing output_schema")
+
+    source_name = str(context_packet.get("file_name") or context_packet.get("source_name") or "").strip() or None
+    source_url = image_url
+    image_path, temp_dir = _stage_image_for_codex(workspace_root=workspace_root, image_url=image_url)
+    try:
+        prompt = _build_upload_image_prompt(
+            image_path=image_path.relative_to(workspace_root),
+            source_name=source_name,
+            source_url=source_url,
+        )
+        return _run_codex_job(
+            workspace_root=workspace_root,
+            model=model,
+            reasoning_effort=reasoning_effort,
+            prompt=prompt,
+            output_schema=output_schema,
+            timeout_seconds=timeout_seconds,
+        )
+    finally:
+        temp_dir.cleanup()
+
+
 def run_once(
     *,
     api_base: str,
@@ -281,25 +374,36 @@ def run_once(
     prompt = str(context_packet.get("prompt") or "").strip()
     output_schema = context_packet.get("output_schema") if isinstance(context_packet.get("output_schema"), dict) else None
 
-    if not job_id or not prompt or not output_schema:
-        _fail_job(
-            api_base=api_base,
-            token=token,
-            job_id=job_id,
-            worker_id=worker_id,
-            error_message="Job context missing prompt or output schema",
-        )
+    if not job_id:
         return True
 
     try:
-        result_payload, raw_output, stdout, stderr = _run_codex_job(
-            workspace_root=workspace_root,
-            model=model,
-            reasoning_effort=reasoning_effort,
-            prompt=prompt,
-            output_schema=output_schema,
-            timeout_seconds=timeout_seconds,
-        )
+        if job_kind == "upload_image_analysis":
+            result_payload, raw_output, stdout, stderr = _run_upload_image_analysis_job(
+                workspace_root=workspace_root,
+                model=model,
+                reasoning_effort=reasoning_effort,
+                timeout_seconds=timeout_seconds,
+                context_packet=context_packet,
+            )
+        else:
+            if not prompt or not output_schema:
+                _fail_job(
+                    api_base=api_base,
+                    token=token,
+                    job_id=job_id,
+                    worker_id=worker_id,
+                    error_message="Job context missing prompt or output schema",
+                )
+                return True
+            result_payload, raw_output, stdout, stderr = _run_codex_job(
+                workspace_root=workspace_root,
+                model=model,
+                reasoning_effort=reasoning_effort,
+                prompt=prompt,
+                output_schema=output_schema,
+                timeout_seconds=timeout_seconds,
+            )
         artifacts = [_build_json_artifact(result_payload)]
         if job_kind == "wardrobe_metadata_audit":
             artifacts.append(_build_markdown_artifact(job, result_payload))

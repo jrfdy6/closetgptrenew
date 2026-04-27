@@ -206,3 +206,5 @@ requirements.txt
 run_tests.sh
 .env*.local
 backend/.env.gateway
+.env.easyoutfit_codex_bridge
+.codex-job-tmp/

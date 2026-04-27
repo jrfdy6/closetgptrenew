@@ -75,6 +75,8 @@ This is the backend API for Easy Outfit, providing AI-powered clothing analysis 
 - The first EasyOutfit-local Codex queue path is now `POST /api/codex-jobs` with Firestore-backed state and the bridge script at [scripts/local_codex_bridge_easyoutfit.py](/Users/neo/Desktop/closetgptrenew/scripts/local_codex_bridge_easyoutfit.py:1).
 - Bridge claim/complete/fail endpoints require `EASYOUTFIT_LOCAL_CODEX_TOKEN`.
 - User-facing Codex job endpoints are operator-only by default. Set `EASYOUTFIT_CODEX_OPERATOR_USER_IDS` or `EASYOUTFIT_CODEX_JOB_ACCESS=authenticated` if you intentionally want broader access.
+- Admin upload analysis can now run through the same local Codex lane by setting `EASYOUTFIT_CODEX_UPLOAD_ANALYSIS_ENABLED=true` and putting the verified admin cohort in `EASYOUTFIT_CODEX_ADMIN_EMAILS` and/or `EASYOUTFIT_CODEX_COHORT_USER_IDS`.
+- Admin upload items save as `processing_status=codex_pending` until Codex finishes; once the job completes, the backend promotes them to the normal worker queue with `processing_status=pending`.
 
 ## Local Codex Bridge
 
@@ -88,6 +90,15 @@ python3 scripts/local_codex_bridge_easyoutfit.py
 ```
 
 The first supported job kind is `wardrobe_metadata_audit`.
+
+To keep the bridge always on for admin upload analysis:
+
+```bash
+chmod +x scripts/run_local_codex_bridge_easyoutfit.sh scripts/install_easyoutfit_codex_bridge_launch_agent.sh
+./scripts/install_easyoutfit_codex_bridge_launch_agent.sh
+```
+
+The launch agent reads local secrets from `.env.easyoutfit_codex_bridge`, which should define `EASYOUTFIT_LOCAL_CODEX_TOKEN`.
 
 ## Deployment
 

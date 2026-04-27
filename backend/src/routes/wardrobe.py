@@ -121,6 +121,12 @@ except ImportError as e:
     def get_current_user_optional():
         return None
 
+try:
+    from ..services.ai_runtime import merge_completed_upload_analysis_into_item_data
+except ImportError:
+    def merge_completed_upload_analysis_into_item_data(*, requested_by: str, item_data: Dict[str, Any]) -> Dict[str, Any]:
+        return item_data
+
 # Remove prefix since app.py will mount it at /api/wardrobe
 router = APIRouter(tags=["wardrobe"])
 
@@ -454,14 +460,30 @@ async def add_wardrobe_item(
     """
     start_time = time.time()
     try:
+        item_data = merge_completed_upload_analysis_into_item_data(
+            requested_by=current_user.id,
+            item_data=item_data,
+        )
+
         # Validate required fields
         required_fields = ['name', 'type', 'color']
         for field in required_fields:
             if field not in item_data:
                 raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
         
-        # Create item ID
-        item_id = str(uuid.uuid4())
+        incoming_metadata = item_data.get("metadata") if isinstance(item_data.get("metadata"), dict) else {}
+        codex_tracking = incoming_metadata.get("codex_analysis") if isinstance(incoming_metadata.get("codex_analysis"), dict) else {}
+        preserve_client_id = (
+            bool(item_data.get("processing_status") == "codex_pending")
+            or bool(item_data.get("codex_job_id"))
+            or bool(incoming_metadata.get("codex_job_id"))
+            or bool(codex_tracking.get("job_id"))
+        )
+        requested_item_id = str(item_data.get("id") or "").strip()
+        item_id = requested_item_id if preserve_client_id and requested_item_id else str(uuid.uuid4())
+        existing_snapshot = db.collection('wardrobe').document(item_id).get()
+        if existing_snapshot.exists:
+            raise HTTPException(status_code=409, detail="Wardrobe item ID already exists")
         
         # Extract AI analysis results if available
         analysis = (item_data.get("analysis", {}) if item_data else {})
@@ -526,7 +548,7 @@ async def add_wardrobe_item(
             "gender": (analysis.get("gender", "unisex") if analysis else "unisex"),
             "backgroundRemoved": (analysis.get("backgroundRemoved", False) if analysis else False),
             "backgroundRemovedUrl": None,  # Will be filled by worker in background
-            "processing_status": "pending",  # Triggers background processing worker
+            "processing_status": (item_data.get("processing_status", "pending") if item_data else "pending"),
             "createdAt": int(time.time()),
             "updatedAt": int(time.time()),
             "metadata": {
@@ -550,6 +572,9 @@ async def add_wardrobe_item(
                 "aiAnalysis": analysis if analysis else None
             }
         }
+
+        if incoming_metadata:
+            wardrobe_item["metadata"].update(incoming_metadata)
         
         # Normalize the item metadata before saving
         from ..utils.semantic_normalization import normalize_item_metadata

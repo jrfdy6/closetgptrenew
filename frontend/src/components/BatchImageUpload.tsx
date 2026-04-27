@@ -769,10 +769,15 @@ export default function BatchImageUpload({
           // 2️⃣ Upload compressed file to Firebase Storage
           const imageUrl = await uploadImageToFirebaseStorage(compressedFile, user.uid, user);
           console.log(`✅ Uploaded to storage: ${imageUrl}`);
+          const clientWardrobeItemId = `codex-${item.id}`;
 
           // 2️⃣ Trigger backend analysis
           const backendUrl = getPublicBackendUrl();
-          const payload = { image: { url: imageUrl } };
+          const payload = {
+            image: { url: imageUrl },
+            client_item_id: clientWardrobeItemId,
+            file_name: item.file.name,
+          };
           
           console.log("POSTing to backend:", backendUrl + "/analyze-image");
           console.log("Payload:", JSON.stringify(payload));
@@ -854,6 +859,82 @@ export default function BatchImageUpload({
                 : prevItem
             ));
             
+          } else if (result.analysis_status === 'pending') {
+            console.log(`⏳ Codex queued item ${i + 1} for background analysis`);
+
+            const { imageHash, metadata } = await generateImageHashAndMetadata(item.file, user);
+            const analysisData = result.analysis || {};
+            const codexItemId = result.client_item_id || clientWardrobeItemId;
+            const pendingItem = {
+              id: codexItemId,
+              name: analysisData.name || item.file.name.replace(/\.[^/.]+$/, "") || 'Processing item',
+              type: analysisData.type || 'unknown',
+              color: analysisData.color || 'unknown',
+              imageUrl: imageUrl,
+              userId: user.uid,
+              createdAt: new Date().toISOString(),
+              analysis: analysisData,
+              processing_status: 'codex_pending',
+              imageHash,
+              metadata: {
+                ...metadata,
+                codex_job_id: result.codex_job_id,
+                codex_analysis: {
+                  provider: result.analysis_provider || 'codex',
+                  status: result.analysis_status,
+                  job_id: result.codex_job_id,
+                },
+              },
+              fileSize: item.file.size,
+              brand: analysisData.brand || '',
+              style: analysisData.style || [],
+              material: analysisData.material || '',
+              season: analysisData.season || [],
+              occasion: analysisData.occasion || [],
+              subType: analysisData.subType || '',
+              gender: analysisData.gender || 'unisex',
+              backgroundRemoved: false,
+              favorite: false,
+              wearCount: 0,
+              lastWorn: null,
+              mood: analysisData.mood || [],
+            };
+
+            const { normalizeItemMetadata } = await import('../../lib/normalization');
+            const normalizedPendingItem = normalizeItemMetadata(pendingItem);
+
+            try {
+              console.log(`💾 Saving pending Codex item ${i + 1} to database...`);
+              const saveResponse = await fetch('/api/wardrobe', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${await user.getIdToken()}`,
+                },
+                body: JSON.stringify(normalizedPendingItem),
+              });
+
+              if (!saveResponse.ok) {
+                throw new Error(`Failed to save pending item: ${saveResponse.statusText}`);
+              }
+
+              const savedItem = await saveResponse.json();
+              successfulItems.push(savedItem);
+            } catch (saveError) {
+              console.error(`❌ Failed to save pending Codex item ${i + 1}:`, saveError);
+              successfulItems.push({ ...pendingItem, saveError: saveError.message });
+            }
+
+            setUploadItems(prev => prev.map(prevItem =>
+              prevItem.id === item.id
+                ? {
+                    ...prevItem,
+                    status: 'success',
+                    progress: 100,
+                    analysisResult: result.analysis,
+                  }
+                : prevItem
+            ));
           } else if (result.analysis) {
             // NORMAL MODE: Create a proper clothing item from the analysis result
             console.log('🔍 DEBUG: AI Analysis result:', result.analysis);

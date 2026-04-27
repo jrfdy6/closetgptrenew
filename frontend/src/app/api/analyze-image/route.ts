@@ -80,8 +80,16 @@ export async function POST(request: Request) {
     ];
 
     const candidateBodies = [
-      { image: { url: image } },
-      { image },
+      {
+        image: { url: image },
+        client_item_id: body.client_item_id,
+        file_name: body.file_name,
+      },
+      {
+        image,
+        client_item_id: body.client_item_id,
+        file_name: body.file_name,
+      },
     ];
 
     const attempts: Array<{ url: string; body: any }> = [];

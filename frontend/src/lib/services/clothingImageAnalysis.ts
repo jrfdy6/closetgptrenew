@@ -1,5 +1,8 @@
 // Clothing image analysis service
-export const analyzeClothingImage = async (imageUrl: string) => {
+export const analyzeClothingImage = async (
+  imageUrl: string,
+  options?: { clientItemId?: string; fileName?: string }
+) => {
   try {
     console.log('🔍 analyzeClothingImage called with URL length:', imageUrl.length);
     console.log('🔍 Image URL starts with:', imageUrl.substring(0, 50) + '...');
@@ -20,7 +23,11 @@ export const analyzeClothingImage = async (imageUrl: string) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({ image: imageUrl }),
+      body: JSON.stringify({
+        image: imageUrl,
+        client_item_id: options?.clientItemId,
+        file_name: options?.fileName,
+      }),
     });
 
     console.log('📡 Response status:', response.status, response.statusText);
@@ -40,7 +47,7 @@ export const analyzeClothingImage = async (imageUrl: string) => {
   }
 }
 
-export const processImageForAnalysis = async (file: File) => {
+export const processImageForAnalysis = async (file: File, options?: { clientItemId?: string }) => {
   try {
     console.log('🔄 processImageForAnalysis called with file:', file.name, file.size);
     
@@ -59,7 +66,10 @@ export const processImageForAnalysis = async (file: File) => {
     });
 
     console.log('🔄 Calling analyzeClothingImage with base64...');
-    const result = await analyzeClothingImage(base64);
+    const result = await analyzeClothingImage(base64, {
+      clientItemId: options?.clientItemId,
+      fileName: file.name,
+    });
     console.log('✅ processImageForAnalysis completed:', result);
     return result;
   } catch (error) {
