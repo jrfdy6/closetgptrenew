@@ -41,6 +41,7 @@ This is the backend API for Easy Outfit, providing AI-powered clothing analysis 
    railway up --project 97ed14e7-f7a6-4f86-b919-94f133ed478e --environment production --service closetgptrenew
    ```
    The live API service is `closetgptrenew`. The separate `closetgptrenew-backend` service in Railway is currently stopped and is not the production backend Vercel uses.
+   Under the current option-1 policy, the repo root and `backend/` should both link to `closetgptrenew`.
 
 6. **Deploy the background worker**:
    ```bash
@@ -65,6 +66,7 @@ This is the backend API for Easy Outfit, providing AI-powered clothing analysis 
 
 The backend is configured to deploy to Railway with the correct app entry point.
 - Production internal/test/debug routes are blocked by default unless `ENABLE_INTERNAL_DEBUG_ROUTES=true` is set.
+- EasyOutfit deploys from `main`. The remote `production` branch is stale historical state and should not be treated as the live deploy source.
 # Clean deployment
 # Railway deployment trigger - Tue Aug 12 06:47:16 EDT 2025
 # Force deployment Mon Sep  8 06:28:18 EDT 2025

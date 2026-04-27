@@ -2,6 +2,7 @@
 
 ## Current Production Topology
 
+- **Repo:** `closetgptrenew` (EasyOutfit) is separate from `aiclone`
 - **Frontend:** Vercel project `closetgpt-frontend`
 - **Backend API:** Railway service `closetgptrenew`
 - **Background worker:** Railway service `background-processor`
@@ -28,8 +29,11 @@ The active frontend code path is env-driven. Do not reintroduce hardcoded Railwa
 
 ## Backend Deployment Truth
 
+- The live deploy branch is `main`.
+- The remote `production` branch is stale historical state and is not the live EasyOutfit deploy branch.
 - The live backend service is `closetgptrenew`.
 - The separate Railway service `closetgptrenew-backend` is currently stopped and should not be treated as production.
+- The separate Railway service `closetgpt-backend` is also legacy/non-production for EasyOutfit.
 - The canonical backend deploy command is:
 
 ```bash
@@ -51,8 +55,10 @@ railway up --project 97ed14e7-f7a6-4f86-b919-94f133ed478e --environment producti
 ## Operational Notes
 
 - Vercel production currently deploys from `main`.
-- Railway CLI operations for backend work should be run from `backend/`, not repo root.
+- Under the current root-link policy, repo root and `backend/` should both link to Railway service `closetgptrenew`.
+- `backend/worker/` should link to Railway service `background-processor`.
 - Use `backend/deploy_backend.sh` or the explicit `railway up ... --service closetgptrenew` command for backend deploys.
+- If any local Railway link points at `aiclone-backend`, `closetgpt-backend`, or `closetgptrenew-backend`, treat that as deploy drift.
 
 ## Verification Checklist
 

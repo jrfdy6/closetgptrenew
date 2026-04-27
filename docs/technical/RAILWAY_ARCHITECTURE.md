@@ -14,6 +14,7 @@
 - **Public URL:** `https://closetgptrenew-production.up.railway.app`
 - **Status:** production backend in active use by Vercel
 - **Code path:** `backend/`
+- **Repo root policy:** repo root and `backend/` both link here
 
 ### Background Worker
 
@@ -27,6 +28,10 @@
 - **Role:** OpenAI Apps / MCP-style gateway
 
 ### Legacy or Stopped Service
+
+- **Service:** `closetgpt-backend`
+- **Status:** legacy/non-production for EasyOutfit
+- **Rule:** do not link or deploy EasyOutfit from this service
 
 - **Service:** `closetgptrenew-backend`
 - **Public URL:** `https://closetgptrenew-backend-production.up.railway.app`
@@ -51,9 +56,15 @@ railway up --project 97ed14e7-f7a6-4f86-b919-94f133ed478e --environment producti
 
 ## Linking Rules
 
+- Link repo root `closetgptrenew/` to service `closetgptrenew`
 - Link `backend/` to service `closetgptrenew`
 - Link `backend/worker/` to service `background-processor`
-- Do not trust the repo root Railway link for backend deployment work
+- Treat any root or backend link to `aiclone-backend`, `closetgpt-backend`, or `closetgptrenew-backend` as drift
+
+## Branch Policy
+
+- `main` is the live EasyOutfit deploy branch.
+- `origin/production` is stale historical state and should not be used for current deploys unless intentionally revived and reconciled.
 
 ## Environment Notes
 

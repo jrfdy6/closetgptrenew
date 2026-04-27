@@ -85,6 +85,20 @@ closetgptrenew/
 
 ## 🔧 Production Deployment
 
+## 🚦 Deploy Truth
+
+- **Repo:** `closetgptrenew` is the EasyOutfit repo. It is separate from the `aiclone` repo.
+- **Live deploy branch:** `main`
+- **Legacy branch:** `production` is stale historical state and is not the live deploy branch for EasyOutfit.
+- **Railway root-link policy:** for this repo, option 1 is intentional.
+  - repo root `closetgptrenew/` should link to Railway service `closetgptrenew`
+  - `backend/` should link to Railway service `closetgptrenew`
+  - `backend/worker/` should link to Railway service `background-processor`
+- **Live Railway services:** `closetgptrenew`, `background-processor`, `closetgptrenewopenaisdk`
+- **Legacy non-production Railway services:** `closetgpt-backend`, `closetgptrenew-backend`
+
+If a local Railway link points anywhere else, treat it as drift and fix it before deploying.
+
 ### Backend Deployment
 - **Railway:** Use `deploy_to_railway.sh`
 - **Render:** Use `render.yaml`
@@ -98,6 +112,12 @@ closetgptrenew/
 ## 🧪 Testing
 
 The project has been cleaned to exclude comprehensive outfit generation tests while maintaining essential functionality. All test files have been removed to keep the codebase production-ready.
+
+For production checks, use:
+
+```bash
+./scripts/verify_production.sh
+```
 
 ## 🔒 Security
 
