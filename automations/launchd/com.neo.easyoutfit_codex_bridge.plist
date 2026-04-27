@@ -8,11 +8,11 @@
     <key>ProgramArguments</key>
     <array>
       <string>/bin/bash</string>
-      <string>/Users/neo/Desktop/closetgptrenew/scripts/run_local_codex_bridge_easyoutfit.sh</string>
+      <string>/Users/neo/.easyoutfit-codex-bridge/scripts/run_local_codex_bridge_easyoutfit.sh</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/neo/Desktop/closetgptrenew</string>
+    <string>/Users/neo/.easyoutfit-codex-bridge</string>
 
     <key>EnvironmentVariables</key>
     <dict>
@@ -23,7 +23,7 @@
       <key>EASYOUTFIT_LOCAL_CODEX_WORKER_SUFFIX</key>
       <string>easyoutfit-codex-bridge</string>
       <key>EASYOUTFIT_LOCAL_CODEX_BRIDGE_ENV_FILE</key>
-      <string>/Users/neo/Desktop/closetgptrenew/.env.easyoutfit_codex_bridge</string>
+      <string>/Users/neo/.easyoutfit-codex-bridge/.env.easyoutfit_codex_bridge</string>
     </dict>
 
     <key>RunAtLoad</key>
@@ -39,9 +39,9 @@
     <string>Background</string>
 
     <key>StandardOutPath</key>
-    <string>/Users/neo/Desktop/closetgptrenew/logs/easyoutfit_codex_bridge.log</string>
+    <string>/Users/neo/.easyoutfit-codex-bridge/logs/easyoutfit_codex_bridge.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/neo/Desktop/closetgptrenew/logs/easyoutfit_codex_bridge.log</string>
+    <string>/Users/neo/.easyoutfit-codex-bridge/logs/easyoutfit_codex_bridge.log</string>
   </dict>
 </plist>
