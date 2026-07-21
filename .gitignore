@@ -177,6 +177,8 @@ backend/test_*.py
 backend/comprehensive_testing_framework.py
 backend/analyze_existing_wardrobe.py
 backend/tests/
+!backend/tests/
+!backend/tests/test_outfit_route_helpers.py
 backend/.pytest_cache/
 
 # Duplicate/backup files

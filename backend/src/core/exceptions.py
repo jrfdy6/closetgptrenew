@@ -4,6 +4,7 @@ Custom exceptions and error handling for Easy Outfit App.
 
 from typing import Any, Dict, Optional
 from fastapi import HTTPException, status
+from fastapi.responses import JSONResponse
 from .logging import get_logger, ErrorTracker
 
 logger = get_logger("exceptions")
@@ -19,11 +20,7 @@ class EasyOutfitException(Exception):
         super().__init__(self.message)
         
         # Track error
-        error_tracker.track_error(
-            self.error_code,
-            self.message,
-            **self.details
-        )
+        error_tracker.track_error(self, {"error_code": self.error_code, **self.details})
 
 class AuthenticationError(EasyOutfitException):
     """Authentication and authorization errors."""
@@ -138,7 +135,9 @@ EXCEPTION_STATUS_MAPPING = {
 
 def handle_easy_outfit_exception(exc: EasyOutfitException) -> HTTPException:
     """Convert Easy Outfit exceptions to HTTP exceptions."""
-    status_code = (EXCEPTION_STATUS_MAPPING.get(type(exc) if EXCEPTION_STATUS_MAPPING else None), status.HTTP_500_INTERNAL_SERVER_ERROR)
+    status_code = EXCEPTION_STATUS_MAPPING.get(
+        type(exc), status.HTTP_500_INTERNAL_SERVER_ERROR
+    )
     
     return HTTPException(
         status_code=status_code,
@@ -216,17 +215,18 @@ def setup_exception_handlers(app):
             }
         )
         
-        return http_exc
+        return JSONResponse(status_code=http_exc.status_code, content=http_exc.detail)
     
     @app.exception_handler(Exception)
     async def general_exception_handler(request, exc: Exception):
         """Handle general exceptions."""
         error_tracker.track_error(
-            "UNHANDLED_EXCEPTION",
-            str(exc),
-            exception_type=type(exc).__name__,
-            request_path=request.url.path,
-            request_method=request.method
+            exc,
+            {
+                "exception_type": type(exc).__name__,
+                "request_path": request.url.path,
+                "request_method": request.method,
+            },
         )
         
         logger.error(
@@ -242,10 +242,10 @@ def setup_exception_handlers(app):
             exc_info=True
         )
         
-        return HTTPException(
+        return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
+            content={
                 "error": "INTERNAL_SERVER_ERROR",
                 "message": "An unexpected error occurred"
             }
-        ) 
+        )

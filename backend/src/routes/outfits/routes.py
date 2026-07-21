@@ -157,9 +157,8 @@ class OutfitResponse(BaseModel):
 def safe_get(item, key, default=None):
     '''Safely get value from item (dict or object)'''
     if isinstance(item, dict):
-        return safe_get(item, key, default)
-    else:
-        return getattr(item, key, default)
+        return item.get(key, default)
+    return getattr(item, key, default)
 
 # Import generate_outfit_logic from service
 def get_generate_outfit_logic():

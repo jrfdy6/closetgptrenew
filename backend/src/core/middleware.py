@@ -65,7 +65,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                     "method": request.method,
                     "url": str(request.url),
                     "ip_address": request.client.host if request.client else None,
-                    "user_agent": request.headers.get("user-agent") if headers else None),
+                    "user_agent": request.headers.get("user-agent"),
                 }
             }
         )
@@ -326,9 +326,9 @@ def setup_middleware(app: ASGIApp) -> None:
     try:
         logger.info("LoggingMiddleware re-enabled - startup issue resolved")
         # print("DEBUG: LoggingMiddleware logging call completed successfully")
-    except Exception as e:
-    pass  # Fixed empty control structure
+    except Exception:
+        pass
         # print(f"DEBUG: LoggingMiddleware logging call failed: {e}")
         # Continue anyway - don't let logging failure break the app
     
-    # print("DEBUG: setup_middleware completed - LoggingMiddleware re-enabled") 
+    # print("DEBUG: setup_middleware completed - LoggingMiddleware re-enabled")

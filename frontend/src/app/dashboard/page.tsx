@@ -218,11 +218,7 @@ export default function Dashboard() {
     if (typeof window === 'undefined') return;
     const query = window.matchMedia('(max-width: 640px)');
     const update = (event: MediaQueryList | MediaQueryListEvent) => {
-      if ('matches' in event) {
-        setIsMobile(event.matches);
-      } else {
-        setIsMobile(event.currentTarget ? event.currentTarget.matches : query.matches);
-      }
+      setIsMobile(event.matches);
     };
     update(query);
     const handler = (event: MediaQueryListEvent) => update(event);

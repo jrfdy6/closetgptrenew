@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { ClothingItem } from '@/lib/services/outfitService';
+import type { ClothingItem } from '@/lib/hooks/useWardrobe';
 import { cn } from '@/lib/utils';
 import { getInvalidItems } from '@/lib/adapters/itemAdapter';
 

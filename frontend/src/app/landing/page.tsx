@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles, Star, Shield, Camera, TrendingUp, Zap, Palette, Cloud, Check, Clock, MessageSquare } from "lucide-react";
+import { ArrowRight, Sparkles, Star, Shield, Camera, TrendingUp, Zap, Palette, Cloud, Check, Clock } from "lucide-react";
 import Script from "next/script";
 
 export default function LandingPage() {
@@ -17,11 +17,6 @@ export default function LandingPage() {
       "@type": "Offer",
       "price": "0",
       "priceCurrency": "USD"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "5.0",
-      "ratingCount": "1000"
     },
     "description": "AI-powered personal stylist that helps you digitize your wardrobe and get personalized outfit suggestions",
     "url": "https://www.easyoutfitapp.com",
@@ -103,18 +98,16 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              {/* Social Proof - Mobile First */}
+              {/* Demonstrable product capabilities - Mobile First */}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 md:gap-6 mb-8 sm:mb-12 text-sm sm:text-base text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                  <span className="font-medium">Over 100,000 outfits generated</span>
+                  <span className="font-medium">Built around your real wardrobe</span>
                 </div>
                 <div className="hidden sm:block text-muted-foreground/50">•</div>
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-400 text-amber-400" />
-                  ))}
-                  <span className="ml-1 font-medium">5.0 rating</span>
+                <div className="flex items-center gap-2">
+                  <Cloud className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                  <span className="font-medium">Weather and occasion aware</span>
                 </div>
               </div>
 
@@ -383,51 +376,46 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Social Proof/Testimonials Section - Mobile First */}
+        {/* Product intelligence Section - Mobile First */}
         <section className="py-12 sm:py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-8 sm:mb-12 md:mb-16">
                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold mb-4 sm:mb-6">
-                  Loved by users who value their time
+                  Intelligence you can inspect
                 </h2>
                 <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground">
-                  Real feedback from people maximizing their wardrobe
+                  Each suggestion combines your wardrobe data with practical styling constraints
                 </p>
               </div>
 
               <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
                 {[
                   {
-                    name: "Sarah M.",
-                    role: "Fashion Enthusiast",
-                    text: "This app saved me so much time in the morning. The AI suggestions are spot-on and I've discovered so many hidden gems in my closet I'd forgotten about!",
-                    highlight: "Quality of AI suggestions"
+                    icon: Palette,
+                    title: "Color & material harmony",
+                    text: "Scores palette compatibility, texture balance, and the relationship between every selected piece.",
+                    highlight: "Multi-factor outfit scoring"
                   },
                   {
-                    name: "James T.",
-                    role: "Busy Professional",
-                    text: "Finally, a way to actually use all my clothes. The wardrobe insights help me maximize my closet and I never repeat outfits awkwardly. No ads, no shopping push—just honest styling.",
-                    highlight: "Organization & utilization"
+                    icon: Check,
+                    title: "Schema-driven combinations",
+                    text: "Uses typed wardrobe and outfit schemas, category limits, occasion rules, and duplicate-item checks.",
+                    highlight: "Constrained generation"
                   },
                   {
-                    name: "Maria L.",
-                    role: "Style Blogger",
-                    text: "The weather integration is genius. Never underdressed again, and the style persona feature helped me refine my aesthetic. The cataloging was surprisingly easy too!",
-                    highlight: "Ease of use & reliability"
+                    icon: TrendingUp,
+                    title: "Learns from your closet",
+                    text: "Factors in wear history, liked outfits, style preferences, weather, and occasion when ranking suggestions.",
+                    highlight: "Personalized wardrobe intelligence"
                   }
-                ].map((testimonial, i) => (
+                ].map((capability, i) => (
                   <div key={i} className="bg-card p-6 sm:p-8 rounded-2xl border hover:shadow-lg transition-shadow">
-                    <div className="flex mb-4 sm:mb-6">
-                      {[...Array(5)].map((_, j) => (
-                        <Star key={j} className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-400 text-amber-400" />
-                      ))}
-                    </div>
-                    <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 leading-relaxed">&quot;{testimonial.text}&quot;</p>
+                    <capability.icon className="w-10 h-10 sm:w-12 sm:h-12 text-primary mb-4 sm:mb-6" />
+                    <h3 className="font-semibold text-lg sm:text-xl mb-3">{capability.title}</h3>
+                    <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 leading-relaxed">{capability.text}</p>
                     <div className="pt-4 border-t">
-                      <p className="font-semibold text-sm sm:text-base">{testimonial.name}</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground">{testimonial.role}</p>
-                      <p className="text-xs text-primary mt-2 font-medium">{testimonial.highlight}</p>
+                      <p className="text-xs text-primary font-medium">{capability.highlight}</p>
                     </div>
                   </div>
                 ))}
@@ -453,12 +441,12 @@ export default function LandingPage() {
                   {
                     icon: Clock,
                     title: "Stable & Reliable",
-                    description: "Built for performance. No glitches, no crashes, just smooth operation."
+                    description: "Backed by layered validation, fallback handling, and production health checks."
                   },
                   {
                     icon: Check,
                     title: "Privacy First",
-                    description: "Your wardrobe data is encrypted and never shared. Your privacy matters."
+                    description: "Authentication and wardrobe access are scoped to your account."
                   }
                 ].map((feature, i) => (
                   <div key={i} className="p-6 sm:p-8">
@@ -480,7 +468,7 @@ export default function LandingPage() {
                 Ready to transform your mornings?
               </h2>
               <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground mb-4 sm:mb-6">
-                Join thousands of users who never struggle with &quot;what to wear&quot; again
+                Turn the clothes you already own into context-aware outfit ideas
               </p>
               <p className="text-base sm:text-lg text-muted-foreground/80 mb-8 sm:mb-10">
                 Make the most of your existing wardrobe. Look amazing. Save time.
@@ -506,7 +494,7 @@ export default function LandingPage() {
                 </Link>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                Free forever plan available • No credit card required • Cancel anytime
+                Free to start • No credit card required
               </p>
             </div>
           </div>
@@ -515,4 +503,3 @@ export default function LandingPage() {
     </>
   );
 }
-

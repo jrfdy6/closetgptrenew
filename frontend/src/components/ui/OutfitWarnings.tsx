@@ -36,13 +36,16 @@ export function OutfitWarnings({
   }
 
   // Helper function to convert any value to string
-  const convertToString = (value: any): string => {
+  const convertToString = (value: unknown): string => {
     if (typeof value === 'string') return value;
     if (typeof value === 'object' && value !== null) {
-      // If it's an object with a message property, use that
-      if (value.message) return value.message;
-      // If it's an object with a step property, format it
-      if (value.step) return `${value.step}: ${value.message || JSON.stringify(value)}`;
+      const record = value as Record<string, unknown>;
+      const step = typeof record.step === 'string' ? record.step : null;
+      const message = typeof record.message === 'string' ? record.message : null;
+
+      // Preserve the step so structured validation output remains actionable.
+      if (step) return `${step}: ${message || JSON.stringify(value)}`;
+      if (message) return message;
       // Otherwise, stringify the object
       return JSON.stringify(value);
     }
@@ -173,4 +176,4 @@ export function OutfitWarnings({
       )}
     </div>
   );
-} 
+}

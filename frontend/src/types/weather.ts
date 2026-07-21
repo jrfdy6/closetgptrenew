@@ -6,6 +6,9 @@ export interface WeatherData {
   location: string;
   precipitation: number;
   fallback?: boolean;
+  isManualOverride?: boolean;
+  isRealWeather?: boolean;
+  isFallbackWeather?: boolean;
 }
 
 export interface WeatherRequest {

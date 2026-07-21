@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles, Star, Shield, Camera, TrendingUp } from "lucide-react";
+import { ArrowRight, Sparkles, Shield, Camera, TrendingUp } from "lucide-react";
 import Script from "next/script";
 
 export default function Home() {
@@ -17,11 +17,6 @@ export default function Home() {
       "@type": "Offer",
       "price": "0",
       "priceCurrency": "USD"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "5.0",
-      "ratingCount": "1000"
     },
     "description": "AI-powered personal stylist that helps you digitize your wardrobe and get personalized outfit suggestions",
     "url": "https://www.easyoutfitapp.com",
@@ -119,20 +114,16 @@ export default function Home() {
               </span>
             </div>
 
-            {/* Social proof / Quick stats - Mobile friendly */}
-            <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8 text-xs sm:text-sm text-muted-foreground" aria-label="User statistics">
+            {/* Product capabilities - Mobile friendly */}
+            <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8 text-xs sm:text-sm text-muted-foreground" aria-label="Product capabilities">
               <div className="flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-primary" aria-hidden="true" />
-                <span className="font-medium">Over 100,000 outfits generated</span>
+                <span className="font-medium">Built around your real wardrobe</span>
               </div>
               <div className="hidden sm:block text-muted-foreground/50">•</div>
-              <div className="flex items-center gap-1" aria-label="Rating: 5 out of 5 stars">
-                <Star className="w-4 h-4 fill-[var(--copper-dark)] text-[var(--copper-dark)]" aria-hidden="true" />
-                <Star className="w-4 h-4 fill-[var(--copper-dark)] text-[var(--copper-dark)]" aria-hidden="true" />
-                <Star className="w-4 h-4 fill-[var(--copper-dark)] text-[var(--copper-dark)]" aria-hidden="true" />
-                <Star className="w-4 h-4 fill-[var(--copper-dark)] text-[var(--copper-dark)]" aria-hidden="true" />
-                <Star className="w-4 h-4 fill-[var(--copper-dark)] text-[var(--copper-dark)]" aria-hidden="true" />
-                <span className="ml-1 font-medium">5.0 rating</span>
+              <div className="flex items-center gap-1.5">
+                <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-primary" aria-hidden="true" />
+                <span className="font-medium">Weather and occasion aware</span>
               </div>
             </div>
           </article>
@@ -154,7 +145,7 @@ export default function Home() {
                 size="lg" 
                 variant="outline" 
                 className="w-full sm:w-auto bg-card/65 dark:bg-card/65 hover:bg-card/80 dark:hover:bg-secondary/80 backdrop-blur-xl border-2 border-border/60 dark:border-border/80 text-[var(--copper-dark)] dark:text-[var(--copper-light)] hover:text-[var(--copper-mid)] dark:hover:text-[var(--copper-mid)] px-8 sm:px-12 py-5 sm:py-6 rounded-2xl font-semibold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                aria-label="Start the 2-minute style quiz"
+                aria-label="Start the guest style quiz"
               >
                 Try Style Quiz
                 <Sparkles className="ml-2 h-5 w-5" aria-hidden="true" />
@@ -222,7 +213,7 @@ export default function Home() {
               Ready to transform your mornings?
             </h2>
             <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8">
-              Join thousands of users who never struggle with &quot;what to wear&quot; again
+              Turn the clothes you already own into context-aware outfit ideas
             </p>
             
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center mb-6 sm:mb-8">
@@ -248,7 +239,7 @@ export default function Home() {
             </div>
             
             <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-              Free forever plan • No credit card required
+              Free to start • No credit card required
             </p>
           </div>
         </div>

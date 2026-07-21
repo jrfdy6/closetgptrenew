@@ -9,7 +9,6 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Menu, X, Sparkles, Home, Shirt, Palette, User, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import dynamic from 'next/dynamic';
 
@@ -127,11 +126,6 @@ export default function Navigation() {
                       isActive ? "text-primary" : "group-hover:scale-110"
                     )} />
                     <span>{item.label}</span>
-                    {item.badge && (
-                      <Badge variant="secondary" className="text-xs ml-1">
-                        {item.badge}
-                      </Badge>
-                    )}
                   </Link>
                 );
               })}
@@ -232,11 +226,6 @@ export default function Navigation() {
                       <Icon className="w-5 h-5 text-primary dark:text-primary" />
                     </div>
                     <span className="flex-1">{item.label}</span>
-                    {item.badge && (
-                      <Badge variant="secondary" className="text-xs">
-                        {item.badge}
-                      </Badge>
-                    )}
                   </Link>
                 );
               })}
@@ -269,4 +258,4 @@ export default function Navigation() {
       )}
     </nav>
   );
-} 
+}

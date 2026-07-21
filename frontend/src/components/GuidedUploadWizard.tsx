@@ -79,9 +79,7 @@ export default function GuidedUploadWizard({
       try {
         // Get Firebase user for auth token
         const { auth } = await import('@/lib/firebase/config');
-        const { getAuth } = await import('firebase/auth');
-        const firebaseAuth = getAuth(auth);
-        const currentUser = firebaseAuth.currentUser;
+        const currentUser = auth.currentUser;
         
         if (currentUser) {
           const token = await currentUser.getIdToken();
@@ -285,4 +283,3 @@ export default function GuidedUploadWizard({
     </div>
   );
 }
-

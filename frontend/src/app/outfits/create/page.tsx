@@ -39,7 +39,7 @@ import {
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useWardrobe } from '@/lib/hooks/useWardrobe';
 import { useOutfits } from '@/lib/hooks/useOutfits_proper';
-import { ClothingItem } from '@/lib/services/outfitService';
+import type { ClothingItem } from '@/lib/hooks/useWardrobe';
 import { db } from '@/lib/firebase/config';
 import Navigation from '@/components/Navigation';
 import ClientOnlyNav from '@/components/ClientOnlyNav';
@@ -633,9 +633,10 @@ export default function CreateOutfitPage() {
           id: item.id,
           name: item.name,
           category: item.type,
+          style: item.style?.[0] || style || 'Classic',
           color: item.color,
           imageUrl: item.imageUrl,
-          user_id: item.user_id
+          user_id: item.userId
         }))
       };
 

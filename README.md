@@ -1,6 +1,34 @@
-# Easy Outfit App
+# EasyOutfit
 
-A modern AI-powered wardrobe management and outfit generation system with a clean, production-ready architecture.
+EasyOutfit is an AI-powered wardrobe assistant that turns a user's real closet,
+style preferences, and context into practical outfit recommendations. It combines
+a Next.js product experience with FastAPI services, Firebase, image analysis, and
+background processing.
+
+**Live product:** [easyoutfitapp.com](https://easyoutfitapp.com)
+**Frontend:** [closetgpt-frontend.vercel.app](https://closetgpt-frontend.vercel.app)
+**API health:** [closetgptrenew-production.up.railway.app/health](https://closetgptrenew-production.up.railway.app/health)
+
+## What it demonstrates
+
+- AI-assisted clothing-image analysis and wardrobe metadata extraction
+- Schema-driven outfit generation using closet inventory, preferences, weather, occasion, and a required base item
+- Layered validation plus explicit composition, layering, color, material, style, and wardrobe-intelligence scoring
+- A full-stack product flow spanning authentication, Firestore, storage, APIs, and workers
+- Feedback, wear history, liked outfits, and wardrobe analytics that improve ranking context over time
+- A local Codex job lane for controlled wardrobe audits and admin upload analysis
+- Production hardening that keeps internal debug and test routes unavailable by default
+
+## Outfit intelligence
+
+The active generation path is intentionally inspectable:
+
+1. [`backend/src/custom_types/outfit.py`](backend/src/custom_types/outfit.py) defines the typed request and outfit contracts.
+2. [`backend/src/routes/outfits/routes.py`](backend/src/routes/outfits/routes.py) assembles wardrobe, weather, profile, trend, and feedback context; applies occasion/category requirements; and orchestrates generation and persistence.
+3. [`backend/src/routes/outfits/validation.py`](backend/src/routes/outfits/validation.py) handles combination constraints and validation feedback.
+4. [`backend/src/routes/outfits/scoring.py`](backend/src/routes/outfits/scoring.py) scores composition, layering, color harmony, materials, style coherence, and wardrobe intelligence.
+
+This hybrid design keeps model creativity inside deterministic product constraints: the app can explain why a combination was accepted, warn when a request cannot be satisfied by the current wardrobe, and learn from real wear and rating signals.
 
 ## 🏗️ Project Structure
 
@@ -83,12 +111,10 @@ closetgptrenew/
    
    The frontend will run on port 3000.
 
-## 🔧 Production Deployment
-
-## 🚦 Deploy Truth
+## 🔧 Production and verification
 
 - **Repo:** `closetgptrenew` is the EasyOutfit repo. It is separate from the `aiclone` repo.
-- **Canonical operator playbook:** [docs/technical/EASYOUTFIT_OPERATOR_PLAYBOOK.md](/Users/neo/Desktop/closetgptrenew/docs/technical/EASYOUTFIT_OPERATOR_PLAYBOOK.md:1)
+- **Canonical operator playbook:** [docs/technical/EASYOUTFIT_OPERATOR_PLAYBOOK.md](docs/technical/EASYOUTFIT_OPERATOR_PLAYBOOK.md)
 - **Live deploy branch:** `main`
 - **Legacy branch:** `production` is stale historical state and is not the live deploy branch for EasyOutfit.
 - **Railway root-link policy:** for this repo, option 1 is intentional.
@@ -102,20 +128,31 @@ If a local Railway link points anywhere else, treat it as drift and fix it befor
 If OpenClaw workspace docs disagree with EasyOutfit deploy/runtime truth, use the canonical operator playbook above and then update the OpenClaw pointer docs.
 
 ### Backend Deployment
-- **Railway:** Use `deploy_to_railway.sh`
-- **Render:** Use `render.yaml`
-- **Docker:** Use the provided Dockerfile
+- **Railway:** Follow the operator playbook, then use `backend/deploy_to_railway.sh`
+- **Render:** `backend/render.yaml` is retained as an alternate configuration
+- **Docker:** Use the backend Dockerfile
 
 ### Frontend Deployment
-- **Vercel:** Use `vercel.json`
-- **Netlify:** Configure build settings
-- **Docker:** Build and deploy container
+- **Vercel:** Use `frontend/vercel.json`
 
 ## 🧪 Testing
 
-The project has been cleaned to exclude comprehensive outfit generation tests while maintaining essential functionality. All test files have been removed to keep the codebase production-ready.
+Run the frontend unit suite and production build:
 
-For production checks, use:
+```bash
+cd frontend
+npm test -- --runInBand
+npm run build
+```
+
+Run the backend regression suite:
+
+```bash
+cd backend
+./.venv311/bin/python -m unittest discover -s tests -p 'test_*.py' -v
+```
+
+Run the public production-surface checks from the repository root:
 
 ```bash
 ./scripts/verify_production.sh
@@ -123,14 +160,15 @@ For production checks, use:
 
 ## 🔒 Security
 
-- Firebase credentials are managed through environment variables
-- All Firebase access goes through the backend
-- No direct Firebase initialization from the frontend
+- Server-side Firebase Admin credentials and API keys are supplied through environment variables and are never committed
+- Firebase client access supports authenticated product flows; privileged operations and AI calls stay behind server/API boundaries
+- Internal demo, debug, diagnostics, and test routes return `404` in production unless explicitly enabled
+- API handlers validate authentication and scope wardrobe/outfit access to the requesting user
 
 ## 🤖 AI Runtime
 
 - EasyOutfit currently uses OpenAI directly for sync clothing-image analysis and worker-based flat-lay enhancement.
-- The researched migration path toward the `aiclone` Codex-runner architecture is documented in [docs/technical/EASYOUTFIT_CODEX_MIGRATION_PLAN.md](/Users/neo/Desktop/closetgptrenew/docs/technical/EASYOUTFIT_CODEX_MIGRATION_PLAN.md:1).
+- The researched migration path toward the `aiclone` Codex-runner architecture is documented in [docs/technical/EASYOUTFIT_CODEX_MIGRATION_PLAN.md](docs/technical/EASYOUTFIT_CODEX_MIGRATION_PLAN.md).
 - The recommended first move is to centralize AI boundaries inside the backend before migrating any workload onto a local Codex queue.
 - Admin upload analysis can now run in a parallel Codex-only cohort. The backend queues those uploads into the Firestore-backed local Codex runner lane, saves placeholder items as `codex_pending`, and promotes them into the normal worker pipeline after Codex writes the final metadata.
 
@@ -154,7 +192,4 @@ For production checks, use:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. # Updated Sat Aug  9 20:29:53 EDT 2025
-# Force deployment Mon Sep 15 01:43:27 EDT 2025
-# Force deployment - Tue Sep 16 05:47:04 EDT 2025
-# Force deployment Tue Oct 28 18:09:09 EDT 2025
+This project is licensed under the MIT License. See [LICENSE](LICENSE).

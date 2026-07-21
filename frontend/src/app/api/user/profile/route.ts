@@ -296,7 +296,7 @@ export async function POST(request: Request) {
     // Same as GET: if token verification fails on this host, fall back to Railway.
     let decoded: any;
     try {
-      decoded = await getAuth().verifyIdToken(token);
+      decoded = await getFirebaseAdminAuth().verifyIdToken(token);
     } catch (e) {
       console.error("PROFILE API: verifyIdToken failed on POST; falling back to Railway.", e);
       const backendUrl = getBackendUrl();
@@ -353,7 +353,7 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     let db;
     try {
-      db = getFirestore();
+      db = getFirebaseAdminDb();
     } catch (e: any) {
       console.error("PROFILE API: Firestore init failed on POST; falling back to Railway.", e);
       const backendUrl = getBackendUrl();

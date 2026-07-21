@@ -8,7 +8,7 @@
  */
 
 import { OutfitItem } from '@/lib/services/outfitService';
-import { ClothingItem } from '@/lib/services/outfitService';
+import type { ClothingItem } from '@/lib/hooks/useWardrobe';
 
 /**
  * Convert OutfitItem (backend format) to ClothingItem (frontend format)
@@ -20,23 +20,16 @@ export function toClothingItem(outfitItem: OutfitItem): ClothingItem {
     name: outfitItem.name,
     type: outfitItem.category,
     color: outfitItem.color,
-    brand: '', // OutfitItem doesn't have brand
-    imageUrl: outfitItem.imageUrl,
-    user_id: outfitItem.user_id,
-    season: 'all', // Default season
-    isFavorite: false, // OutfitItem doesn't have isFavorite
-    wearCount: 0, // OutfitItem doesn't have wearCount
-    lastWorn: null, // OutfitItem doesn't have lastWorn
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    // Additional required ClothingItem fields with sensible defaults
-    size: '', // Default size
-    material: '', // Default material
-    condition: 'good', // Default condition
-    price: 0, // Default price
-    purchaseDate: null, // Default purchase date
-    tags: [], // Default tags
-    notes: '' // Default notes
+    brand: '',
+    imageUrl: outfitItem.imageUrl || '',
+    userId: outfitItem.user_id,
+    style: outfitItem.style ? [outfitItem.style] : [],
+    season: [],
+    occasion: [],
+    favorite: false,
+    wearCount: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 }
 
@@ -49,10 +42,10 @@ export function toOutfitItem(clothingItem: ClothingItem): OutfitItem {
     id: clothingItem.id,
     name: clothingItem.name,
     category: clothingItem.type,
-    style: '', // ClothingItem doesn't have style field
+    style: clothingItem.style?.[0] || '',
     color: clothingItem.color,
     imageUrl: clothingItem.imageUrl,
-    user_id: clothingItem.user_id
+    user_id: clothingItem.userId
   };
 }
 

@@ -553,6 +553,20 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
   }
 ];
 
+// Keep the pre-auth preview focused on the inputs needed to demonstrate
+// personalization. Signed-in users can complete the deeper sizing and spend
+// profile without turning the first product experience into a long intake form.
+const GUEST_DEEP_PROFILE_QUESTION_IDS = new Set([
+  'height',
+  'weight',
+  'top_size',
+  'bottom_size',
+  'cup_size',
+  'shoe_size_female',
+  'shoe_size_male',
+  'shoe_size',
+]);
+
 function OnboardingContent() {
   const router = useRouter();
   const [flowMode, setFlowMode] = useState<string | null>(null);
@@ -625,6 +639,13 @@ function OnboardingContent() {
     const currentGender = genderOverride || userGender;
     
     const filtered = QUIZ_QUESTIONS.filter(question => {
+      if (
+        isGuestFlow &&
+        (GUEST_DEEP_PROFILE_QUESTION_IDS.has(question.id) || question.id.startsWith('category_spend_'))
+      ) {
+        return false;
+      }
+
       // GENERIC GENDER FILTER: Check question.gender attribute first
       // Special handling for style questions - non-binary users should see BOTH male and female style questions
       const isStyleQuestion = question.id.startsWith('style_item_f_') || question.id.startsWith('style_item_m_');
@@ -703,7 +724,7 @@ function OnboardingContent() {
       questionIds: newQuestions.map(q => q.id)
     });
     setQuestions(newQuestions);
-  }, [userGender]);
+  }, [userGender, isGuestFlow, modeResolved]);
 
   // Debug: Log when userGender changes
   React.useEffect(() => {
@@ -1743,6 +1764,11 @@ function OnboardingContent() {
 
   // This should never be reached since we redirect immediately after quiz completion
   if (false) {
+    // Retained only as a reference for the retired inline-results design. Keep
+    // its data bindings explicit so the dead branch cannot pollute type checks.
+    const persona = quizResults?.persona as any;
+    const styleFingerprint = quizResults?.styleFingerprint as any;
+    const currentGender = userGender;
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50 to-orange-50 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
         <div className="max-w-6xl mx-auto px-4 py-12">
@@ -2103,16 +2129,20 @@ function OnboardingContent() {
           <div className="flex-1 overflow-y-auto pr-1 space-y-6">
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                Question {currentQuestionIndex + 1} of {questions.length}
+                {question?.id === 'gender'
+                  ? 'Getting started'
+                  : `Question ${currentQuestionIndex + 1} of ${questions.length}`}
               </span>
               <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div
                   className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
+                  style={{ width: question?.id === 'gender' ? '0%' : `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
                 ></div>
               </div>
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                {Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}%
+                {question?.id === 'gender'
+                  ? 'Start'
+                  : `${Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}%`}
               </span>
             </div>
 

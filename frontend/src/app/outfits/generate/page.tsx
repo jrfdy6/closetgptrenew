@@ -87,6 +87,8 @@ interface GeneratedOutfit {
   flatLayError?: string | null;
   flat_lay_requested?: boolean;
   flatLayRequested?: boolean;
+  weather?: WeatherData;
+  isWorn?: boolean;
 }
 
 interface OutfitRating {
@@ -1152,8 +1154,8 @@ export default function OutfitGenerationPage() {
             ...item,
             userId: user.uid,  // Required: inject from Firebase auth
             subType: item.subType || item.category || item.type || "item",  // Required: fallback chain
-            style: [generatedOutfit.style] || ["casual"],  // Required: List[str] from parent outfit
-            occasion: [generatedOutfit.occasion || formData.occasion] || ["casual"],  // Required: List[str] from parent
+            style: generatedOutfit.style ? [generatedOutfit.style] : ["casual"],
+            occasion: [generatedOutfit.occasion || formData.occasion || "casual"],
             imageUrl: item.imageUrl || item.image_url || item.image || "",  // Normalize image field
             color: item.color || "unknown",  // Ensure color is provided
             type: item.type || "item",  // Ensure type is provided

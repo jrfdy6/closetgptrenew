@@ -15,7 +15,8 @@ import {
   RefreshCw,
   Eye,
   Clock,
-  Star
+  Star,
+  AlertCircle
 } from "lucide-react";
 
 interface WardrobeStats {

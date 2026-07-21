@@ -166,9 +166,11 @@ export default function StyleTrendsVisualization({
           setApiSucceeded(true); // Mark as succeeded since we have cached data from previous successful API call
         } else {
           console.log('🌐 [StyleTrends] Fetching seasonal data from API...');
-          const seasonalUrl = year 
-            ? `${apiUrl}/api/seasonal-comparison?year=${year}`
-            : `${apiUrl}/api/seasonal-comparison`;
+          const seasonalUrl = buildPublicBackendUrl(
+            year
+              ? `/api/seasonal-comparison?year=${encodeURIComponent(String(year))}`
+              : '/api/seasonal-comparison'
+          );
           
           console.log('🌐 [StyleTrends] Seasonal API URL:', seasonalUrl);
           

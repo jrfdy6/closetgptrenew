@@ -332,9 +332,8 @@ function mapQuizAnswersToProfile(
       shoeSize: userAnswers.shoe_size_male || userAnswers.shoe_size_female || userAnswers.shoe_size || '',
       braSize: userAnswers.cup_size || ''
     },
-    // Also store the raw range values for display
+    // Also store the raw height value for display.
     heightFeetInches: parseHeight(userAnswers.height),
-    weight: parseWeight(userAnswers.weight),
     // Store height and weight at top level for easy access
     height: parseHeight(userAnswers.height),
     weight: parseWeight(userAnswers.weight),

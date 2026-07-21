@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import OutfitEditModal from '@/components/OutfitEditModal';
 import { Outfit } from '@/lib/services/outfitService';
-import { ClothingItem } from '@/lib/services/outfitService';
+import type { ClothingItem } from '@/lib/hooks/useWardrobe';
 
 // Mock the hooks
 jest.mock('@/lib/hooks/useWardrobe', () => ({
@@ -28,20 +28,15 @@ const mockWardrobeItems: ClothingItem[] = [
     color: 'blue',
     brand: 'Nike',
     imageUrl: 'https://example.com/tshirt.jpg',
-    user_id: 'user-1',
-    season: 'summer',
-    isFavorite: false,
+    userId: 'user-1',
+    season: ['summer'],
+    favorite: false,
     wearCount: 5,
-    lastWorn: '2024-01-15',
-    createdAt: '2024-01-01',
-    updatedAt: '2024-01-15',
+    lastWorn: new Date('2024-01-15'),
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-15'),
     size: 'M',
-    material: 'cotton',
-    condition: 'good',
-    price: 25,
-    purchaseDate: '2024-01-01',
-    tags: ['casual'],
-    notes: 'Comfortable everyday shirt'
+    material: ['cotton'],
   },
   {
     id: 'item-2',
@@ -50,20 +45,15 @@ const mockWardrobeItems: ClothingItem[] = [
     color: 'black',
     brand: 'Levi\'s',
     imageUrl: 'https://example.com/jeans.jpg',
-    user_id: 'user-1',
-    season: 'all',
-    isFavorite: true,
+    userId: 'user-1',
+    season: ['all'],
+    favorite: true,
     wearCount: 10,
-    lastWorn: '2024-01-20',
-    createdAt: '2024-01-01',
-    updatedAt: '2024-01-20',
+    lastWorn: new Date('2024-01-20'),
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-20'),
     size: '32',
-    material: 'denim',
-    condition: 'good',
-    price: 80,
-    purchaseDate: '2024-01-01',
-    tags: ['casual', 'work'],
-    notes: 'Perfect fit'
+    material: ['denim'],
   }
 ];
 
