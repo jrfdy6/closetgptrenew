@@ -11,6 +11,8 @@ import { ArrowLeft, Sparkles, Palette, Camera, TrendingUp, Heart, ArrowRight, Ch
 import { useAuthContext } from "@/contexts/AuthContext";
 import BodyPositiveMessage from "@/components/BodyPositiveMessage";
 import GuidedUploadWizard from "@/components/GuidedUploadWizard";
+import { SkinToneSlider } from "@/components/onboarding/SkinToneSlider";
+import { ensureDefaultSkinToneAnswer, upsertQuizAnswer } from "@/lib/quizAnswerContract";
 
 const ONBOARDING_DEBUG = process.env.NODE_ENV === 'development';
 
@@ -598,11 +600,8 @@ function OnboardingContent() {
   const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [skinTone, setSkinTone] = useState(50);
 
   const { user, loading: authLoading, getIdToken } = useAuthContext();
-
-  // Save skin tone when it changes - moved to slider onChange
 
 
   // Use searchParams only on client side to avoid SSR issues
@@ -725,6 +724,17 @@ function OnboardingContent() {
     });
     setQuestions(newQuestions);
   }, [userGender, isGuestFlow, modeResolved]);
+
+  // The slider's visible midpoint is a real answer. Commit it when the question
+  // first becomes active so Next is enabled even when 50 is already correct.
+  React.useEffect(() => {
+    const activeQuestion = questions[currentQuestionIndex];
+    if (activeQuestion?.type !== 'rgb_slider') return;
+
+    setAnswers(previousAnswers =>
+      ensureDefaultSkinToneAnswer(previousAnswers, activeQuestion.id)
+    );
+  }, [currentQuestionIndex, questions]);
 
   // Debug: Log when userGender changes
   React.useEffect(() => {
@@ -1492,6 +1502,10 @@ function OnboardingContent() {
     }
   };
 
+  const saveAnswerWithoutAdvance = (questionId: string, answer: string) => {
+    setAnswers(previousAnswers => upsertQuizAnswer(previousAnswers, questionId, answer));
+  };
+
   const renderQuestion = () => {
     if (questions.length === 0) {
       console.error('No questions available for quiz');
@@ -1513,6 +1527,10 @@ function OnboardingContent() {
     }
     
     const currentAnswer = answers.find(a => a.question_id === question.id);
+    const skinToneValue = Number.parseInt(
+      currentAnswer?.selected_option?.replace('skin_tone_', '') || '50',
+      10
+    );
 
     return (
       <div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
@@ -1609,63 +1627,12 @@ function OnboardingContent() {
             </div>
           </div>
         ) : question.type === "rgb_slider" ? (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
-              <div className="space-y-4">
-                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                  <span>Lightest</span>
-                  <span>Darkest</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  defaultValue={currentAnswer?.selected_option ? parseInt(currentAnswer.selected_option.split('_')[2]) : 50}
-                  className="w-full h-8 rounded-lg appearance-none cursor-pointer"
-                  style={{
-                    background: 'linear-gradient(to right, #FEF3C7, #FDE68A, #FCD34D, #F59E0B, #D97706, #B45309, #92400E, #78350F, #451A03, #1F2937)'
-                  }}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value);
-                    const skinTone = `skin_tone_${value}`;
-                    // Update state ONLY - don't advance question
-                    setAnswers(prev => {
-                      const existing = prev.find(a => a.question_id === question.id);
-                      if (existing) {
-                        return prev.map(a => 
-                          a.question_id === question.id 
-                            ? { ...a, selected_option: skinTone }
-                            : a
-                        );
-                      } else {
-                        return [...prev, {
-                          question_id: question.id,
-                          selected_option: skinTone,
-                          question_text: question.question
-                        }];
-                      }
-                    });
-                  }}
-                />
-                <div className="text-center">
-                  <div 
-                    className="w-16 h-16 rounded-full border-4 border-gray-300 dark:border-gray-600 mx-auto mb-2"
-                    style={{ 
-                      backgroundColor: currentAnswer?.selected_option ? 
-                        `hsl(${Math.max(0, 30 - (parseInt(currentAnswer.selected_option.split('_')[2]) || 50) * 0.3)}, ${Math.max(20, 60 - (parseInt(currentAnswer.selected_option.split('_')[2]) || 50) * 0.4)}%, ${Math.max(20, 80 - (parseInt(currentAnswer.selected_option.split('_')[2]) || 50) * 0.6)}%)` :
-                        'hsl(30, 40%, 60%)'
-                    }}
-                  />
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {currentAnswer?.selected_option ? 
-                      `Skin tone: ${currentAnswer.selected_option.split('_')[2] || 50}%` : 
-                      'Select your skin tone'
-                    }
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <SkinToneSlider
+            value={skinToneValue}
+            onValueChange={(value) =>
+              saveAnswerWithoutAdvance(question.id, `skin_tone_${value}`)
+            }
+          />
         ) : (
         <div className={`max-w-2xl mx-auto ${
           question.options.length >= 6 

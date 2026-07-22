@@ -138,9 +138,12 @@ export async function GET(request: Request) {
 
     // Best-effort cache (warm instance only)
     const cacheKey = token.slice(0, 32);
-    const cached = profileCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      return NextResponse.json({ ...cached.data, _cached: true, _duration: `${Date.now() - start}ms` });
+    const bypassCache = new URL(request.url).searchParams.get("fresh") === "1";
+    if (!bypassCache) {
+      const cached = profileCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+        return NextResponse.json({ ...cached.data, _cached: true, _duration: `${Date.now() - start}ms` });
+      }
     }
 
     const authHeader = `Bearer ${token}`;

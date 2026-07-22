@@ -246,7 +246,11 @@ export async function POST(req: NextRequest) {
       quizResults: {
         aesthetic_scores: profileUpdate.stylePersonality || { "classic": 0.6, "sophisticated": 0.4 },
         color_season: userAnswers.skin_tone || "warm_spring",
-        body_type: userAnswers.body_type_female || userAnswers.body_type_male || "rectangle",
+        body_type:
+          userAnswers.body_type_female ||
+          userAnswers.body_type_male ||
+          userAnswers.body_type_nonbinary ||
+          "rectangle",
         style_preferences: profileUpdate.stylePreferences || ["classic", "minimalist"]
       },
       colorAnalysis: submission.colorAnalysis || null
@@ -310,6 +314,16 @@ function mapQuizAnswersToProfile(
           )
         );
 
+  const resolvedBodyType =
+    userAnswers.body_type_female ||
+    userAnswers.body_type_male ||
+    userAnswers.body_type_nonbinary ||
+    '';
+  const rawSkinTone = userAnswers.skin_tone || '';
+  const resolvedSkinTone = /^skin_tone_(?:100|[1-9]?\d)$/.test(rawSkinTone)
+    ? rawSkinTone
+    : null;
+
   // Map basic profile fields
   const profileUpdate: any = {
     // Required fields for backend
@@ -320,13 +334,13 @@ function mapQuizAnswersToProfile(
     
     // Quiz-specific fields
     gender: userAnswers.gender,
-    bodyType: userAnswers.body_type_female || userAnswers.body_type_male || '',
-    skinTone: userAnswers.skin_tone || null,
+    bodyType: resolvedBodyType,
+    skinTone: resolvedSkinTone,
     measurements: {
       height: parseHeight(userAnswers.height),
       weight: parseWeight(userAnswers.weight),
-      bodyType: userAnswers.body_type_female || userAnswers.body_type_male || userAnswers.body_type_nonbinary || '',
-      skinTone: userAnswers.skin_tone || null,
+      bodyType: resolvedBodyType,
+      skinTone: resolvedSkinTone,
       topSize: userAnswers.top_size || '',
       bottomSize: userAnswers.bottom_size || '',
       shoeSize: userAnswers.shoe_size_male || userAnswers.shoe_size_female || userAnswers.shoe_size || '',

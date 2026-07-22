@@ -87,9 +87,21 @@ export class DataValidator {
     if (!profileResult.isValid) errors.push(...profileResult.errors);
     else sanitized.user_profile = profileResult.sanitizedValue;
 
-    // CRITICAL FIX: Preserve baseItemId (optional field, no validation needed)
+    // A required item must resolve inside the exact wardrobe submitted with the request.
     if (data.baseItemId !== undefined && data.baseItemId !== null) {
-      sanitized.baseItemId = String(data.baseItemId).trim();
+      const requestedBaseItemId = String(data.baseItemId).trim();
+      if (!requestedBaseItemId) {
+        errors.push('baseItemId cannot be empty');
+      } else if (
+        !Array.isArray(sanitized.wardrobe) ||
+        !sanitized.wardrobe.some(
+          (item: { id?: unknown }) => String(item.id) === requestedBaseItemId
+        )
+      ) {
+        errors.push('baseItemId must reference an item in the submitted wardrobe');
+      } else {
+        sanitized.baseItemId = requestedBaseItemId;
+      }
     }
     
     // Preserve other optional fields that don't need validation
@@ -300,8 +312,9 @@ export class DataValidator {
     }
 
     // Gender
-    sanitized.gender = ['male', 'female', 'non-binary', 'other'].includes(profile.gender) 
-      ? profile.gender 
+    const normalizedGender = this.sanitizeString(profile.gender).toLowerCase();
+    sanitized.gender = ['male', 'female', 'non-binary', 'other'].includes(normalizedGender)
+      ? normalizedGender
       : 'male';
 
     // Age
@@ -316,10 +329,25 @@ export class DataValidator {
     // Body type
     sanitized.bodyType = this.sanitizeString(profile.bodyType) || 'average';
 
+    // Skin tone is stored as a slider token (skin_tone_0..100) and normalized
+    // to a depth category at the backend scoring boundary.
+    sanitized.skinTone = this.sanitizeString(profile.skinTone) || '';
+
     // Style preferences
+    sanitized.stylePreferences = this.validateStringArray(profile.stylePreferences) || [];
     sanitized.style_preferences = this.validateStringArray(profile.style_preferences) || [];
     sanitized.color_preferences = this.validateStringArray(profile.color_preferences) || [];
     sanitized.size_preferences = this.validateStringArray(profile.size_preferences) || [];
+
+    if (profile.measurements && typeof profile.measurements === 'object') {
+      sanitized.measurements = {
+        ...profile.measurements,
+        height: this.sanitizeString(profile.measurements.height),
+        weight: this.sanitizeString(profile.measurements.weight),
+        bodyType: this.sanitizeString(profile.measurements.bodyType),
+        skinTone: this.sanitizeString(profile.measurements.skinTone),
+      };
+    }
 
     return {
       isValid: errors.length === 0,
@@ -444,6 +472,7 @@ export class DataValidator {
    * Sanitize string (remove dangerous characters)
    */
   private sanitizeString(value: any): string {
+    if (value === undefined || value === null) return '';
     if (typeof value !== 'string') return String(value);
     return value
       .replace(/[<>]/g, '') // Remove potential HTML

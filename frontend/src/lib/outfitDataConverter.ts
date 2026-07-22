@@ -28,6 +28,9 @@ export interface FrontendUserProfile {
   height?: string;
   weight?: string;
   bodyType?: string;
+  skinTone?: string | null;
+  stylePreferences?: string[];
+  measurements?: Record<string, unknown>;
   style_preferences?: string[];
   color_preferences?: string[];
   size_preferences?: string[];
@@ -153,6 +156,7 @@ function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
  */
 function convertUserProfile(profile: FrontendUserProfile): any {
   return {
+    ...profile,
     id: profile.id,
     name: profile.name || 'User',
     email: profile.email || '',
@@ -161,11 +165,12 @@ function convertUserProfile(profile: FrontendUserProfile): any {
     height: profile.height || '',
     weight: profile.weight || '',
     bodyType: profile.bodyType || 'average',
+    skinTone: profile.skinTone || null,
+    stylePreferences: normalizeToList(profile.stylePreferences) || [],
     style_preferences: normalizeToList(profile.style_preferences) || [],
     color_preferences: normalizeToList(profile.color_preferences) || [],
     size_preferences: normalizeToList(profile.size_preferences) || [],
-    // Add any other fields that might be needed
-    ...profile
+    measurements: profile.measurements || {}
   };
 }
 

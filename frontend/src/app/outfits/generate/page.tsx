@@ -31,6 +31,10 @@ import type { WeatherData } from '@/types/weather';
 import { subscriptionService } from '@/lib/services/subscriptionService';
 import { SubscriptionPlan, mapRoleToPlan } from '@/types/subscription';
 import { FLATLAY_WEEKLY_LIMITS } from '@/utils/flatLayConfig';
+import {
+  assertRequiredBaseItem,
+  buildOutfitGenerationUserProfile,
+} from '@/lib/outfitGenerationContract';
 
 // Import new enhanced components
 import OutfitGenerationBottomSheet from '@/components/outfits/OutfitGenerationBottomSheet';
@@ -53,6 +57,7 @@ interface OutfitGenerationForm {
 
 interface GeneratedOutfit {
   id: string;
+  baseItemId?: string | null;
   name: string;
   style: string;
   mood: string;
@@ -276,6 +281,7 @@ export default function OutfitGenerationPage() {
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const [learningData, setLearningData] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [filteredStyles, setFilteredStyles] = useState<string[]>([]);
 
   useEffect(() => {
@@ -358,13 +364,15 @@ export default function OutfitGenerationPage() {
     const fetchUserProfile = async () => {
       if (!user) {
         console.log('🔍 No user authenticated, skipping profile fetch');
+        setProfileLoading(false);
         return;
       }
       
       console.log('🔍 Fetching profile for user:', user.uid);
+      setProfileLoading(true);
       try {
         const profileToken = await user.getIdToken();
-        const response = await fetch('/api/user/profile', {
+        const response = await fetch('/api/user/profile?fresh=1', {
           headers: {
             'Authorization': `Bearer ${profileToken}`,
           },
@@ -381,10 +389,13 @@ export default function OutfitGenerationPage() {
           setFilteredStyles(filtered);
           
           // If current style is not compatible, reset it
-          if (formData.style && !filtered.includes(formData.style)) {
-            console.log('🔍 Resetting incompatible style:', formData.style);
-            setFormData(prev => ({ ...prev, style: '' }));
-          }
+          setFormData(previousFormData => {
+            if (previousFormData.style && !filtered.includes(previousFormData.style)) {
+              console.log('🔍 Resetting incompatible style:', previousFormData.style);
+              return { ...previousFormData, style: '' };
+            }
+            return previousFormData;
+          });
         } else {
           console.error('🔍 Profile fetch failed:', response.status, response.statusText);
           // Fallback to male-appropriate styles for 502 errors
@@ -397,13 +408,15 @@ export default function OutfitGenerationPage() {
             setFilteredStyles(styles);
           }
         }
-              } catch (error) {
-          console.error('🔍 Error fetching user profile:', error);
-          // Fallback to filtered styles for male users (since you're male)
-          console.log('🔍 Falling back to male-appropriate styles due to profile fetch error');
-          const maleStyles = filterStylesByGender(styles, 'male');
-          setFilteredStyles(maleStyles);
-        }
+      } catch (error) {
+        console.error('🔍 Error fetching user profile:', error);
+        // Fallback to filtered styles for male users (since you're male)
+        console.log('🔍 Falling back to male-appropriate styles due to profile fetch error');
+        const maleStyles = filterStylesByGender(styles, 'male');
+        setFilteredStyles(maleStyles);
+      } finally {
+        setProfileLoading(false);
+      }
     };
 
     fetchUserProfile();
@@ -617,16 +630,7 @@ export default function OutfitGenerationPage() {
         mood: activeFormData.mood,
         weather: weatherData,
         wardrobe: Array.isArray(wardrobeItems) ? wardrobeItems : (wardrobeItems as any)?.items || [],
-        user_profile: {
-          id: user.uid,
-          name: user.displayName || "User",
-          email: user.email || "",
-          gender: userProfile?.gender || "male",
-          age: userProfile?.age || 25,
-          style_preferences: userProfile?.style_preferences || [],
-          size_preferences: userProfile?.size_preferences || [],
-          color_preferences: userProfile?.color_preferences || []
-        },
+        user_profile: buildOutfitGenerationUserProfile(userProfile, user),
         likedOutfits: [],
         trendingStyles: [],
         ...(baseItem && { baseItemId: baseItem.id })
@@ -680,6 +684,7 @@ export default function OutfitGenerationPage() {
       // Use robust API client with comprehensive error handling
       const response = await generateOutfit(requestWithMode, authToken);
       const data = response.data;
+      assertRequiredBaseItem(data, baseItem?.id);
       console.log('🔍 DEBUG: Generated outfit data:', data);
       console.log('🔍 DEBUG: Items with images:', data.items?.map(item => ({ name: item.name, imageUrl: item.imageUrl })));
       console.log('🎨 DEBUG: Metadata:', data.metadata);
@@ -760,6 +765,7 @@ export default function OutfitGenerationPage() {
             isFavorite: false,
             confidence_score: enrichedData.confidence_score || 0.8,
             generation_strategy: enrichedData.generation_strategy || 'hybrid',
+            baseItemId: enrichedData.baseItemId ?? baseItem?.id ?? null,
             metadata: enrichedMetadata,
             flat_lay_status: enrichedMetadata.flat_lay_status,
             flatLayStatus: enrichedMetadata.flatLayStatus,
@@ -773,7 +779,7 @@ export default function OutfitGenerationPage() {
           
           // Save directly to Firestore
           const outfitRef = doc(collection(db, 'outfits'), outfitId);
-          await setDoc(outfitRef, outfitData);
+          await setDoc(outfitRef, outfitData, { merge: true });
           
           console.log('✅ Outfit auto-saved successfully to Firestore with ID:', outfitId);
           
@@ -1346,12 +1352,22 @@ export default function OutfitGenerationPage() {
           </div>
         </div>
 
+        {error && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="max-w-md mx-auto mb-6 rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200"
+          >
+            {error}
+          </div>
+        )}
+
         {/* Action Buttons - Modern Mobile-First */}
         {!generatedOutfit && !generating && (
           <div className="max-w-md mx-auto mb-8 space-y-4">
             <Button
               onClick={() => setSheetOpen(true)}
-              disabled={wardrobeLoading}
+              disabled={wardrobeLoading || profileLoading}
               className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-accent text-primary-foreground hover:shadow-lg hover:shadow-primary/30 transition-all rounded-2xl"
             >
               <Sparkles className="h-5 w-5 mr-2" />
@@ -1364,7 +1380,7 @@ export default function OutfitGenerationPage() {
             >
               <Button 
                 onClick={() => handleShuffleAndGenerate()}
-                disabled={wardrobeLoading}
+                disabled={wardrobeLoading || profileLoading}
                 variant="outline"
                 className="w-full h-12 text-base font-semibold border-2 border-amber-500/50 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all duration-200 relative overflow-hidden group rounded-2xl"
                 size="lg"
@@ -1488,7 +1504,7 @@ export default function OutfitGenerationPage() {
         onRemoveBaseItem={() => {
           setBaseItem(null);
           const url = new URL(window.location.href);
-          url.searchParams.delete('baseItem');
+          url.searchParams.delete('baseItemId');
           window.history.replaceState({}, '', url.toString());
         }}
         userGender={userProfile?.gender}

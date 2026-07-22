@@ -28,6 +28,13 @@ from pydantic import BaseModel
 
 # Import the existing data personalization engine
 from ..services.existing_data_personalization import ExistingDataPersonalizationEngine
+from .outfit_generation_contract import (
+    RequiredBaseItemNotFound,
+    enforce_required_base_item,
+    item_identifier,
+    normalize_generation_user_profile,
+    resolve_required_base_item,
+)
 
 # Import auth
 from ..auth.auth_service import get_current_user_id
@@ -36,6 +43,8 @@ from ..auth.auth_service import get_current_user_id
 # Imports will happen lazily inside the function when needed
 ROBUST_SERVICE_AVAILABLE = None  # Will be determined at runtime
 robust_service = None
+ROBUST_SERVICE_RETRY_COOLDOWN_SECONDS = 30
+_last_robust_init_failure_at = 0.0
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +80,7 @@ class OutfitResponse(BaseModel):
     user_interactions: int = 0
     data_source: str = "existing_data"
     metadata: Dict[str, Any]
+    baseItemId: Optional[str] = None
     outfitAnalysis: Optional[Dict[str, Any]] = None
     flat_lay_status: Optional[str] = None
     flatLayStatus: Optional[str] = None
@@ -225,16 +235,35 @@ async def generate_personalized_outfit_from_existing_data(
         
         user_id = current_user_id
         logger.info(f"🎯 Generating personalized outfit from existing data for user {user_id}")
+
+        # Normalize optional inputs once so robust and fallback generation share the
+        # same profile signals and required-item contract.
+        wardrobe_data = req.wardrobe or []
+        requested_base_item_id = str(req.baseItemId).strip() if req.baseItemId else ""
+        try:
+            resolve_required_base_item(wardrobe_data, requested_base_item_id)
+        except RequiredBaseItemNotFound as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+        profile_data = normalize_generation_user_profile(req.user_profile, user_id)
+        req.wardrobe = wardrobe_data
+        req.user_profile = profile_data
+        req.baseItemId = requested_base_item_id or None
         
         # 🔥 LAZY IMPORT: Import robust service on first use (avoid circular imports at module load)
-        global ROBUST_SERVICE_AVAILABLE, robust_service
+        global ROBUST_SERVICE_AVAILABLE, robust_service, _last_robust_init_failure_at
         
         # ALWAYS import the classes (needed for every request, not just first)
         from src.services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
         from src.custom_types.wardrobe import ClothingItem
         
-        if ROBUST_SERVICE_AVAILABLE is None:
-            logger.warning("🔍 FIRST REQUEST: Attempting to initialize RobustOutfitGenerationService...")
+        retry_window_elapsed = (
+            time.time() - _last_robust_init_failure_at >= ROBUST_SERVICE_RETRY_COOLDOWN_SECONDS
+        )
+        if robust_service is None and (
+            ROBUST_SERVICE_AVAILABLE is None or retry_window_elapsed
+        ):
+            logger.warning("🔍 REQUEST: Attempting to initialize RobustOutfitGenerationService...")
             try:
                 robust_service = RobustOutfitGenerationService()
                 ROBUST_SERVICE_AVAILABLE = True
@@ -242,6 +271,7 @@ async def generate_personalized_outfit_from_existing_data(
             except Exception as e:
                 ROBUST_SERVICE_AVAILABLE = False
                 robust_service = None
+                _last_robust_init_failure_at = time.time()
                 import traceback
                 logger.error(f"❌ ROBUST SERVICE: Initialization failed: {e}")
                 logger.error(f"❌ ROBUST SERVICE: Traceback:\n{traceback.format_exc()}")
@@ -296,10 +326,7 @@ async def generate_personalized_outfit_from_existing_data(
                 weather_obj = SimpleNamespace(**req.weather) if req.weather else SimpleNamespace(temperature=72, condition='Clear')
                 
                 # Fix user profile: don't duplicate 'id' if it already exists
-                profile_data = req.user_profile or {}
-                if 'id' not in profile_data:
-                    profile_data = {'id': user_id, **profile_data}
-                # Keep as dict - GenerationContext expects dict or None
+                # Keep as dict - GenerationContext expects dict or None.
                 
                 print(f"🚨 ROBUST CRITICAL: About to create GenerationContext with base_item_id={req.baseItemId}")
                 print(f"🚨 ROBUST CRITICAL: req.baseItemId type={type(req.baseItemId)}, is None={req.baseItemId is None}")
@@ -329,6 +356,12 @@ async def generate_personalized_outfit_from_existing_data(
                     for item in wardrobe_items:
                         item_name = (item.name if hasattr(item, 'name') else '').lower()
                         item_type = str(item.type if hasattr(item, 'type') else '').lower()
+
+                        # A user-selected item is a hard constraint. Keep it in the
+                        # candidate pool even when the route would normally filter it.
+                        if requested_base_item_id and item_identifier(item) == requested_base_item_id:
+                            filtered_wardrobe.append(item)
+                            continue
                         
                         # Check if item should be blocked
                         is_blocked = any(keyword in item_name or keyword in item_type for keyword in blocked_keywords)
@@ -356,7 +389,7 @@ async def generate_personalized_outfit_from_existing_data(
                     weather=weather_obj,
                     wardrobe=wardrobe_items,
                     user_profile=profile_data,  # Pass dict directly, not SimpleNamespace
-                    base_item_id=req.baseItemId
+                    base_item_id=requested_base_item_id or None
                 )
                 
                 print(f"🚨 CONTEXT CREATED: context.base_item_id={context.base_item_id}")
@@ -388,6 +421,10 @@ async def generate_personalized_outfit_from_existing_data(
                             outfit_items.append(item.dict())
                         elif isinstance(item, dict):
                             outfit_items.append(item)
+
+                outfit_items, base_item_contract = enforce_required_base_item(
+                    outfit_items, wardrobe_data, requested_base_item_id
+                )
                 
                 logger.warning(f"✅ ROBUST SERVICE: Generated outfit with {len(outfit_items)} items")
                 
@@ -451,7 +488,8 @@ async def generate_personalized_outfit_from_existing_data(
                         "unique_items_count": len(outfit_items),
                         "uses_semantic_matching": True,
                         "uses_layer_awareness": True,
-                        "diversity_weight": 0.30
+                        "diversity_weight": 0.30,
+                        **base_item_contract,
                     }
                 }
                 
@@ -502,8 +540,13 @@ async def generate_personalized_outfit_from_existing_data(
                     elif isinstance(item['occasion'], str):
                         item_occasions = [item['occasion']]
                 
-                # Check if item matches occasion (with semantic compatibility)
-                if occasion_matches(req.occasion, item_occasions):
+                # Keep the required item even when its stored occasion tags are
+                # incomplete; the remaining items should be selected around it.
+                if (
+                    requested_base_item_id
+                    and item_identifier(item) == requested_base_item_id
+                    or occasion_matches(req.occasion, item_occasions)
+                ):
                     suitable_items.append(item)
             
             logger.info(f"🔍 Filtered to {len(suitable_items)} items matching occasion '{req.occasion}'")
@@ -520,6 +563,10 @@ async def generate_personalized_outfit_from_existing_data(
                 for item in suitable_items:
                     item_name = getattr(item, 'name', item.get('name', '') if isinstance(item, dict) else '').lower()
                     item_type = str(getattr(item, 'type', item.get('type', '') if isinstance(item, dict) else '')).lower()
+
+                    if requested_base_item_id and item_identifier(item) == requested_base_item_id:
+                        filtered_suitable.append(item)
+                        continue
                     
                     # Check if item has formal keywords
                     is_formal = any(keyword in item_name or keyword in item_type for keyword in formal_keywords)
@@ -531,57 +578,6 @@ async def generate_personalized_outfit_from_existing_data(
                 
                 suitable_items = filtered_suitable
                 logger.info(f"🔍 After formality filter: {len(suitable_items)} comfortable items (removed formal items)")
-            
-            # 🔥 DIVERSITY-AWARE SELECTION: Load outfit history and apply diversity boost
-            import random
-            from src.config.firebase import db
-            
-            # Load recent outfits for diversity tracking (simplified query to avoid index requirement)
-            try:
-                recent_outfits_ref = db.collection('outfits')\
-                    .where('user_id', '==', user_id)\
-                    .order_by('createdAt', direction='DESCENDING')\
-                    .limit(50)
-                
-                recent_outfits_docs = list(recent_outfits_ref.stream())
-                all_outfits = [doc.to_dict() for doc in recent_outfits_docs]
-                
-                # Filter in Python to match occasion/style (avoids composite index requirement)
-                recent_outfits = [
-                    outfit for outfit in all_outfits 
-                    if outfit.get('occasion') == req.occasion and outfit.get('style') == req.style
-                ]
-                
-                logger.info(f"🌈 DIVERSITY: Found {len(recent_outfits)} recent outfits for {req.occasion}/{req.style} (from {len(all_outfits)} total)")
-            except Exception as query_error:
-                logger.warning(f"⚠️ DIVERSITY: Could not load outfit history: {query_error}")
-                recent_outfits = []
-            
-            # Track item usage in recent outfits
-            item_usage_count = {}
-            for outfit in recent_outfits:
-                for item in outfit.get('items', []):
-                    item_id = item.get('id', 'unknown')
-                    item_usage_count[item_id] = item_usage_count.get(item_id, 0) + 1
-            
-            # Score items based on diversity (prefer unused items)
-            def get_diversity_score(item):
-                item_id = getattr(item, 'id', item.get('id', 'unknown') if isinstance(item, dict) else 'unknown')
-                usage = item_usage_count.get(item_id, 0)
-                
-                if usage == 0:
-                    return 1.0  # Never used - highest priority
-                elif usage == 1:
-                    return 0.7  # Used once - medium priority
-                elif usage == 2:
-                    return 0.4  # Used twice - lower priority
-                else:
-                    return 0.1  # Overused - lowest priority
-            
-                if occasion_matches(req.occasion, item_occasions):
-                    suitable_items.append(item)
-            
-            logger.info(f"🔍 Filtered to {len(suitable_items)} items matching occasion '{req.occasion}'")
             
             # 🔥 DIVERSITY-AWARE SELECTION: Load outfit history and apply diversity boost
             import random
@@ -673,6 +669,10 @@ async def generate_personalized_outfit_from_existing_data(
                         })
             
             logger.info(f"✅ Selected {len(outfit_items)} items from user's actual wardrobe with diversity scoring")
+
+            outfit_items, base_item_contract = enforce_required_base_item(
+                outfit_items, wardrobe_data, requested_base_item_id
+            )
             
             # Generate detailed outfit analysis for simple fallback too
             outfit_analysis = None
@@ -712,7 +712,8 @@ async def generate_personalized_outfit_from_existing_data(
                 "occasion_requirements_met": True,
                 "generation_strategy": "occasion_matched",
                 "deduplication_applied": True,
-                "unique_items_count": len(outfit_items)
+                "unique_items_count": len(outfit_items),
+                **base_item_contract,
             }
         }
         
@@ -736,6 +737,23 @@ async def generate_personalized_outfit_from_existing_data(
             if personalized_outfits:
                 existing_result = personalized_outfits[0]
                 logger.info(f"✅ Applied personalization from existing data for user {user_id}")
+
+        # Final postcondition: personalization and every fallback path must return
+        # the exact wardrobe item the user selected.
+        final_items, final_base_item_contract = enforce_required_base_item(
+            existing_result.get("items", []) if existing_result else [],
+            wardrobe_data,
+            requested_base_item_id,
+        )
+        if existing_result is not None:
+            existing_result["items"] = final_items
+            existing_metadata = existing_result.setdefault("metadata", {})
+            if existing_metadata.get("base_item_repaired"):
+                final_base_item_contract["base_item_repaired"] = True
+                final_base_item_contract["base_item_repair_action"] = existing_metadata.get(
+                    "base_item_repair_action", final_base_item_contract["base_item_repair_action"]
+                )
+            existing_metadata.update(final_base_item_contract)
         
         # Create response with real validation metadata
         outfit_response = {
@@ -751,6 +769,7 @@ async def generate_personalized_outfit_from_existing_data(
             "personalization_applied": (existing_result.get("personalization_applied", False) if existing_result else False),
             "user_interactions": preference.total_interactions,
             "data_source": (existing_result.get("data_source", "existing_data") if existing_result else "existing_data"),
+            "baseItemId": requested_base_item_id or None,
             "outfitAnalysis": (existing_result.get("outfitAnalysis") if existing_result else None),  # Pass through outfit analysis
             "metadata": {
                 **(existing_result.get("metadata", {}) if existing_result else {}),
@@ -812,6 +831,7 @@ async def generate_personalized_outfit_from_existing_data(
                 'createdAt': int(time.time() * 1000),  # Firestore timestamp in milliseconds
                 'confidence_score': outfit_response['confidence_score'],
                 'personalization_applied': outfit_response['personalization_applied'],
+                'baseItemId': outfit_response.get('baseItemId'),
                 'metadata': outfit_response['metadata'],
                 'flat_lay_status': outfit_response.get('flat_lay_status', 'awaiting_consent'),
                 'flatLayStatus': outfit_response.get('flatLayStatus', 'awaiting_consent'),
