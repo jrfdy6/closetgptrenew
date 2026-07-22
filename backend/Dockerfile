@@ -44,23 +44,14 @@ RUN find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
     touch -a -m -t 202512192200 ./src/services/filters/formality_tier_system.py && \
     echo "✅ Cleared all Python bytecode cache and updated file timestamps"
 
-# Verify files were copied (this will fail if cache is used with old files)
-RUN echo "Verifying GENERATE_OUTFIT entry point..." && \
-    grep -q "GENERATE_OUTFIT CALLED" ./src/services/robust_outfit_generation_service.py && \
-    echo "✅ generate_outfit entry point verified" || \
-    (echo "❌ generate_outfit entry point MISSING - build failed!" && exit 1) && \
-    echo "Verifying PHASE 1 START marker..." && \
-    grep -q "PHASE 1 START: occasion" ./src/services/robust_outfit_generation_service.py && \
-    echo "✅ PHASE 1 START marker verified" || \
-    (echo "❌ PHASE 1 START marker MISSING - build failed!" && exit 1) && \
-    echo "Verifying TIER FILTER CHECK marker..." && \
-    grep -q "TIER FILTER CHECK: Occasion" ./src/services/robust_outfit_generation_service.py && \
-    echo "✅ TIER FILTER CHECK marker verified" || \
-    (echo "❌ TIER FILTER CHECK marker MISSING - build failed!" && exit 1) && \
-    echo "Verifying tier filter blocking logic..." && \
-    grep -q "BLOCKED.*keyword" ./src/services/filters/formality_tier_system.py && \
-    echo "✅ Tier filter blocking logic verified" || \
-    (echo "❌ Tier filter blocking logic MISSING - build failed!" && exit 1)
+# Verify executable code rather than depending on temporary debug-log strings.
+RUN python -m py_compile \
+      ./src/services/robust_outfit_generation_service.py \
+      ./src/services/diversity_filter_service.py \
+      ./src/services/filters/formality_tier_system.py && \
+    grep -q "async def generate_outfit" ./src/services/robust_outfit_generation_service.py && \
+    grep -q "def _filter_by_tier" ./src/services/filters/formality_tier_system.py && \
+    echo "✅ Outfit generation modules verified"
 
 # Expose port (Railway will override with its own PORT)
 EXPOSE 8080
