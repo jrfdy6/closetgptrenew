@@ -68,9 +68,6 @@ export class ErrorHandler {
     // Log the error
     this.logError(robustError);
     
-    // Report to monitoring service
-    await this.reportError(robustError);
-    
     // Attempt recovery if configured
     if (robustError.recovery.retryable && robustError.recovery.fallbackAction) {
       return await this.attemptRecovery(robustError);
@@ -169,30 +166,6 @@ export class ErrorHandler {
     // Send to external logging service in production
     if (process.env.NODE_ENV === 'production') {
       this.sendToLoggingService(logEntry);
-    }
-  }
-
-  /**
-   * Report error to monitoring service
-   */
-  private async reportError(error: RobustError): Promise<void> {
-    try {
-      // In production, send to monitoring service (Sentry, LogRocket, etc.)
-      if (process.env.NODE_ENV === 'production') {
-        await fetch('/api/errors/report', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            code: error.code,
-            message: error.message,
-            severity: error.severity,
-            context: error.context,
-            timestamp: error.timestamp
-          })
-        });
-      }
-    } catch (reportingError) {
-      console.error('Failed to report error:', reportingError);
     }
   }
 

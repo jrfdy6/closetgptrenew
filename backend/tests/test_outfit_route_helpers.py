@@ -1,6 +1,12 @@
 """Regression tests for helpers used by the production outfit generator."""
 
+import io
+import time
 import unittest
+from contextlib import redirect_stdout
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from fastapi import status
 
@@ -11,6 +17,11 @@ from src.routes.outfit_generation_contract import (
     normalize_generation_user_profile,
 )
 from src.routes.outfits.routes import safe_get
+from src.services.filters.formality_tier_system import FormalityTier, FormalityTierSystem
+from src.services.diversity_filter_service import DiversityFilterService
+import src.services.diversity_filter_service as diversity_filter_module
+from src.services.robust_outfit_generation_service import RobustOutfitGenerationService
+import src.services.robust_outfit_generation_service as robust_generation_module
 
 
 class WardrobeItem:
@@ -112,6 +123,101 @@ class GenerationProfileNormalizationTests(unittest.TestCase):
 
         self.assertEqual(normalized["bodyType"], "inverted_triangle")
         self.assertEqual(normalized["skinTone"], "light")
+
+
+class RobustGenerationLatencyContractTests(unittest.TestCase):
+    def test_constructor_defers_heavy_flat_lay_services(self):
+        service = RobustOutfitGenerationService()
+
+        self.assertTrue(service.enable_flat_lay_generation)
+        self.assertIsNone(service.flat_lay_service)
+        self.assertIsNone(service.flat_lay_storage)
+
+    def test_recent_items_are_reused_from_cache_without_a_firestore_client(self):
+        now_seconds = time.time()
+        now_ms = int(now_seconds * 1000)
+        recent_iso = datetime.now(timezone.utc).isoformat()
+        old_datetime = datetime.now(timezone.utc) - timedelta(days=10)
+        cached_history = {
+            "user-1": [
+                {"createdAt": now_ms, "items": [{"id": "ms-item"}]},
+                {"createdAt": now_seconds, "items": [SimpleNamespace(id="seconds-item")]},
+                {"createdAt": recent_iso, "items": ["iso-item"]},
+                {"createdAt": old_datetime, "items": [{"id": "old-item"}]},
+                {"items": [{"id": "legacy-item"}]},
+            ]
+        }
+
+        with patch.object(
+            robust_generation_module,
+            "diversity_filter",
+            SimpleNamespace(outfit_history=cached_history),
+        ):
+            service = RobustOutfitGenerationService()
+            item_ids = service._get_recently_used_items("user-1", hours=48)
+
+        self.assertEqual(item_ids, {"ms-item", "seconds-item", "iso-item", "legacy-item"})
+
+
+class FormalityFilterLoggingTests(unittest.TestCase):
+    def test_tier_filter_keeps_item_diagnostics_out_of_stdout(self):
+        system = FormalityTierSystem()
+        wardrobe = [
+            {"id": "shirt-1", "name": "Navy dress shirt", "type": "shirt"},
+            {"id": "slides-1", "name": "Pool slides", "type": "shoes"},
+        ]
+
+        output = io.StringIO()
+        with redirect_stdout(output):
+            filtered = system._filter_by_tier(
+                wardrobe,
+                FormalityTier.TIER_1_STRICT_FORMAL,
+                lambda item, key, default=None: item.get(key, default),
+            )
+
+        self.assertEqual([item["id"] for item in filtered], ["shirt-1"])
+        self.assertEqual(output.getvalue(), "")
+
+
+class DiversityHistoryContractTests(unittest.TestCase):
+    def test_firestore_history_is_bounded_and_cached_oldest_first(self):
+        class FakeDocument:
+            def __init__(self, document_id, data):
+                self.id = document_id
+                self._data = data
+
+            def to_dict(self):
+                return self._data
+
+        class FakeQuery:
+            timeout = None
+
+            def where(self, *_args, **_kwargs):
+                return self
+
+            def order_by(self, *_args, **_kwargs):
+                return self
+
+            def limit(self, *_args, **_kwargs):
+                return self
+
+            def stream(self, timeout=None):
+                self.timeout = timeout
+                return [
+                    FakeDocument("newest", {"createdAt": 2, "items": [{"id": "new"}]}),
+                    FakeDocument("oldest", {"createdAt": 1, "items": [{"id": "old"}]}),
+                ]
+
+        query = FakeQuery()
+        fake_db = SimpleNamespace(collection=lambda _name: query)
+
+        with patch.object(diversity_filter_module, "FIREBASE_AVAILABLE", True), patch.object(
+            diversity_filter_module, "db", fake_db
+        ):
+            history = DiversityFilterService()._load_outfit_history_from_firestore("user-1")
+
+        self.assertEqual(query.timeout, 3.0)
+        self.assertEqual([outfit["id"] for outfit in history], ["oldest", "newest"])
 
 
 if __name__ == "__main__":

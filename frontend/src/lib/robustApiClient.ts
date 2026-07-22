@@ -7,6 +7,30 @@ import { handleError, retryWithBackoff, CircuitBreaker } from './errorHandler';
 import { DataValidator } from './dataValidator';
 import { buildPublicBackendUrl } from './publicBackendUrl';
 
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number
+): Promise<Response> {
+  const controller = new AbortController();
+  let timedOut = false;
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (timedOut) {
+      throw new Error(`Request timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export interface ApiClientConfig {
   baseUrl: string;
   timeout: number;
@@ -54,7 +78,7 @@ export class RobustApiClient {
   private constructor(config: Partial<ApiClientConfig> = {}) {
     this.config = {
       baseUrl: config.baseUrl || '/api',
-      timeout: config.timeout || 60000, // Increased from 30s to 60s for large wardrobes (145 items)
+      timeout: config.timeout || 45000,
       maxRetries: config.maxRetries || 3,
       retryDelay: config.retryDelay || 1000,
       enableCircuitBreaker: config.enableCircuitBreaker !== false,
@@ -142,10 +166,9 @@ export class RobustApiClient {
       headers['Authorization'] = `Bearer ${request.authToken}`;
     }
 
-    const fetchConfig: RequestInit = {
+    const fetchConfig: Omit<RequestInit, 'signal'> = {
       method: request.method,
-      headers,
-      signal: AbortSignal.timeout(request.timeout || this.config.timeout)
+      headers
     };
 
     if (request.data && ['POST', 'PUT', 'PATCH'].includes(request.method)) {
@@ -153,16 +176,24 @@ export class RobustApiClient {
     }
 
     const executeWithCircuitBreaker = async (): Promise<Response> => {
+      // Create a fresh signal for every attempt. Reusing an expired AbortSignal
+      // makes every retry fail immediately, even if the service has recovered.
+      const executeFetch = () => fetchWithTimeout(
+        url,
+        fetchConfig,
+        request.timeout || this.config.timeout
+      );
+
       if (this.config.enableCircuitBreaker) {
-        return await this.circuitBreaker.execute(() => fetch(url, fetchConfig));
+        return await this.circuitBreaker.execute(executeFetch);
       } else {
-        return await fetch(url, fetchConfig);
+        return await executeFetch();
       }
     };
 
     const response = await retryWithBackoff(
       executeWithCircuitBreaker,
-      this.config.maxRetries,
+      request.retryable === false ? 0 : this.config.maxRetries,
       this.config.retryDelay
     );
 
@@ -396,7 +427,12 @@ export async function generateOutfit(requestData: any, authToken?: string): Prom
       method: 'POST',
       endpoint: '/outfits-existing-data/generate-personalized',  // Client baseUrl already includes '/api'
       data: requestData,
-      retryable: true,
+      // Generation persists diversity history, so it is intentionally
+      // non-idempotent. Never replay this POST automatically.
+      retryable: false,
+      // The backend is designed to finish in seconds, but allow one bounded
+      // request to survive an infrastructure cold start without duplicating it.
+      timeout: 120000,
       authToken: authToken
     });
   } catch (error: any) {
@@ -407,14 +443,14 @@ export async function generateOutfit(requestData: any, authToken?: string): Prom
       const railwayBackendUrl = buildPublicBackendUrl('/api/outfits-existing-data/generate-personalized');
       
       try {
-        const directResponse = await fetch(railwayBackendUrl, {
+        const directResponse = await fetchWithTimeout(railwayBackendUrl, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(requestData),
-        });
+        }, 120000);
         
         if (!directResponse.ok) {
           throw new Error(`Direct backend call failed: ${directResponse.status} ${directResponse.statusText}`);

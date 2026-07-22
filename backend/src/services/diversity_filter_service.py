@@ -142,7 +142,10 @@ class DiversityFilterService:
                 .order_by('createdAt', direction='DESCENDING')\
                 .limit(self.max_recent_outfits)
             
-            docs = outfits_ref.stream()
+            # Diversity is helpful but must never hold the generation path open.
+            # The configured Firebase client normally returns quickly; this bound
+            # keeps a transient Firestore stall from becoming an outfit timeout.
+            docs = outfits_ref.stream(timeout=3.0)
             firestore_outfits = []
             
             for doc in docs:
@@ -191,6 +194,10 @@ class DiversityFilterService:
                         'confidence': outfit_data.get('confidence', 0.0)
                     })
             
+            # Firestore returned newest-first. The in-memory APIs append new
+            # outfits and read ``[-limit:]``, so keep the cache oldest-first.
+            firestore_outfits.reverse()
+
             logger.info(f"📊 Loaded {len(firestore_outfits)} outfits from Firestore for user {user_id}")
             
             # Log sample outfit for verification

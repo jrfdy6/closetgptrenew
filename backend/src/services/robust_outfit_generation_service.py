@@ -8,14 +8,7 @@ fallback strategies, body type optimization, and style profile integration.
 """
 # CACHE BUSTER: 2025-12-19T22:05Z - NUCLEAR BYTECODE CLEAR
 
-# MODULE LOAD DEBUG - This prints when Python first imports this module
 import sys
-print(f"\n{'='*100}", file=sys.stderr, flush=True)
-print(f"🔥🔥🔥 MODULE LOAD: robust_outfit_generation_service.py IMPORTED", file=sys.stderr, flush=True)
-print(f"🔥🔥🔥 CODE VERSION: 2025-12-19T22:05Z", file=sys.stderr, flush=True)
-print(f"🔥🔥🔥 TIER FILTER DEBUG ENABLED", file=sys.stderr, flush=True)
-print(f"{'='*100}\n", file=sys.stderr, flush=True)
-sys.stderr.flush()
 
 import asyncio
 import logging
@@ -71,7 +64,6 @@ try:
     from src.custom_types.weather import WeatherData
     from src.custom_types.profile import UserProfile
     from src.services.robust_hydrator import ensure_items_safe_for_pydantic
-    print("✅ ROBUST SERVICE: Using real imports")
     USING_REAL_CLASSES = True
 except (ImportError, ValueError) as e:
     print(f"❌ ROBUST SERVICE: Real imports failed: {e}")
@@ -338,19 +330,16 @@ class RobustOutfitGenerationService:
         )
         logger.info("✅ Filter systems initialized (tier system + occasion filters)")
         
-        # Initialize flat lay services
-        try:
-            from .flat_lay_composition_service import FlatLayCompositionService
-            from .flat_lay_storage_service import FlatLayStorageService
-            self.flat_lay_service = FlatLayCompositionService()
-            self.flat_lay_storage = FlatLayStorageService()
-            self.enable_flat_lay_generation = True  # ENABLED with worker processing
-            logger.info("✅ Flat lay services initialized (using pre-processed images from worker)")
-        except Exception as e:
-            logger.warning(f"⚠️ Flat lay services not available: {e}")
-            self.flat_lay_service = None
-            self.flat_lay_storage = None
-            self.enable_flat_lay_generation = False
+        # Flat lays are generated only after explicit user consent. Importing the
+        # composition stack here eagerly loads rembg and storage clients, adding
+        # tens of seconds to the first outfit request even though neither service
+        # is used during outfit selection. Keep the capability enabled for response
+        # metadata and initialize the heavy services only if the on-demand helper
+        # is actually called.
+        self.flat_lay_service = None
+        self.flat_lay_storage = None
+        self.enable_flat_lay_generation = True
+        logger.info("✅ Flat lay services deferred until an explicit user request")
         
         # Data quality tracking for metadata/name conflicts
         self.conflict_stats = {
@@ -989,15 +978,6 @@ class RobustOutfitGenerationService:
     
     async def generate_outfit(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Generate an outfit with multi-layered scoring system"""
-        import sys
-        
-        # EXTREME DEBUG - Print to both stdout and stderr
-        debug_msg = f"\n{'='*80}\n🚨 GENERATE_OUTFIT CALLED: occasion={context.occasion}, style={context.style}\n{'='*80}\n"
-        print(debug_msg, file=sys.stdout, flush=True)
-        print(debug_msg, file=sys.stderr, flush=True)
-        sys.stdout.flush()
-        sys.stderr.flush()
-        
         logger.info(f"🎨 Starting robust outfit generation for user {context.user_id}")
         logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
         logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
@@ -1044,15 +1024,12 @@ class RobustOutfitGenerationService:
                 }
             }
             logger.error("🔥 ROBUST SERVICE CRASH - NoneType .get() error detected", extra=error_details, exc_info=True)
-            print(f"🔥 ROBUST SERVICE CRASH: {error_details}")
-            print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
             raise
     
     async def _generate_outfit_internal(self, context: GenerationContext, session_id: str) -> OutfitGeneratedOutfit:
         """Internal outfit generation logic with full error handling and session tracking"""
         
-        print(f"🚨🚨🚨 FUNCTION START: _generate_outfit_internal called for occasion='{context.occasion}'")
-        logger.error(f"🚨🚨🚨 FUNCTION START: _generate_outfit_internal called for occasion='{context.occasion}'")
+        logger.info("Starting robust generation pipeline for occasion '%s'", context.occasion)
         
         # ═══════════════════════════════════════════════════════════════════════
         # HYDRATION & CONTEXT VALIDATION
@@ -1214,13 +1191,8 @@ class RobustOutfitGenerationService:
         # Each analyzer scores items, then cohesive composition uses all scores
         # ═══════════════════════════════════════════════════════════
         
-        import sys
-        print(f"\n{'='*80}", flush=True)
-        print(f"🔬 PHASE 1 START: occasion={context.occasion}", flush=True)
-        print(f"{'='*80}\n", flush=True)
-        sys.stdout.flush()
         logger.info(f"🔬 PHASE 1: Filtering & Multi-Layered Analysis & Scoring")
-        logger.error(f"🚨🚨🚨 CRITICAL DEBUG: About to check tier filter for occasion='{context.occasion}'")
+        logger.debug("Checking tier filter for occasion '%s'", context.occasion)
         
         # ═══════════════════════════════════════════════════════════
         # STEP 1: OCCASION-FIRST FILTERING (with fallbacks)
@@ -1233,37 +1205,22 @@ class RobustOutfitGenerationService:
         # BEFORE the occasion filter, so we don't lose formal items
         # This allows style-aware fallback (Tier 1 → Tier 2 → Tier 3)
         progressive_filter_applied = False
-        import sys
-        
-        # WRITE TO FILE to bypass Railway's broken log ordering
-        with open('/tmp/tier_filter_debug.log', 'a') as f:
-            f.write(f"\n{'='*80}\n")
-            f.write(f"TIER FILTER CHECK\n")
-            f.write(f"Occasion: {context.occasion}\n")
-            f.write(f"Style: {context.style}\n")
-            f.write(f"Should apply: {self.tier_system.should_apply_tier_filter(context.occasion)}\n")
-            f.write(f"{'='*80}\n")
-        
-        print(f"🚨🚨🚨 TIER FILTER CHECK: Occasion='{context.occasion}', should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}", flush=True)
-        sys.stdout.flush()
-        logger.error(f"🚨🚨🚨 TIER FILTER CHECK: Occasion='{context.occasion}', should_apply={self.tier_system.should_apply_tier_filter(context.occasion)}")
+
+        logger.debug(
+            "Tier filter check: occasion=%s should_apply=%s",
+            context.occasion,
+            self.tier_system.should_apply_tier_filter(context.occasion),
+        )
         
         if self.tier_system.should_apply_tier_filter(context.occasion):
-            with open('/tmp/tier_filter_debug.log', 'a') as f:
-                f.write(f"TIER FILTER: RUNNING for {context.occasion}\n")
-            
-            print(f"🎯 PROGRESSIVE TIER FILTER: Running BEFORE occasion filter for {context.occasion}")
-            logger.error(f"🎯 PROGRESSIVE TIER FILTER: Running BEFORE occasion filter for {context.occasion}")
+            logger.info("Running progressive tier filter for %s", context.occasion)
             try:
                 # Import occasion fallbacks for semantic matching
                 from src.utils.semantic_compatibility import OCCASION_FALLBACKS
                 
                 recently_used_item_ids = self._get_recently_used_items(context.user_id, hours=48)
-                
-                with open('/tmp/tier_filter_debug.log', 'a') as f:
-                    f.write(f"Recently used items: {len(recently_used_item_ids)}\n")
-                    f.write(f"Wardrobe size before filter: {len(context.wardrobe)}\n")
-                
+                items_before_tier = len(context.wardrobe)
+
                 filtered_wardrobe, tier_used = self.tier_system.apply_progressive_filter(
                     wardrobe=context.wardrobe,
                     occasion=context.occasion,
@@ -1278,35 +1235,25 @@ class RobustOutfitGenerationService:
                 # Store tier filter results in context for debugging
                 context.tier_filter_results = {
                     'tier_used': tier_used.value,
-                    'items_before': 23,  # We know this from the logs
+                    'items_before': items_before_tier,
                     'items_after': len(context.wardrobe),
-                    'items_removed': 23 - len(context.wardrobe),
+                    'items_removed': items_before_tier - len(context.wardrobe),
                     'sample_items': [self.safe_get_item_name(item) for item in context.wardrobe[:10]]
                 }
-                
-                with open('/tmp/tier_filter_debug.log', 'a') as f:
-                    f.write(f"Tier used: {tier_used.value}\n")
-                    f.write(f"Wardrobe size after filter: {len(context.wardrobe)}\n")
-                    f.write(f"Items remaining: {[self.safe_get_item_name(item) for item in context.wardrobe[:5]]}\n")
-                
-                print(f"✅ PROGRESSIVE TIER FILTER: Applied {tier_used.value}, {len(context.wardrobe)} items remaining", flush=True)
-                print(f"✅ TIER FILTER REMOVED: {23 - len(context.wardrobe)} items", flush=True)
-                logger.error(f"✅ PROGRESSIVE TIER FILTER: Applied {tier_used.value} for {context.occasion} + {context.style}")
-                logger.error(f"✅ PROGRESSIVE TIER FILTER: {len(context.wardrobe)} items remaining after tier filtering")
+
+                logger.info(
+                    "Progressive tier filter applied %s for %s + %s; %d items remain",
+                    tier_used.value,
+                    context.occasion,
+                    context.style,
+                    len(context.wardrobe),
+                )
             except Exception as e:
-                with open('/tmp/tier_filter_debug.log', 'a') as f:
-                    f.write(f"ERROR: {str(e)}\n")
-                    import traceback
-                    f.write(f"TRACEBACK:\n{traceback.format_exc()}\n")
-                
-                print(f"❌ PROGRESSIVE TIER FILTER ERROR: {e}")
                 logger.error(f"❌ PROGRESSIVE TIER FILTER ERROR: {e}")
                 import traceback
                 logger.error(f"❌ TRACEBACK: {traceback.format_exc()}")
         else:
-            with open('/tmp/tier_filter_debug.log', 'a') as f:
-                f.write(f"TIER FILTER: SKIPPED for {context.occasion}\n")
-            print(f"⏭️ PROGRESSIVE TIER FILTER: Skipped for occasion '{context.occasion}'")
+            logger.debug("Progressive tier filter skipped for occasion '%s'", context.occasion)
         
         # Store flag in context so hard filter can skip if progressive filter was used
         context.progressive_filter_applied = progressive_filter_applied
@@ -3622,38 +3569,66 @@ class RobustOutfitGenerationService:
         return True
     
     def _get_recently_used_items(self, user_id: str, hours: int = 48) -> set:
-        """Get set of item IDs worn in the last N hours from Firestore"""
+        """Return recent item IDs from the diversity service's bounded cache.
+
+        The diversity phase already loads recent outfit history from the configured
+        Firebase Admin client. Creating a second ``google.cloud.firestore.Client``
+        here can trigger slow application-default-credential discovery on Railway
+        and duplicates the same read. Reusing the shared cache keeps the tier
+        filter non-blocking; the first request still receives the full diversity
+        boost later in the pipeline, and following requests can also use these IDs
+        during tier selection.
+        """
         try:
-            import time
-            from google.cloud import firestore
-            
-            # Get Firestore client
-            db = firestore.Client()
-            
-            # Calculate cutoff timestamp
-            cutoff_time = int(time.time()) - (hours * 3600)
-            
-            # Query for recent outfits
-            outfits_ref = db.collection('outfits').where('user_id', '==', user_id).where('createdAt', '>=', cutoff_time)
-            recent_outfits = outfits_ref.stream()
-            
+            history_by_user = getattr(diversity_filter, "outfit_history", {})
+            recent_history = history_by_user.get(user_id, []) if history_by_user else []
+            if not recent_history:
+                return set()
+
+            cutoff_seconds = time.time() - (hours * 3600)
             used_item_ids = set()
-            for outfit_doc in recent_outfits:
-                outfit_data = outfit_doc.to_dict()
-                items = outfit_data.get('items', [])
-                if isinstance(items, list):
-                    for item in items:
-                        # Handle both item objects and item IDs
-                        item_id = item.get('id') if isinstance(item, dict) else item
-                        if item_id:
-                            used_item_ids.add(str(item_id))
-            
-            logger.debug(f"📊 Found {len(used_item_ids)} recently used items in last {hours} hours")
+
+            for outfit in recent_history:
+                if not isinstance(outfit, dict):
+                    continue
+
+                created_at = outfit.get("createdAt")
+                created_seconds = None
+                if isinstance(created_at, datetime):
+                    created_seconds = created_at.timestamp()
+                elif isinstance(created_at, (int, float)):
+                    created_seconds = float(created_at)
+                    if created_seconds > 10_000_000_000:
+                        created_seconds /= 1000
+                elif isinstance(created_at, str) and created_at.strip():
+                    raw_timestamp = created_at.strip()
+                    try:
+                        numeric_timestamp = float(raw_timestamp)
+                        created_seconds = numeric_timestamp / 1000 if numeric_timestamp > 10_000_000_000 else numeric_timestamp
+                    except ValueError:
+                        try:
+                            created_seconds = datetime.fromisoformat(raw_timestamp.replace("Z", "+00:00")).timestamp()
+                        except ValueError:
+                            created_seconds = None
+
+                # Cached history is already bounded to recent outfits. Keep legacy
+                # entries without timestamps, but ignore entries known to be old.
+                if created_seconds is not None and created_seconds < cutoff_seconds:
+                    continue
+
+                items = outfit.get("items", [])
+                if not isinstance(items, list):
+                    continue
+                for item in items:
+                    item_id = item.get("id") if isinstance(item, dict) else getattr(item, "id", item)
+                    if item_id:
+                        used_item_ids.add(str(item_id))
+
+            logger.debug(f"📊 Reused {len(used_item_ids)} recent item IDs from diversity cache")
             return used_item_ids
-            
         except Exception as e:
-            logger.warning(f"⚠️ Could not fetch recently used items: {e}")
-            return set()  # Return empty set on error (graceful fallback)
+            logger.warning(f"⚠️ Could not read cached recently used items: {e}")
+            return set()
     
     def _apply_progressive_interview_business_filter(self, wardrobe, context, recently_used_item_ids):
         """
@@ -8300,6 +8275,13 @@ class RobustOutfitGenerationService:
             Public URL of the flat lay image, or None on failure
         """
         try:
+            if self.flat_lay_service is None or self.flat_lay_storage is None:
+                from .flat_lay_composition_service import FlatLayCompositionService
+                from .flat_lay_storage_service import FlatLayStorageService
+
+                self.flat_lay_service = FlatLayCompositionService()
+                self.flat_lay_storage = FlatLayStorageService()
+
             # Generate flat lay image
             flat_lay_image, error = await self.flat_lay_service.create_flat_lay(
                 outfit_items=outfit_items,
