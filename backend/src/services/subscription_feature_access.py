@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 import logging
 
 from ..config.firebase import db
+from .subscription_read_repair import read_subscription_user
 
 logger = logging.getLogger(__name__)
 
@@ -45,11 +46,9 @@ def check_feature_access(
     """
     try:
         # Get user document
-        user_doc = db.collection('users').document(user_id).get()
-        if not user_doc.exists:
+        user_data = read_subscription_user(db, user_id)
+        if user_data is None:
             return False, "User not found", {}
-        
-        user_data = user_doc.to_dict() or {}
         
         # Check if feature is defined in access matrix
         if feature not in FEATURE_ACCESS_MATRIX:
@@ -62,30 +61,6 @@ def check_feature_access(
         # Determine role/tier
         role = subscription.get('role') or subscription.get('tier', 'tier1')
         status = subscription.get('status', 'active')
-        period_end = subscription.get('currentPeriodEnd', 0)
-        cancel_at_period_end = subscription.get('cancelAtPeriodEnd', False)
-        
-        # Check if subscription period has ended
-        from datetime import datetime, timezone
-        now_timestamp = int(datetime.now(timezone.utc).timestamp())
-        if period_end > 0 and now_timestamp >= period_end:
-            # Period has ended - downgrade to free tier
-            if cancel_at_period_end or status == 'canceled':
-                role = 'tier1'
-                status = 'canceled'
-                # Update user document
-                from ..config.firebase import db
-                from ..services.subscription_utils import DEFAULT_SUBSCRIPTION_TIER, TIER_LIMITS
-                user_ref = db.collection('users').document(user_id)
-                flatlay_limit = TIER_LIMITS.get(DEFAULT_SUBSCRIPTION_TIER, 1)
-                user_ref.update({
-                    'subscription.role': DEFAULT_SUBSCRIPTION_TIER,
-                    'subscription.status': 'canceled',
-                    'subscription.priceId': 'free',
-                    'quotas.flatlaysRemaining': flatlay_limit,
-                    'quotas.lastRefillAt': now_timestamp,
-                })
-                logger.info(f"Period ended for user {user_id}, downgraded to {DEFAULT_SUBSCRIPTION_TIER}")
         
         # Check subscription status
         if require_active and status not in ACTIVE_STATUSES:
@@ -173,4 +148,3 @@ def get_user_subscription_info(user_id: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error getting subscription info: {e}", exc_info=True)
         return {'error': str(e)}
-

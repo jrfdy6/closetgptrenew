@@ -71,26 +71,6 @@ export default function OutfitGenerationBottomSheet({
     });
   };
 
-  const handleShuffleInSheet = () => {
-    // Auto-select random values
-    const randomOccasion = occasions[Math.floor(Math.random() * occasions.length)];
-    const randomStyle = styles[Math.floor(Math.random() * styles.length)];
-    const randomMood = moods[Math.floor(Math.random() * moods.length)];
-    
-    setSelectedOccasion(randomOccasion);
-    setSelectedStyle(randomStyle);
-    setSelectedMood(randomMood);
-    
-    // Auto-trigger generation
-    setTimeout(() => {
-      onGenerate({
-        occasion: randomOccasion,
-        style: randomStyle,
-        mood: randomMood,
-      });
-    }, 100);
-  };
-
   const canGenerate = selectedOccasion && selectedStyle && selectedMood && !generating;
 
   return (
@@ -277,7 +257,7 @@ export default function OutfitGenerationBottomSheet({
             whileHover={{ scale: 1.01 }}
           >
             <Button 
-              onClick={handleShuffleInSheet}
+              onClick={onShuffle}
               disabled={generating}
               variant="outline"
               className="w-full h-12 text-base font-semibold border-2 border-amber-500/50 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all duration-200 relative overflow-hidden group"
@@ -324,4 +304,3 @@ export default function OutfitGenerationBottomSheet({
     </Sheet>
   );
 }
-

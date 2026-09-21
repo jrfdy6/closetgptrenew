@@ -4,7 +4,7 @@ import copy
 import logging
 import sys
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
@@ -12,6 +12,39 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from src.routes.outfits.routes import get_current_user, get_current_user_id, router
+
+
+def firestore_order(value):
+    """Firestore type precedence; integer/double values share numeric ordering."""
+    if value is None:
+        return (0, 0)
+    if isinstance(value, bool):
+        return (1, value)
+    if isinstance(value, (int, float)):
+        return (2, value)
+    if isinstance(value, datetime):
+        aware = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        return (3, aware.timestamp())
+    if isinstance(value, str):
+        return (4, value.encode('utf-8'))
+    raise AssertionError(f'Unsupported fake Firestore type: {type(value)}')
+
+
+def firestore_matches(row, field, operator, expected):
+    if field not in row:
+        return False
+    actual = firestore_order(row[field])
+    expected = firestore_order(expected)
+    # Firestore inequalities are type-bracketed, unlike ordered cursors.
+    if actual[0] != expected[0]:
+        return False
+    return {
+        '==': actual == expected,
+        '>': actual > expected,
+        '>=': actual >= expected,
+        '<': actual < expected,
+        '<=': actual <= expected,
+    }[operator]
 
 
 class FakeDocument:
@@ -55,8 +88,7 @@ class FakeQuery:
         return FakeDocument(self.store, self.collection, document_id)
 
     def where(self, key, operator, value):
-        assert operator == '=='
-        return FakeQuery(self.store, self.collection, (*self.filters, (key, value)), self.ordering, self.count)
+        return FakeQuery(self.store, self.collection, (*self.filters, (key, operator, value)), self.ordering, self.count)
 
     def order_by(self, key, direction=None):
         return FakeQuery(self.store, self.collection, self.filters, key, self.count)
@@ -68,16 +100,23 @@ class FakeQuery:
         # This is a generator: errors happen on iteration like Firestore.
         if self.store.fail_reads:
             raise RuntimeError('simulated read failure')
-        if self.ordering and self.store.fail_ordering:
+        self.store.queries.append(self)
+        if self.ordering and (self.store.fail_ordering or any(
+            field in self.store.fail_ordering_fields for field, _, _ in self.filters
+        )):
             raise RuntimeError('simulated missing composite index')
         rows = [
             (key, value) for key, value in self.store.records.get(self.collection, {}).items()
-            if all(value.get(field) == expected for field, expected in self.filters)
+            if all(firestore_matches(value, field, operator, expected)
+                   for field, operator, expected in self.filters)
         ]
         if self.ordering:
             rows = [(key, value) for key, value in rows if self.ordering in value]
-            rows.sort(key=lambda row: row[1][self.ordering], reverse=True)
+            rows.sort(key=lambda row: (firestore_order(row[1][self.ordering]), row[0]), reverse=True)
+        else:
+            rows.sort(key=lambda row: row[0])
         for key, _ in rows[:self.count]:
+            self.store.reads.append((self.collection, key))
             yield FakeDocument(self.store, self.collection, key)
 
 
@@ -85,7 +124,10 @@ class FakeFirestore:
     def __init__(self):
         self.records = {'outfits': {}, 'wardrobe': {}}
         self.writes = []
+        self.reads = []
+        self.queries = []
         self.fail_ordering = False
+        self.fail_ordering_fields = set()
         self.fail_writes = False
         self.fail_reads = False
 
@@ -205,6 +247,127 @@ class OutfitPersistenceTests(unittest.TestCase):
         self.assertEqual([row['id'] for row in listed], ['3', '2', '1', '0'])
         self.assertTrue(all(row['isFavorite'] is False for row in listed))
         self.assertTrue(all(row['createdAt'].endswith('Z') for row in listed))
+
+    def test_firestore_fake_models_type_order_and_type_bracketed_ranges(self):
+        instant = datetime(2026, 9, 21, tzinfo=timezone.utc)
+        for key, value in [('number', instant.timestamp()), ('date', instant), ('iso', instant.isoformat())]:
+            self.seed(key, user_id='owner-1', createdAt=value)
+        query = self.store.collection('outfits').where('user_id', '==', 'owner-1')
+        self.assertEqual([doc.id for doc in query.order_by('createdAt').stream()], ['iso', 'date', 'number'])
+        self.assertEqual([doc.id for doc in query.where('createdAt', '>=', '').stream()], ['iso'])
+        self.assertEqual([doc.id for doc in query.where('createdAt', '>=', datetime.min.replace(tzinfo=timezone.utc)).stream()], ['date'])
+        self.assertEqual([doc.id for doc in query.where('createdAt', '<=', 1e12).stream()], ['number'])
+
+    def test_fresh_generated_milliseconds_survive_more_than_100_older_strings_and_dates(self):
+        now = datetime(2026, 9, 21, 12, tzinfo=timezone.utc)
+        for index in range(130):
+            old = now - timedelta(days=1, minutes=index)
+            self.seed(f'iso-{index:03}', user_id='owner-1', createdAt=old.isoformat())
+            self.seed(f'date-{index:03}', user_id='owner-1', createdAt=old)
+        self.seed('fresh-generated', user_id='owner-1', createdAt=now.timestamp() * 1000)
+        # The real Firestore comparator reproduces the former omission.
+        old_page = self.store.collection('outfits').where('user_id', '==', 'owner-1').order_by('createdAt').limit(100)
+        self.assertNotIn('fresh-generated', [doc.id for doc in old_page.stream()])
+        self.store.reads.clear()
+        listed = self.listed(limit=50)
+        self.assertEqual(len(listed), 50)
+        self.assertEqual(listed[0]['id'], 'fresh-generated')
+        self.assertLessEqual(sum(collection == 'outfits' for collection, _ in self.store.reads), 2910)
+        self.assertEqual(self.store.writes, [])
+
+    def test_seconds_are_not_hidden_by_older_milliseconds(self):
+        now = datetime(2026, 9, 21, 12, tzinfo=timezone.utc)
+        for index in range(130):
+            self.seed(f'old-{index:03}', user_id='owner-1', createdAt=(now - timedelta(days=1, minutes=index)).timestamp() * 1000)
+        self.seed('new-seconds', user_id='owner-1', createdAt=now.timestamp())
+        self.assertEqual(self.listed(limit=50)[0]['id'], 'new-seconds')
+
+    def test_mixed_pagination_has_no_skips_or_duplicates_including_tied_times(self):
+        now = datetime(2026, 9, 21, 12, tzinfo=timezone.utc)
+        expected = []
+        for index in range(120):
+            instant = now - timedelta(minutes=index // 4)
+            value = [instant.isoformat(), instant, instant.timestamp(), instant.timestamp() * 1000][index % 4]
+            document_id = f'outfit-{index:03}'
+            owners = [{'user_id': 'owner-1'}, {'userId': 'owner-1'}, {'user_id': 'owner-1', 'userId': 'owner-1'}][index % 3]
+            self.seed(document_id, **owners, createdAt=value)
+            expected.append((int(instant.timestamp() * 1000), document_id))
+        expected = [document_id for _, document_id in sorted(expected, reverse=True)]
+        actual = [row['id'] for offset in range(0, 120, 20) for row in self.listed(limit=20, offset=offset)]
+        self.assertEqual(actual, expected)
+        self.assertEqual(len(set(actual)), 120)
+
+    def test_missing_legacy_index_uses_complete_owner_set_and_global_sort(self):
+        self.store.fail_ordering_fields = {'userId'}
+        self.seed('canonical', user_id='owner-1', createdAt='2026-09-19T10:00:00Z')
+        self.seed('legacy-latest', userId='owner-1', createdAt='2026-09-21T10:00:00Z')
+        self.assertEqual([row['id'] for row in self.listed(limit=1)], ['legacy-latest'])
+        self.assertEqual(self.store.writes, [])
+
+    def test_missing_index_never_returns_an_incomplete_unordered_sample(self):
+        self.store.fail_ordering = True
+        for index in range(251):
+            self.seed(f'old-{index:03}', user_id='owner-1', createdAt='2026-09-19T10:00:00Z')
+        self.seed('zzz-newest', user_id='owner-1', createdAt='2026-09-21T10:00:00Z')
+        response = self.client.get('/api/outfits', params={'limit': 50})
+        self.assertEqual(response.status_code, 503, response.text)
+        self.assertEqual(len(self.store.reads), 251)
+        self.assertEqual(self.store.writes, [])
+
+    def test_conflicting_owner_saturation_fails_instead_of_hiding_owned_rows(self):
+        for index in range(301):
+            self.seed(f'conflict-{index:03}', user_id='owner-1', userId='owner-2', createdAt='2026-09-21T10:00:00Z')
+        self.seed('owned', user_id='owner-1', createdAt='2026-09-19T10:00:00Z')
+        response = self.client.get('/api/outfits', params={'limit': 1})
+        self.assertEqual(response.status_code, 503, response.text)
+        self.assertEqual(len(self.store.reads), 301)
+
+    def test_iso_fraction_variants_are_normalized_before_pagination(self):
+        # Z sorts after '.', although the fractional timestamp is newer.
+        for index in range(130):
+            self.seed(f'old-{index:03}', user_id='owner-1', createdAt='2026-09-21T10:00:00Z')
+        self.seed('fraction-latest', user_id='owner-1', createdAt='2026-09-21T10:00:00.999Z')
+        self.assertEqual(self.listed(limit=1)[0]['id'], 'fraction-latest')
+
+    def test_uncertifiable_iso_boundary_fails_with_bounded_reads(self):
+        for index in range(301):
+            self.seed(f'old-{index:03}', user_id='owner-1', createdAt='2026-09-21T10:00:00Z')
+        self.seed('fraction-latest', user_id='owner-1', createdAt='2026-09-21T10:00:00.999Z')
+        response = self.client.get('/api/outfits', params={'limit': 1})
+        self.assertEqual(response.status_code, 503, response.text)
+        self.assertEqual(len(self.store.reads), 301)
+
+    def test_large_chronologically_ordered_cohorts_remain_bounded(self):
+        now = datetime(2026, 9, 21, 12, tzinfo=timezone.utc)
+        for index in range(400):
+            self.seed(f'outfit-{index:03}', user_id='owner-1', createdAt=(now - timedelta(hours=index)).isoformat())
+        self.assertEqual([row['id'] for row in self.listed(limit=50, offset=200)], [f'outfit-{index:03}' for index in range(200, 250)])
+        self.assertEqual(sum(collection == 'outfits' for collection, _ in self.store.reads), 301)
+
+    def test_unseen_negative_offset_cannot_hide_behind_a_full_utc_prefix(self):
+        now = datetime(2026, 9, 21, 12, tzinfo=timezone.utc)
+        for index in range(301):
+            self.seed(f'utc-{index:03}', user_id='owner-1', createdAt=(now - timedelta(minutes=index)).isoformat())
+        # Raw 06:59 sorts below the last UTC row at07:00, but means18:59UTC.
+        self.seed('actually-newest', user_id='owner-1', createdAt='2026-09-21T06:59:00-12:00')
+        response = self.client.get('/api/outfits', params={'limit': 1})
+        self.assertEqual(response.status_code, 503, response.text)
+        self.assertEqual(len(self.store.reads), 301)
+
+    def test_dense_saturated_iso_history_fails_without_a_certifiable_utc_boundary(self):
+        now = datetime(2026, 9, 21, 12, tzinfo=timezone.utc)
+        for index in range(400):
+            self.seed(f'outfit-{index:03}', user_id='owner-1', createdAt=(now - timedelta(minutes=index)).isoformat())
+        response = self.client.get('/api/outfits', params={'limit': 50})
+        self.assertEqual(response.status_code, 503, response.text)
+        self.assertEqual(len(self.store.reads), 301)
+
+    def test_invalid_pagination_is_rejected_before_any_reads(self):
+        for params in ({'limit': 0}, {'limit': -1}, {'offset': -1}, {'limit': 50, 'offset': 201}):
+            response = self.client.get('/api/outfits', params=params)
+            self.assertEqual(response.status_code, 422, response.text)
+        self.assertEqual(self.store.reads, [])
+        self.assertEqual(self.store.queries, [])
 
     def test_favorite_true_false_and_retries_persist_without_changing_other_fields(self):
         self.seed('legacy', userId='owner-1', favorite=True, notes='Preserve', wearCount=7)

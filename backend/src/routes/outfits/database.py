@@ -4,6 +4,7 @@ Handles all Firestore operations for outfits, wardrobe, and user profiles.
 """
 
 import logging
+import re
 import time
 import urllib.parse
 from datetime import datetime, timezone
@@ -20,26 +21,88 @@ def outfit_belongs_to_user(outfit: Dict[str, Any], user_id: str) -> bool:
     return bool(user_id) and bool(owners) and all(owner == user_id for owner in owners)
 
 
-def _get_owned_outfit_documents(db, user_id: str, fetch_limit: int):
-    """Merge canonical and legacy queries before sorting/paginating the result."""
+_MAX_OUTFIT_PAGE_END = 250
+_OUTFIT_COHORT_LIMIT = 301
+_OUTFIT_FALLBACK_LIMIT = 251
+_ISO_CREATED_AT = re.compile(
+    r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}|\+00:00Z)?$'
+)
+
+
+def _get_owned_outfit_documents(db, user_id: str, required_count: int):
+    """Merge bounded chronological cohorts, never a partial unordered sample.
+
+    Firestore inequality filters compare matching types (numbers share a type).
+    These four ranges reuse owner + createdAt DESC indexes. Extended ISO strings,
+    Firestore dates, numeric seconds and numeric milliseconds therefore cannot
+    crowd one another out before normalization. Missing createdAt remains
+    excluded, just as it is by Firestore order_by.
+
+    At most 4*301 returned documents per owner plus 251 if a query fails
+    (including a partial stream) and needs fallback: <=2910 outfit reads total.
+    No cursor, offset scan, backfill, or index migration is required.
+    """
     from firebase_admin import firestore
 
     documents = {}
+    cohorts = (
+        ('iso', (('>=', ''),)),
+        ('timestamp', (('>=', datetime.min.replace(tzinfo=timezone.utc)),)),
+        ('seconds', (('<=', 1e12),)),
+        ('milliseconds', (('>', 1e12),)),
+    )
     for owner_field in ('user_id', 'userId'):
         query = db.collection('outfits').where(owner_field, '==', user_id)
+        owner_documents = {}
         try:
-            # Consume the stream here: missing-index errors can be raised during
-            # iteration, not only when stream() is called.
-            results = list(query.order_by(
-                'createdAt', direction=firestore.Query.DESCENDING
-            ).limit(fetch_limit).stream())
+            for kind, bounds in cohorts:
+                cohort = query
+                for operator, value in bounds:
+                    cohort = cohort.where('createdAt', operator, value)
+                # Consume here: missing-index errors also occur on iteration.
+                results = list(cohort.order_by(
+                    'createdAt', direction=firestore.Query.DESCENDING
+                ).limit(_OUTFIT_COHORT_LIMIT).stream())
+                owned = [document for document in results
+                         if outfit_belongs_to_user(document.to_dict() or {}, user_id)]
+                if len(results) == _OUTFIT_COHORT_LIMIT:
+                    # Overscan is bounded. If conflicting owners, timestamp
+                    # ties, or ISO spelling differences prevent establishing
+                    # the newest requested prefix, fail instead of truncating.
+                    newest = sorted(
+                        (compute_created_at_ms(doc.to_dict()['createdAt']) for doc in owned),
+                        reverse=True,
+                    )
+                    boundary = results[-1].to_dict()['createdAt']
+                    unread_ceiling = compute_created_at_ms(boundary)
+                    if kind == 'iso':
+                        # Extended ISO sorts by wall-clock whole second, not
+                        # UTC instant. An unseen row can have a negative offset
+                        # even when this entire prefix uses UTC. Python ISO
+                        # offsets are strictly under 24h; add that envelope and
+                        # the remaining fraction of the boundary second.
+                        for document in results:
+                            value = document.to_dict()['createdAt']
+                            if not _ISO_CREATED_AT.fullmatch(value):
+                                raise HTTPException(status_code=503, detail='Outfit timestamp ordering unavailable')
+                            datetime.fromisoformat(value.replace('+00:00Z', 'Z').replace('Z', '+00:00'))
+                        unread_ceiling = compute_created_at_ms(boundary[:19]) + 86_400_999
+                    if len(newest) < required_count or newest[required_count - 1] <= unread_ceiling:
+                        raise HTTPException(status_code=503, detail='Outfit listing exceeds safe read limit')
+                owner_documents.update((document.id, document) for document in owned)
+        except HTTPException:
+            raise
         except Exception as error:
-            logger.warning('Outfit ordering unavailable for %s; using bounded fallback: %s', owner_field, error)
-            results = list(query.limit(fetch_limit).stream())
-        for document in results:
-            data = document.to_dict() or {}
-            if outfit_belongs_to_user(data, user_id):
-                documents[document.id] = document
+            logger.warning('Outfit ordering unavailable for %s; checking complete bounded owner set: %s', owner_field, error)
+            results = list(query.limit(_OUTFIT_FALLBACK_LIMIT).stream())
+            if len(results) == _OUTFIT_FALLBACK_LIMIT:
+                raise HTTPException(status_code=503, detail='Outfit ordering unavailable; owner set exceeds safe read limit')
+            owner_documents = {
+                document.id: document for document in results
+                if (document.to_dict() or {}).get('createdAt') is not None
+                and outfit_belongs_to_user(document.to_dict() or {}, user_id)
+            }
+        documents.update(owner_documents)
     return documents.values()
 
 # Import for Firestore timestamp handling
@@ -422,8 +485,11 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_c
 
 async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
     """Get user outfits from Firestore with pagination."""
-    # Temporary: Increase limit to show more outfits
+    if limit < 1 or offset < 0:
+        raise HTTPException(status_code=422, detail='Outfit limit must be positive and offset nonnegative')
     limit = min(limit, 200)
+    if offset + limit > _MAX_OUTFIT_PAGE_END:
+        raise HTTPException(status_code=422, detail='Outfit pagination supports the newest 250 outfits')
     logger.info(f"🔍 DEBUG: Fetching outfits for user {user_id} (limit={limit}, offset={offset})")
     
     try:
@@ -439,9 +505,7 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
             raise HTTPException(status_code=503, detail="Database unavailable")
             
         # Keep reads bounded, including the legacy manual-save owner spelling.
-        fetch_limit = limit + offset + 50
-        fetch_limit = min(max(fetch_limit, limit), 250)
-        docs = _get_owned_outfit_documents(db, user_id, fetch_limit)
+        docs = _get_owned_outfit_documents(db, user_id, limit + offset)
         
         # First pass: collect outfit data
         outfits = []
@@ -463,13 +527,6 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
                 )
                 created_at_ms = compute_created_at_ms(raw_created_at)
                 outfit_data['created_at_ms'] = created_at_ms
-                
-                # Backfill missing milliseconds field in Firestore for future ordering
-                if not outfit_data.get('created_at_ms'):
-                    try:
-                        doc.reference.update({"created_at_ms": created_at_ms})
-                    except Exception as update_error:
-                        logger.debug(f"🔁 DEBUG: Skipped created_at_ms backfill for {doc.id}: {update_error}")
                 
                 # Normalize timestamp immediately to prevent later errors
                 outfit_data['createdAt'] = normalize_created_at(raw_created_at)
@@ -506,7 +563,7 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
             wardrobe_cache = None
         
         # Always apply client-side sorting to ensure consistency across mixed timestamp types
-        outfits.sort(key=lambda x: x.get('created_at_ms', 0), reverse=True)
+        outfits.sort(key=lambda x: (x.get('created_at_ms', 0), x['id']), reverse=True)
         
         # Apply pagination in application layer
         start_idx = offset
