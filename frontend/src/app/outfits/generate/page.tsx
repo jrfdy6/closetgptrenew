@@ -37,6 +37,7 @@ import {
   assertRequiredBaseItem,
   buildOutfitGenerationUserProfile,
 } from '@/lib/outfitGenerationContract';
+import { randomOutfitConfiguration } from '@/lib/randomOutfitConfiguration';
 
 // Import new enhanced components
 import OutfitGenerationBottomSheet from '@/components/outfits/OutfitGenerationBottomSheet';
@@ -437,11 +438,12 @@ export default function OutfitGenerationPage() {
     // If no data provided, auto-generate random values
     if (!shuffledData) {
       const availableStyles = filteredStyles.length > 0 ? filteredStyles : styles;
-      shuffledData = {
-        occasion: occasions[Math.floor(Math.random() * occasions.length)],
-        style: availableStyles[Math.floor(Math.random() * availableStyles.length)],
-        mood: moods[Math.floor(Math.random() * moods.length)]
-      };
+      const configuration = randomOutfitConfiguration({ occasions, styles: availableStyles, moods });
+      if (!configuration) {
+        setError('No suitable random combination is available. Please choose your outfit settings.');
+        return;
+      }
+      shuffledData = configuration;
     }
     
     console.log('🎲 [Direct Shuffle] Received shuffled values:', shuffledData);

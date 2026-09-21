@@ -19,6 +19,7 @@ from ..services.subscription_utils import (
     WEEKLY_ALLOWANCE_SECONDS,
 )
 from ..services.subscription_feature_access import get_user_subscription_info
+from ..services.subscription_read_repair import read_subscription_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["payments"])
@@ -67,66 +68,14 @@ async def get_current_subscription(
 ) -> SubscriptionResponse:
     """Get current user subscription details - checks period end and downgrades if needed"""
     try:
-        user_doc = db.collection('users').document(user_id).get()
-        if not user_doc.exists:
+        user_data = read_subscription_user(db, user_id, reset_unbacked_premium=True)
+        if user_data is None:
             raise HTTPException(status_code=404, detail="User not found")
-        
-        user_data = user_doc.to_dict() or {}
         
         # Support both old and new schema
         subscription = user_data.get('subscription', {})
-        billing = user_data.get('billing', {})
-        customer_id = billing.get('stripeCustomerId')
         role = subscription.get('role') or subscription.get('tier', DEFAULT_ROLE)
         status = subscription.get('status', 'active')
-        period_end = subscription.get('currentPeriodEnd', 0)
-        cancel_at_period_end = subscription.get('cancelAtPeriodEnd', False)
-        
-        now_timestamp = int(datetime.now(timezone.utc).timestamp())
-        
-        # Reset test mode subscriptions: if user has premium subscription but no customer ID, reset to free
-        if role != DEFAULT_ROLE and not customer_id:
-            logger.warning(f"User {user_id} has subscription (role={role}) but no customer ID. Resetting to free tier.")
-            flatlay_limit = ROLE_LIMITS.get(DEFAULT_ROLE, 1)
-            user_ref = db.collection('users').document(user_id)
-            user_ref.update({
-                'subscription.role': DEFAULT_ROLE,
-                'subscription.status': 'active',
-                'subscription.priceId': 'free',
-                'subscription.currentPeriodEnd': 0,
-                'subscription.cancelAtPeriodEnd': False,
-                'subscription.stripeSubscriptionId': firestore.DELETE_FIELD,
-                'quotas.flatlaysRemaining': flatlay_limit,
-                'quotas.lastRefillAt': now_timestamp,
-                'subscription.last_updated': firestore.SERVER_TIMESTAMP,
-            })
-            role = DEFAULT_ROLE
-            status = 'active'
-            period_end = 0
-            cancel_at_period_end = False
-        
-        # Check if subscription period has ended and user should be downgraded
-        if period_end > 0 and now_timestamp >= period_end:
-            # Period has ended - check if subscription was canceled
-            if cancel_at_period_end or status == 'canceled':
-                # Downgrade to free tier
-                flatlay_limit = ROLE_LIMITS.get(DEFAULT_ROLE, 1)
-                user_ref = db.collection('users').document(user_id)
-                updates = {
-                    'subscription.role': DEFAULT_ROLE,
-                    'subscription.status': 'canceled',
-                    'subscription.priceId': 'free',
-                    'quotas.flatlaysRemaining': flatlay_limit,
-                    'quotas.lastRefillAt': now_timestamp,
-                    # Clean up legacy fields
-                    'subscription.tier': firestore.DELETE_FIELD,
-                    'subscription.openai_flatlays_used': firestore.DELETE_FIELD,
-                    'subscription.flatlay_week_start': firestore.DELETE_FIELD,
-                }
-                user_ref.update(updates)
-                role = DEFAULT_ROLE
-                status = 'canceled'
-                logger.info(f"Period ended for user {user_id}, downgraded to {DEFAULT_ROLE}")
         
         # Get quotas (new schema) or calculate from old schema
         quotas = user_data.get('quotas', {})
