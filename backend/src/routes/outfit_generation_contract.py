@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import math
 from collections.abc import Mapping, Sequence
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -271,3 +272,13 @@ def normalize_generation_user_profile(
         },
     }
     return normalized
+
+
+def generator_confidence(value: Any) -> Optional[float]:
+    """Read an actual generator score, preserving zero and never inventing a default."""
+    for key in ('confidence_score', 'confidence'):
+        score = _read(value, key)
+        if (isinstance(score, (int, float)) and not isinstance(score, bool)
+                and 0 <= score <= 1 and math.isfinite(score)):
+            return float(score)
+    return None

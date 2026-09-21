@@ -14,7 +14,7 @@ from collections import defaultdict
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, StrictBool
 
 # Import from parent modules
 from ...auth.auth_service import get_current_user, get_current_user_id
@@ -26,7 +26,7 @@ from ...core.cache import cache_manager
 from .database import (
     get_user_wardrobe, get_user_profile, save_outfit,
     get_user_outfits, get_user_wardrobe_cached, get_user_profile_cached,
-    normalize_created_at
+    normalize_created_at, outfit_belongs_to_user
 )
 from .helpers import (
     _generate_outfit_cache_key, _validate_cached_outfit,
@@ -108,8 +108,14 @@ class CreateOutfitRequest(BaseModel):
     occasion: str
     style: str
     description: Optional[str] = None
+    notes: Optional[str] = None
     items: List[Dict[str, Any]]
     createdAt: Optional[int] = None
+
+class OutfitFavoriteRequest(BaseModel):
+    """Set a favorite explicitly, so retries cannot toggle it back."""
+    model_config = ConfigDict(extra='forbid')
+    isFavorite: StrictBool
 
 class OutfitRatingRequest(BaseModel):
     """Request model for outfit rating."""
@@ -152,6 +158,12 @@ class OutfitResponse(BaseModel):
     user_id: Optional[str] = None
     generated_at: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+    description: Optional[str] = None
+    notes: Optional[str] = None
+    isFavorite: Optional[bool] = None
+    wearCount: Optional[int] = None
+    lastWorn: Optional[Any] = None
+    updatedAt: Optional[Any] = None
 
 
 def safe_get(item, key, default=None):
@@ -655,27 +667,35 @@ async def create_custom_outfit(
 ):
     """Create a custom outfit by manually selecting items."""
     try:
+        if not current_user_id:
+            raise HTTPException(status_code=401, detail="Authentication required")
         logger.info(f"🎨 Creating custom outfit: {req.name} for user {current_user_id}")
         
         # Import Firebase
         try:
-            from src.config.firebase import db
+            from ...config.firebase import db, firebase_initialized
         except ImportError:
+            raise HTTPException(status_code=503, detail="Database unavailable")
+        if db is None or not firebase_initialized:
             raise HTTPException(status_code=503, detail="Database unavailable")
         
         # Create outfit document
-        outfit_id = f"outfit_{int(time.time())}"
+        outfit_id = f"outfit_{uuid4().hex}"
+        now = datetime.now(timezone.utc).isoformat()
         outfit_data = {
             "id": outfit_id,
             "name": req.name,
             "occasion": req.occasion,
             "style": req.style,
             "description": req.description or "",
+            "notes": req.notes,
             "items": req.items,
+            "user_id": current_user_id,
             "userId": current_user_id,
-            "createdAt": datetime.now().isoformat(),
+            "createdAt": now,
+            "updatedAt": now,
             "wearCount": 0,
-            "favorite": False,
+            "isFavorite": False,
             "metadata": {
                 "creation_type": "manual",
                 "item_count": len(req.items)
@@ -687,6 +707,7 @@ async def create_custom_outfit(
         logger.info(f"✅ Custom outfit saved: {outfit_id}")
         
         return {
+            **outfit_data,
             "success": True,
             "outfit_id": outfit_id,
             "message": "Outfit created successfully"
@@ -697,6 +718,81 @@ async def create_custom_outfit(
     except Exception as e:
         logger.error(f"❌ Failed to create outfit: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create outfit: {str(e)}")
+
+@router.post("/{outfit_id}/flat-lay-request", response_model=dict)
+async def request_outfit_flat_lay(
+    outfit_id: str,
+    current_user_id: str = Depends(get_current_user_id),
+):
+    """Atomically record explicit consent and reserve one credit for this outfit."""
+    if not current_user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    # Read at admission so a rollout pause never reserves or queues a new job.
+    import os
+    pause_setting = os.environ.get("EASYOUTFIT_FLATLAY_REQUESTS_PAUSED", "false").strip().lower()
+    if pause_setting not in {"true", "1", "yes", "on", "false", "0", "no", "off"}:
+        logger.error("Invalid EASYOUTFIT_FLATLAY_REQUESTS_PAUSED setting; requests remain paused")
+        pause_setting = "true"
+    if pause_setting in {"true", "1", "yes", "on"}:
+        raise HTTPException(
+            status_code=503,
+            detail="Flat-lay requests are temporarily paused. No credit was used. Please try again shortly.",
+            headers={"Retry-After": "60"},
+        )
+    from ...services.flatlay_lifecycle import FlatlayRequestError, reserve_request
+    try:
+        from ...config.firebase import db, firebase_initialized
+        if db is None or not firebase_initialized:
+            raise HTTPException(status_code=503, detail="Database unavailable")
+        return reserve_request(db, outfit_id, current_user_id)
+    except FlatlayRequestError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail)
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Failed to request flat lay")
+        raise HTTPException(status_code=503, detail="The preview request could not be confirmed. Please try again.")
+
+
+@router.put("/{outfit_id}/favorite", response_model=dict)
+async def set_outfit_favorite(
+    outfit_id: str,
+    req: OutfitFavoriteRequest,
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """Change only favorite state and timestamp for an authenticated owner."""
+    if not current_user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    try:
+        from ...config.firebase import db, firebase_initialized
+        if db is None or not firebase_initialized:
+            raise HTTPException(status_code=503, detail="Database unavailable")
+
+        outfit_ref = db.collection('outfits').document(outfit_id)
+        outfit_doc = outfit_ref.get()
+        if not outfit_doc.exists:
+            raise HTTPException(status_code=404, detail="Outfit not found")
+        if not outfit_belongs_to_user(outfit_doc.to_dict() or {}, current_user_id):
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        updated_at = datetime.now(timezone.utc).isoformat()
+        outfit_ref.update({'isFavorite': req.isFavorite, 'updatedAt': updated_at})
+        # The list endpoint reads Firestore directly; it has no backend list
+        # cache to invalidate. Do not evict unrelated generation results.
+        return {
+            'success': True,
+            'id': outfit_id,
+            'outfit_id': outfit_id,
+            'isFavorite': req.isFavorite,
+            'updatedAt': updated_at,
+        }
+    except HTTPException:
+        raise
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    except Exception:
+        logger.exception('Failed to update outfit favorite')
+        raise HTTPException(status_code=500, detail="Failed to update outfit favorite")
 
 @router.post("/rate", response_model=OutfitRatingResponse)
 async def rate_outfit(
@@ -1538,10 +1634,11 @@ async def list_outfits_no_slash(
             
         return [OutfitResponse(**o) for o in outfits]
         
-    except Exception as e:
-        logger.error(f"❌ Failed to fetch outfits for {current_user_id}: {e}", exc_info=True)
-        # Fallback to mock data on error
-        raise HTTPException(status_code=500, detail=f"Failed to fetch user outfits: {e}")
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Failed to fetch outfits")
+        raise HTTPException(status_code=500, detail="Failed to fetch outfits")
 
 # 10. GET /stats/summary (Outfit statistics)
 @router.get("/stats/summary")

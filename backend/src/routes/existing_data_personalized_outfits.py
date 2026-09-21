@@ -22,6 +22,7 @@ UPGRADED TO USE ROBUST SERVICE:
 
 import logging
 import time
+from uuid import uuid4
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
@@ -30,6 +31,7 @@ from pydantic import BaseModel
 from ..services.existing_data_personalization import ExistingDataPersonalizationEngine
 from .outfit_generation_contract import (
     RequiredBaseItemNotFound,
+    generator_confidence,
     enforce_required_base_item,
     item_identifier,
     normalize_generation_user_profile,
@@ -74,7 +76,7 @@ class OutfitResponse(BaseModel):
     occasion: str
     mood: str
     weather: Dict[str, Any]
-    confidence_score: float
+    confidence_score: Optional[float] = None
     personalization_score: Optional[float] = None
     personalization_applied: bool = False
     user_interactions: int = 0
@@ -443,7 +445,7 @@ async def generate_personalized_outfit_from_existing_data(
                     outfit_analysis = await generate_outfit_analysis(
                         outfit_items, 
                         req, 
-                        {'total_score': getattr(robust_outfit, 'confidence_score', 0.85)},
+                        {'total_score': generator_confidence(robust_outfit)},
                         metadata=analysis_metadata
                     )
                     logger.info(f"✅ Generated outfit analysis: {list(outfit_analysis.keys()) if outfit_analysis else 'None'}")
@@ -470,10 +472,10 @@ async def generate_personalized_outfit_from_existing_data(
                 _last_outfit_metadata = base_metadata
                 
                 existing_result = {
-                    "id": f"outfit_{int(time.time())}",
+                    "id": f"outfit_{uuid4().hex}",
                     "name": f"{req.style} {req.occasion} Outfit",
                     "items": outfit_items,
-                    "confidence_score": getattr(robust_outfit, 'confidence_score', 0.85),
+                    "confidence_score": generator_confidence(robust_outfit),
                     "outfitAnalysis": outfit_analysis,  # Add detailed analysis
                     "metadata": {
                         **base_metadata,  # 🔥 PRESERVE flat_lay_url and other metadata from robust service
@@ -688,7 +690,7 @@ async def generate_personalized_outfit_from_existing_data(
                 outfit_analysis = await generate_outfit_analysis(
                     outfit_items, 
                     req, 
-                    {'total_score': 0.95},
+                    {},
                     metadata=analysis_metadata
                 )
                 logger.info(f"✅ [SIMPLE] Generated outfit analysis: {list(outfit_analysis.keys()) if outfit_analysis else 'None'}")
@@ -698,10 +700,10 @@ async def generate_personalized_outfit_from_existing_data(
                 logger.error(f"Traceback: {traceback.format_exc()}")
             
             existing_result = {
-                "id": f"outfit_{int(time.time())}",
+                "id": f"outfit_{uuid4().hex}",
                 "name": f"{req.style} {req.occasion} Outfit",
                 "items": outfit_items,
-            "confidence_score": 0.95,
+            "confidence_score": None,
             "outfitAnalysis": outfit_analysis,  # Add detailed analysis
             "metadata": {
                 "generated_by": "existing_data_personalization",
@@ -757,14 +759,14 @@ async def generate_personalized_outfit_from_existing_data(
         
         # Create response with real validation metadata
         outfit_response = {
-            "id": (existing_result.get("id", f"personalized_{int(time.time())}") if existing_result else f"personalized_{int(time.time())}"),
+            "id": (existing_result.get("id", f"personalized_{uuid4().hex}") if existing_result else f"personalized_{uuid4().hex}"),
             "name": (existing_result.get("name", "Personalized Outfit") if existing_result else "Personalized Outfit"),
             "items": (existing_result.get("items", []) if existing_result else []),
             "style": req.style,
             "occasion": req.occasion,
             "mood": req.mood,
             "weather": req.weather or {},
-            "confidence_score": ((existing_result.get("confidence_score", existing_result.get("confidence", 0.8) if existing_result else 0.8) if existing_result else 0.8)),
+            "confidence_score": generator_confidence(existing_result),
             "personalization_score": (existing_result.get("personalization_score") if existing_result else None),
             "personalization_applied": (existing_result.get("personalization_applied", False) if existing_result else False),
             "user_interactions": preference.total_interactions,

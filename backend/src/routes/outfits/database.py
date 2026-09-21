@@ -6,10 +6,41 @@ Handles all Firestore operations for outfits, wardrobe, and user profiles.
 import logging
 import time
 import urllib.parse
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 
+from fastapi import HTTPException
+
 logger = logging.getLogger(__name__)
+
+
+def outfit_belongs_to_user(outfit: Dict[str, Any], user_id: str) -> bool:
+    """Accept either historical owner field, but never conflicting owners."""
+    owners = [outfit[key] for key in ('user_id', 'userId') if outfit.get(key) is not None]
+    return bool(user_id) and bool(owners) and all(owner == user_id for owner in owners)
+
+
+def _get_owned_outfit_documents(db, user_id: str, fetch_limit: int):
+    """Merge canonical and legacy queries before sorting/paginating the result."""
+    from firebase_admin import firestore
+
+    documents = {}
+    for owner_field in ('user_id', 'userId'):
+        query = db.collection('outfits').where(owner_field, '==', user_id)
+        try:
+            # Consume the stream here: missing-index errors can be raised during
+            # iteration, not only when stream() is called.
+            results = list(query.order_by(
+                'createdAt', direction=firestore.Query.DESCENDING
+            ).limit(fetch_limit).stream())
+        except Exception as error:
+            logger.warning('Outfit ordering unavailable for %s; using bounded fallback: %s', owner_field, error)
+            results = list(query.limit(fetch_limit).stream())
+        for document in results:
+            data = document.to_dict() or {}
+            if outfit_belongs_to_user(data, user_id):
+                documents[document.id] = document
+    return documents.values()
 
 # Import for Firestore timestamp handling
 try:
@@ -45,7 +76,9 @@ def compute_created_at_ms(created_at) -> int:
         
         if isinstance(created_at, str):
             try:
-                parsed = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                parsed = datetime.fromisoformat(created_at.replace('+00:00Z', 'Z').replace("Z", "+00:00"))
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=timezone.utc)
                 return int(parsed.timestamp() * 1000)
             except Exception:
                 return int(time.time() * 1000)
@@ -54,7 +87,8 @@ def compute_created_at_ms(created_at) -> int:
             return int(created_at.timestamp() * 1000)
         
         if isinstance(created_at, datetime):
-            return int(created_at.timestamp() * 1000)
+            aware_created_at = created_at if created_at.tzinfo else created_at.replace(tzinfo=timezone.utc)
+            return int(aware_created_at.timestamp() * 1000)
         
     except Exception as e:
         logger.warning(f"⚠️ Failed to compute created_at_ms from {created_at}: {e}")
@@ -67,11 +101,12 @@ def normalize_created_at(created_at) -> str:
     try:
         # Case 1: Firestore Timestamp object (DatetimeWithNanoseconds)
         if FIRESTORE_TIMESTAMP_AVAILABLE and isinstance(created_at, DatetimeWithNanoseconds):
-            return created_at.isoformat() + "Z" if not created_at.isoformat().endswith("Z") else created_at.isoformat()
+            return created_at.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
         
         # Case 2: Python datetime object
         if isinstance(created_at, datetime):
-            return created_at.isoformat() + "Z" if not created_at.isoformat().endswith("Z") else created_at.isoformat()
+            aware_created_at = created_at if created_at.tzinfo else created_at.replace(tzinfo=timezone.utc)
+            return aware_created_at.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
         
         # Case 3: Int/float timestamp (seconds or milliseconds since epoch) - SAFE RANGE CHECK
         if isinstance(created_at, (int, float)):
@@ -398,48 +433,15 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
             FIREBASE_AVAILABLE = True
         except ImportError as e:
             logger.warning(f"⚠️ Firebase import failed: {e}")
-            return []
+            raise HTTPException(status_code=503, detail="Database unavailable")
         
-        if not FIREBASE_AVAILABLE or not firebase_initialized:
-            logger.warning("⚠️ Firebase not available, returning empty outfits")
-            return []
+        if not FIREBASE_AVAILABLE or not firebase_initialized or db is None:
+            raise HTTPException(status_code=503, detail="Database unavailable")
             
-        logger.info(f"📚 DEBUG: About to query Firestore collection('outfits') with user_id == '{user_id}'")
-        
-        # FIXED: Query main outfits collection with user_id field (snake_case)
-        # This matches the Pydantic model and outfit creation code
-        outfits_ref = db.collection("outfits").where("user_id", "==", user_id)
-        
-        # CRITICAL FIX: Use proper Firestore ordering to get newest outfits first
-        use_firestore_ordering = True
-        try:
-            from firebase_admin import firestore
-            outfits_ref = outfits_ref.order_by("createdAt", direction=firestore.Query.DESCENDING)
-            logger.info("✅ DEBUG: Using Firestore server-side ordering by createdAt DESC")
-        except Exception as e:
-            logger.warning(f"⚠️ DEBUG: Firestore ordering failed ({e}), will use client-side sorting")
-            use_firestore_ordering = False
-        
-        # Apply pagination based on whether ordering worked
-        # Always fetch a small buffer to ensure custom outfits are included even if Firestore ordering differs
+        # Keep reads bounded, including the legacy manual-save owner spelling.
         fetch_limit = limit + offset + 50
         fetch_limit = min(max(fetch_limit, limit), 250)
-        
-        if use_firestore_ordering:
-            outfits_ref = outfits_ref.limit(fetch_limit)
-        else:
-            outfits_ref = outfits_ref.limit(min(fetch_limit, 250))
-        
-        logger.info(f"🔍 DEBUG: Firestore query: limit={limit}, offset={offset}")
-        
-        # Execute query with error handling to prevent timeout
-        try:
-            logger.info(f"🔍 DEBUG: Executing Firestore query with .stream()...")
-            docs = outfits_ref.stream()
-            logger.info(f"🔍 DEBUG: Firestore query executed successfully, processing results...")
-        except Exception as e:
-            logger.error(f"🔥 Firestore query failed: {e}", exc_info=True)
-            return []  # Return empty list instead of crashing
+        docs = _get_owned_outfit_documents(db, user_id, fetch_limit)
         
         # First pass: collect outfit data
         outfits = []
@@ -447,6 +449,11 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
             try:
                 outfit_data = doc.to_dict()
                 outfit_data['id'] = doc.id
+                outfit_data['user_id'] = user_id
+                # Preserve an explicit false value when an older favorite alias
+                # still exists on the document.
+                if outfit_data.get('isFavorite') is None:
+                    outfit_data['isFavorite'] = bool(outfit_data.get('favorite', False))
                 
                 # Compute consistent milliseconds timestamp
                 raw_created_at = (
@@ -523,14 +530,11 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         logger.info(f"✅ DEBUG: Successfully retrieved {len(outfits)} outfits from Firestore for user {user_id}")
         return outfits
         
-    except Exception as e:
-        logger.error(f"❌ ERROR: Failed to fetch outfits from Firestore: {e}", exc_info=True)
-        logger.error(f"❌ ERROR: Exception type: {type(e)}")
-        logger.error(f"❌ ERROR: Exception details: {str(e)}")
-        import traceback
-        logger.error(f"❌ ERROR: Full traceback: {traceback.format_exc()}")
-        # Return empty list instead of raising exception to prevent timeout
-        return []
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Failed to fetch outfits from Firestore")
+        raise HTTPException(status_code=500, detail="Failed to fetch outfits")
 
 
 async def get_user_wardrobe_cached(user_id: str) -> List[Dict]:
@@ -579,4 +583,3 @@ async def get_user_profile_cached(user_id: str) -> Dict:
     get_user_profile_cached._cache[cache_key] = (profile, time.time())
     
     return profile
-

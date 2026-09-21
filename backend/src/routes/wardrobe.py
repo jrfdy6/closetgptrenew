@@ -7,6 +7,8 @@ from datetime import datetime
 import logging
 import traceback
 
+from .wardrobe_update_contract import build_wardrobe_update
+
 # Import production monitoring
 try:
     from ..services.production_monitoring_service import (
@@ -877,6 +879,15 @@ async def get_wardrobe_items_with_slash(
                     "metadata": item_data.get('metadata'),
                     "analysis": item_data.get('analysis'),
                     "brand": item_data.get('brand'),
+                    # Keep previously editable values available after a reload.
+                    "size": item_data.get('size'),
+                    "purchasePrice": item_data.get('purchasePrice'),
+                    **{field: item_data[field] for field in (
+                        'description', 'material', 'sleeveLength', 'fit', 'neckline',
+                        'length', 'transparency', 'collarType', 'embellishments',
+                        'printSpecificity', 'rise', 'legOpening', 'heelHeight',
+                        'statementLevel',
+                    ) if field in item_data},
                     "dominantColors": item_data.get('dominantColors', []),
                     "matchingColors": item_data.get('matchingColors', []),
                     "backgroundRemovedUrl": item_data.get('backgroundRemovedUrl'),
@@ -1039,13 +1050,17 @@ async def update_wardrobe_item(
         if item.get('userId') != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorized to update this item")
         
-        # Update item data
-        update_data = {
-            **item_data,
-            "updatedAt": int(time.time())
-        }
-        
-        # Update in Firestore
+        try:
+            update_data = build_wardrobe_update(item_data)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error))
+
+        if not update_data:
+            return {"success": True, "message": "No changes to save"}
+
+        # Nested field paths preserve metadata siblings and concurrent worker output.
+        # Never accept identity, owner, or server-owned timestamps from the client.
+        update_data["updatedAt"] = int(time.time())
         doc_ref.update(update_data)
         
         # Log analytics event
@@ -1070,17 +1085,20 @@ async def update_wardrobe_item(
                 except Exception as e:
                     logger.warning(f"⚠️ Failed to log favorite toggle interaction: {e}")
             
-            # Also log general update event
-            analytics_event = AnalyticsEvent(
-                user_id=current_user.id,
-                event_type="wardrobe_item_updated",
-                metadata={
-                    "item_id": item_id,
-                    "updated_fields": list(item_data.keys()),
-                    "item_type": (item.get("type") if item else None)
-                }
-            )
-            log_analytics_event(analytics_event)
+            # Analytics failure must not report a successful write as a failed save.
+            try:
+                analytics_event = AnalyticsEvent(
+                    user_id=current_user.id,
+                    event_type="wardrobe_item_updated",
+                    metadata={
+                        "item_id": item_id,
+                        "updated_fields": list(item_data.keys()),
+                        "item_type": (item.get("type") if item else None)
+                    }
+                )
+                log_analytics_event(analytics_event)
+            except Exception as analytics_error:
+                logger.warning(f"Failed to log wardrobe update: {analytics_error}")
         
         logger.info(f"Wardrobe item updated: {item_id}")
         
