@@ -11,16 +11,18 @@ print("🔍 Worker script starting...", file=sys.stderr, flush=True)
 print("🔍 Python version:", sys.version, file=sys.stderr, flush=True)
 print("🔍 Using railway.worker.toml config with NIXPACKS builder (root railway.toml removed)", file=sys.stderr, flush=True)
 
-from subscription_utils import (
-    DEFAULT_SUBSCRIPTION_TIER,
-    TIER_LIMITS,
-    WEEKLY_ALLOWANCE_SECONDS,
-    parse_iso8601,
-    format_iso8601,
-    quotas_defaults,
-    subscription_defaults,
+from flatlay_lifecycle import (
+    REQUESTS_COLLECTION,
+    claim_request,
+    finish_request,
 )
-print("✅ Loaded worker-local subscription_utils", file=sys.stderr, flush=True)
+from flatlay_reference_images import (
+    prepare_original_references,
+    build_reference_edit_payload,
+    ReferenceImageError,
+    MAX_IMAGE_BYTES as MAX_REFERENCE_IMAGE_BYTES,
+    MAX_IMAGE_PIXELS as MAX_REFERENCE_IMAGE_PIXELS,
+)
 
 # Continue with other imports
 import base64
@@ -33,7 +35,7 @@ from pathlib import Path
 from io import BytesIO
 from urllib.parse import urlparse, unquote
 from rembg import remove
-from PIL import Image, UnidentifiedImageError, ImageFilter, ImageDraw
+from PIL import Image, UnidentifiedImageError, ImageFilter, ImageDraw, ImageOps
 from concurrent.futures import ProcessPoolExecutor, TimeoutError
 from uuid import uuid4
 from openai import OpenAI
@@ -211,6 +213,26 @@ def resize_image(img: Image.Image, max_width: int, max_height: int) -> Image.Ima
     return img
 
 
+def constrain_original_reference_image(image: Image.Image, *,
+                                       max_pixels: int = MAX_REFERENCE_IMAGE_PIXELS,
+                                       max_bytes: int = MAX_REFERENCE_IMAGE_BYTES) -> Image.Image:
+    """Keep original pixels when within bounds; otherwise resize without styling."""
+    bounded = image
+    if bounded.width * bounded.height > max_pixels:
+        edge_limit = max(1, int(max_pixels ** 0.5))
+        bounded = resize_image(bounded, edge_limit, edge_limit)
+    # PNG can be larger than the original JPEG. Bound the actual stored encoding,
+    # matching the reference loader, rather than trusting incoming file size.
+    for _ in range(12):
+        buffer = BytesIO()
+        bounded.save(buffer, format="PNG")
+        if buffer.tell() < max_bytes:
+            return bounded
+        bounded = resize_image(bounded, max(1, int(bounded.width * 0.85)),
+                               max(1, int(bounded.height * 0.85)))
+    raise ValueError("Original photo exceeds the supported reference size")
+
+
 def create_thumbnail(img: Image.Image, size: int) -> Image.Image:
     """Create square thumbnail"""
     img.thumbnail((size, size), Image.Resampling.LANCZOS)
@@ -302,17 +324,21 @@ def _extract_image_bytes_from_openai_response(response) -> bytes | None:
     return None
 
 
-def get_openai_image_edit_runtime_config() -> dict[str, str | float]:
+def get_openai_image_edit_runtime_config() -> dict[str, str | float | None]:
     """
     Mirror the backend AI runtime image-edit config locally.
 
     Railway deploys the worker with `backend/worker` as the root directory, so this
     service cannot import `backend/src/services/ai_runtime` at runtime.
     """
+    quality = (os.environ.get("EASYOUTFIT_OPENAI_IMAGE_EDIT_QUALITY") or "").strip().lower() or None
+    if quality is not None and quality not in {"low", "medium", "high", "auto"}:
+        raise ReferenceImageError("invalid_quality", "The preview image quality setting is invalid. Please contact support.")
     return {
         "api_url": OPENAI_IMAGE_EDIT_API_URL,
         "model": OPENAI_IMAGE_EDIT_MODEL,
         "timeout_seconds": OPENAI_IMAGE_EDIT_TIMEOUT_SECONDS,
+        "quality": quality,
     }
 
 
@@ -359,163 +385,6 @@ def _load_image_from_openai_image_response(response_data: dict, debug_prefix: st
         return Image.open(BytesIO(enhanced_bytes)).convert("RGBA")
 
     return None
-
-
-def reserve_openai_flatlay_slot(user_id: str | None) -> dict:
-    """Attempt to reserve an OpenAI flat lay usage for the user using new payment system schema."""
-    result = {
-        "allowed": False,
-        "tier": DEFAULT_SUBSCRIPTION_TIER,
-        "limit": TIER_LIMITS.get(DEFAULT_SUBSCRIPTION_TIER),
-        "used": 0,
-        "remaining": 0,
-        "week_start": None,
-        "reservation_active": False,
-        "reason": None,
-    }
-
-    if not user_id:
-        result["reason"] = "missing_user_id"
-        return result
-
-    doc_ref = db.collection("users").document(user_id)
-    transaction = db.transaction()
-
-    @firestore.transactional
-    def _reserve(txn):
-        snapshot = doc_ref.get(transaction=txn)
-        now = datetime.now(timezone.utc)
-
-        if snapshot.exists:
-            data = snapshot.to_dict() or {}
-        else:
-            data = {}
-
-        subscription = data.get("subscription") or {}
-        # Use new schema: subscription.role instead of subscription.tier
-        role = subscription.get("role") or subscription.get("tier") or DEFAULT_SUBSCRIPTION_TIER
-        limit = TIER_LIMITS.get(role, 1)
-        
-        # Use new schema: quotas.flatlaysRemaining instead of openai_flatlays_used
-        quotas = data.get("quotas", {})
-        remaining_raw = quotas.get("flatlaysRemaining", 0)
-        try:
-            remaining = int(remaining_raw)
-        except (TypeError, ValueError):
-            remaining = 0
-        
-        # Check if we need to refill (weekly reset)
-        last_refill_at = quotas.get("lastRefillAt")
-        if last_refill_at:
-            try:
-                last_refill_timestamp = int(last_refill_at)
-                last_refill_dt = datetime.fromtimestamp(last_refill_timestamp, tz=timezone.utc)
-                seconds_since_refill = (now - last_refill_dt).total_seconds()
-                if seconds_since_refill >= WEEKLY_ALLOWANCE_SECONDS:
-                    # Week has passed, refill quota
-                    remaining = limit
-            except (TypeError, ValueError):
-                # Invalid timestamp, refill to limit
-                remaining = limit
-        else:
-            # No refill timestamp, assume fresh start
-            remaining = limit
-
-        allowed = remaining > 0
-        new_remaining = max(0, remaining - 1) if allowed else remaining
-        used = limit - new_remaining
-
-        # Update using new schema
-        update_payload = {
-            "subscription.role": role,
-            "quotas.flatlaysRemaining": new_remaining,
-            "quotas.lastRefillAt": int(now.timestamp()),
-            "subscription.last_updated": firestore.SERVER_TIMESTAMP,
-        }
-
-        if snapshot.exists:
-            txn.update(doc_ref, update_payload)
-        else:
-            # Create new user document with proper structure (should rarely happen - users created via auth.py)
-            subscription_payload = subscription_defaults(tier=role, now=now)
-            subscription_payload["last_updated"] = firestore.SERVER_TIMESTAMP
-            quotas_payload = quotas_defaults(tier=role, now=now)
-            quotas_payload["flatlaysRemaining"] = new_remaining  # Override with actual remaining
-            
-            txn.set(doc_ref, {
-                "subscription": subscription_payload,
-                "quotas": quotas_payload
-            }, merge=True)
-
-        return {
-            "allowed": allowed,
-            "tier": role,
-            "limit": limit,
-            "used": used,
-            "remaining": new_remaining,
-            "week_start": now,
-            "reservation_active": allowed,
-            "reason": None if allowed else "limit_reached",
-        }
-
-    try:
-        reserve_result = _reserve(transaction)
-        result.update(reserve_result)
-    except Exception as reservation_error:
-        print(f"⚠️  Failed to reserve OpenAI flat lay slot: {reservation_error}")
-        result["reason"] = "reservation_error"
-
-    return result
-
-
-def release_openai_flatlay_slot(user_id: str | None):
-    """Release a previously reserved OpenAI flat lay slot (e.g., after fallback) using new payment system schema."""
-    if not user_id:
-        return
-
-    doc_ref = db.collection("users").document(user_id)
-    transaction = db.transaction()
-
-    @firestore.transactional
-    def _release(txn):
-        snapshot = doc_ref.get(transaction=txn)
-        if not snapshot.exists:
-            return
-
-        data = snapshot.to_dict() or {}
-        quotas = data.get("quotas", {})
-        remaining_raw = quotas.get("flatlaysRemaining", 0)
-
-        try:
-            remaining = int(remaining_raw)
-        except (TypeError, ValueError):
-            remaining = 0
-
-        subscription = data.get("subscription", {})
-        role = subscription.get("role") or subscription.get("tier") or DEFAULT_SUBSCRIPTION_TIER
-        limit = TIER_LIMITS.get(role, 1)
-        
-        # Increment remaining (but don't exceed limit)
-        new_remaining = min(limit, remaining + 1)
-
-        txn.update(doc_ref, {"quotas.flatlaysRemaining": new_remaining})
-
-    try:
-        _release(transaction)
-    except Exception as release_error:
-        print(f"⚠️  Failed to release OpenAI flat lay slot: {release_error}")
-
-
-def get_outfit_user_id(data: dict | None) -> str | None:
-    if not data:
-        return None
-    return (
-        data.get("userId")
-        or data.get("user_id")
-        or data.get("userID")
-        or (data.get("metadata") or {}).get("userId")
-        or (data.get("metadata") or {}).get("user_id")
-    )
 
 
 def build_flatlay_prompt(processed_images: list[dict], outfit_data: dict | None) -> str:
@@ -751,7 +620,7 @@ def generate_openai_flatlay_image(
         return None, str(openai_error)
 
 
-def upload_flatlay_image(image: Image.Image, outfit_id: str, renderer_tag: str = "compositor_v1") -> str | None:
+def upload_flatlay_image(image: Image.Image, outfit_id: str, renderer_tag: str = "compositor_v1", request_id: str | None = None) -> str | None:
     if image is None:
         return None
 
@@ -759,7 +628,7 @@ def upload_flatlay_image(image: Image.Image, outfit_id: str, renderer_tag: str =
     image.save(buffer, format="PNG")
     buffer.seek(0)
 
-    path = f"flat_lays/outfit_{outfit_id}.png"
+    path = f"flat_lays/outfit_{outfit_id}/{request_id}.png" if request_id else f"flat_lays/outfit_{outfit_id}.png"
     blob = bucket.blob(path)
     blob.upload_from_file(buffer, content_type="image/png")
     blob.make_public()
@@ -826,7 +695,7 @@ def generate_thumbnail(img: Image.Image, size: tuple[int, int] = (THUMBNAIL_SIZE
     resized = img.resize((max(1, new_width), max(1, new_height)), Image.LANCZOS)
     x_offset = (size[0] - resized.width) // 2
     y_offset = (size[1] - resized.height) // 2
-    canvas.paste(resized, (x_offset, y_offset), resized)
+    canvas.alpha_composite(resized.convert("RGBA"), (x_offset, y_offset))
     return canvas
 
 
@@ -1324,6 +1193,9 @@ def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dic
         # Check if image has transparency (items should already be processed)
         alpha_channel = img.split()[3]
         has_transparency = alpha_channel.getextrema() != (255, 255)
+        if alpha_channel.getbbox() is None:
+            print(f"{debug_prefix} Empty garment image; request will fail asset validation")
+            continue
         
         # Skip background removal during flatlay for performance - items should already be processed
         # If no transparency, skip this item and log a warning (don't block flatlay generation)
@@ -1377,338 +1249,103 @@ def create_premium_flatlay(outfit_items: list[dict], outfit_id: str) -> str | No
     return upload_flatlay_image(canvas, outfit_id, renderer_tag="compositor_v1")
 
 
-def process_outfit_flat_lay(doc_id: str, data: dict):
-    """Generate and store premium flat lay for an outfit document."""
-    doc_ref = db.collection('outfits').document(doc_id)
-    try:
-        items = data.get('items') or []
-        if not items:
-            doc_ref.update({
-                'flat_lay_status': 'failed',
-                'flatLayStatus': 'failed',
-                'flat_lay_error': 'No items available for flat lay',
-                'flatLayError': 'No items available for flat lay',
-                'metadata.flat_lay_status': 'failed',
-                'metadata.flatLayStatus': 'failed',
-                'metadata.flat_lay_error': 'No items available for flat lay',
-                'metadata.flatLayError': 'No items available for flat lay',
-                'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
-            })
-            metrics['flat_lay_failed'] += 1
-            print(f"❌ Outfit {doc_id}: No items available for flat lay")
-            return
+class FlatlayGenerationError(Exception):
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
 
-        user_id = get_outfit_user_id(data)
-        
-        # Deduplicate items by ID to prevent duplicates in flatlay
-        seen_ids = set()
-        unique_items = []
-        for item in items:
-            item_id = item.get('id') or item.get('itemId') or item.get('item_id')
-            if item_id and item_id in seen_ids:
-                print(f"⚠️  Outfit {doc_id}: Skipping duplicate item {item_id}")
-                continue
-            if item_id:
-                seen_ids.add(item_id)
-            unique_items.append(item)
-        
-        if len(unique_items) < len(items):
-            print(f"ℹ️  Outfit {doc_id}: Removed {len(items) - len(unique_items)} duplicate item(s)")
-        
-        processed_images = prepare_flatlay_assets(unique_items, doc_id)
-        if not processed_images:
-            failure_reason = 'No valid images available for flat lay composition'
-            doc_ref.update({
-                'flat_lay_status': 'failed',
-                'flatLayStatus': 'failed',
-                'flat_lay_error': failure_reason,
-                'flatLayError': failure_reason,
-                'metadata.flat_lay_status': 'failed',
-                'metadata.flatLayStatus': 'failed',
-                'metadata.flat_lay_error': failure_reason,
-                'metadata.flatLayError': failure_reason,
-                'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
-            })
-            metrics['flat_lay_failed'] += 1
-            print(f"❌ Outfit {doc_id}: {failure_reason}")
-            return
 
-        flat_lay_url: str | None = None
-        openai_note: str | None = None
-        openai_used = False
-        reservation = None
+def generate_original_reference_flatlay(references, outfit_id):
+    """Send every original garment reference in one paid image-edit request."""
+    runtime = get_openai_image_edit_runtime_config()
+    files = build_reference_edit_payload(references, str(runtime["model"]), quality=runtime.get("quality"))
+    response = requests.post(
+        str(runtime["api_url"]), headers=_build_openai_image_edit_headers(), files=files,
+        timeout=float(runtime["timeout_seconds"]),
+    )
+    if not response.ok:
+        raise FlatlayGenerationError("provider_failed", "The image service could not finish this preview.")
+    image = _load_image_from_openai_image_response(response.json(), f"flatlay:{outfit_id}")
+    if image is None or image.width < 512 or image.height < 512 or image.getbbox() is None:
+        raise FlatlayGenerationError("empty_provider_result", "The image service returned an incomplete preview.")
+    return image
 
-        # Check OpenAI availability and weekly limit
-        if openai_client and user_id:
-            reservation = reserve_openai_flatlay_slot(user_id)
-            if not reservation.get("allowed"):
-                openai_note = reservation.get("reason") or "limit_reached"
-                limit = reservation.get("limit", 0)
-                used = reservation.get("used", 0)
-                print(f"⛔ Outfit {doc_id}: OpenAI flatlay limit reached ({used}/{limit} used this week)")
-        else:
-            if not openai_client:
-                openai_note = "openai_client_unavailable"
-            elif not user_id:
-                openai_note = "missing_user_id"
-            if openai_note:
-                print(f"ℹ️  Skipping OpenAI for outfit {doc_id}: {openai_note}")
 
-        # Generate compositor flatlay first, then enhance with OpenAI
-        renderer_note = openai_note or 'openai_unavailable'
-        print(f"🎨 Outfit {doc_id}: Generating compositor flatlay first...")
-        
-        compositor_canvas = None
-        try:
-            debug_section(f"BEGIN FLATLAY OUTFIT {doc_id}")
-            debug_val("outfit_id", doc_id)
-            debug_val("items list", processed_images)
-            debug_val("items count", len(processed_images))
-            
-            compositor_canvas = compose_flatlay_image(processed_images)
-            if compositor_canvas is None:
-                print(f"⚠️  Outfit {doc_id}: Compositor failed to generate canvas")
-                raise Exception("compositor_failed")
-            print(f"✅ Outfit {doc_id}: Compositor flatlay generated, enhancing with OpenAI...")
-            debug_section("END FLATLAY SUCCESS")
-            debug_val("result canvas", compositor_canvas.size if compositor_canvas else None)
-        except Exception as compositor_error:
-            debug_section("COMPOSITOR EXCEPTION")
-            debug_exception(f"compositor for outfit {doc_id}", compositor_error)
-            print(f"⚠️  Outfit {doc_id}: Compositor error: {compositor_error}")
-            compositor_canvas = None
-        
-        # If we have a compositor image and OpenAI is available, enhance it
-        if compositor_canvas and openai_client and user_id:
-            print(f"🎨 Outfit {doc_id}: Enhancing compositor image with OpenAI...")
-            runtime_config = get_openai_image_edit_runtime_config()
-            
-            # Convert compositor image directly to bytes (no storage needed)
-            compositor_buffer = BytesIO()
-            compositor_canvas.save(compositor_buffer, format="PNG")
-            compositor_buffer.seek(0)
-            compositor_bytes = compositor_buffer.read()
-            
-            # Use OpenAI to enhance the compositor image
-            try:
-                # Use images.edits to enhance the compositor flatlay
-                api_url = str(runtime_config["api_url"])
-                headers = _build_openai_image_edit_headers()
-                
-                # Build explicit list of items that MUST be included (deduplicated by ID)
-                seen_item_ids = set()
-                required_items = []
-                for item in processed_images:
-                    item_id = item.get("id")
-                    # Skip duplicates
-                    if item_id and item_id in seen_item_ids:
-                        print(f"⚠️  Outfit {doc_id}: Skipping duplicate item {item_id} in OpenAI prompt")
-                        continue
-                    if item_id:
-                        seen_item_ids.add(item_id)
-                    
-                    source = item.get("source") or {}
-                    category = item.get("category") or source.get("category") or source.get("type") or "item"
-                    name = source.get("name") or source.get("title") or f"{category}"
-                    colors = []
-                    dominant_colors = source.get("dominantColors") or source.get("dominant_colors")
-                    if isinstance(dominant_colors, list) and dominant_colors:
-                        first_color = dominant_colors[0]
-                        if isinstance(first_color, dict):
-                            color_name = first_color.get("name")
-                            if color_name:
-                                colors.append(color_name)
-                        elif isinstance(first_color, str):
-                            colors.append(first_color)
-                    if isinstance(source.get("color"), str):
-                        colors.append(source["color"])
-                    color_str = f" ({', '.join(dict.fromkeys(colors))})" if colors else ""
-                    required_items.append(f"- {name} ({category}{color_str})")
-                
-                items_list = "\n".join(required_items)
-                total_items = len(required_items)
-                
-                enhance_prompt = (
-                    f"Enhance this fashion flatlay image. The image contains EXACTLY {total_items} UNIQUE items that MUST all be visible in the output:\n\n"
-                    f"{items_list}\n\n"
-                    "CRITICAL REQUIREMENTS:\n"
-                    f"1. ALL {total_items} items listed above MUST be clearly visible in the enhanced image. Do not omit, hide, or remove any item.\n"
-                    "2. DO NOT duplicate any item. Each item in the list above should appear EXACTLY ONCE in the output.\n"
-                    "3. DO NOT show any hangers, hooks, or hanging hardware. Remove any hangers if present.\n"
-                    "4. DO NOT add any new items. DO NOT add accessories, jewelry, or any clothing items that are not in the list above.\n"
-                    "5. PRESERVE the exact appearance of each item - keep colors, patterns, textures, and details exactly as they appear in the original.\n"
-                    "6. Do not change the style, design, or visual characteristics of any item.\n"
-                    "7. Improve lighting, shadows, and composition. Make it look more professional and photorealistic.\n"
-                    "8. Keep all items clearly visible with proper sizing and placement.\n"
-                    "9. Only refine the visual quality - better lighting, natural shadows, improved colors and contrast.\n"
-                    f"10. The output must contain exactly {total_items} items - no more, no less. Each item appears once.\n"
-                    "11. Items should appear as if laid flat on a surface, never hanging."
-                )
-                
-                files = {
-                    'image': ('compositor.png', compositor_bytes, 'image/png'),
-                    'model': (None, str(runtime_config["model"])),
-                    'prompt': (None, enhance_prompt),
-                    'size': (None, '1024x1024'),
-                    'n': (None, '1'),
-                }
-                
-                api_response = requests.post(
-                    api_url,
-                    headers=headers,
-                    files=files,
-                    timeout=float(runtime_config["timeout_seconds"]),
-                )
-                
-                if not api_response.ok:
-                    # Log detailed error information
-                    error_text = api_response.text
-                    try:
-                        error_json = api_response.json()
-                        error_msg = f"Status {api_response.status_code}: {error_json}"
-                    except:
-                        error_msg = f"Status {api_response.status_code}: {error_text[:500]}"
-                    print(f"⚠️  Outfit {doc_id}: OpenAI enhancement API error: {error_msg}")
-                    if reservation and not reservation.get("bypassed"):
-                        release_openai_flatlay_slot(user_id)
-                    metrics['flat_lay_openai_failed'] += 1
-                else:
-                    try:
-                        response_data = api_response.json()
-                        print(f"🔍 Outfit {doc_id}: OpenAI response structure: {list(response_data.keys())}")
-
-                        enhanced_image = _load_image_from_openai_image_response(
-                            response_data,
-                            f"🔍 Outfit {doc_id}",
-                        )
-                        if enhanced_image is None:
-                            print(f"⚠️  Outfit {doc_id}: OpenAI response missing URL or b64_json")
-                            print(f"⚠️  Full response structure: {response_data}")
-                            if reservation and not reservation.get("bypassed"):
-                                release_openai_flatlay_slot(user_id)
-                            metrics['flat_lay_openai_failed'] += 1
-                            return  # Skip to compositor fallback
-                        
-                        # Upload final enhanced image
-                        final_url = upload_flatlay_image(enhanced_image, doc_id, renderer_tag="openai_enhanced_compositor")
-                        if final_url:
-                            update_payload = {
-                                'flat_lay_status': 'done',
-                                'flatLayStatus': 'done',
-                                'flat_lay_url': final_url,
-                                'flatLayUrl': final_url,
-                                'flat_lay_error': None,
-                                'flatLayError': None,
-                                'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
-                                'flat_lay_renderer': 'openai_enhanced_compositor',
-                                'flatLayRenderer': 'openai_enhanced_compositor',
-                                'metadata.flat_lay_status': 'done',
-                                'metadata.flatLayStatus': 'done',
-                                'metadata.flat_lay_url': final_url,
-                                'metadata.flatLayUrl': final_url,
-                                'metadata.flat_lay_error': None,
-                                'metadata.flatLayError': None,
-                                'metadata.flat_lay_renderer': 'openai_enhanced_compositor',
-                                'metadata.flatLayRenderer': 'openai_enhanced_compositor',
-                            }
-                            doc_ref.update(update_payload)
-                            metrics['flat_lay_processed'] += 1
-                            metrics['flat_lay_openai'] += 1
-                            if reservation and not reservation.get("bypassed"):
-                                release_openai_flatlay_slot(user_id)
-                            print(f"✅ Outfit {doc_id}: OpenAI-enhanced flatlay ready ({final_url})")
-                            return
-                    except Exception as parse_error:
-                        print(f"⚠️  Outfit {doc_id}: Error parsing OpenAI response: {parse_error}")
-                        print(f"⚠️  Response status: {api_response.status_code}, text: {api_response.text[:500]}")
-                        if reservation and not reservation.get("bypassed"):
-                            release_openai_flatlay_slot(user_id)
-                        metrics['flat_lay_openai_failed'] += 1
-            except Exception as enhance_error:
-                import traceback
-                error_trace = traceback.format_exc()
-                print(f"⚠️  Outfit {doc_id}: OpenAI enhancement exception: {enhance_error}")
-                print(f"⚠️  Traceback: {error_trace[:500]}")
-                if reservation and not reservation.get("bypassed"):
-                    release_openai_flatlay_slot(user_id)
-                metrics['flat_lay_openai_failed'] += 1
-        
-        # Fallback: Use compositor image directly
-        if compositor_canvas:
-            compositor_url = upload_flatlay_image(compositor_canvas, doc_id, renderer_tag="compositor_v1")
-            if compositor_url:
-                update_payload = {
-                    'flat_lay_status': 'done',
-                    'flatLayStatus': 'done',
-                    'flat_lay_url': compositor_url,
-                    'flatLayUrl': compositor_url,
-                    'flat_lay_error': None,
-                    'flatLayError': None,
-                    'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
-                    'flat_lay_renderer': 'compositor_v1',
-                    'flatLayRenderer': 'compositor_v1',
-                    'metadata.flat_lay_status': 'done',
-                    'metadata.flatLayStatus': 'done',
-                    'metadata.flat_lay_url': compositor_url,
-                    'metadata.flatLayUrl': compositor_url,
-                    'metadata.flat_lay_error': None,
-                    'metadata.flatLayError': None,
-                    'metadata.flat_lay_renderer': 'compositor_v1',
-                    'metadata.flatLayRenderer': 'compositor_v1',
-                    'metadata.flat_lay_renderer_note': f'openai_enhancement_failed: {renderer_note}',
-                    'flat_lay_renderer_note': f'openai_enhancement_failed: {renderer_note}',
-                    'flatLayRendererNote': f'openai_enhancement_failed: {renderer_note}',
-                }
-                doc_ref.update(update_payload)
-                metrics['flat_lay_processed'] += 1
-                metrics['flat_lay_renderer_fallbacks'] += 1
-                print(f"✅ Outfit {doc_id}: Compositor flatlay ready ({compositor_url})")
-                return
-        
-        # Compositor also failed - mark as failed
-        message = f'OpenAI unavailable ({renderer_note}), compositor also failed'
-        update_payload = {
-                'flat_lay_status': 'failed',
-                'flatLayStatus': 'failed',
-            'flat_lay_url': None,
-            'flatLayUrl': None,
-                'flat_lay_error': message,
-                'flatLayError': message,
-            'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
-            'flat_lay_renderer': 'none',
-            'flatLayRenderer': 'none',
-                'metadata.flat_lay_status': 'failed',
-                'metadata.flatLayStatus': 'failed',
-            'metadata.flat_lay_url': None,
-            'metadata.flatLayUrl': None,
-                'metadata.flat_lay_error': message,
-                'metadata.flatLayError': message,
-            'metadata.flat_lay_renderer': 'none',
-            'metadata.flatLayRenderer': 'none',
-            'metadata.flat_lay_renderer_note': renderer_note,
-            'flat_lay_renderer_note': renderer_note,
-            'flatLayRendererNote': renderer_note,
-        }
-        doc_ref.update(update_payload)
-        metrics['flat_lay_failed'] += 1
-        print(f"❌ Outfit {doc_id}: Both OpenAI and compositor failed - {message}")
+def process_outfit_flat_lay(doc_id: str, data: dict | None = None):
+    """Claim the private request, then perform at most one provider attempt."""
+    request = claim_request(db, doc_id)
+    if request is None:
+        metrics['flat_lay_skipped'] += 1
         return
-
+    request_id = request['request_id']
+    try:
+        if request.get('preflight_error'):
+            raise FlatlayGenerationError(request['preflight_error'], "The preview could not start. Please request it again.")
+        if openai_client is None:
+            raise FlatlayGenerationError("provider_unavailable", "The image service is unavailable. Please try again later.")
+        items = request.get('items') or []
+        expected_ids = {item.get('id') for item in items}
+        if not items or None in expected_ids or len(expected_ids) != len(items):
+            raise FlatlayGenerationError("invalid_items", "The outfit items could not be prepared.")
+        references = prepare_original_references(items, bucket)
+        actual_ids = {reference.get('id') for reference in references}
+        if actual_ids != expected_ids or len(references) != len(items):
+            raise FlatlayGenerationError("missing_original_references", "Some original item photos are unavailable. Please check your wardrobe items.")
+        if int(time.time()) >= request['expires_at']:
+            raise FlatlayGenerationError("preparation_timeout", "Preparing the item photos took too long. Please try again.")
+        image = generate_original_reference_flatlay(references, doc_id)
+        # Each attempt gets a unique object; a late image cannot replace pixels
+        # belonging to a newer request. No compositor or automatic retry is used.
+        final_url = upload_flatlay_image(image, doc_id, renderer_tag="original_refs_v1", request_id=request_id)
+        if not final_url:
+            raise FlatlayGenerationError("upload_failed", "The preview could not be saved. Please try again.")
+        if finish_request(db, doc_id, request_id, url=final_url, retryable=False):
+            metrics['flat_lay_processed'] += 1
+            metrics['flat_lay_openai'] += 1
     except Exception as exc:
-        error_message = str(exc)
-        doc_ref.update({
-            'flat_lay_status': 'failed',
-            'flatLayStatus': 'failed',
-            'flat_lay_error': error_message,
-            'flatLayError': error_message,
-            'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
-            'metadata.flat_lay_status': 'failed',
-            'metadata.flatLayStatus': 'failed',
-            'metadata.flat_lay_error': error_message,
-            'metadata.flatLayError': error_message,
-        })
-        metrics['flat_lay_failed'] += 1
-        print(f"❌ Outfit {doc_id}: Flat lay generation failed - {error_message}")
+        # Persist only safe customer-facing errors, never provider payloads/URLs.
+        code = exc.code if isinstance(exc, (FlatlayGenerationError, ReferenceImageError)) else "generation_failed"
+        message = str(exc) if isinstance(exc, (FlatlayGenerationError, ReferenceImageError)) else "The preview could not be completed. Please try again."
+        # A request timeout can mean the provider completed but the response was
+        # lost. Return the product credit, but hold another paid attempt for review.
+        ambiguous = isinstance(exc, (requests.Timeout, requests.ConnectionError))
+        if ambiguous:
+            code = "provider_outcome_unknown"
+            message = "The image service did not confirm the result. This preview needs review before another request."
+        if finish_request(db, doc_id, request_id, error=message, error_code=code, retryable=not ambiguous):
+            metrics['flat_lay_failed'] += 1
+            metrics['flat_lay_openai_failed'] += 1
+        print(f"Flat lay {doc_id} failed ({code}); no automatic provider retry.")
+
+
+def expire_stale_flatlay_requests():
+    """Settle the oldest expired jobs before new work, without paid retries.
+
+    These are eligibility thresholds, not a wall-clock SLA: this sequential loop
+    can run only while the worker is alive and previous operations have returned.
+    Numeric range queries exclude the null expiry on completed requests and use
+    a single-field index, so active jobs cannot hide expired jobs in the batch.
+    """
+    now = int(time.time())
+    expired_requests = (
+        db.collection(REQUESTS_COLLECTION)
+        .where(filter=FieldFilter('expires_at', '>=', 0))
+        .where(filter=FieldFilter('expires_at', '<=', now))
+        .order_by('expires_at').limit(20).stream()
+    )
+    for doc in expired_requests:
+        request = doc.to_dict() or {}
+        status = request.get('status')
+        if status not in ('pending', 'processing'):
+            continue
+        pending = status == 'pending'
+        finish_request(
+            db, doc.id, request.get('request_id'), now=now, expired_only=True,
+            error=("The preview could not start in time. Please request it again." if pending else
+                   "The image service did not confirm the result. This preview needs review before another request."),
+            error_code="queue_timeout" if pending else "worker_outcome_unknown", retryable=pending,
+        )
+
 
 # ----------------------------
 # Wardrobe Item Processing
@@ -1744,14 +1381,19 @@ def process_item(doc_id, data):
 
         # 2. Open image and normalize to RGBA
         try:
-            original_image = Image.open(BytesIO(original_bytes)).convert("RGBA")
+            original_image = ImageOps.exif_transpose(Image.open(BytesIO(original_bytes))).convert("RGBA")
         except UnidentifiedImageError:
             mark_failure(doc_id, "failed", "Unrecognized image format", retry_count)
             metrics["failed"] += 1
             return
 
         original_size = original_image.size
-        
+        # Keep the canonical reference before resizing the background-removal
+        # working copy. Flat-lay requests read this identity-preserving original.
+        original_image = constrain_original_reference_image(original_image)
+        original_storage_path = f"items/{doc_id}/original.png"
+        original_storage_url = upload_png(original_image, original_storage_path)
+
         # 3. Resize image if it's too large (either by file size or dimensions)
         # Check if file size exceeds limit OR if dimensions are very large
         needs_resize = False
@@ -1766,19 +1408,10 @@ def process_item(doc_id, data):
             # Resize to max 2048x2048 to reduce file size while maintaining quality
             original_image = resize_image(original_image, max_width=2048, max_height=2048)
             print(f"✅ {doc_id}: Resized to {original_image.size[0]}x{original_image.size[1]}")
-            original_size = original_image.size
 
         # 4. Check if image already has transparency (skip rembg if it does)
         alpha_channel = np.array(original_image.split()[3])  # Get alpha channel
         has_transparency = np.any(alpha_channel < 255)  # Check if any pixel is not fully opaque
-
-        # 5. Store original image in standard location
-        print(f"📤 {doc_id}: Uploading original ({original_size[0]}x{original_size[1]})...")
-        original_storage_path = f"items/{doc_id}/original.png"
-        original_storage_url = upload_png(original_image, original_storage_path)
-
-        # Determine material for styling
-        material_type = resolve_material(data)
 
         if has_transparency:
             print(f"✨ {doc_id}: Image already has transparency, preserving original")
@@ -1808,16 +1441,15 @@ def process_item(doc_id, data):
             output_img = Image.open(BytesIO(output_bytes)).convert("RGBA")
             print(f"✅ {doc_id}: Background removal complete using {processing_mode} mode")
             
-            # Remove hangers if present
-            output_img = remove_hangers(output_img)
-            print(f"✅ {doc_id}: Hanger removal applied")
+        # Preserve the clean cutout before any presentation resize. Do not whiten
+        # RGB values, fill transparent pixels, add shadows, or crop collars/hangers
+        # from canonical garment evidence. The image model handles presentation.
+        if output_img.getchannel("A").getbbox() is None:
+            raise ValueError("Background removal produced an empty garment image")
+        clean_storage_path = f"items/{doc_id}/nobg.png"
+        clean_url = upload_png(output_img, clean_storage_path)
 
-        # 7. Stylize silhouette for cohesive flatlay aesthetics
-        output_img = smooth_edges(output_img)
-        output_img = add_material_shadow(output_img, material_type)
-        output_img = apply_light_gradient(output_img)
-
-        # 7. Resize processed image if necessary
+        # The legacy processed asset remains a clean, smaller compatibility copy.
         if output_img.size[0] > MAX_OUTPUT_WIDTH or output_img.size[1] > MAX_OUTPUT_HEIGHT:
             output_img = resize_image(output_img, MAX_OUTPUT_WIDTH, MAX_OUTPUT_HEIGHT)
 
@@ -1838,7 +1470,7 @@ def process_item(doc_id, data):
         # 10. Update Firestore document with new URLs and status
         doc_ref.update({
             "imageUrl": original_storage_url,
-            "backgroundRemovedUrl": processed_url,
+            "backgroundRemovedUrl": clean_url,
             "thumbnailUrl": thumbnail_url,
             "backgroundRemoved": True,
             "processing_status": "done",
@@ -1907,54 +1539,27 @@ def run_worker():
                     processed_any = True
                     time.sleep(1)
 
-            # Outfit queue
+            # The private ledger is the only paid work queue. Missing/null outfit
+            # status is not consent, and an old client cannot fabricate a debit.
+            expire_stale_flatlay_requests()
             outfit_pending = list(
+                db.collection(REQUESTS_COLLECTION)
+                .where(filter=FieldFilter('queued_at', '>=', 0))
+                .order_by('queued_at').limit(1).stream()
+            )
+            for doc in outfit_pending:
+                process_outfit_flat_lay(doc.id)
+                processed_any = True
+
+            # Retire old untracked pending records safely; never call the provider
+            # or infer a historical refund from a client-writable status field.
+            legacy_pending = list(
                 db.collection('outfits')
                 .where(filter=FieldFilter('flat_lay_status', "==", 'pending'))
-                .limit(1)
-                .stream()
+                .limit(1).stream()
             )
-
-            if not outfit_pending:
-                outfit_pending = list(
-                    db.collection('outfits')
-                    .where(filter=FieldFilter('flat_lay_status', "==", None))
-                    .limit(1)
-                    .stream()
-                )
-
-            if not outfit_pending:
-                outfit_pending = list(
-                    db.collection('outfits')
-                    .where(filter=FieldFilter('metadata.flat_lay_status', "==", 'pending'))
-                    .limit(1)
-                    .stream()
-                )
-
-            if not outfit_pending:
-                outfit_pending = list(
-                    db.collection('outfits')
-                    .where(filter=FieldFilter('flatLayStatus', "==", 'pending'))
-                    .limit(1)
-                    .stream()
-                )
-
-            if outfit_pending:
-                print(f"🎨 Found {len(outfit_pending)} outfits needing flat lays")
-                for doc in outfit_pending:
-                    data = doc.to_dict() or {}
-                    if data.get('flat_lay_status') is None:
-                        doc.reference.update({
-                            'flat_lay_status': 'pending',
-                            'flatLayStatus': 'pending',
-                            'metadata.flat_lay_status': 'pending',
-                            'metadata.flatLayStatus': 'pending'
-                        })
-                        data['flat_lay_status'] = 'pending'
-                        data['flatLayStatus'] = 'pending'
-                    process_outfit_flat_lay(doc.id, data)
-                    processed_any = True
-                    time.sleep(1)
+            for doc in legacy_pending:
+                process_outfit_flat_lay(doc.id)
 
             if processed_any:
                 print(
