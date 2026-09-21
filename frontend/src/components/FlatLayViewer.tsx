@@ -1,19 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Maximize2, 
-  Download, 
-  Share2, 
-  X,
-  ImageOff,
-  Loader2,
-  Eye,
-  Grid3x3
-} from "lucide-react";
-import Link from "next/link";
+import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Download, Grid3x3, ImageOff, Images, Loader2, Maximize2, Share2 } from 'lucide-react';
 
 interface FlatLayUsageInfo {
   tier: string;
@@ -43,13 +34,14 @@ interface FlatLayViewerProps {
   onSkipFlatLay?: () => void;
   flatLayActionLoading?: boolean;
   hasFlatLayCredits?: boolean;
+  requestAllowed?: boolean;
 }
 
 export default function FlatLayViewer({
   flatLayUrl,
   outfitName,
   outfitItems = [],
-  className = "",
+  className = '',
   showItemGrid = true,
   onViewChange,
   status,
@@ -60,453 +52,265 @@ export default function FlatLayViewer({
   onRequestFlatLay,
   onSkipFlatLay,
   flatLayActionLoading = false,
-  hasFlatLayCredits = false
+  hasFlatLayCredits = false,
+  requestAllowed = true,
 }: FlatLayViewerProps) {
+  const imageRef = useRef<HTMLImageElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(Boolean(flatLayUrl));
   const [imageError, setImageError] = useState(false);
-  const normalizedStatus = (status ?? '').toLowerCase();
-  const getInitialView = () => {
-    if (
-      !flatLayUrl &&
-      ['awaiting_consent', 'manual_pending', 'declined', 'skipped', 'failed', 'error'].includes(
-        normalizedStatus
-      )
-    ) {
-      return 'grid';
-    }
-    return 'flat-lay';
-  };
-  const [currentView, setCurrentView] = useState<'flat-lay' | 'grid'>(getInitialView);
+  const [currentView, setCurrentView] = useState<'flat-lay' | 'grid'>(flatLayUrl ? 'flat-lay' : 'grid');
+  const [activeAction, setActiveAction] = useState<'download' | 'share' | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<{ message: string; error: boolean } | null>(null);
+  const [failedItemImages, setFailedItemImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setImageError(false);
-    setIsLoading(!!flatLayUrl);
+    setIsLoading(Boolean(flatLayUrl));
+    setCurrentView(flatLayUrl ? 'flat-lay' : 'grid');
+    setIsFullscreen(false);
+    setActionFeedback(null);
   }, [flatLayUrl]);
 
+  const normalizedStatus = (status ?? '').toLowerCase();
+  const isPending = ['pending', 'processing', 'queued'].includes(normalizedStatus);
+  const isDelayed = normalizedStatus === 'delayed';
+  const isFailed = ['failed', 'error'].includes(normalizedStatus);
+  const awaitingConsent = ['awaiting_consent', 'manual_pending'].includes(normalizedStatus);
+  const hasImage = Boolean(flatLayUrl) && !imageError;
+  const canShowPieces = showItemGrid && outfitItems.length > 0;
+  const showingImage = hasImage && (currentView === 'flat-lay' || !canShowPieces);
+  const balanceKnown = Boolean(flatLayUsage) && !flatLayLoading && !flatLayError;
+  const creditsExhausted = balanceKnown && flatLayUsage?.remaining !== null && Number.isFinite(flatLayUsage?.remaining) && (flatLayUsage?.remaining ?? 0) <= 0;
+  const requestDisabled = flatLayActionLoading || !balanceKnown || !hasFlatLayCredits || creditsExhausted;
+  const canRequest = requestAllowed && !flatLayUrl && !isPending && !isDelayed && Boolean(onRequestFlatLay);
+  const imageSource = flatLayUrl && /(?:storage\.googleapis\.com|firebasestorage\.googleapis\.com)/.test(flatLayUrl)
+    ? `/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}`
+    : flatLayUrl;
+
   useEffect(() => {
-    setCurrentView(getInitialView());
-  }, [flatLayUrl, status]);
+    // A cached image may already be ready before React observes its load event.
+    const image = imageRef.current;
+    if (showingImage && image?.complete && image.naturalWidth > 0) setIsLoading(false);
+  }, [imageSource, showingImage]);
 
-  // DEBUG: Log component props
-  console.log('🎨 FLAT LAY VIEWER: Component mounted');
-  console.log('🎨 FLAT LAY VIEWER: flatLayUrl:', flatLayUrl);
-  console.log('🎨 FLAT LAY VIEWER: outfitName:', outfitName);
-  console.log('🎨 FLAT LAY VIEWER: currentView:', currentView);
-  console.log('🎨 FLAT LAY VIEWER: status:', status);
+  const previewCaption = canShowPieces
+    ? 'Garment details may vary. See Pieces for original photos.'
+    : 'Garment details may vary.';
 
-  const flatLayBalanceText = flatLayUsage
-    ? flatLayUsage.remaining !== null && flatLayUsage.limit !== null
-      ? `You got ${flatLayUsage.remaining} out of ${flatLayUsage.limit} credits left this week based on your tier level.`
-      : 'Unlimited flat lay credits available this week.'
-    : flatLayLoading
-      ? 'Checking your flat lay balance…'
-      : (flatLayError || 'Unable to load your flat lay balance right now.');
-  const requestDisabled =
-    flatLayActionLoading || flatLayLoading || !hasFlatLayCredits || !onRequestFlatLay;
-  const showUpgradeButton = !flatLayLoading && !hasFlatLayCredits;
-  const renderRequestButtonContent = () => {
-    if (flatLayActionLoading) {
-      return (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Requesting flat lay…
-        </>
-      );
-    }
+  const balanceText = flatLayLoading
+    ? 'Checking flat lay credits…'
+    : flatLayError || !flatLayUsage
+      ? 'Your credit balance is unavailable. Please try again later.'
+      : flatLayUsage.remaining === null
+        ? 'Unlimited flat lays on your plan.'
+        : `${flatLayUsage.remaining} flat lay ${flatLayUsage.remaining === 1 ? 'credit' : 'credits'} remaining this week.`;
 
-    if (!hasFlatLayCredits) {
-      return 'No credits available';
-    }
+  let statusHeading = 'Add a styled flat lay';
+  let statusDescription = 'Create an AI-styled flat lay of these pieces.';
+  if (imageError) {
+    statusHeading = 'Your flat lay could not be loaded';
+    statusDescription = 'Your outfit pieces are still here. Reload the page to try loading the image again.';
+  } else if (isDelayed) {
+    statusHeading = 'Your flat lay is taking longer than expected';
+    statusDescription = 'The request is still on record. Please check back later; there is no need to request another.';
+  } else if (isPending) {
+    statusHeading = 'Your flat lay is being prepared';
+    statusDescription = 'Your pieces are ready to explore while the image is prepared.';
+  } else if (isFailed) {
+    statusHeading = 'Your flat lay could not be created';
+    statusDescription = error || (requestAllowed
+      ? 'Your outfit pieces are still available. You can make another request when you are ready.'
+      : 'Your outfit pieces are still here. Please contact support before making another request.');
+  } else if (!requestAllowed) {
+    statusHeading = 'This flat lay request needs review';
+    statusDescription = error || 'Your outfit pieces are still here. Please contact support before making another request.';
+  } else if (flatLayActionLoading) {
+    statusHeading = 'Requesting your flat lay…';
+  }
 
-    return 'Create a flat lay';
-  };
-
-  const showConsentOverlay =
-    currentView === 'grid' &&
-    !flatLayUrl &&
-    ['awaiting_consent', 'manual_pending'].includes(normalizedStatus);
-
-  const handleImageLoad = () => {
-    setIsLoading(false);
+  const changeView = (view: 'flat-lay' | 'grid') => {
+    setCurrentView(view);
+    onViewChange?.(view);
   };
 
   const handleImageError = () => {
-    setIsLoading(false);
     setImageError(true);
+    setIsLoading(false);
+    setIsFullscreen(false);
+    setCurrentView('grid');
   };
 
   const handleDownload = async () => {
-    if (!flatLayUrl) return;
-    
+    if (!flatLayUrl || activeAction) return;
+    setActiveAction('download');
+    setActionFeedback(null);
+    let objectUrl: string | undefined;
+    let link: HTMLAnchorElement | undefined;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 15000);
     try {
-      // Use proxy endpoint to avoid CORS issues
-      const proxyUrl = `/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}`;
-      const response = await fetch(proxyUrl);
+      const response = await fetch(`/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}`, { signal: controller.signal });
+      if (!response.ok || !response.headers.get('content-type')?.toLowerCase().startsWith('image/')) {
+        throw new Error('Image download unavailable');
+      }
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${outfitName || 'outfit'}-flat-lay.png`;
+      if (!blob.size || !blob.type.toLowerCase().startsWith('image/')) throw new Error('Invalid image response');
+      objectUrl = window.URL.createObjectURL(blob);
+      link = document.createElement('a');
+      link.href = objectUrl;
+      const extension = blob.type === 'image/jpeg' ? 'jpg' : blob.type === 'image/webp' ? 'webp' : 'png';
+      link.download = `${outfitName || 'outfit'}-flat-lay.${extension}`;
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading flat lay:', error);
+      setActionFeedback({ message: 'Download started.', error: false });
+    } catch {
+      setActionFeedback({ message: 'The flat lay could not be downloaded. Please try again.', error: true });
+    } finally {
+      window.clearTimeout(timeout);
+      link?.remove();
+      if (objectUrl) window.URL.revokeObjectURL(objectUrl);
+      setActiveAction(null);
     }
   };
 
   const handleShare = async () => {
-    if (!flatLayUrl) return;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: outfitName || 'My Outfit',
-          text: 'Check out this outfit!',
-          url: flatLayUrl
-        });
-      } catch (error) {
-        console.error('Error sharing:', error);
+    if (!flatLayUrl || activeAction) return;
+    setActiveAction('share');
+    setActionFeedback(null);
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: outfitName || 'My outfit', text: 'My outfit from EasyOutfit', url: flatLayUrl });
+      } else {
+        if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+        await navigator.clipboard.writeText(flatLayUrl);
+        setActionFeedback({ message: 'Flat lay link copied.', error: false });
       }
-    } else {
-      // Fallback: Copy URL to clipboard
-      navigator.clipboard.writeText(flatLayUrl);
-      alert('Link copied to clipboard!');
+    } catch (shareError) {
+      if (!(shareError instanceof Error && shareError.name === 'AbortError')) {
+        setActionFeedback({ message: 'The flat lay could not be shared. Please try again.', error: true });
+      }
+    } finally {
+      setActiveAction(null);
     }
   };
 
-  const toggleView = () => {
-    const newView = currentView === 'flat-lay' ? 'grid' : 'flat-lay';
-    setCurrentView(newView);
-    onViewChange?.(newView);
-  };
-
-  const renderFlatLay = () => {
-    if ((status === 'pending' || status === 'processing') && !flatLayUrl) {
-      return (
-        <div className="aspect-[4/3] max-h-[600px] bg-secondary/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
-          <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-          <p className="text-muted-foreground text-center font-semibold">
-            Crafting your premium flat lay…
-          </p>
-          <p className="text-sm text-muted-foreground text-center mt-2">
-            This usually takes a few seconds.
-          </p>
-        </div>
-      );
-    }
-
-    if ((status === 'awaiting_consent' || status === 'manual_pending') && !flatLayUrl) {
-      return (
-        <div className="aspect-[4/3] max-h-[600px] bg-secondary/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
-          <Eye className="w-12 h-12 text-primary mb-4" />
-          <p className="text-card-foreground text-center font-semibold">
-            Flat lay not requested yet
-          </p>
-          <p className="text-sm text-muted-foreground text-center mt-2 max-w-sm">
-            Generate a premium flat lay from the outfit actions to see a styled visual here.
-          </p>
-          {showItemGrid && outfitItems.length > 0 && (
-            <Button 
-              variant="outline" 
-              onClick={toggleView}
-              className="mt-4 border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary"
-            >
-              <Grid3x3 className="w-4 h-4 mr-2" />
-              View item grid
-            </Button>
-          )}
-        </div>
-      );
-    }
-
-    if ((status === 'declined' || status === 'skipped') && !flatLayUrl) {
-      return (
-        <div className="aspect-[4/3] max-h-[600px] bg-secondary/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
-          <ImageOff className="w-12 h-12 text-muted-foreground mb-4" />
-          <p className="text-card-foreground text-center font-semibold">
-            Flat lay skipped for this outfit
-          </p>
-          <p className="text-sm text-muted-foreground text-center mt-2 max-w-sm">
-            You can request a flat lay later if you change your mind.
-          </p>
-          {showItemGrid && outfitItems.length > 0 && (
-            <Button 
-              variant="outline" 
-              onClick={toggleView}
-              className="mt-4 border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary"
-            >
-              <Grid3x3 className="w-4 h-4 mr-2" />
-              View item grid
-            </Button>
-          )}
-        </div>
-      );
-    }
-
-    if (status === 'failed' && !flatLayUrl) {
-      return (
-        <div className="aspect-[4/3] max-h-[600px] bg-destructive/10 dark:bg-destructive/20 border border-destructive/40 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
-          <ImageOff className="w-16 h-16 text-destructive mb-4" />
-          <p className="text-destructive dark:text-destructive text-center mb-2 font-semibold">
-            We couldn't generate this flat lay automatically.
-          </p>
-          {error && (
-            <p className="text-sm text-destructive dark:text-destructive text-center max-w-sm">
-              {error}
-            </p>
-          )}
-          {showItemGrid && outfitItems.length > 0 && (
-            <Button 
-              variant="outline" 
-              onClick={toggleView}
-              className="mt-4 border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary"
-            >
-              <Grid3x3 className="w-4 h-4 mr-2" />
-              View item grid
-            </Button>
-          )}
-        </div>
-      );
-    }
-
-    if (!flatLayUrl || imageError) {
-      return (
-        <div className="aspect-[4/3] max-h-[600px] bg-secondary/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-3xl flex flex-col items-center justify-center p-8 shadow-xl backdrop-blur">
-          <ImageOff className="w-16 h-16 text-muted-foreground mb-4" />
-          <p className="text-muted-foreground text-center mb-2 font-semibold">
-            {imageError ? 'Failed to load flat lay image' : 'No flat lay image available'}
-          </p>
-          {showItemGrid && outfitItems.length > 0 && (
-            <Button 
-              variant="outline" 
-              onClick={toggleView}
-              className="mt-4 border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary"
-            >
-              <Grid3x3 className="w-4 h-4 mr-2" />
-              View item grid
-            </Button>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div className="relative aspect-[4/3] max-h-[600px] bg-secondary/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-3xl overflow-hidden shadow-xl backdrop-blur">
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
-          </div>
-        )}
-        
-        <img
-          src={flatLayUrl?.includes('storage.googleapis.com') || flatLayUrl?.includes('firebasestorage.googleapis.com') 
-            ? `/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}`
-            : flatLayUrl}
-          alt={outfitName || 'Outfit flat lay'}
-          className="w-full h-full object-contain"
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-        />
-        
-        {/* Action buttons */}
-        <div className="absolute top-4 right-4 flex gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            className="bg-card/85 dark:bg-card/85 border border-border/60 dark:border-border/70 backdrop-blur-sm text-card-foreground hover:bg-card"
-            onClick={() => setIsFullscreen(true)}
-            aria-label="View flat lay in full screen"
-          >
-            <Maximize2 className="w-4 h-4" />
-          </Button>
-          
-          {showItemGrid && outfitItems.length > 0 && (
-            <Button
-              size="sm"
-              variant="secondary"
-              className="bg-card/85 dark:bg-card/85 border border-border/60 dark:border-border/70 backdrop-blur-sm text-card-foreground hover:bg-card"
-              onClick={toggleView}
-              aria-label="Switch to item grid"
-            >
-              <Grid3x3 className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
-        
-        {/* Flat Lay Badge */}
-        <div className="absolute top-4 left-4">
-          <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-            <Eye className="w-3 h-3 mr-1" />
-            Flat Lay View
-          </Badge>
-        </div>
-      </div>
-    );
-  };
-
-  const renderItemGrid = () => {
-    return (
-      <div className="relative">
-        <div
-          className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-4 transition-all duration-200 ${
-            showConsentOverlay ? 'pointer-events-none blur-sm brightness-50' : ''
-          }`}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Outfit Items
-            </h3>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={toggleView}
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              Flat Lay View
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-2">
-            {outfitItems.map((item) => (
-              <div 
-                key={item.id}
-                className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700"
-              >
-                <div className="aspect-square bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                  {item.imageUrl && !item.imageUrl.includes('placeholder') ? (
-                    <img 
-                      src={item.imageUrl}
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <ImageOff className="w-6 w-6 text-gray-400" />
-                  )}
-                </div>
-                <div className="p-1.5">
-                  <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
-                    {item.name}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 capitalize truncate">
-                    {item.type}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {showConsentOverlay && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="mx-4 w-full max-w-md rounded-2xl border border-amber-400/60 bg-stone-900/80 p-6 text-center shadow-2xl backdrop-blur">
-              <Badge className="mb-3 bg-amber-500 text-white">Premium Flat Lay</Badge>
-              <h3 className="text-lg font-semibold text-white">
-                Create a flat lay for this outfit
-              </h3>
-              <p className="mt-2 text-sm text-amber-100">
-                {flatLayBalanceText}
-              </p>
-              <div className="mt-5 flex flex-col gap-2">
-                <Button
-                  onClick={() => onRequestFlatLay?.()}
-                  disabled={requestDisabled}
-                  className="w-full bg-amber-500 hover:bg-amber-600 text-white"
-                >
-                  {renderRequestButtonContent()}
-                </Button>
-                {showUpgradeButton && (
-                  <Button
-                    variant="outline"
-                    className="w-full border-amber-300 text-amber-200 hover:bg-amber-500/20"
-                    asChild
-                  >
-                    <Link href="/upgrade">
-                      Upgrade to unlock more flat lays
-                    </Link>
-                  </Button>
-                )}
-                {onSkipFlatLay && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      onSkipFlatLay();
-                      setCurrentView('grid');
-                    }}
-                    disabled={flatLayActionLoading}
-                    className="w-full text-amber-100 hover:text-white"
-                  >
-                    Maybe later
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Fullscreen modal
-  const renderFullscreen = () => {
-    if (!isFullscreen || !flatLayUrl) return null;
-
-    return (
-      <div 
-        className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
-        onClick={() => setIsFullscreen(false)}
-      >
-        <Button
-          size="sm"
-          variant="ghost"
-          className="absolute top-4 right-4 text-white hover:bg-white/10"
-          onClick={() => setIsFullscreen(false)}
-        >
-          <X className="w-6 h-6" />
-        </Button>
-        
-        <img
-          src={flatLayUrl?.includes('storage.googleapis.com') || flatLayUrl?.includes('firebasestorage.googleapis.com')
-            ? `/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}`
-            : flatLayUrl}
-          alt={outfitName || 'Outfit flat lay'}
-          className="max-w-full max-h-full object-contain"
-          onClick={(e) => e.stopPropagation()}
-        />
-        
-        <div className="absolute bottom-4 right-4 flex gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={handleDownload}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Download
-          </Button>
-          
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={handleShare}
-          >
-            <Share2 className="w-4 h-4 mr-2" />
-            Share
-          </Button>
-        </div>
-      </div>
-    );
-  };
+  const imageActions = (
+    <div className="flex flex-wrap items-center gap-1">
+      <Button variant="ghost" size="sm" onClick={handleDownload} disabled={Boolean(activeAction) || isLoading}>
+        {activeAction === 'download' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Download className="mr-2 h-4 w-4" aria-hidden="true" />}
+        Download
+      </Button>
+      <Button variant="ghost" size="sm" onClick={handleShare} disabled={Boolean(activeAction) || isLoading}>
+        {activeAction === 'share' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Share2 className="mr-2 h-4 w-4" aria-hidden="true" />}
+        Share
+      </Button>
+    </div>
+  );
+  const feedback = actionFeedback ? (
+    <p role={actionFeedback.error ? 'alert' : 'status'} className={`text-sm ${actionFeedback.error ? 'text-destructive' : 'text-muted-foreground'}`}>
+      {actionFeedback.message}
+    </p>
+  ) : null;
 
   return (
-    <>
-      <div className={className}>
-        {currentView === 'flat-lay' ? renderFlatLay() : renderItemGrid()}
-      </div>
-      
-      {renderFullscreen()}
-    </>
+    <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+      <section className={`overflow-hidden rounded-3xl border border-stone-200 bg-[#f7f5f0] dark:border-stone-700 dark:bg-stone-900 ${className}`} aria-label="Outfit presentation">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-6">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500 dark:text-stone-400">{showingImage ? 'AI styled preview' : 'From your wardrobe'}</p>
+            <h3 className="mt-1 text-base font-medium text-stone-900 dark:text-stone-100">{showingImage ? 'Your look' : 'The pieces'}</h3>
+          </div>
+          {hasImage && canShowPieces && (
+            <div className="flex rounded-xl border border-stone-200 bg-white/70 p-1 dark:border-stone-700 dark:bg-stone-800" role="group" aria-label="Outfit view">
+              <Button variant="ghost" size="sm" className={showingImage ? 'bg-stone-100 text-stone-900 dark:bg-stone-700 dark:text-white' : ''} aria-pressed={showingImage} onClick={() => changeView('flat-lay')}>
+                <Images className="mr-2 h-4 w-4" aria-hidden="true" />Flat lay
+              </Button>
+              <Button variant="ghost" size="sm" className={!showingImage ? 'bg-stone-100 text-stone-900 dark:bg-stone-700 dark:text-white' : ''} aria-pressed={!showingImage} onClick={() => changeView('grid')}>
+                <Grid3x3 className="mr-2 h-4 w-4" aria-hidden="true" />Pieces
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {showingImage ? (
+          <>
+            <div className="relative aspect-square w-full bg-[#f3f0e9] dark:bg-stone-950" aria-busy={isLoading}>
+              {isLoading && <div className="absolute inset-0 flex items-center justify-center" role="status"><Loader2 className="h-6 w-6 animate-spin text-stone-500" aria-hidden="true" /><span className="sr-only">Loading flat lay</span></div>}
+              <img ref={imageRef} src={imageSource || undefined} alt={`AI-styled preview of ${outfitName || 'your outfit'}`} className="h-full w-full object-contain" onLoad={() => setIsLoading(false)} onError={handleImageError} />
+              <DialogTrigger asChild>
+                <Button variant="secondary" size="icon" className="absolute bottom-4 right-4 border border-stone-200 bg-white/90 text-stone-800 shadow-sm hover:bg-white" disabled={isLoading} aria-label="View flat lay in full screen">
+                  <Maximize2 className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </DialogTrigger>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-5">
+              <p className="text-xs text-stone-500 dark:text-stone-400">{previewCaption}</p>
+              {imageActions}
+            </div>
+          </>
+        ) : canShowPieces ? (
+          <ul aria-label="Outfit pieces" className={`grid gap-3 px-4 pb-5 sm:gap-4 sm:px-6 sm:pb-6 ${outfitItems.length === 1 ? 'grid-cols-1' : outfitItems.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
+            {outfitItems.map((item) => (
+              <li key={item.id} className="min-w-0 overflow-hidden rounded-2xl border border-stone-200/80 bg-white/80 dark:border-stone-700 dark:bg-stone-800">
+                <div className="flex aspect-square items-center justify-center bg-white p-3 dark:bg-stone-800 sm:p-4">
+                  {item.imageUrl && !item.imageUrl.includes('placeholder') && failedItemImages[item.id] !== item.imageUrl ? (
+                    <img src={item.imageUrl} alt={item.name} className="h-full w-full object-contain" onError={() => setFailedItemImages((previous) => ({ ...previous, [item.id]: item.imageUrl! }))} />
+                  ) : <div className="text-center text-stone-400"><ImageOff className="mx-auto h-6 w-6" aria-hidden="true" /><span className="mt-2 block text-xs">Photo unavailable</span></div>}
+                </div>
+                <div className="border-t border-stone-100 px-3 py-3 dark:border-stone-700">
+                  <p className="break-words text-sm font-medium leading-snug text-stone-900 dark:text-stone-100">{item.name}</p>
+                  <p className="mt-1 text-xs capitalize text-stone-500 dark:text-stone-400">{item.type}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="px-6 pb-6 text-sm text-stone-500 dark:text-stone-400">No outfit photos available.</p>}
+
+        {!hasImage && (
+          <div className="space-y-3 border-t border-stone-200 px-5 py-4 dark:border-stone-700 sm:px-6">
+            <div role={isFailed || imageError ? 'alert' : 'status'} className="flex items-start gap-3">
+              {isPending || flatLayActionLoading ? <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-stone-500" aria-hidden="true" /> : <Images className="mt-0.5 h-4 w-4 shrink-0 text-stone-500" aria-hidden="true" />}
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-stone-800 dark:text-stone-100">
+                  {statusHeading}
+                </p>
+                <p className="text-sm leading-relaxed text-stone-500 dark:text-stone-400">
+                  {statusDescription}
+                </p>
+              </div>
+            </div>
+            {canRequest && (
+              <div className="space-y-2 pl-7">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" size="sm" className="border-stone-300 bg-transparent text-stone-800 shadow-none dark:border-stone-600 dark:text-stone-100" onClick={onRequestFlatLay} disabled={requestDisabled}>
+                    {flatLayActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
+                    {flatLayActionLoading ? 'Requesting…' : isFailed ? 'Request a new flat lay' : 'Create flat lay'}
+                  </Button>
+                  {awaitingConsent && onSkipFlatLay && <Button variant="ghost" size="sm" onClick={onSkipFlatLay} disabled={flatLayActionLoading}>Maybe later</Button>}
+                  {creditsExhausted && <Link href="/upgrade" className="rounded-md px-2 py-3 text-sm text-stone-600 underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-stone-300">View plans</Link>}
+                </div>
+                <p className="text-xs text-stone-500 dark:text-stone-400">{balanceText}</p>
+                {flatLayError && <p role="alert" className="text-sm text-destructive">{flatLayError}</p>}
+              </div>
+            )}
+          </div>
+        )}
+        {!isFullscreen && feedback && <div className="px-5 pb-4 sm:px-6">{feedback}</div>}
+      </section>
+
+      {hasImage && (
+        <DialogContent className="w-[calc(100%_-_2rem)] max-w-5xl gap-3 overflow-hidden rounded-2xl border-stone-200 bg-[#f7f5f0] p-4 dark:border-stone-700 dark:bg-stone-900 sm:p-6">
+          <DialogTitle className="pr-8 text-stone-900 dark:text-stone-100">{outfitName || 'Your outfit'}</DialogTitle>
+          <DialogDescription className="sr-only">AI-styled preview of your outfit. Download or share using the controls below.</DialogDescription>
+          <img src={imageSource || undefined} alt={`AI-styled preview of ${outfitName || 'your outfit'}, enlarged`} className="max-h-[70dvh] w-full object-contain" onError={handleImageError} />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-stone-500 dark:text-stone-400">{previewCaption}</p>
+            {imageActions}
+          </div>
+          {feedback}
+        </DialogContent>
+      )}
+    </Dialog>
   );
 }
-

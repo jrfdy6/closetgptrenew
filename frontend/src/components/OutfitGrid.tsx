@@ -37,17 +37,19 @@ interface OutfitGridProps {
 
 interface OutfitCardProps {
   outfit: Outfit;
-  onFavorite: (id: string) => void;
+  onFavorite: (id: string, isFavorite: boolean) => void;
+  mutationError?: string;
+  pending?: boolean;
   onWear: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
 // ===== OUTFIT CARD COMPONENT =====
-function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCardProps) {
+function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete, mutationError, pending }: OutfitCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
-  const handleFavorite = () => onFavorite(outfit.id);
+  const handleFavorite = () => onFavorite(outfit.id, !outfit.isFavorite);
   const handleWear = () => onWear(outfit.id);
   const handleEdit = () => onEdit(outfit.id);
   const handleDeleteClick = () => setDeleteDialogOpen(true);
@@ -69,6 +71,9 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
             variant="ghost"
             size="sm"
             onClick={handleFavorite}
+            disabled={pending}
+            aria-label={`${outfit.isFavorite ? "Remove" : "Add"} ${outfit.name} ${outfit.isFavorite ? "from" : "to"} favorites`}
+            aria-pressed={Boolean(outfit.isFavorite)}
             className="text-muted-foreground hover:text-primary transition-colors"
           >
             {outfit.isFavorite ? (
@@ -205,6 +210,8 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
             variant="outline"
             size="sm"
             onClick={handleWear}
+            disabled={pending}
+            aria-label={`Mark ${outfit.name} as worn`}
             className="flex-1 text-xs border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary"
           >
             <Eye className="h-3 w-3 mr-1" />
@@ -214,6 +221,8 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
             variant="outline"
             size="sm"
             onClick={handleEdit}
+            disabled={pending}
+            aria-label={`Edit ${outfit.name}`}
             className="text-xs border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary"
           >
             <Edit className="h-3 w-3" />
@@ -223,10 +232,18 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
             size="sm"
             className="text-xs text-destructive border-border/60 dark:border-border/70 hover:text-destructive/90"
             onClick={handleDeleteClick}
+            disabled={pending}
+            aria-label={`Delete ${outfit.name}`}
           >
             <Trash2 className="h-3 w-3" />
           </Button>
         </div>
+
+        {mutationError && (
+          <p role="alert" className="mt-3 text-sm text-destructive">
+            {mutationError} Please try the action again.
+          </p>
+        )}
 
         {/* Confidence Score */}
         {outfit.confidenceScore && (
@@ -298,11 +315,12 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, s
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {/* Search Input */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-muted-foreground mb-2">
+          <label htmlFor="outfit-search" className="block text-sm font-medium text-muted-foreground mb-2">
             Search outfits
           </label>
           <div className="flex gap-2">
             <Input
+              id="outfit-search"
               placeholder="Search by name, occasion, style..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -422,6 +440,8 @@ export default function OutfitGrid({
     loadingMore,
     hasMore,
     error, 
+    mutationErrors,
+    pendingMutations,
     fetchOutfits, 
     loadMoreOutfits,
     markAsWorn, 
@@ -434,9 +454,9 @@ export default function OutfitGrid({
 
   // ===== LOCAL STATE =====
   const [filters, setFilters] = useState<OutfitFilters>({});
-  const [searchResults, setSearchResults] = useState<Outfit[]>([]);
+  const [activeSearchQuery, setActiveSearchQuery] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(initialFavoritesOnly);
-  const [isSearching, setIsSearching] = useState(false);
+  const isSearching = activeSearchQuery.length > 0;
   const [sortBy, setSortBy] = useState<'date-newest' | 'date-oldest' | 'wear-most' | 'wear-least'>('date-newest');
   const [isRefreshing, setIsRefreshing] = useState(false);
   
@@ -489,8 +509,11 @@ export default function OutfitGrid({
   const filteredOutfits = useMemo(() => {
     let baseOutfits = outfits;
     
-    if (isSearching && searchResults.length > 0) {
-      baseOutfits = searchResults;
+    if (isSearching) {
+      baseOutfits = outfits.filter(outfit => {
+        const searchText = `${outfit.name} ${outfit.occasion} ${outfit.style} ${outfit.mood || ''}`.toLowerCase();
+        return searchText.includes(activeSearchQuery);
+      });
     }
 
     if (showFavoritesOnly) {
@@ -546,7 +569,7 @@ export default function OutfitGrid({
     }
     
     return sorted;
-  }, [outfits, searchResults, isSearching, sortBy, showFavoritesOnly]);
+  }, [outfits, activeSearchQuery, isSearching, sortBy, showFavoritesOnly]);
 
   // ===== EFFECTS =====
   // Removed problematic useEffect that was causing infinite refresh loop
@@ -651,50 +674,34 @@ export default function OutfitGrid({
   // ===== EVENT HANDLERS =====
   const handleFiltersChange = (newFilters: OutfitFilters) => {
     setFilters(newFilters);
-    setIsSearching(false);
+    setActiveSearchQuery('');
     fetchOutfits(newFilters);
   };
 
   const handleSearch = async (query: string) => {
-    if (!query.trim()) {
-      setIsSearching(false);
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const results = await fetchOutfits({ ...filters, limit: 1000 });
-      // Note: In a real implementation, this would use a dedicated search endpoint
-      // For now, we're using the existing fetchOutfits with client-side filtering
-      const filtered = outfits.filter(outfit => {
-        const searchText = `${outfit.name} ${outfit.occasion} ${outfit.style} ${outfit.mood || ''}`.toLowerCase();
-        return searchText.includes(query.toLowerCase());
-      });
-      setSearchResults(filtered);
-    } catch (error) {
-      console.error('Search failed:', error);
+    const normalizedQuery = query.trim().toLowerCase();
+    setActiveSearchQuery(normalizedQuery);
+    if (normalizedQuery) {
+      // Derive matches from current state as the larger fetch resolves.
+      // An empty result remains empty instead of falling back to all outfits.
+      await fetchOutfits({ ...filters, limit: maxOutfits });
     }
   };
 
   const handleClear = () => {
-    setIsSearching(false);
-    setSearchResults([]);
+    setActiveSearchQuery('');
     setFilters({ limit: maxOutfits });
     fetchOutfits({ limit: maxOutfits });
   };
 
-  const handleFavorite = async (id: string) => {
-    try {
-      await toggleFavorite(id);
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error);
-    }
+  const handleFavorite = async (id: string, isFavorite: boolean) => {
+    await toggleFavorite(id, isFavorite);
   };
 
   const handleWear = async (id: string) => {
     try {
-      await markAsWorn(id);
+      const saved = await markAsWorn(id);
+      if (!saved) return;
       
       // Dispatch event to notify dashboard of outfit being marked as worn
       const outfit = outfits.find(o => o.id === id);
@@ -722,17 +729,11 @@ export default function OutfitGrid({
   };
 
   const handleSaveEdit = async (updates: OutfitUpdate) => {
-    if (!editingOutfit) return;
-    
-    try {
-      const result = await updateOutfit(editingOutfit.id, updates);
-      if (result) {
-        setEditModalOpen(false);
-        setEditingOutfit(null);
-      }
-    } catch (error) {
-      console.error('Failed to update outfit:', error);
-    }
+    if (!editingOutfit) throw new Error('No outfit selected');
+    const result = await updateOutfit(editingOutfit.id, updates);
+    if (!result) throw new Error('Unable to save your outfit. Please try again.');
+    setEditModalOpen(false);
+    setEditingOutfit(null);
   };
 
   const handleCloseEdit = () => {
@@ -741,13 +742,8 @@ export default function OutfitGrid({
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this outfit?')) {
-      try {
-        await deleteOutfit(id);
-      } catch (error) {
-        console.error('Failed to delete outfit:', error);
-      }
-    }
+    // The card has already shown the confirmation dialog.
+    await deleteOutfit(id);
   };
 
   // ===== RENDER STATES =====
@@ -762,7 +758,7 @@ export default function OutfitGrid({
     );
   }
 
-  if (error) {
+  if (error && outfits.length === 0) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
         <p className="text-red-600 mb-4">{error}</p>
@@ -781,6 +777,12 @@ export default function OutfitGrid({
   // ===== MAIN RENDER =====
   return (
     <div className={cn("space-y-6", className)}>
+      {error && (
+        <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-600">{error}</p>
+          <Button onClick={refresh} variant="outline" size="sm">Try Again</Button>
+        </div>
+      )}
       {/* Header with Stats */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -793,14 +795,14 @@ export default function OutfitGrid({
               const searchLabel = displayCount === 1 ? 'outfit' : 'outfits';
               
               if (isSearching) {
-                return `Found ${displayCount} ${showFavoritesOnly ? 'favorite ' : ''}${searchLabel} matching your search`;
+                return `Found ${displayCount} ${showFavoritesOnly ? 'favorite ' : ''}${searchLabel} matching your search in loaded outfits`;
               }
               
               if (showFavoritesOnly) {
                 return `Showing ${displayCount} of ${totalFavorites} favorite ${totalFavorites === 1 ? 'outfit' : 'outfits'}`;
               }
               
-              return `Showing ${displayCount} of ${outfits.length} total ${outfits.length === 1 ? 'outfit' : 'outfits'}`;
+              return `Showing ${displayCount} of ${outfits.length} loaded ${outfits.length === 1 ? 'outfit' : 'outfits'}`;
             })()}
           </p>
         </div>
@@ -848,10 +850,10 @@ export default function OutfitGrid({
       )}
 
       {/* Search Results Indicator */}
-      {isSearching && searchResults.length > 0 && (
+      {isSearching && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-blue-800 text-sm">
-            🔍 Showing {searchResults.length} search results. 
+            🔍 Showing {filteredOutfits.length} matches in loaded outfits.
             <button 
               onClick={handleClear}
               className="text-blue-600 hover:text-blue-800 underline ml-2"
@@ -903,6 +905,8 @@ export default function OutfitGrid({
               onWear={handleWear}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              mutationError={mutationErrors[outfit.id]}
+              pending={pendingMutations.includes(outfit.id)}
             />
           ))}
         </div>
@@ -934,7 +938,7 @@ export default function OutfitGrid({
       {!hasMore && outfits.length > 0 && (
         <div className="text-center py-6">
           <p className="text-gray-500 text-sm">
-            That's all your outfits! You have {outfits.length} total outfits.
+            {outfits.length} outfits loaded.
           </p>
         </div>
       )}

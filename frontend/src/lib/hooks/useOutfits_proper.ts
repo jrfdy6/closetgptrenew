@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import OutfitService from '@/lib/services/outfitService_proper';
 import { 
@@ -19,6 +19,8 @@ interface UseOutfitsReturn {
   loadingMore: boolean;
   hasMore: boolean;
   error: string | null;
+  mutationErrors: Record<string, string>;
+  pendingMutations: string[];
   
   // ===== ACTIONS =====
   fetchOutfits: (filters?: OutfitFilters) => Promise<void>;
@@ -29,7 +31,7 @@ interface UseOutfitsReturn {
   updateOutfit: (id: string, updates: OutfitUpdate) => Promise<Outfit | null>;
   deleteOutfit: (id: string) => Promise<boolean>;
   markAsWorn: (id: string) => Promise<boolean>;
-  toggleFavorite: (id: string) => Promise<boolean>;
+  toggleFavorite: (id: string, isFavorite?: boolean) => Promise<boolean>;
   searchOutfits: (query: string, filters?: OutfitFilters) => Promise<Outfit[]>;
   fetchStats: () => Promise<void>;
   
@@ -99,6 +101,9 @@ export function useOutfits(): UseOutfitsReturn {
   const [retryCount, setRetryCount] = useState(0);
   const [currentFilters, setCurrentFilters] = useState<OutfitFilters>({});
   const [error, setError] = useState<string | null>(null);
+  const [mutationErrors, setMutationErrors] = useState<Record<string, string>>({});
+  const [pendingMutations, setPendingMutations] = useState<string[]>([]);
+  const pendingMutationIds = useRef(new Set<string>());
   const [lastLoadTime, setLastLoadTime] = useState<number>(0);
   const [consecutiveEmptyLoads, setConsecutiveEmptyLoads] = useState(0);
 
@@ -118,6 +123,29 @@ export function useOutfits(): UseOutfitsReturn {
     console.error('❌ [useOutfits] Error:', errorMessage);
     setError(errorMessage);
     setLoading(false);
+  }, []);
+
+  // Mutations have local errors and pending state; they must not replace the grid.
+  const beginMutation = useCallback((id: string) => {
+    if (pendingMutationIds.current.has(id)) return false;
+    pendingMutationIds.current.add(id);
+    setPendingMutations(Array.from(pendingMutationIds.current));
+    setMutationErrors(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    return true;
+  }, []);
+
+  const finishMutation = useCallback((id: string) => {
+    pendingMutationIds.current.delete(id);
+    setPendingMutations(Array.from(pendingMutationIds.current));
+  }, []);
+
+  const handleMutationError = useCallback((id: string, error: unknown) => {
+    const message = error instanceof Error ? error.message : 'Unable to save this change. Please try again.';
+    setMutationErrors(prev => ({ ...prev, [id]: message }));
   }, []);
 
   // ===== CORE ACTIONS =====
@@ -414,48 +442,42 @@ export function useOutfits(): UseOutfitsReturn {
    */
   const createOutfit = useCallback(async (data: OutfitCreate): Promise<Outfit | null> => {
     if (!user) {
-      setError('User not authenticated');
+      handleMutationError('create', new Error('Please sign in to save changes.'));
       return null;
     }
 
+    if (!beginMutation('create')) return null;
     try {
-      setLoading(true);
-      clearError();
       
       console.log('🎨 [useOutfits] Creating new outfit:', data);
       
       const token = await user.getIdToken();
       const newOutfit = await OutfitService.createOutfit(data, token);
       
-      if (newOutfit) {
-        const normalized = normalizeOutfitData(newOutfit);
-        // Add to local state
-        setOutfits(prev => [normalized, ...prev]);
-        console.log(`✅ [useOutfits] Successfully created outfit ${newOutfit.id}`);
-      }
-      
-      return newOutfit;
+      const normalized = normalizeOutfitData(newOutfit);
+      if (!normalized?.id) throw new Error('The server did not confirm that your outfit was saved.');
+      setOutfits(prev => [normalized, ...prev.filter(o => o.id !== normalized.id)]);
+      return normalized;
       
     } catch (error) {
-      handleError(error as Error);
+      handleMutationError('create', error);
       return null;
     } finally {
-      setLoading(false);
+      finishMutation('create');
     }
-  }, [user, clearError, handleError]);
+  }, [user, beginMutation, finishMutation, handleMutationError]);
 
   /**
    * Update an existing outfit
    */
   const updateOutfit = useCallback(async (id: string, updates: OutfitUpdate): Promise<Outfit | null> => {
     if (!user) {
-      setError('User not authenticated');
+      handleMutationError(id, new Error('Please sign in to save changes.'));
       return null;
     }
 
+    if (!beginMutation(id)) return null;
     try {
-      setLoading(true);
-      clearError();
       
       console.log(`🔄 [useOutfits] Updating outfit ${id}:`, updates);
       
@@ -475,25 +497,24 @@ export function useOutfits(): UseOutfitsReturn {
       return updatedOutfit;
       
     } catch (error) {
-      handleError(error as Error);
+      handleMutationError(id, error);
       return null;
     } finally {
-      setLoading(false);
+      finishMutation(id);
     }
-  }, [user, outfit, clearError, handleError]);
+  }, [user, outfit, beginMutation, finishMutation, handleMutationError]);
 
   /**
    * Delete an outfit
    */
   const deleteOutfit = useCallback(async (id: string): Promise<boolean> => {
     if (!user) {
-      setError('User not authenticated');
+      handleMutationError(id, new Error('Please sign in to save changes.'));
       return false;
     }
 
+    if (!beginMutation(id)) return false;
     try {
-      setLoading(true);
-      clearError();
       
       console.log(`🗑️ [useOutfits] Deleting outfit ${id}`);
       
@@ -510,25 +531,24 @@ export function useOutfits(): UseOutfitsReturn {
       return true;
       
     } catch (error) {
-      handleError(error as Error);
+      handleMutationError(id, error);
       return false;
     } finally {
-      setLoading(false);
+      finishMutation(id);
     }
-  }, [user, outfit, clearError, handleError]);
+  }, [user, outfit, beginMutation, finishMutation, handleMutationError]);
 
   /**
    * Mark an outfit as worn
    */
   const markAsWorn = useCallback(async (id: string): Promise<boolean> => {
     if (!user) {
-      setError('User not authenticated');
+      handleMutationError(id, new Error('Please sign in to save changes.'));
       return false;
     }
 
+    if (!beginMutation(id)) return false;
     try {
-      setLoading(true);
-      clearError();
       
       console.log(`👕 [useOutfits] Marking outfit ${id} as worn`);
       
@@ -572,53 +592,56 @@ export function useOutfits(): UseOutfitsReturn {
       return true;
       
     } catch (error) {
-      handleError(error as Error);
+      handleMutationError(id, error);
       return false;
     } finally {
-      setLoading(false);
+      finishMutation(id);
     }
-  }, [user, outfit, clearError, handleError]);
+  }, [user, outfit, beginMutation, finishMutation, handleMutationError]);
 
   /**
    * Toggle outfit favorite status
    */
-  const toggleFavorite = useCallback(async (id: string): Promise<boolean> => {
+  const toggleFavorite = useCallback(async (id: string, isFavorite?: boolean): Promise<boolean> => {
     if (!user) {
-      setError('User not authenticated');
+      handleMutationError(id, new Error('Please sign in to save changes.'));
       return false;
     }
 
+    if (!beginMutation(id)) return false;
     try {
-      setLoading(true);
-      clearError();
       
       console.log(`❤️ [useOutfits] Toggling favorite for outfit ${id}`);
       
       const token = await user.getIdToken();
-      await OutfitService.toggleOutfitFavorite(id, token);
+      const current = outfits.find(o => o.id === id) ?? (outfit?.id === id ? outfit : undefined);
+      if (isFavorite === undefined && !current) throw new Error('Outfit not found. Please refresh and try again.');
+      const desiredState = isFavorite ?? !current?.isFavorite;
+      const result = await OutfitService.setOutfitFavorite(id, desiredState, token);
+      if (typeof result?.isFavorite !== 'boolean') throw new Error('The server did not confirm the favorite update.');
       
       // Update local state
       setOutfits(prev => prev.map(o => {
         if (o.id === id) {
-          return { ...o, isFavorite: !o.isFavorite };
+          return { ...o, isFavorite: result.isFavorite };
         }
         return o;
       }));
       
       if (outfit?.id === id) {
-        setOutfit(prev => prev ? { ...prev, isFavorite: !prev.isFavorite } : null);
+        setOutfit(prev => prev ? { ...prev, isFavorite: result.isFavorite } : null);
       }
       
       console.log(`✅ [useOutfits] Successfully toggled favorite for outfit ${id}`);
       return true;
       
     } catch (error) {
-      handleError(error as Error);
+      handleMutationError(id, error);
       return false;
     } finally {
-      setLoading(false);
+      finishMutation(id);
     }
-  }, [user, outfit, clearError, handleError]);
+  }, [user, outfits, outfit, beginMutation, finishMutation, handleMutationError]);
 
   /**
    * Search outfits with text query
@@ -739,6 +762,8 @@ export function useOutfits(): UseOutfitsReturn {
     loadingMore,
     hasMore,
     error,
+    mutationErrors,
+    pendingMutations,
     
     // Actions
     fetchOutfits,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,14 +40,12 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useWardrobe } from '@/lib/hooks/useWardrobe';
 import { useOutfits } from '@/lib/hooks/useOutfits_proper';
 import type { ClothingItem } from '@/lib/hooks/useWardrobe';
-import { db } from '@/lib/firebase/config';
 import Navigation from '@/components/Navigation';
 import ClientOnlyNav from '@/components/ClientOnlyNav';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
-import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { requestFlatLay } from '@/lib/services/flatLayService';
 import { subscriptionService } from '@/lib/services/subscriptionService';
 
 type ItemCategory = 'tops' | 'bottoms' | 'dresses' | 'outerwear' | 'shoes' | 'accessories' | 'other';
@@ -301,7 +299,10 @@ export default function CreateOutfitPage() {
   const [flatLayUsage, setFlatLayUsage] = useState<FlatLayUsage | null>(null);
   const [flatLayLoading, setFlatLayLoading] = useState(false);
   const [flatLayActionLoading, setFlatLayActionLoading] = useState(false);
+  const flatLayRequestPending = useRef(false);
   const [flatLayError, setFlatLayError] = useState<string | null>(null);
+  const [flatLayRequestError, setFlatLayRequestError] = useState<string | null>(null);
+  const [flatLayRequestAllowed, setFlatLayRequestAllowed] = useState(true);
 
   // Group items by category
   const itemsByCategory = useMemo(() => {
@@ -416,97 +417,38 @@ export default function CreateOutfitPage() {
   };
 
   const handleFlatLayGenerate = async () => {
-    if (!createdOutfitId) {
-      setFlatLayPromptOpen(false);
-      router.push('/outfits?refresh=1');
-      return;
-    }
-
+    if (!createdOutfitId || !user || flatLayRequestPending.current || !flatLayRequestAllowed) return;
+    flatLayRequestPending.current = true;
     setFlatLayActionLoading(true);
-
+    setFlatLayRequestError(null);
     try {
-      if (
-        flatLayUsage &&
-        flatLayUsage.remaining !== null &&
-        flatLayUsage.remaining <= 0
-      ) {
-        toast({
-          title: "No credits available",
-          description: "Upgrade your plan to unlock more flat lay credits.",
-          variant: "destructive"
-        });
-        setFlatLayActionLoading(false);
+      const result = await requestFlatLay(createdOutfitId, await user.getIdToken());
+      if (result.flat_lay_status === 'failed') {
+        setFlatLayRequestAllowed(result.request_allowed);
+        setFlatLayRequestError(result.flat_lay_error || 'This preview needs review before another request.');
         return;
       }
-
-      // Consume quota immediately when user requests flat lay
-      if (user) {
-        await subscriptionService.consumeFlatLayQuota(user);
-      }
-      
-      const outfitRef = doc(db, 'outfits', createdOutfitId);
-      await updateDoc(outfitRef, {
-        flat_lay_status: 'pending',
-        flatLayStatus: 'pending',
-        'metadata.flat_lay_status': 'pending',
-        'metadata.flatLayStatus': 'pending',
-        flat_lay_requested: true,
-        flatLayRequested: true,
-        flat_lay_error: null,
-        flatLayError: null
-      });
-
       toast({
-        title: "Flat lay on the way!",
-        description: "We'll craft your premium flat lay and notify you once it's ready.",
+        title: result.flat_lay_status === 'done' ? 'Your flat lay is ready' : 'Flat lay requested',
+        description: 'Your saved outfit is available in My Looks.',
       });
-      
-      // Refresh quota display
-      loadFlatLayUsage();
-    } catch (error) {
-      console.error('Error requesting flat lay:', error);
-      toast({
-        title: "Unable to request flat lay",
-        description: "Please try again from your outfits list.",
-        variant: "destructive"
-      });
-    } finally {
-      setFlatLayActionLoading(false);
       setFlatLayPromptOpen(false);
-      setFlatLayUsage(null);
       setCreatedOutfitId(null);
       router.push('/outfits?refresh=1');
+    } catch (error) {
+      // Keep the saved outfit ID and dialog available so retry is idempotent.
+      setFlatLayRequestError(error instanceof Error ? error.message : 'Please try again.');
+      toast({ title: 'Could not confirm the request', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
+    } finally {
+      flatLayRequestPending.current = false;
+      setFlatLayActionLoading(false);
     }
   };
 
-  const handleFlatLaySkip = async () => {
-    if (flatLayActionLoading) return;
-    setFlatLayActionLoading(true);
-
-    if (createdOutfitId) {
-      try {
-        const outfitRef = doc(db, 'outfits', createdOutfitId);
-        await updateDoc(outfitRef, {
-          flat_lay_status: 'declined',
-          flatLayStatus: 'declined',
-          'metadata.flat_lay_status': 'declined',
-          'metadata.flatLayStatus': 'declined',
-          flat_lay_requested: false,
-          flatLayRequested: false
-        });
-      } catch (error) {
-        console.error('Error updating flat lay status:', error);
-      }
-    }
-
-    setFlatLayActionLoading(false);
+  const handleFlatLaySkip = () => {
+    if (flatLayRequestPending.current) return;
     setFlatLayPromptOpen(false);
-    setFlatLayUsage(null);
     setCreatedOutfitId(null);
-    toast({
-      title: "Flat lay skipped",
-      description: "You can always generate a flat lay later from My Outfits.",
-    });
     router.push('/outfits?refresh=1');
   };
 
@@ -522,6 +464,7 @@ export default function CreateOutfitPage() {
   const hasFlatLayCredits = flatLayUsage
     ? (flatLayUsage.remaining === null || (flatLayUsage.remaining ?? 0) > 0)
     : false;
+  const balanceExhausted = !flatLayLoading && !flatLayError && typeof flatLayUsage?.remaining === 'number' && flatLayUsage.remaining <= 0;
 
   const flatLayDialog = (
     <AlertDialog open={flatLayPromptOpen}>
@@ -529,10 +472,11 @@ export default function CreateOutfitPage() {
         <AlertDialogHeader>
           <AlertDialogTitle className="text-2xl font-semibold flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-amber-500" />
-            Create a premium flat lay?
+            Add a flat lay to your outfit?
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-2 text-sm text-stone-600 dark:text-stone-400">
-            <p>Upgrade your outfit with a magazine-ready flat lay.</p>
+          <AlertDialogDescription asChild>
+            <div className="space-y-2 text-sm text-stone-600 dark:text-stone-400">
+            <p>Your outfit is saved. Create an optional styled image of its pieces.</p>
             <div className="rounded-lg bg-stone-100 dark:bg-stone-800/60 px-4 py-3">
               <p className="font-semibold text-stone-900 dark:text-stone-100">
                 {flatLayUsage ? `${tierName} plan` : 'Checking plan…'}
@@ -541,16 +485,18 @@ export default function CreateOutfitPage() {
                 {flatLayBalanceText}
               </p>
             </div>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <div className="space-y-3">
+          {flatLayRequestError && <p role="alert" className="text-sm text-stone-700 dark:text-stone-300">{flatLayRequestError}</p>}
           <Button
             onClick={handleFlatLayGenerate}
             disabled={
               flatLayActionLoading ||
               flatLayLoading ||
-              !hasFlatLayCredits
+              !hasFlatLayCredits || !flatLayRequestAllowed
             }
             className="w-full bg-stone-900 hover:bg-stone-800 text-white"
           >
@@ -559,13 +505,17 @@ export default function CreateOutfitPage() {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Requesting flat lay…
               </>
-            ) : !hasFlatLayCredits ? (
+            ) : !flatLayRequestAllowed ? (
+              'Preview needs review'
+            ) : balanceExhausted ? (
               'No credits available'
+            ) : !hasFlatLayCredits ? (
+              'Balance unavailable'
             ) : (
               'Create flat lay now'
             )}
           </Button>
-          {!hasFlatLayCredits && !flatLayLoading && (
+          {balanceExhausted && (
             <Button
               variant="outline"
               className="w-full border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40"
@@ -576,6 +526,7 @@ export default function CreateOutfitPage() {
               </Link>
             </Button>
           )}
+          {flatLayError && <Button variant="outline" className="w-full" onClick={loadFlatLayUsage} disabled={flatLayLoading}>Check balance again</Button>}
           <Button
             variant="outline"
             onClick={handleFlatLaySkip}
@@ -620,6 +571,7 @@ export default function CreateOutfitPage() {
       return;
     }
 
+    if (saving) return;
     setSaving(true);
     try {
       const outfitData = {
@@ -650,6 +602,8 @@ export default function CreateOutfitPage() {
       
       if (createdOutfit?.id) {
         setCreatedOutfitId(createdOutfit.id);
+        setFlatLayRequestError(null);
+        setFlatLayRequestAllowed(true);
         setFlatLayUsage(null);
         setFlatLayPromptOpen(true);
         loadFlatLayUsage();
@@ -659,17 +613,13 @@ export default function CreateOutfitPage() {
         description: "Your outfit has been saved successfully.",
       });
       } else {
-        toast({
-          title: "Outfit saved",
-          description: "Your outfit was saved, but we couldn't confirm the ID for flat lay generation.",
-        });
-        router.push('/outfits?refresh=1');
+        throw new Error('Could not confirm the save. Your outfit is still here so you can try again.');
       }
     } catch (error) {
       console.error('Error creating outfit:', error);
       toast({
         title: "Error",
-        description: "Failed to create outfit. Please try again.",
+        description: "We couldn’t confirm that your outfit was saved. Your items and details are still here. Please try again.",
         variant: "destructive"
       });
     } finally {

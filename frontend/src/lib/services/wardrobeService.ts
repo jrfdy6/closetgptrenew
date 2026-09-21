@@ -1,4 +1,4 @@
-import { ClothingItem, WardrobeFilters } from '@/lib/hooks/useWardrobe';
+import type { ClothingItem, WardrobeFilters } from '@/lib/hooks/useWardrobe';
 
 // Use Next.js API routes instead of direct backend calls
 const API_BASE_URL = '/api';
@@ -34,18 +34,22 @@ export class WardrobeService {
     // Helper to get value from multiple possible locations
     const getValue = (field: string, defaultValue: any = '') => {
       // Priority: metadata.visualAttributes > analysis.metadata.visualAttributes > analysis.{field} > backendItem.{field} > default
-      return visualAttributes[field] || 
-             analysisVisualAttrs[field] || 
-             analysis[field] || 
-             backendItem[field] || 
+      return visualAttributes[field] ??
+             analysisVisualAttrs[field] ??
+             analysis[field] ??
+             backendItem[field] ??
              defaultValue;
     };
     
     return {
       ...backendItem,
       // Extract nested fields to root level for frontend display
-      description: metadata.naturalDescription || analysisMetadata.naturalDescription || analysis.naturalDescription || backendItem.description || '',
-      material: getValue('material') ? [getValue('material')] : (backendItem.material || []),
+      description: metadata.naturalDescription ?? analysisMetadata.naturalDescription ?? analysis.naturalDescription ?? backendItem.description ?? '',
+      // The generation contract stores a scalar. Preserve every selected material
+      // when converting it back to the editor's multi-select value.
+      material: Array.isArray(getValue('material'))
+        ? getValue('material')
+        : String(getValue('material')).split(',').map(value => value.trim()).filter(Boolean),
       sleeveLength: getValue('sleeveLength'),
       fit: getValue('fit'),
       neckline: getValue('neckline'),
@@ -81,6 +85,8 @@ export class WardrobeService {
     if (frontendUpdates.occasion !== undefined) backendUpdates.occasion = frontendUpdates.occasion;
     if (frontendUpdates.brand !== undefined) backendUpdates.brand = frontendUpdates.brand;
     if (frontendUpdates.size !== undefined) backendUpdates.size = frontendUpdates.size;
+    if (frontendUpdates.purchasePrice !== undefined) backendUpdates.purchasePrice = frontendUpdates.purchasePrice;
+    if (frontendUpdates.favorite !== undefined) backendUpdates.favorite = frontendUpdates.favorite;
     
     // Metadata fields that need to be nested
     const hasMetadataUpdates = 
@@ -125,9 +131,9 @@ export class WardrobeService {
         backendUpdates.metadata.visualAttributes = backendUpdates.metadata.visualAttributes || {};
         
         if (frontendUpdates.material !== undefined) {
-          // Convert array to single string (backend expects string)
+          // Preserve the complete selection within the existing scalar generation contract.
           backendUpdates.metadata.visualAttributes.material = 
-            Array.isArray(frontendUpdates.material) ? frontendUpdates.material[0] : frontendUpdates.material;
+            Array.isArray(frontendUpdates.material) ? frontendUpdates.material.join(', ') : frontendUpdates.material;
         }
         if (frontendUpdates.sleeveLength !== undefined) {
           backendUpdates.metadata.visualAttributes.sleeveLength = frontendUpdates.sleeveLength;

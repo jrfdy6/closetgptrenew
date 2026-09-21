@@ -31,6 +31,8 @@ import type { WeatherData } from '@/types/weather';
 import { subscriptionService } from '@/lib/services/subscriptionService';
 import { SubscriptionPlan, mapRoleToPlan } from '@/types/subscription';
 import { FLATLAY_WEEKLY_LIMITS } from '@/utils/flatLayConfig';
+import { requestFlatLay, flatLayRequestFields } from '@/lib/services/flatLayService';
+import { extractFlatLayState, type FlatLaySource } from '@/lib/flatLayState';
 import {
   assertRequiredBaseItem,
   buildOutfitGenerationUserProfile,
@@ -40,7 +42,6 @@ import {
 import OutfitGenerationBottomSheet from '@/components/outfits/OutfitGenerationBottomSheet';
 import OutfitResultsDisplay from '@/components/ui/outfit-results-display';
 import { OutfitGenerating, WardrobeLoading } from '@/components/ui/outfit-loading';
-import StyleEducationModule from '@/components/ui/style-education-module';
 // Phase 2: Progressive Reveal Components
 import OutfitRevealAnimation from '@/components/OutfitRevealAnimation';
 import { useToast } from '@/components/ui/use-toast';
@@ -55,14 +56,14 @@ interface OutfitGenerationForm {
   description: string;
 }
 
-interface GeneratedOutfit {
+interface GeneratedOutfit extends FlatLaySource {
   id: string;
   baseItemId?: string | null;
   name: string;
   style: string;
   mood: string;
   occasion: string;
-  confidence_score: number;
+  confidence_score: number | null;
   score_breakdown?: any;
   items: Array<{
     id: string;
@@ -123,6 +124,7 @@ export default function OutfitGenerationPage() {
   const [flatLayLoading, setFlatLayLoading] = useState(false);
   const [flatLayError, setFlatLayError] = useState<string | null>(null);
   const [flatLayActionLoading, setFlatLayActionLoading] = useState(false);
+  const flatLayRequestPending = useRef(false);
   
   const loadFlatLayUsage = useCallback(async () => {
     if (!user) {
@@ -737,7 +739,7 @@ export default function OutfitGenerationPage() {
           
           // Import Firebase directly to save
           const { db } = await import('@/lib/firebase/config');
-          const { collection, doc, setDoc } = await import('firebase/firestore');
+          const { collection, doc, runTransaction } = await import('firebase/firestore');
           
           // Prepare outfit data for Firestore
           const outfitId = enrichedData.id || `outfit_${Date.now()}`;
@@ -763,7 +765,7 @@ export default function OutfitGenerationPage() {
             updatedAt: now,
             wearCount: 0,
             isFavorite: false,
-            confidence_score: enrichedData.confidence_score || 0.8,
+            confidence_score: enrichedData.confidence_score ?? null,
             generation_strategy: enrichedData.generation_strategy || 'hybrid',
             baseItemId: enrichedData.baseItemId ?? baseItem?.id ?? null,
             metadata: enrichedMetadata,
@@ -779,7 +781,11 @@ export default function OutfitGenerationPage() {
           
           // Save directly to Firestore
           const outfitRef = doc(collection(db, 'outfits'), outfitId);
-          await setDoc(outfitRef, outfitData, { merge: true });
+          await runTransaction(db, async transaction => {
+            const existing = await transaction.get(outfitRef);
+            // Never overwrite the server's saved outfit or concurrent preview state.
+            if (!existing.exists()) transaction.set(outfitRef, outfitData);
+          });
           
           console.log('✅ Outfit auto-saved successfully to Firestore with ID:', outfitId);
           
@@ -787,10 +793,6 @@ export default function OutfitGenerationPage() {
           setGeneratedOutfit(prev => prev ? {
             ...prev,
             id: outfitId,
-            metadata: {
-              ...(prev.metadata ?? {}),
-              ...enrichedMetadata,
-            }
           } : null);
         } catch (err) {
           console.log('🔍 DEBUG: Auto-save failed, but outfit generation succeeded');
@@ -809,179 +811,40 @@ export default function OutfitGenerationPage() {
     : false;
 
   const handleFlatLayRequest = useCallback(async () => {
-    if (!generatedOutfit?.id || !user) {
-      return;
-    }
-
-    if (
-      flatLayUsage &&
-      flatLayUsage.remaining !== null &&
-      flatLayUsage.remaining <= 0
-    ) {
-      toast({
-        title: "No credits available",
-        description: "Upgrade your plan to unlock more flat lay credits.",
-        variant: "destructive"
-      });
-      return;
-    }
-
+    if (!generatedOutfit?.id || !user || flatLayRequestPending.current) return;
+    flatLayRequestPending.current = true;
     setFlatLayActionLoading(true);
-
-    try {
-      // Consume quota immediately when user requests flat lay
-      await subscriptionService.consumeFlatLayQuota(user);
-      
-      const [{ db }, firestore] = await Promise.all([
-        import('@/lib/firebase/config'),
-        import('firebase/firestore'),
-      ]);
-
-      const outfitRef = firestore.doc(db, 'outfits', generatedOutfit.id);
-
-      await firestore.updateDoc(outfitRef, {
-        flat_lay_status: 'pending',
-        flatLayStatus: 'pending',
-        'metadata.flat_lay_status': 'pending',
-        'metadata.flatLayStatus': 'pending',
-        flat_lay_requested: true,
-        flatLayRequested: true,
-        'metadata.flat_lay_requested': true,
-        'metadata.flatLayRequested': true,
-        flat_lay_error: null,
-        flatLayError: null,
-        'metadata.flat_lay_error': null,
-        'metadata.flatLayError': null,
-        'metadata.flat_lay_worker': 'premium_v1',
-        'metadata.flatLayWorker': 'premium_v1',
-      });
-
-      setGeneratedOutfit(prev =>
-        prev
-          ? {
-              ...prev,
-              flat_lay_status: 'pending',
-              flatLayStatus: 'pending',
-              flat_lay_url: null,
-              flatLayUrl: null,
-              flat_lay_error: null,
-              flatLayError: null,
-              flat_lay_requested: true,
-              flatLayRequested: true,
-              metadata: {
-                ...(prev.metadata ?? {}),
-                flat_lay_status: 'pending',
-                flatLayStatus: 'pending',
-                flat_lay_url: null,
-                flatLayUrl: null,
-                flat_lay_error: null,
-                flatLayError: null,
-                flat_lay_requested: true,
-                flatLayRequested: true,
-                flat_lay_worker: 'premium_v1',
-                flatLayWorker: 'premium_v1',
-              },
-            }
-          : prev
-      );
-
-      toast({
-        title: "Flat lay on the way!",
-        description: "We'll craft your premium flat lay and notify you once it's ready.",
-      });
-
-      // Refresh quota display to show updated count
-      loadFlatLayUsage();
-    } catch (error) {
-      console.error('Error requesting flat lay:', error);
-      toast({
-        title: "Unable to request flat lay",
-        description: "Please try again from your outfits list.",
-        variant: "destructive"
-      });
-    } finally {
-      setFlatLayActionLoading(false);
-    }
-  }, [generatedOutfit?.id, user, flatLayUsage, toast, loadFlatLayUsage]);
-
-  const handleFlatLaySkip = useCallback(async () => {
-    if (!generatedOutfit) {
-      return;
-    }
-
-    if (flatLayActionLoading) {
-      return;
-    }
-
     const outfitId = generatedOutfit.id;
-
-    // Optimistically update local state so the grid is visible immediately
-    setGeneratedOutfit(prev =>
-      prev
-        ? {
-            ...prev,
-            flat_lay_status: 'declined',
-            flatLayStatus: 'declined',
-            flat_lay_requested: false,
-            flatLayRequested: false,
-            metadata: {
-              ...(prev.metadata ?? {}),
-              flat_lay_status: 'declined',
-              flatLayStatus: 'declined',
-              flat_lay_requested: false,
-              flatLayRequested: false,
-            },
-          }
-        : prev
-    );
-
-    // If we don't have an outfit ID yet (e.g. before autosave completes), just exit after the optimistic update
-    if (!user || !outfitId) {
-      toast({
-        title: "Flat lay skipped",
-        description: "You can always generate a flat lay later from My Outfits.",
-      });
-      return;
-    }
-
-    setFlatLayActionLoading(true);
-
     try {
-      const [{ db }, firestore] = await Promise.all([
-        import('@/lib/firebase/config'),
-        import('firebase/firestore'),
-      ]);
-
-      const outfitRef = firestore.doc(db, 'outfits', outfitId);
-
-      await firestore.updateDoc(outfitRef, {
-        flat_lay_status: 'declined',
-        flatLayStatus: 'declined',
-        'metadata.flat_lay_status': 'declined',
-        'metadata.flatLayStatus': 'declined',
-        flat_lay_requested: false,
-        flatLayRequested: false,
-        'metadata.flat_lay_requested': false,
-        'metadata.flatLayRequested': false,
+      const result = await requestFlatLay(outfitId, await user.getIdToken());
+      const fields = flatLayRequestFields(result);
+      setGeneratedOutfit(prev => prev?.id === outfitId ? {
+        ...prev, ...fields, metadata: { ...prev.metadata, ...fields },
+      } : prev);
+      if (result.flat_lay_status === 'failed') {
+        toast({ title: 'Preview needs attention', description: result.flat_lay_error || 'This preview needs review before another request.', variant: 'destructive' });
+      } else toast({
+        title: result.flat_lay_status === 'done' ? 'Your flat lay is ready' : 'Flat lay requested',
+        description: result.flat_lay_status === 'done' ? 'Your existing preview is available.' : 'You can keep using your outfit while the preview is prepared.',
       });
-
-      toast({
-        title: "Flat lay skipped",
-        description: "You can always generate a flat lay later from My Outfits.",
-      });
-
-      loadFlatLayUsage();
+      await loadFlatLayUsage();
     } catch (error) {
-      console.error('Error updating flat lay status:', error);
-      toast({
-        title: "Unable to update flat lay",
-        description: "Please try again.",
-        variant: "destructive"
-      });
+      toast({ title: 'Could not confirm the request', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
     } finally {
+      flatLayRequestPending.current = false;
       setFlatLayActionLoading(false);
     }
-  }, [generatedOutfit, user, flatLayActionLoading, toast, loadFlatLayUsage]);
+  }, [generatedOutfit?.id, user, toast, loadFlatLayUsage]);
+
+  const handleFlatLaySkip = useCallback(() => {
+    if (!generatedOutfit || flatLayRequestPending.current) return;
+    if (['pending', 'processing', 'queued', 'done'].includes(extractFlatLayState(generatedOutfit).status)) return;
+    // Dismiss this optional presentation locally. This never cancels or rewrites a server job.
+    setGeneratedOutfit(prev => prev ? {
+      ...prev, flat_lay_status: 'declined', flatLayStatus: 'declined',
+      metadata: { ...prev.metadata, flat_lay_status: 'declined', flatLayStatus: 'declined' },
+    } : prev);
+  }, [generatedOutfit]);
 
   const handleWearOutfit = async () => {
     if (!generatedOutfit || !user) return;

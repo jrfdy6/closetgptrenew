@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +45,16 @@ interface WardrobeItem {
   length?: string;
   purchaseDate?: Date;
   purchasePrice?: number;
+  transparency?: string;
+  collarType?: string;
+  embellishments?: string;
+  printSpecificity?: string;
+  rise?: string;
+  legOpening?: string;
+  heelHeight?: string;
+  statementLevel?: number;
+  metadata?: Record<string, any>;
+  analysis?: Record<string, any>;
 }
 
 interface WardrobeItemDetailsProps {
@@ -235,7 +245,10 @@ export default function WardrobeItemDetails({
   onGenerateOutfit
 }: WardrobeItemDetailsProps) {
   const [editedItem, setEditedItem] = useState<Partial<WardrobeItem>>({});
+  const [initialEditedItem, setInitialEditedItem] = useState<Partial<WardrobeItem>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
   // Debug logging
   console.log('🔍 [WardrobeItemDetails] Component rendered with:', { item, isOpen });
@@ -255,7 +268,7 @@ export default function WardrobeItemDetails({
       
       // Normalize case for dropdown values to match constants
       const normalizeColor = (color: string) => color?.toLowerCase() || '';
-      const normalizeArray = (arr: string[]) => arr?.map(s => s.toLowerCase()) || [];
+      const normalizeArray = (arr?: string[] | string) => (Array.isArray(arr) ? arr : arr ? [arr] : []).map(s => s.toLowerCase());
       const normalizeString = (str: string) => str?.toLowerCase() || '';
       
       // Map GPT-4 Vision values to UI dropdown values
@@ -269,7 +282,7 @@ export default function WardrobeItemDetails({
         return lower;
       };
       
-      setEditedItem({
+      const editorValues = {
         // Basic fields
         name: item.name,
         type: item.type?.toLowerCase() || '',
@@ -297,20 +310,38 @@ export default function WardrobeItemDetails({
         rise: normalizeString(item.rise),
         legOpening: normalizeString(item.legOpening),
         heelHeight: normalizeString(item.heelHeight),
-        statementLevel: item.statementLevel || 0
-      });
+        statementLevel: item.statementLevel ?? 0
+      };
+      setEditedItem(editorValues);
+      setInitialEditedItem(editorValues);
+      setSaveError(null);
+      setSaved(false);
       
       console.log('🔍 [WardrobeItemDetails] editedItem state set');
     }
-  }, [item]);
+  }, [item, isOpen]);
 
   const handleSave = async () => {
     if (!item) return;
     
+    // Compare against the display-normalized baseline, not the stored item.
+    // Dropdown normalization must never become a write for untouched fields.
+    const updates = Object.fromEntries(
+      Object.entries(editedItem).filter(([key, value]) =>
+        JSON.stringify(value) !== JSON.stringify(initialEditedItem[key as keyof WardrobeItem])
+      )
+    ) as Partial<WardrobeItem>;
+    if (Object.keys(updates).length === 0) return;
+
     setIsSaving(true);
+    setSaveError(null);
+    setSaved(false);
     try {
-      await onUpdate(item.id, editedItem);
+      await onUpdate(item.id, updates);
+      setInitialEditedItem(editedItem);
+      setSaved(true);
     } catch (error) {
+      setSaveError('Your changes could not be saved. Please try again.');
       console.error('Failed to update item:', error);
     } finally {
       setIsSaving(false);
@@ -366,6 +397,8 @@ export default function WardrobeItemDetails({
       default: return '👕';
     }
   };
+
+  const hasChanges = JSON.stringify(editedItem) !== JSON.stringify(initialEditedItem);
 
   if (!item) return null;
 
@@ -465,16 +498,21 @@ export default function WardrobeItemDetails({
             <Button
               size="sm"
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={isSaving || !hasChanges}
               className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-primary hover:to-accent/90 rounded-xl"
             >
               <Save className="w-4 h-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save'}
+              {isSaving ? 'Saving...' : saved && !hasChanges ? 'Saved' : 'Save'}
             </Button>
           </div>
+          <DialogDescription className="sr-only">Edit the details of this wardrobe item, then save your changes.</DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {saveError && <p role="alert" className="text-destructive">{saveError}</p>}
+        {saved && !hasChanges && <p role="status" className="text-muted-foreground">Changes saved.</p>}
+
+        <fieldset disabled={isSaving} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <legend className="sr-only">Item details</legend>
           {/* Image Section */}
           <div className="space-y-4">
             <div className="aspect-square bg-secondary dark:bg-muted border border-border/60 dark:border-border/70 rounded-2xl overflow-hidden">
@@ -685,7 +723,7 @@ export default function WardrobeItemDetails({
                     <Input
                       id="purchasePrice"
                       type="number"
-                      value={editedItem.purchasePrice || ''}
+                      value={editedItem.purchasePrice ?? ''}
                       onChange={(e) => setEditedItem({ ...editedItem, purchasePrice: parseFloat(e.target.value) || 0 })}
                       className="mt-1 bg-card/80 dark:bg-card/80 border-border/60 dark:border-border/70"
                       placeholder="0.00"
@@ -989,13 +1027,14 @@ export default function WardrobeItemDetails({
                 </div>
             </div>
           </div>
-        </div>
+        </fieldset>
 
         {/* Delete Button */}
         <div className="flex justify-end pt-6 border-t border-border/60 dark:border-border/70">
           <Button
             variant="outline"
             onClick={handleDelete}
+            disabled={isSaving}
             className="text-destructive border-destructive/40 hover:text-destructive/90 hover:bg-destructive/10 dark:hover:bg-destructive/20 rounded-2xl"
           >
             <Trash2 className="w-4 h-4 mr-2" />

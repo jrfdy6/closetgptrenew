@@ -1,8 +1,27 @@
-import { Outfit, OutfitCreate, OutfitUpdate, OutfitFilters } from '@/lib/types/outfit';
+import type { Outfit, OutfitCreate, OutfitUpdate, OutfitFilters as BaseOutfitFilters } from '@/lib/services/outfitService';
+
+type OutfitFilters = BaseOutfitFilters & { season?: string };
 import { db } from '@/lib/firebase/config';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { extractFlatLayState } from '@/lib/flatLayState';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+function omitUndefined<T extends object>(value: T): T {
+  const result = { ...value };
+  for (const key of Object.keys(result) as Array<keyof T>) {
+    if (result[key] === undefined) delete result[key];
+  }
+  return result;
+}
+
+function itemIdentity(items: unknown): string {
+  if (!Array.isArray(items)) return '';
+  return JSON.stringify(Array.from(new Set(items.map(item => {
+    if (typeof item === 'string') return item;
+    return item && typeof item === 'object' ? item.id ?? item.itemId ?? item.item_id : null;
+  }).filter(id => typeof id === 'string'))).sort());
+}
 
 class OutfitService {
   private async makeRequest(endpoint: string, options: RequestInit = {}) {
@@ -20,7 +39,9 @@ class OutfitService {
     });
 
     if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}`);
+      const error = await response.json().catch(() => null);
+      const message = error?.error ?? error?.detail;
+      throw new Error(typeof message === 'string' ? message : `Request failed with status ${response.status}`);
     }
 
     return response.json();
@@ -57,11 +78,14 @@ class OutfitService {
       },
     });
 
-    if (response?.outfit) {
-      return response.outfit as Outfit;
+    const saved = response?.outfit ?? response?.data ?? response;
+    const id = saved?.id ?? saved?.outfit_id ?? response?.id ?? response?.outfit_id;
+    if (response?.success === false || typeof id !== 'string' || !id.trim()) {
+      throw new Error('The server did not confirm that your outfit was saved.');
     }
 
-    return response as Outfit;
+    // Older responses only contain outfit_id; keep the submitted draft fields.
+    return { ...outfit, ...saved, id } as Outfit;
   }
 
   async updateOutfit(id: string, outfit: OutfitUpdate, token: string): Promise<Outfit> {
@@ -78,23 +102,35 @@ class OutfitService {
       
       // Update the outfit in Firestore
       // Filter out undefined values as Firestore doesn't accept them
-      const updateData = Object.fromEntries(
-        Object.entries({
-          ...outfit,
-          updatedAt: new Date(),
-        }).filter(([_, value]) => value !== undefined)
-      );
+      const updateData: Record<string, unknown> = omitUndefined({
+        ...outfit,
+        updatedAt: new Date(),
+      });
       
       // Also filter undefined values from nested objects in items array
       if (updateData.items && Array.isArray(updateData.items)) {
         updateData.items = updateData.items.map(item => {
           if (typeof item === 'object' && item !== null) {
-            return Object.fromEntries(
-              Object.entries(item).filter(([_, value]) => value !== undefined)
-            );
+            return omitUndefined(item);
           }
           return item;
         });
+      }
+
+      const currentOutfit = outfitDoc.data();
+      if (Array.isArray(updateData.items) && itemIdentity(updateData.items) !== itemIdentity(currentOutfit?.items)) {
+        // Clear the old visual in the same write as its changed pieces. The
+        // private server ledger still controls consent, charges and in-flight work.
+        const previous = extractFlatLayState(currentOutfit ?? {});
+        const presentation: Record<string, unknown> = { flat_lay_url: null, flatLayUrl: null };
+        if (previous.status === 'done') {
+          Object.assign(presentation, {
+            flat_lay_status: 'awaiting_consent', flatLayStatus: 'awaiting_consent',
+            flat_lay_error: null, flatLayError: null, flat_lay_request_allowed: true,
+          });
+        }
+        Object.assign(updateData, presentation);
+        for (const [key, value] of Object.entries(presentation)) updateData[`metadata.${key}`] = value;
       }
       
       console.log('🔍 [OutfitService] Filtered update data:', updateData);
@@ -136,9 +172,10 @@ class OutfitService {
     });
   }
 
-  async toggleOutfitFavorite(id: string, token: string): Promise<Outfit> {
+  async setOutfitFavorite(id: string, isFavorite: boolean, token: string): Promise<{ isFavorite: boolean }> {
     return this.makeRequest(`/outfits/${id}/favorite`, {
-      method: 'POST',
+      method: 'PUT',
+      body: JSON.stringify({ isFavorite }),
       headers: {
         Authorization: `Bearer ${token}`,
       },

@@ -1,44 +1,20 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Sparkles, 
-  Zap,
-  Shirt,
-  Heart,
-  Calendar,
-  RefreshCw,
-  Star,
-  ThumbsUp,
-  ThumbsDown,
-  Info,
-  Palette,
-  Target,
-  Clock,
-  CheckCircle,
-  ArrowRight,
-  Eye,
-  Share2,
-  Download,
-  Cloud,
-  ChevronDown,
-  ChevronUp
-} from 'lucide-react';
-import StyleEducationModule from './style-education-module';
+import { Calendar, Check, ChevronDown, RefreshCw, Shirt, Star, ThumbsDown, ThumbsUp } from 'lucide-react';
 import FlatLayViewer from '../FlatLayViewer';
+import { extractFlatLayState, validStylingScore, type FlatLaySource } from '@/lib/flatLayState';
 
-interface GeneratedOutfit {
+export interface GeneratedOutfit extends FlatLaySource {
   id: string;
   name: string;
   style: string;
   mood: string;
   occasion: string;
-  confidence_score: number;
-  score_breakdown?: any;
+  confidence_score?: number | null;
   items: Array<{
     id: string;
     name: string;
@@ -49,49 +25,14 @@ interface GeneratedOutfit {
     color: string;
     reason?: string;
   }>;
-  reasoning: string;
-  createdAt: string;
-  metadata?: {
-    generation_strategy?: string;
-    flat_lay_url?: string;
-    flatLayUrl?: string;
-    flat_lay_status?: string;
-    flatLayStatus?: string;
-    flat_lay_error?: string;
-    flatLayError?: string;
-    [key: string]: any;
-  };
-  flat_lay_status?: string;
-  flatLayStatus?: string;
-  flat_lay_url?: string;
-  flatLayUrl?: string;
-  flat_lay_error?: string;
-  flatLayError?: string;
-  outfitAnalysis?: {
-    textureAnalysis?: any;
-    patternBalance?: any;
-    colorStrategy?: any;
-    styleSynergy?: any;
-  };
-}
-
-interface OutfitRating {
-  rating: number;
-  isLiked: boolean;
-  isDisliked: boolean;
-  feedback?: string;
-}
-
-interface FlatLayUsageInfo {
-  tier: string;
-  limit: number | null;
-  used: number;
-  remaining: number | null;
+  reasoning?: string;
+  createdAt?: string;
+  outfitAnalysis?: Record<string, unknown>;
 }
 
 interface OutfitResultsDisplayProps {
   outfit: GeneratedOutfit;
-  rating: OutfitRating;
+  rating: { rating: number; isLiked: boolean; isDisliked: boolean; feedback?: string };
   onRatingChange: (rating: number) => void;
   onLikeToggle: () => void;
   onDislikeToggle: () => void;
@@ -101,7 +42,7 @@ interface OutfitResultsDisplayProps {
   onViewOutfits: () => void;
   ratingSubmitted: boolean;
   isWorn?: boolean;
-  flatLayUsage?: FlatLayUsageInfo | null;
+  flatLayUsage?: { tier: string; limit: number | null; used: number; remaining: number | null } | null;
   flatLayLoading?: boolean;
   flatLayError?: string | null;
   onRequestFlatLay?: () => void;
@@ -110,812 +51,176 @@ interface OutfitResultsDisplayProps {
   hasFlatLayCredits?: boolean;
 }
 
-interface FlatLayState {
-  url: string | null;
-  status: string;
-  error: string | null;
-}
-
-function extractFlatLayState(outfit: GeneratedOutfit): FlatLayState {
-  const metadata = outfit.metadata ?? {};
-  const url =
-    metadata.flat_lay_url ??
-    metadata.flatLayUrl ??
-    outfit.flat_lay_url ??
-    outfit.flatLayUrl ??
-    null;
-  const status =
-    metadata.flat_lay_status ??
-    metadata.flatLayStatus ??
-    outfit.flat_lay_status ??
-    outfit.flatLayStatus ??
-    (url ? 'done' : 'awaiting_consent');
-  const error =
-    metadata.flat_lay_error ??
-    metadata.flatLayError ??
-    outfit.flat_lay_error ??
-    outfit.flatLayError ??
-    null;
-
-  return {
-    url,
-    status,
-    error,
-  };
+function text(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null;
 }
 
 export default function OutfitResultsDisplay({
-  outfit,
-  rating,
-  onRatingChange,
-  onLikeToggle,
-  onDislikeToggle,
-  onFeedbackChange,
-  onWearOutfit,
-  onRegenerate,
-  onViewOutfits,
-  ratingSubmitted,
-  isWorn = false,
-  flatLayUsage = null,
-  flatLayLoading = false,
-  flatLayError = null,
-  onRequestFlatLay,
-  onSkipFlatLay,
-  flatLayActionLoading = false,
-  hasFlatLayCredits = false
+  outfit, rating, onRatingChange, onLikeToggle, onDislikeToggle, onFeedbackChange,
+  onWearOutfit, onRegenerate, onViewOutfits, ratingSubmitted, isWorn = false,
+  flatLayUsage = null, flatLayLoading = false, flatLayError = null,
+  onRequestFlatLay, onSkipFlatLay, flatLayActionLoading = false, hasFlatLayCredits = false,
 }: OutfitResultsDisplayProps) {
-  const [showDetails, setShowDetails] = useState(false);
-  const [showWhyItWorks, setShowWhyItWorks] = useState(false);
-  const [showReasoning, setShowReasoning] = useState(false);
-  const [flatLayState, setFlatLayState] = useState<FlatLayState>(() =>
-    extractFlatLayState(outfit)
-  );
-  const listenerAttachedRef = useRef(false);
+  const initial = extractFlatLayState(outfit);
+  const [flatLay, setFlatLay] = useState(initial);
+  const [updatesUnavailable, setUpdatesUnavailable] = useState(false);
+  const [listenerVersion, setListenerVersion] = useState(0);
+  const [waitingLonger, setWaitingLonger] = useState(false);
 
   useEffect(() => {
-    setFlatLayState(extractFlatLayState(outfit));
-    listenerAttachedRef.current = false;
-  }, [outfit.id]);
+    setFlatLay({ url: initial.url, status: initial.status, error: initial.error, requestAllowed: initial.requestAllowed });
+  }, [outfit.id, initial.url, initial.status, initial.error, initial.requestAllowed]);
 
   useEffect(() => {
+    setUpdatesUnavailable(false);
     if (!outfit.id) return;
-    if (flatLayState.status === 'done' && flatLayState.url) return;
-
-    let isMounted = true;
-    let unsubscribe: (() => void) | null = null;
-
+    let disposed = false;
+    let unsubscribe: (() => void) | undefined;
     (async () => {
       try {
-        const { db } = await import('@/lib/firebase/config');
-        const { doc, onSnapshot } = await import('firebase/firestore');
-        if (!isMounted) return;
-
-        const docRef = doc(db, 'outfits', outfit.id);
-        unsubscribe = onSnapshot(docRef, (snapshot) => {
-          if (!snapshot.exists()) return;
-          const data = snapshot.data() || {};
-          const metadata = data.metadata || {};
-          const url =
-            metadata.flat_lay_url ||
-            metadata.flatLayUrl ||
-            data.flat_lay_url ||
-            data.flatLayUrl ||
-            null;
-          const status =
-            metadata.flat_lay_status ||
-            metadata.flatLayStatus ||
-            data.flat_lay_status ||
-            data.flatLayStatus ||
-            (url ? 'done' : 'awaiting_consent');
-          const error =
-            metadata.flat_lay_error ||
-            metadata.flatLayError ||
-            data.flat_lay_error ||
-            data.flatLayError ||
-            null;
-
-          setFlatLayState((prev) => ({
-            url: url ?? prev.url,
-            status: status ?? prev.status,
-            error: error ?? prev.error,
-          }));
-        });
-      } catch (error) {
-        console.error('Failed to attach flat lay listener:', error);
-        listenerAttachedRef.current = false;
+        const [{ db }, { doc, onSnapshot }] = await Promise.all([
+          import('@/lib/firebase/config'), import('firebase/firestore'),
+        ]);
+        if (disposed) return;
+        unsubscribe = onSnapshot(doc(db, 'outfits', outfit.id), snapshot => {
+          if (disposed) return;
+          if (!snapshot.exists()) {
+            setUpdatesUnavailable(true);
+            return;
+          }
+          setFlatLay(extractFlatLayState(snapshot.data()));
+          setUpdatesUnavailable(false);
+        }, () => { if (!disposed) setUpdatesUnavailable(true); });
+      } catch {
+        if (!disposed) setUpdatesUnavailable(true);
       }
     })();
+    return () => { disposed = true; unsubscribe?.(); };
+  }, [outfit.id, listenerVersion]);
 
-    return () => {
-      isMounted = false;
-      unsubscribe?.();
-      listenerAttachedRef.current = false;
-    };
-  }, [outfit.id, flatLayState.status, flatLayState.url]);
+  useEffect(() => {
+    setWaitingLonger(false);
+    if (!['pending', 'processing', 'queued'].includes(flatLay.status)) return;
+    // A session-only waiting message, not a claim that the server job timed out.
+    const timer = setTimeout(() => setWaitingLonger(true), 90000);
+    return () => clearTimeout(timer);
+  }, [outfit.id, flatLay.status]);
 
-  const flatLayUrl = flatLayState.url;
-  const flatLayStatus = flatLayState.status;
-  const flatLayGenerationError = flatLayState.error;
-
-  const getConfidenceColor = (score: number) => {
-    if (score >= 0.8) return 'text-[var(--copper-dark)] bg-[var(--copper-light)]/20 dark:text-[var(--copper-light)] dark:bg-[var(--copper-dark)]/20';
-    if (score >= 0.6) return 'text-[var(--copper-dark)] bg-[var(--copper-light)]/20 dark:text-[var(--copper-light)] dark:bg-[var(--copper-dark)]/20';
-    return 'text-destructive bg-destructive/20 dark:text-destructive dark:bg-destructive/20';
-  };
-
-  const getConfidenceText = (score: number) => {
-    if (score >= 0.8) return 'Excellent Match';
-    if (score >= 0.6) return 'Good Match';
-    return 'Fair Match';
-  };
-
-  // DEBUG: Log flat lay URL
-  console.log('🎨 OUTFIT RESULTS: outfit.metadata:', outfit.metadata);
-  console.log('🎨 OUTFIT RESULTS: flat_lay_url:', flatLayUrl);
-  console.log('🎨 OUTFIT RESULTS: flat_lay_status:', flatLayStatus);
-  console.log('🎨 OUTFIT RESULTS: Should show flat lay?', !!flatLayUrl);
-
-  const handleDownload = async () => {
-    if (!flatLayUrl) return;
-    
-    try {
-      // Use proxy endpoint to avoid CORS issues
-      const proxyUrl = `/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}`;
-      const response = await fetch(proxyUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${outfit.name}-flat-lay.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading flat lay:', error);
-    }
-  };
-
-  const handleShare = async () => {
-    if (!flatLayUrl) return;
-    
-    // Prevent multiple simultaneous share operations
-    if (navigator.share) {
-      try {
-        // Fetch image via proxy to include in share
-        const proxyUrl = `/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}`;
-        const response = await fetch(proxyUrl);
-        const blob = await response.blob();
-        const file = new File([blob], `${outfit.name}-flat-lay.png`, { type: 'image/png' });
-        
-        await navigator.share({
-          title: outfit.name,
-          text: 'Check out this outfit!',
-          files: [file]
-        });
-      } catch (error: any) {
-        // Ignore AbortError (user cancelled) and other expected errors
-        if (error.name !== 'AbortError' && error.name !== 'InvalidStateError') {
-          console.error('Error sharing:', error);
-        }
-      }
-    } else {
-      navigator.clipboard.writeText(flatLayUrl);
-      alert('Link copied to clipboard!');
-    }
-  };
+  const score = validStylingScore(outfit.confidence_score);
+  const reasoning = text(outfit.reasoning);
+  const insights = Object.entries(outfit.outfitAnalysis ?? {}).flatMap(([key, value]) => {
+    const insight = value && typeof value === 'object' ? text((value as Record<string, unknown>).insight) : null;
+    return insight ? [{ key, insight }] : [];
+  });
+  const itemReasons = outfit.items.filter(item => text(item.reason));
+  const hasNotes = Boolean(reasoning || insights.length || itemReasons.length || score !== null);
+  const weather = outfit.weather ?? outfit.metadata?.weather;
+  const temperature = weather && typeof weather === 'object' ? (weather as Record<string, unknown>).temperature : null;
+  const weatherEstimated = weather && typeof weather === 'object' && Boolean((weather as Record<string, unknown>).fallback);
 
   return (
-    <div className="space-y-6">
-      {/* Main Outfit Card */}
-      <Card className="overflow-hidden border-2 border-[var(--copper-light)]/40 dark:border-[var(--copper-dark)]/60 bg-gradient-to-br from-[var(--copper-light)]/50 to-orange-50 dark:from-[var(--copper-dark)]/20 dark:to-[var(--copper-mid)]/20">
-        <CardHeader className="pb-4">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <CardTitle className="text-2xl font-bold text-card-foreground mb-2">
-                {outfit.name}
-              </CardTitle>
-              <div className="flex flex-wrap gap-2 mb-3">
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  <Palette className="h-3 w-3" />
-                  {outfit.style}
-                </Badge>
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Target className="h-3 w-3" />
-                  {outfit.mood}
-                </Badge>
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {outfit.occasion}
-                </Badge>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge 
-                variant="secondary" 
-                className={`flex items-center gap-1 ${getConfidenceColor(outfit.confidence_score)}`}
-              >
-                <Zap className="h-3 w-3" />
-                {Math.round(outfit.confidence_score * 100)}% Match
-              </Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDetails(!showDetails)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
+    <section aria-label="Your outfit" className="overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-sm">
+      <header className="px-5 pb-6 pt-7 sm:px-8 sm:pt-8">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Selected from your wardrobe</p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="break-words font-display text-3xl font-medium tracking-tight text-foreground sm:text-4xl">{outfit.name}</h2>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              {[outfit.occasion, outfit.style, outfit.mood].filter(Boolean).map((label, index) => (
+                <Badge key={`${index}-${label}`} variant="outline" className="border-border/60 px-3 py-1 font-normal">{label}</Badge>
+              ))}
+              {typeof temperature === 'number' && Number.isFinite(temperature) && (
+                <span className="text-xs text-muted-foreground">{weatherEstimated ? 'Estimated context: ' : 'Weather context: '}{temperature}°F</span>
+              )}
             </div>
           </div>
-        </CardHeader>
+          {isWorn && <span role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Check className="h-4 w-4" />Marked as worn</span>}
+        </div>
+      </header>
 
-        <CardContent className="space-y-6">
-          {/* Desktop Two-Column Layout / Mobile Stack */}
-          <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
-            {/* LEFT COLUMN: Flat Lay Image (Primary Display) */}
-            <div className="mb-4 lg:mb-0 p-4 bg-gradient-to-br from-[var(--copper-light)]/30 to-[var(--copper-mid)]/30 dark:from-[var(--copper-dark)]/40 dark:to-[var(--copper-mid)]/40 rounded-xl border-2 border-[var(--copper-mid)] dark:border-[var(--copper-mid)]">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-lg font-bold flex items-center gap-2 text-card-foreground">
-                <Eye className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
-                Your Outfit
-              </h4>
-              <Badge className="bg-[var(--copper-dark)] text-white dark:bg-[var(--copper-light)]/100 text-xs">
-                Flat Lay
-              </Badge>
-            </div>
-
-            <FlatLayViewer
-              flatLayUrl={flatLayUrl}
-              outfitName={outfit.name}
-              outfitItems={outfit.items}
-              className="w-full"
-              status={flatLayStatus}
-              error={flatLayGenerationError}
-              onViewChange={(view) => console.log('Flat lay view changed:', view)}
-              flatLayUsage={flatLayUsage}
-              flatLayLoading={flatLayLoading}
-              flatLayError={flatLayError}
-              onRequestFlatLay={onRequestFlatLay}
-              onSkipFlatLay={onSkipFlatLay}
-              flatLayActionLoading={flatLayActionLoading}
-              hasFlatLayCredits={hasFlatLayCredits}
-            />
-
-            <div className="mt-4 flex gap-2 justify-end">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={handleDownload}
-                disabled={!flatLayUrl}
-                className="bg-secondary hover:bg-secondary/80 disabled:opacity-50"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={handleShare}
-                disabled={!flatLayUrl}
-                className="bg-secondary hover:bg-secondary/80 disabled:opacity-50"
-              >
-                <Share2 className="w-4 h-4 mr-2" />
-                Share
-              </Button>
-            </div>
-            </div>
-
-            {/* RIGHT COLUMN: Rating & Actions (Desktop) / Stacked below (Mobile) */}
-            <div className="space-y-4">
-              {/* 🎯 UNIFIED "WHY THIS OUTFIT WORKS" SECTION - COLLAPSIBLE */}
-          {(() => {
-            // Debug logging
-            console.log('🔍 OUTFIT METADATA CHECK:', {
-              hasMetadata: !!outfit.metadata,
-              hasUserLearning: !!outfit.metadata?.user_learning_insights,
-              hasUserStats: !!outfit.metadata?.user_stats,
-              hasItemIntel: !!outfit.metadata?.item_intelligence,
-              metadataKeys: outfit.metadata ? Object.keys(outfit.metadata) : []
-            });
-            return outfit.metadata && (outfit.metadata.user_learning_insights || outfit.metadata.user_stats || outfit.metadata.item_intelligence || outfit.metadata.diversity_info);
-          })() && (
-            <div className="border-t border-[var(--copper-light)]/30 dark:border-[var(--copper-dark)]/30 pt-6">
-              {/* Collapsible Header Button */}
-              <button
-                onClick={() => setShowWhyItWorks(!showWhyItWorks)}
-                className="w-full flex items-center justify-between gap-3 mb-4 p-4 rounded-2xl bg-gradient-to-r from-[var(--copper-light)]/20 to-orange-50/20 dark:from-[var(--copper-dark)]/20 dark:to-orange-900/20 hover:from-[var(--copper-light)]/30 hover:to-orange-50/30 dark:hover:from-[var(--copper-dark)]/30 dark:hover:to-orange-900/30 border-2 border-[var(--copper-light)]/40 dark:border-[var(--copper-dark)]/40 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <Sparkles className="h-6 w-6 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
-                  <h3 className="text-xl font-bold text-card-foreground">
-                    Why This Outfit Works
-                  </h3>
-                </div>
-                {showWhyItWorks ? (
-                  <ChevronUp className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
-                ) : (
-                  <ChevronDown className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
-                )}
-              </button>
-
-              {/* Collapsible Content */}
-              {showWhyItWorks && (
-                <div className="space-y-4">
-              {/* Item-Level Insights - Your Picks */}
-              {outfit.metadata.item_intelligence && outfit.metadata.item_intelligence.length > 0 && (
-                <div className="bg-gradient-to-br from-[var(--copper-light)]/30 to-orange-50/30 dark:from-[var(--copper-dark)]/20 dark:to-[var(--copper-mid)]/20 rounded-2xl p-5 border-2 border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50">
-                  <h4 className="text-lg font-semibold text-card-foreground mb-3 flex items-center gap-2">
-                    <Target className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
-                    Your Picks 🎯
-                  </h4>
-                  <div className="space-y-3">
-                    {outfit.metadata.item_intelligence.map((insight: any, idx: number) => (
-                      <div 
-                        key={idx}
-                        className="flex items-start gap-3 p-3 bg-[var(--copper-light)]/20 dark:bg-[var(--copper-dark)]/20 rounded-xl border border-[var(--copper-light)]/40 dark:border-[var(--copper-dark)]/40"
-                      >
-                        <div className="text-2xl flex-shrink-0">{insight.icon || '✨'}</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-card-foreground">
-                            {insight.item_name}
-                          </div>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            {insight.reason}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Fresh Picks Indicator integrated */}
-                  {outfit.metadata.diversity_info && (
-                    <div className="mt-4 pt-4 border-t border-[var(--copper-light)]/30 dark:border-[var(--copper-dark)]/30">
-                      <div className="flex items-start gap-2">
-                        <RefreshCw className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-0.5 flex-shrink-0" />
-                        <div>
-                          <span className="text-sm font-semibold text-card-foreground">
-                            Fresh Picks 🎯
-                          </span>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {outfit.metadata.diversity_info.message || 
-                              `🎯 Super fresh! This outfit introduces new combinations you haven't tried before.`}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Personalization Section */}
-              {(outfit.metadata.user_learning_insights || outfit.metadata.user_stats) && (
-                <div className="bg-gradient-to-r from-[var(--copper-light)]/30 to-orange-50/30 dark:from-[var(--copper-dark)]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50">
-                  <div className="flex items-start gap-3 mb-3">
-                    <Sparkles className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                      <h4 className="font-semibold text-card-foreground mb-2">
-                        Personalized for You 💜
-                    </h4>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                      {outfit.metadata.user_learning_insights || 
-                          `This outfit is tailored to your style preferences.`}
-                      </p>
-                      <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                        <li className="flex items-start gap-2">
-                          <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
-                          <span>Based on your personal style profile</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
-                          <span>Combines items you love wearing</span>
-                        </li>
-                      </ul>
-                  </div>
-                </div>
-
-                  {/* Learning Stats */}
-                {outfit.metadata.user_stats && (
-                    <div className="mt-4 pt-4 border-t border-[var(--copper-light)]/30 dark:border-[var(--copper-dark)]/30">
-                    <div className="grid grid-cols-3 gap-3 text-center">
-                      <div>
-                          <div className="text-lg font-bold text-card-foreground">
-                          {outfit.metadata.user_stats.total_ratings || 0}
-                        </div>
-                          <div className="text-xs text-muted-foreground">
-                            Rated
-                        </div>
-                      </div>
-                      <div>
-                          <div className="text-lg font-bold text-card-foreground">
-                          {outfit.metadata.user_stats.favorite_styles || 'Learning'}
-                        </div>
-                          <div className="text-xs text-muted-foreground">
-                          Top Style
-                        </div>
-                      </div>
-                      <div>
-                          <div className="text-lg font-bold text-card-foreground">
-                          {outfit.metadata.user_stats.diversity_score ? `${outfit.metadata.user_stats.diversity_score}%` : 'Fresh'}
-                        </div>
-                          <div className="text-xs text-muted-foreground">
-                          Variety
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                  <div className="mt-4 p-3 bg-[var(--copper-light)]/20 dark:bg-[var(--copper-dark)]/20 rounded-lg">
-                    <p className="text-xs text-muted-foreground flex items-start gap-2">
-                      <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                      <span>💡 Rate outfits to unlock Spotify-style personalization! Each rating helps us learn: colors, styles, patterns you prefer</span>
-                    </p>
-                            </div>
-                            </div>
-              )}
-
-              {/* Style Analysis Insights - Integrated from StyleEducationModule */}
-              {outfit.outfitAnalysis && (
-                <div className="space-y-3">
-                  {/* Color Strategy */}
-                  {outfit.outfitAnalysis.colorStrategy && (
-                    <div className="bg-gradient-to-br from-[var(--copper-light)]/30 to-orange-50/30 dark:from-[var(--copper-dark)]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50">
-                      <h4 className="text-lg font-semibold text-card-foreground mb-2 flex items-center gap-2">
-                        <Palette className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
-                        Color Strategy
-                      </h4>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {outfit.outfitAnalysis.colorStrategy.insight}
-                      </p>
-                      {outfit.items && outfit.items.length > 0 && (
-                        <ul className="text-xs text-muted-foreground space-y-1 mt-2">
-                          {outfit.items.slice(0, 2).map((item, idx) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
-                              <span>{item.color} serves as {idx === 0 ? 'your base color' : 'accent and depth'}</span>
-                            </li>
-                          ))}
-                          {outfit.items.length > 2 && (
-                            <li className="flex items-start gap-2">
-                              <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
-                              <span>Multiple colors add visual interest—keep accessories simple</span>
-                            </li>
-                          )}
-                        </ul>
-                      )}
-                  </div>
-                  )}
-
-                  {/* Silhouette Balance */}
-                  {outfit.items && outfit.items.length >= 2 && (
-                    <div className="bg-gradient-to-br from-[var(--copper-light)]/30 to-orange-50/30 dark:from-[var(--copper-dark)]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50">
-                      <h4 className="text-lg font-semibold text-card-foreground mb-2 flex items-center gap-2">
-                        <Target className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
-                        Silhouette Balance
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Fitted + loose pieces create a flattering, proportioned silhouette
-                      </p>
-                </div>
-              )}
-
-                  {/* Style Harmony */}
-                  {outfit.style && (
-                    <div className="bg-gradient-to-br from-[var(--copper-light)]/30 to-orange-50/30 dark:from-[var(--copper-dark)]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50">
-                      <h4 className="text-lg font-semibold text-card-foreground mb-2 flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
-                        Style Harmony
-                      </h4>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {outfit.style} style creates personal expression
-                      </p>
-                      {outfit.occasion && (
-                        <div className="mt-3 pt-3 border-t border-[var(--copper-light)]/30 dark:border-[var(--copper-dark)]/30">
-                          <p className="text-sm font-semibold text-card-foreground mb-1">
-                            Perfect for {outfit.occasion}
-                          </p>
-                          <ul className="text-xs text-muted-foreground space-y-1">
-                            <li className="flex items-start gap-2">
-                              <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
-                              <span>{outfit.style} style matches the event's vibe</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
-                              <span>Comfortable enough to wear confidently</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
-                              <span>Easy to accessorize up or down as needed</span>
-                            </li>
-                          </ul>
-                  </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Weather Appropriateness */}
-                  {(outfit.metadata?.weather || (outfit as any).weather) && (
-                    <div className="bg-gradient-to-br from-[var(--copper-light)]/30 to-orange-50/30 dark:from-[var(--copper-dark)]/20 dark:to-orange-900/20 rounded-2xl p-5 border-2 border-[var(--copper-light)]/50 dark:border-[var(--copper-dark)]/50">
-                      <h4 className="text-lg font-semibold text-card-foreground mb-2 flex items-center gap-2">
-                        <Cloud className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)]" />
-                        Weather Appropriateness
-                      </h4>
-                      {(() => {
-                        const weatherData = outfit.metadata?.weather || (outfit as any).weather;
-                        const temp = weatherData?.temperature || 70;
-                        return (
-                          <>
-                            <p className="text-sm text-muted-foreground mb-2">
-                              Warm layers appropriate for {temp}°F weather - cozy and protective.
-                            </p>
-                            <ul className="text-xs text-muted-foreground space-y-1">
-                              <li className="flex items-start gap-2">
-                                <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
-                                <span>Temperature-appropriate for {temp}°F conditions</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
-                                <span>Layering allows you to adjust throughout the day</span>
-                              </li>
-                              {temp < 60 && (
-                                <li className="flex items-start gap-2">
-                                  <span className="text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-1">•</span>
-                                  <span>Materials chosen for weather comfort</span>
-                                </li>
-                              )}
-                            </ul>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  )}
-                </div>
-              )}
-                </div>
-              )}
+      <div className="grid gap-8 px-5 pb-7 sm:px-8 sm:pb-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-10">
+        <div className="min-w-0">
+          <FlatLayViewer
+            flatLayUrl={flatLay.url} outfitName={outfit.name} outfitItems={outfit.items}
+            status={waitingLonger ? 'delayed' : flatLay.status} error={flatLay.error}
+            requestAllowed={flatLay.requestAllowed}
+            flatLayUsage={flatLayUsage} flatLayLoading={flatLayLoading} flatLayError={flatLayError}
+            onRequestFlatLay={onRequestFlatLay} onSkipFlatLay={onSkipFlatLay}
+            flatLayActionLoading={flatLayActionLoading} hasFlatLayCredits={hasFlatLayCredits}
+          />
+          {updatesUnavailable && (
+            <div role="status" className="mt-3 rounded-xl border border-border p-3 text-sm text-muted-foreground">
+              Live preview updates are unavailable. Your outfit pieces are still here.
+              <button className="ml-2 underline underline-offset-4" onClick={() => setListenerVersion(value => value + 1)}>Reconnect</button>
             </div>
           )}
+        </div>
 
-              {/* Rating Section with Enhanced Context */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-              <h4 className="font-semibold text-card-foreground">Rate This Outfit</h4>
-              <Badge variant="outline" className="text-xs">
-                <Star className="h-3 w-3 mr-1" />
-                Powers Your AI
-              </Badge>
+        <div className="flex min-w-0 flex-col gap-7">
+          <div className={`order-2 lg:order-1 ${flatLay.url ? '' : 'hidden lg:block'}`}>
+            <div className="mb-4 flex items-baseline justify-between gap-3">
+              <h3 className="text-lg font-medium">The pieces</h3>
+              <span className="text-xs text-muted-foreground">{outfit.items.length} from your closet</span>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Your feedback trains our AI to understand your unique style preferences better!
-            </p>
-            
-            {/* Star Rating */}
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-sm text-muted-foreground">Rating:</span>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    onClick={() => onRatingChange(star)}
-                    className={`text-2xl transition-all duration-200 hover:scale-110 cursor-pointer select-none ${
-                      star <= rating.rating
-                        ? 'text-[var(--copper-light)] fill-current'
-                        : 'text-muted-foreground/50 hover:text-[var(--copper-light)]'
-                    }`}
-                    style={{ userSelect: 'none' }}
-                    disabled={ratingSubmitted}
-                  >
-                    ★
-                  </button>
-                ))}
-              </div>
-              {rating.rating > 0 && (
-                <span className="text-sm text-muted-foreground">
-                  {rating.rating} star{rating.rating !== 1 ? 's' : ''}
-                </span>
-              )}
-              {ratingSubmitted && (
-                <span className="text-xs text-[var(--copper-dark)] dark:text-[var(--copper-light)] ml-2">
-                  ✓ Submitted
-                </span>
-              )}
-            </div>
+            <ul className="divide-y divide-border/60">
+              {outfit.items.map((item, index) => (
+                <li key={`${item.id}-${index}`} className="flex items-start gap-4 py-3.5 first:pt-0">
+                  <span className="pt-1 text-xs tabular-nums text-muted-foreground">{String(index + 1).padStart(2, '0')}</span>
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-medium leading-relaxed">{item.name}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{[item.color, item.type].filter(Boolean).join(' · ')}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-            {/* Like/Dislike Buttons */}
-            <div className="flex gap-3 mb-4">
-              <Button
-                variant={rating.isLiked ? "default" : "outline"}
-                size="sm"
-                onClick={onLikeToggle}
-                disabled={ratingSubmitted}
-                  className={`flex items-center gap-2 ${
-                    rating.isLiked 
-                     ? 'bg-[var(--copper-dark)] hover:bg-[var(--copper-dark)]/90 text-white' 
-                     : 'hover:bg-green-50 hover:text-[var(--copper-dark)]'
-                  } ${ratingSubmitted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-              >
-                <ThumbsUp className="h-4 w-4" />
-                {rating.isLiked ? 'Liked' : 'Like'}
-              </Button>
-              <Button
-                variant={rating.isDisliked ? "destructive" : "outline"}
-                size="sm"
-                onClick={onDislikeToggle}
-                disabled={ratingSubmitted}
-                className={`flex items-center gap-2 ${ratingSubmitted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-              >
-                <ThumbsDown className="h-4 w-4" />
-                {rating.isDisliked ? 'Disliked' : 'Dislike'}
-              </Button>
-            </div>
-
-            {/* Feedback */}
-            <div className="mb-4">
-              <Textarea
-                placeholder="Share your thoughts about this outfit... (e.g., 'Love the color combo!' or 'Too formal for weekend')"
-                value={rating.feedback}
-                onChange={(e) => onFeedbackChange(e.target.value)}
-                rows={3}
-                className="text-sm"
-                disabled={ratingSubmitted}
-              />
-            </div>
-
-            {/* Status Messages */}
-            {rating.rating > 0 && !ratingSubmitted && (
-              <div className="text-xs text-[var(--copper-dark)] dark:text-[var(--copper-light)] text-center mb-4 flex items-center justify-center gap-2">
-                <Sparkles className="h-3 w-3" />
-                ✓ Rating will be automatically submitted and improve your AI
-              </div>
-            )}
-
-            {ratingSubmitted && (
-              <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg mb-4">
-                <div className="flex items-center justify-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  <p className="text-sm text-green-700 dark:text-green-300 font-medium">
-                    Thanks! Your AI is learning your style preferences 🎉
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {isWorn && (
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
-                <p className="text-sm text-[var(--copper-dark)] dark:text-[var(--copper-light)] text-center">
-                  ✓ Outfit marked as worn! Redirecting to outfits page...
-                </p>
-              </div>
-            )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3">
-            {isWorn ? (
-              <Button 
-                onClick={onViewOutfits} 
-                className="flex-1 bg-gradient-to-r from-rose-gold-600 to-orange-600 hover:from-rose-gold-700 hover:to-orange-700"
-              >
-                <Shirt className="h-4 w-4 mr-2" />
-                View My Looks
-              </Button>
-            ) : ratingSubmitted ? (
-              <>
-                <Button onClick={onWearOutfit} className="flex-1 bg-gradient-to-r from-rose-gold-600 to-orange-600 hover:from-green-700 hover:to-emerald-700">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Wear This Outfit
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={onViewOutfits}
-                  className="flex-1"
-                >
-                  <Shirt className="h-4 w-4 mr-2" />
-                  View All Looks
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button onClick={onWearOutfit} className="flex-1 bg-gradient-to-r from-rose-gold-600 to-orange-600 hover:from-green-700 hover:to-emerald-700">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Wear This Outfit
-                </Button>
-                <Button variant="outline" onClick={onRegenerate} className="flex-1">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Try Again
-                </Button>
-              </>
-            )}
-              </div>
+          <div className="order-1 space-y-2 lg:order-2">
+            <Button onClick={isWorn ? onViewOutfits : onWearOutfit} className="h-12 w-full rounded-xl">
+              {isWorn ? <Shirt className="mr-2 h-4 w-4" /> : <Calendar className="mr-2 h-4 w-4" />}
+              {isWorn ? 'View My Looks' : 'Wear this outfit'}
+            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={onRegenerate} className="h-11 rounded-xl"><RefreshCw className="mr-2 h-4 w-4" />Try another</Button>
+              <Button variant="ghost" onClick={onViewOutfits} className="h-11 rounded-xl">My Looks</Button>
             </div>
           </div>
-          {/* End Two-Column Layout */}
 
-          {/* Weather-Informed Advisory Text - Always Visible */}
-          {outfit.reasoning && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Info className="h-5 w-5 text-[var(--copper-dark)] dark:text-[var(--copper-light)] mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Outfit Advisory</h4>
-                  <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
-                    {outfit.reasoning}
-                  </p>
-                </div>
+          {hasNotes && (
+            <details className="group order-3 border-t border-border/60 pt-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium">
+                Styling notes<ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="mt-4 space-y-3 text-sm leading-relaxed text-muted-foreground">
+                {reasoning && <p>{reasoning}</p>}
+                {insights.map(({ key, insight }) => <p key={key}>{insight}</p>)}
+                {itemReasons.map(item => <p key={item.id}><span className="font-medium text-foreground">{item.name}: </span>{item.reason}</p>)}
+                {score !== null && <p className="text-xs">Styling score: {Math.round(score * 100)}/100 · Internal ranking score</p>}
               </div>
-            </div>
+            </details>
           )}
 
-          {/* Score Breakdown */}
-          {showDetails && outfit.score_breakdown && (
-            <div className="space-y-4">
-              <h4 className="font-semibold text-gray-900 dark:text-white">Outfit Analysis</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Star className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Overall Score</span>
-                  </div>
-                  <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
-                    {outfit.score_breakdown.total_score}
-                  </div>
-                  <div className="text-xs text-[var(--copper-dark)] dark:text-[var(--copper-light)]">
-                    Grade: {outfit.score_breakdown.grade}
-                  </div>
-                </div>
-                <div className="bg-gradient-to-r from-[var(--copper-light)]/50 to-[var(--copper-light)]/10 dark:from-[var(--copper-dark)]/20 dark:to-[var(--copper-dark)]/10 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="h-4 w-4 text-[var(--copper-dark)]" />
-                    <span className="text-sm font-medium text-[var(--copper-dark)] dark:text-[var(--copper-light)]">Confidence</span>
-                  </div>
-                   <div className="text-2xl font-bold text-[var(--copper-dark)] dark:text-[var(--copper-mid)]">
-                    {Math.round(outfit.confidence_score * 100)}%
-                  </div>
-                  <div className="text-xs text-[var(--copper-dark)] dark:text-[var(--copper-light)]">
-                    {getConfidenceText(outfit.confidence_score)}
-                  </div>
-                </div>
+          <details className="group order-4 border-t border-border/60 pt-4">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium">
+              {ratingSubmitted ? 'Feedback saved' : 'How does this feel?'}
+              <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="mt-4 space-y-4">
+              <p className="text-sm text-muted-foreground">Optional feedback for future suggestions.</p>
+              <div role="group" aria-label="Rate this outfit" className="flex gap-1">
+                {[1, 2, 3, 4, 5].map(star => <button key={star} aria-label={`Rate ${star} ${star === 1 ? 'star' : 'stars'}`} aria-pressed={star === rating.rating} disabled={ratingSubmitted} onClick={() => onRatingChange(star)} className="rounded-lg p-2 text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60"><Star className={`h-6 w-6 ${star <= rating.rating ? 'fill-current' : ''}`} /></button>)}
               </div>
-              
-              {/* Component Scores */}
-              <div className="space-y-2">
-                {Object.entries(outfit.score_breakdown).map(([key, value]) => {
-                  if (key === 'total_score' || key === 'grade' || key === 'score_interpretation') return null;
-                  return (
-                    <div key={key} className="flex justify-between items-center text-sm py-2 px-3 bg-secondary/70 dark:bg-card/80 border border-border/60 dark:border-border/70 rounded-xl">
-                      <span className="capitalize text-muted-foreground">
-                        {key.replace(/_/g, ' ')}
-                      </span>
-                      <span className="font-medium text-card-foreground">
-                        {value}
-                      </span>
-                    </div>
-                  );
-                })}
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" aria-pressed={rating.isLiked} onClick={onLikeToggle} disabled={ratingSubmitted}><ThumbsUp className="mr-2 h-4 w-4" />{rating.isLiked ? 'Liked' : 'Like'}</Button>
+                <Button variant="outline" size="sm" aria-pressed={rating.isDisliked} onClick={onDislikeToggle} disabled={ratingSubmitted}><ThumbsDown className="mr-2 h-4 w-4" />{rating.isDisliked ? 'Disliked' : 'Not for me'}</Button>
               </div>
+              <label className="block text-sm" htmlFor="outfit-feedback">Anything you would change?</label>
+              <Textarea id="outfit-feedback" value={rating.feedback ?? ''} onChange={event => onFeedbackChange(event.target.value)} rows={3} disabled={ratingSubmitted} placeholder="Color, fit, occasion…" />
+              {ratingSubmitted && <p role="status" className="text-sm text-muted-foreground">Thanks — your feedback is saved.</p>}
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Integrated Style Education - Now part of "Why This Outfit Works" */}
-      <div className="hidden">
-        {/* Keep StyleEducationModule for any backend dependencies but hide it */}
-      <StyleEducationModule 
-        outfitStyle={outfit.style}
-        outfitMood={outfit.mood}
-        outfitOccasion={outfit.occasion}
-        outfitItems={outfit.items}
-        outfitReasoning={outfit.reasoning}
-        styleStrategy={outfit.metadata?.generation_strategy}
-        outfitAnalysis={outfit.outfitAnalysis}
-        structuredExplanation={outfit.metadata?.structuredExplanation || outfit.metadata?.explanation}
-        weather={outfit.metadata?.weather || (outfit as any).weather}
-        personalizationInsights={outfit.metadata?.personalization_insights}
-        className="mt-8"
-      />
+          </details>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

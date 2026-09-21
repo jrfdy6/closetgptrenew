@@ -1,6 +1,12 @@
+import { Timestamp } from 'firebase/firestore';
+import '@testing-library/jest-dom';
+// Keep Jest types local; Cypress also declares global test functions.
+declare const beforeEach: jest.Lifecycle;
+declare const describe: jest.Describe;
+declare const expect: jest.Expect;
+declare const it: jest.It;
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import OutfitEditModal from '@/components/OutfitEditModal';
 import { Outfit } from '@/lib/services/outfitService';
 import type { ClothingItem } from '@/lib/hooks/useWardrobe';
@@ -8,16 +14,20 @@ import type { ClothingItem } from '@/lib/hooks/useWardrobe';
 // Mock the hooks
 jest.mock('@/lib/hooks/useWardrobe', () => ({
   useWardrobe: () => ({
-    items: mockWardrobeItems
+    items: mockWardrobeLoading ? [] : mockWardrobeItems,
+    loading: mockWardrobeLoading
   })
 }));
 
 jest.mock('@/lib/hooks/useOutfits', () => ({
   useOutfits: () => ({
     updateOutfit: jest.fn(),
-    fetchOutfit: jest.fn()
+    fetchOutfit: mockFetchOutfit
   })
 }));
+
+let mockWardrobeLoading = false;
+const mockFetchOutfit = jest.fn();
 
 // Mock data
 const mockWardrobeItems: ClothingItem[] = [
@@ -76,12 +86,12 @@ const mockOutfit: Outfit = {
   ],
   confidenceScore: 0.9,
   reasoning: 'Perfect for casual Friday',
-  createdAt: { seconds: 1705312800, nanoseconds: 0, toDate: () => new Date('2024-01-15'), toMillis: () => 1705312800000, isEqual: () => false },
-  updatedAt: { seconds: 1705312800, nanoseconds: 0, toDate: () => new Date('2024-01-15'), toMillis: () => 1705312800000, isEqual: () => false },
+  createdAt: new Timestamp(1705312800, 0),
+  updatedAt: new Timestamp(1705312800, 0),
   user_id: 'user-1',
   isFavorite: false,
   wearCount: 2,
-  lastWorn: { seconds: 1705312800, nanoseconds: 0, toDate: () => new Date('2024-01-15'), toMillis: () => 1705312800000, isEqual: () => false }
+  lastWorn: new Timestamp(1705312800, 0)
 };
 
 describe('OutfitEditModal', () => {
@@ -90,6 +100,7 @@ describe('OutfitEditModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockWardrobeLoading = false;
   });
 
   it('renders modal when open', () => {
@@ -238,4 +249,35 @@ describe('OutfitEditModal', () => {
       ).toBeInTheDocument();
     });
   });
+
+  it('retains edited fields and selected items after a failed save, without fetching or closing', async () => {
+    const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const failedSave = jest.fn().mockRejectedValueOnce(new Error('Offline')).mockResolvedValueOnce(undefined);
+    render(<OutfitEditModal outfit={mockOutfit} isOpen onClose={mockOnClose} onSave={failedSave} />);
+    fireEvent.change(screen.getByDisplayValue('Casual Friday'), { target: { value: 'Keep my edits' } });
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+    expect(await screen.findByText(/Your changes are still here/)).toBeVisible();
+    expect(screen.getByDisplayValue('Keep my edits')).toBeVisible();
+    expect(screen.getByText('Blue T-Shirt')).toBeVisible();
+    expect(mockOnClose).not.toHaveBeenCalled();
+    expect(mockFetchOutfit).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+    await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1));
+    expect(failedSave).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'Keep my edits' }));
+    errorLog.mockRestore();
+  });
+
+  it('does not label selected pieces missing while the wardrobe is loading', () => {
+    mockWardrobeLoading = true;
+    const { rerender } = render(<OutfitEditModal outfit={mockOutfit} isOpen onClose={mockOnClose} onSave={mockOnSave} />);
+    fireEvent.change(screen.getByDisplayValue('Casual Friday'), { target: { value: 'Waiting for wardrobe' } });
+    expect(screen.getByRole('status')).toHaveTextContent('Loading your wardrobe');
+    expect(screen.queryByText(/Not in wardrobe/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save changes/i })).toBeDisabled();
+    mockWardrobeLoading = false;
+    rerender(<OutfitEditModal outfit={mockOutfit} isOpen onClose={mockOnClose} onSave={mockOnSave} />);
+    expect(screen.getByRole('button', { name: /save changes/i })).toBeEnabled();
+    expect(screen.queryByText(/Not in wardrobe/)).not.toBeInTheDocument();
+  });
+
 });

@@ -53,7 +53,7 @@ export default function OutfitEditModal({
   onClose, 
   onSave 
 }: OutfitEditModalProps) {
-  const { items: wardrobeItems } = useWardrobe();
+  const { items: wardrobeItems, loading: wardrobeLoading } = useWardrobe();
   const { updateOutfit, fetchOutfit } = useOutfits();
   
   const [formData, setFormData] = useState({
@@ -169,6 +169,7 @@ export default function OutfitEditModal({
   };
 
   const handleSave = async () => {
+    if (wardrobeLoading) return;
     // Check if there are any changes to save
     if (!hasChanges()) {
       setErrors({ general: 'No changes were made to save.' });
@@ -209,11 +210,9 @@ export default function OutfitEditModal({
     } catch (error) {
       console.error('Failed to save outfit:', error);
       setErrors({ 
-        general: 'Failed to save outfit. Refreshing data from server...' 
+        general: 'Couldn’t save your outfit. Your changes are still here. Please try again.'
       });
       
-      // Re-fetch the original outfit data to reset form state
-      await resetFormWithFreshData();
     } finally {
       setIsLoading(false);
     }
@@ -406,12 +405,13 @@ export default function OutfitEditModal({
                 Outfit items
               </h3>
               
+              {wardrobeLoading && <p role="status" className="text-sm text-muted-foreground">Loading your wardrobe…</p>}
               <OutfitItemSelector
                 selectedItems={selectedItems}
                 onItemsChange={handleItemChange}
                 wardrobeItems={wardrobeItems}
                 error={errors.items}
-                showValidation={true}
+                showValidation={!wardrobeLoading}
               />
             </div>
           </div>
@@ -451,7 +451,7 @@ export default function OutfitEditModal({
             </Button>
             <Button
               onClick={handleSave}
-              disabled={isLoading || !hasChanges()}
+              disabled={isLoading || wardrobeLoading || !hasChanges()}
               className="flex items-center gap-2 px-5 rounded-2xl bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg shadow-amber-500/20 hover:scale-[1.02] transition-transform"
             >
               <Save className="h-4 w-4" />
