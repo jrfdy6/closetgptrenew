@@ -252,13 +252,8 @@ export default function ProfilePage() {
         debugProfile('✅ Subscription data loaded:', subData);
       } catch (subError) {
         debugProfileWarn('Could not load subscription:', subError);
-        // Set default free tier if fetch fails
-        setSubscription({
-          role: 'tier1',
-          status: 'active',
-          flatlays_remaining: 1,
-          trial_used: false
-        });
+        // A failed read must not invent a plan or available credit.
+        setSubscription(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch profile');
@@ -282,7 +277,9 @@ export default function ProfilePage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        // Only this form's editable fields may be submitted. The fetched
+        // profile also contains server-owned account and credit fields.
+        body: JSON.stringify({ name: formData.name, gender: formData.gender, stylePreferences: formData.stylePreferences }),
       });
 
       if (!response.ok) {

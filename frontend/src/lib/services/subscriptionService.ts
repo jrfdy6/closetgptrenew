@@ -10,6 +10,7 @@ export interface Subscription {
   role: string;
   status: string;
   flatlays_remaining: number;
+  quota_review_required?: boolean;
   trial_end?: number;
   is_trialing?: boolean;
   days_remaining_in_trial?: number;

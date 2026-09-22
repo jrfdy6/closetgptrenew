@@ -1,16 +1,20 @@
 """Transactional flat-lay lifecycle, shared verbatim with the isolated worker root.
 
-The private flat_lay_requests collection is authoritative. Browser-writable outfit
-fields are only a realtime projection, never proof of consent or credit payment.
+The private flat_lay_requests collection is authoritative. Outfit flat-lay
+fields are a server-owned projection, never proof of consent or credit payment.
 No provider call runs inside a transaction (Firestore may retry its callback).
 """
 from datetime import datetime, timezone
 from uuid import uuid4
 from firebase_admin import firestore
 
+try:  # API package and isolated Railway worker root.
+    from .subscription_utils import current_quota, QuotaNeedsReview, WEEKLY_ALLOWANCE_SECONDS
+except ImportError:
+    from subscription_utils import current_quota, QuotaNeedsReview, WEEKLY_ALLOWANCE_SECONDS
+
 REQUESTS_COLLECTION = "flat_lay_requests"
-WEEK_SECONDS = 7 * 24 * 60 * 60
-TIER_LIMITS = {"tier1": 1, "tier2": 7, "tier3": 30}
+WEEK_SECONDS = WEEKLY_ALLOWANCE_SECONDS
 PENDING_TIMEOUT_SECONDS = 15 * 60
 PROCESSING_TIMEOUT_SECONDS = 10 * 60
 LEGACY_ERROR = "This earlier preview needs review before another request. No new credit was used."
@@ -67,21 +71,10 @@ def _response(outfit_id, request):
 
 
 def _quota(data, now):
-    subscription = data.get("subscription") or {}
-    limit = TIER_LIMITS.get(subscription.get("role") or subscription.get("tier"), 1)
-    quota = data.get("quotas") or {}
     try:
-        remaining = max(0, int(quota.get("flatlaysRemaining", 0)))
-    except (TypeError, ValueError):
-        remaining = 0
-    try:
-        start = int(quota["lastRefillAt"])
-    except (KeyError, TypeError, ValueError):
-        start = None
-    if start is None or now - start >= WEEK_SECONDS:
-        return limit, now
-    # Preserve the current period anchor: each use must not postpone the refill.
-    return remaining, start
+        return current_quota(data, now)
+    except QuotaNeedsReview as error:
+        raise FlatlayRequestError(409, "Your flat lay credits need account review. No credit was used.") from error
 
 
 def _item_ids(items):
@@ -159,7 +152,8 @@ def reserve_request(db, outfit_id, user_id, *, now=None, request_id=None):
         user_doc = user_ref.get(transaction=txn)
         if not user_doc.exists:
             raise FlatlayRequestError(404, "User not found")
-        remaining, period_start = _quota(user_doc.to_dict() or {}, now)
+        quota = _quota(user_doc.to_dict() or {}, now)
+        remaining, period_start = quota["flatlaysRemaining"], quota["lastRefillAt"]
         if remaining <= 0:
             raise FlatlayRequestError(403, "No flat lay credits remaining.")
         # Snapshot authoritative wardrobe assets. A fabricated outfit item cannot
@@ -181,7 +175,8 @@ def reserve_request(db, outfit_id, user_id, *, now=None, request_id=None):
             "items": items, "outfit_context": {key: outfit.get(key) for key in ("name", "style", "occasion", "mood")},
             "retryable": False, "error": None, "url": None,
         }
-        txn.update(user_ref, {"quotas.flatlaysRemaining": remaining - 1, "quotas.lastRefillAt": period_start})
+        quota["flatlaysRemaining"] = remaining - 1
+        txn.update(user_ref, {"quotas": quota})
         txn.set(ledger_ref, request)
         txn.update(outfit_ref, _projection("pending", request_id, now, credit_status="reserved"))
         return _response(outfit_id, request)
@@ -282,13 +277,29 @@ def finish_request(db, outfit_id, request_id, *, url=None, error=None,
         credit_status = "consumed" if result_url else "refund_needs_review"
         if not result_url and user_doc.exists:
             user = user_doc.to_dict() or {}
-            remaining, period_start = _quota(user, now)
-            # A reservation from a prior weekly window is already replaced by
-            # the fresh allowance. Do not add an extra credit to the new period.
-            if period_start == request.get("quota_period_start"):
-                remaining += 1
-            txn.update(user_ref, {"quotas.flatlaysRemaining": remaining, "quotas.lastRefillAt": period_start})
-            credit_status = "refunded"
+            try:
+                quota = current_quota(user, now)
+            except QuotaNeedsReview:
+                # The debit is proven, but corrupt/missing quota state cannot be
+                # safely reconstructed. Complete the job with an explicit review
+                # status; do not guess a refund or offer another paid attempt.
+                quota = None
+            if quota is not None:
+                # Prior-period reservations are replaced by the new allowance.
+                # A downgrade within the same period still refunds its debit.
+                if quota["lastRefillAt"] == request.get("quota_period_start"):
+                    refunded = quota["flatlaysRemaining"] + 1
+                    if refunded > 30 or (refunded > quota["highestAllowanceGranted"]
+                                         and not quota.get("highestAllowanceInferred")):
+                        quota = None  # Recorded grant and outstanding debit disagree.
+                    else:
+                        quota["flatlaysRemaining"] = refunded
+                        # A proven legacy debit is additional evidence about its
+                        # unrecorded grant. Keep that inference visible to audit.
+                        quota["highestAllowanceGranted"] = max(quota["highestAllowanceGranted"], refunded)
+                if quota is not None:
+                    txn.update(user_ref, {"quotas": quota})
+                    credit_status = "refunded"
         can_retry = not result_url and can_offer_retry and credit_status == "refunded"
         status = "done" if result_url else "failed"
         changes = {"status": status, "url": result_url, "error": result_error, "error_code": result_code,

@@ -3,27 +3,33 @@ Payment routes for Easy Outfit App.
 Handles Stripe payment processing and subscription management.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Request, status
-from fastapi.security import HTTPBearer
+from fastapi import APIRouter, HTTPException, Depends, Request
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional
 from datetime import datetime, timezone
 import logging
 import os
 
 from ..auth.auth_service import get_current_user_id
-from ..config.firebase import db, firestore
+from ..config.firebase import db
 from ..services.subscription_utils import (
     DEFAULT_SUBSCRIPTION_TIER as DEFAULT_ROLE,
-    TIER_LIMITS as ROLE_LIMITS,
-    WEEKLY_ALLOWANCE_SECONDS,
+    current_quota, QuotaNeedsReview,
 )
 from ..services.subscription_feature_access import get_user_subscription_info
 from ..services.subscription_read_repair import read_subscription_user
+from ..services.account_bootstrap import ensure_user_account
+from ..services.billing_portal import (
+    BillingPortalConfigurationError, create_subscription_update_confirmation,
+)
+from ..services.billing_reconciliation import (
+    BillingReconciliationError, bind_checkout_customer, reconcile_stripe_event,
+    user_for_customer, verify_customer_identity, resolve_checkout_customer_id,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["payments"])
-security = HTTPBearer()
 
 # Initialize Stripe (optional - only if configured)
 try:
@@ -60,35 +66,39 @@ class SubscriptionResponse(BaseModel):
     is_trialing: bool = False
     days_remaining_in_trial: Optional[int] = None
     trial_used: bool = False
+    quota_review_required: bool = False
 
 
 @router.get("/subscription/current")
 async def get_current_subscription(
     user_id: str = Depends(get_current_user_id)
 ) -> SubscriptionResponse:
-    """Get current user subscription details - checks period end and downgrades if needed"""
+    """Read subscription state without repairing uncertain accounts or granting credit."""
     try:
-        user_data = read_subscription_user(db, user_id, reset_unbacked_premium=True)
+        user_data = read_subscription_user(db, user_id)
         if user_data is None:
-            raise HTTPException(status_code=404, detail="User not found")
+            user_data = ensure_user_account(db, user_id)
         
         # Support both old and new schema
-        subscription = user_data.get('subscription', {})
+        raw_subscription = user_data.get('subscription')
+        subscription = raw_subscription if isinstance(raw_subscription, dict) else {}
         role = subscription.get('role') or subscription.get('tier', DEFAULT_ROLE)
         status = subscription.get('status', 'active')
         
-        # Get quotas (new schema) or calculate from old schema
-        quotas = user_data.get('quotas', {})
-        if quotas:
-            flatlays_remaining = quotas.get('flatlaysRemaining', 0)
-        else:
-            # Fallback to old schema calculation
-            limit = ROLE_LIMITS.get(role, 1)
-            used = subscription.get('openai_flatlays_used', 0) or 0
-            flatlays_remaining = max(0, limit - used)
-        
+        # Preview the same lazy weekly allowance the reservation transaction
+        # will use, without persisting a grant on a read or reconstructing an
+        # unknown historical balance from a tier label.
+        quota_review_required = False
+        try:
+            flatlays_remaining = current_quota(user_data, int(datetime.now(timezone.utc).timestamp()))['flatlaysRemaining']
+        except QuotaNeedsReview:
+            flatlays_remaining = 0
+            quota_review_required = True
+
         # Get trial information
         trial_end = subscription.get('trialEnd')
+        if isinstance(trial_end, bool) or not isinstance(trial_end, (int, type(None))):
+            trial_end = None
         trial_used = subscription.get('trial_used', False)
         is_trialing = status == 'trialing'
         days_remaining_in_trial = None
@@ -109,7 +119,8 @@ async def get_current_subscription(
             trial_end=trial_end,
             is_trialing=is_trialing,
             days_remaining_in_trial=days_remaining_in_trial,
-            trial_used=trial_used
+            trial_used=trial_used,
+            quota_review_required=quota_review_required,
         )
     except HTTPException:
         raise
@@ -133,6 +144,9 @@ async def create_checkout_session(
     role = request.role
     interval = request.interval or "month"
     
+    if role not in ("tier2", "tier3") or interval not in ("month", "year"):
+        raise HTTPException(status_code=400, detail="Invalid role or interval")
+
     # Determine the correct price ID based on role and interval
     if interval == "year":
         price_key = f"{role}_yearly"
@@ -152,27 +166,24 @@ async def create_checkout_session(
         
         user_data = user_doc.to_dict() or {}
         email = user_data.get('email')
-        billing = user_data.get('billing', {})
-        existing_customer_id = billing.get('stripeCustomerId')
+        existing_customer_id = resolve_checkout_customer_id(stripe, user_data)
         
-        # Create or retrieve Stripe customer
+        # Existing identity failures need review. Never silently replace a
+        # customer and strand its active subscription or trial history.
         if existing_customer_id:
-            try:
-                customer = stripe.Customer.retrieve(existing_customer_id)
-            except stripe.error.StripeError:
-                customer = None
+            customer = stripe.Customer.retrieve(existing_customer_id)
+            if customer.get('deleted'):
+                raise HTTPException(status_code=409, detail="Your billing account needs review. Please contact support.")
+            declared_user = (customer.get('metadata') or {}).get('user_id')
+            if declared_user and declared_user != user_id:
+                raise HTTPException(status_code=409, detail="Your billing account needs review. Please contact support.")
         else:
-            customer = None
-        
-        if not customer:
             customer = stripe.Customer.create(
-                email=email,
-                metadata={'user_id': user_id}
+                email=email, metadata={'user_id': user_id},
+                idempotency_key=f"easyoutfit-customer-{user_id}",
             )
-            db.collection('users').document(user_id).update({
-                'billing.stripeCustomerId': customer.id
-            })
-        
+        bind_checkout_customer(db, user_id, customer)
+
         price_id = STRIPE_PRICE_IDS[price_key]
         
         # Check if user has already used a free trial
@@ -180,24 +191,26 @@ async def create_checkout_session(
         subscription = user_data.get('subscription', {})
         has_used_trial = subscription.get('trial_used', False)
         
-        # Also check if user has ever had a trial by looking at subscription history
-        # (This is a safety check - if trial_used is not set but they have a Stripe subscription, they likely used a trial)
-        if not has_used_trial and existing_customer_id:
-            try:
-                # Check Stripe customer subscriptions to see if they've ever had a trial
-                stripe_subscriptions = stripe.Subscription.list(customer=existing_customer_id, limit=10)
-                for sub in stripe_subscriptions.data:
-                    if sub.get('status') in ['trialing', 'active', 'past_due'] and sub.get('trial_end'):
-                        # User has or had a trial subscription
-                        has_used_trial = True
-                        # Update Firestore to mark trial as used
-                        db.collection('users').document(user_id).update({
-                            'subscription.trial_used': True
-                        })
-                        break
-            except Exception as e:
-                logger.warning(f"Could not check Stripe subscription history for trial: {e}")
-        
+        # Failed history reads must fail checkout, not silently offer another
+        # trial. Check every page so older trials cannot disappear behind limit10.
+        history = stripe.Subscription.list(customer=customer.id, status='all', limit=100)
+        current_subscriptions = []
+        for prior in history.auto_paging_iter():
+            if prior.get('status') not in ('canceled', 'incomplete_expired'):
+                current_subscriptions.append(prior)
+            has_used_trial = has_used_trial or bool(prior.get('trial_end'))
+        if current_subscriptions:
+            if len(current_subscriptions) != 1 or user_for_customer(db, customer.id) != user_id:
+                raise HTTPException(status_code=409, detail="Your billing account needs review. Please contact support.")
+            # Confirm the requested price on the existing subscription. A
+            # generic portal can have upgrades disabled; never create another
+            # subscription or quietly send the customer to a dead-end instead.
+            portal = create_subscription_update_confirmation(
+                stripe, customer.id, current_subscriptions[0].get('id'), price_id,
+                STRIPE_PRICE_IDS, f"{FRONTEND_URL}/subscription",
+            )
+            return {'checkout_url': portal.url, 'session_id': portal.id}
+
         # Create checkout session with 30-day free trial (if not already used)
         checkout_params = {
             'customer': customer.id,
@@ -240,6 +253,12 @@ async def create_checkout_session(
     
     except HTTPException:
         raise
+    except BillingPortalConfigurationError:
+        logger.exception("Stripe portal plan changes are not configured")
+        raise HTTPException(status_code=503, detail="Plan changes are temporarily unavailable. Please contact support or retry later.")
+    except BillingReconciliationError:
+        logger.exception("Billing account identity requires review")
+        raise HTTPException(status_code=409, detail="Your billing account needs review. Please contact support.")
     except Exception as e:
         logger.error(f"Error creating checkout session: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -262,35 +281,22 @@ async def create_portal_session(
             raise HTTPException(status_code=404, detail="User not found")
         
         user_data = user_doc.to_dict() or {}
-        billing = user_data.get('billing', {})
-        customer_id = billing.get('stripeCustomerId')
-        subscription = user_data.get('subscription', {})
-        
+        customer_id = resolve_checkout_customer_id(stripe, user_data)
         if not customer_id:
-            # Check if user has test mode subscription data that needs to be reset
-            role = subscription.get('role', DEFAULT_ROLE)
-            if role != DEFAULT_ROLE:
-                logger.warning(f"User {user_id} has subscription data (role={role}) but no customer ID. Resetting to free tier.")
-                # Reset subscription to free tier
-                now_timestamp = int(datetime.now(timezone.utc).timestamp())
-                flatlay_limit = ROLE_LIMITS.get(DEFAULT_ROLE, 1)
-                db.collection('users').document(user_id).update({
-                    'subscription.role': DEFAULT_ROLE,
-                    'subscription.status': 'active',
-                    'subscription.priceId': 'free',
-                    'subscription.currentPeriodEnd': 0,
-                    'subscription.cancelAtPeriodEnd': False,
-                    'subscription.stripeSubscriptionId': firestore.DELETE_FIELD,
-                    'quotas.flatlaysRemaining': flatlay_limit,
-                    'quotas.lastRefillAt': now_timestamp,
-                    'subscription.last_updated': firestore.SERVER_TIMESTAMP,
-                })
-            
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail="No Stripe customer found. Please subscribe first to access the Customer Portal."
             )
-        
+        customer = stripe.Customer.retrieve(customer_id)
+        verify_customer_identity(db, user_id, customer)
+        bind_checkout_customer(db, user_id, customer)
+        declared_user = (customer.get('metadata') or {}).get('user_id')
+        if customer.get('deleted') or (declared_user and declared_user != user_id):
+            raise HTTPException(status_code=409, detail="Your billing account needs review. Please contact support.")
+        # Require a unique trusted account association before exposing billing.
+        if user_for_customer(db, customer_id) != user_id:
+            raise HTTPException(status_code=409, detail="Your billing account needs review. Please contact support.")
+
         try:
             portal_session = stripe.billing_portal.Session.create(
                 customer=customer_id,
@@ -303,21 +309,18 @@ async def create_portal_session(
                 "url": portal_session.url
             }
         except stripe.error.InvalidRequestError as e:
-            # Customer ID exists in Firestore but not in Stripe (likely from test mode)
             if "No such customer" in str(e):
-                logger.warning(f"Customer {customer_id} not found in Stripe for user {user_id}. Clearing invalid customer ID.")
-                # Clear the invalid customer ID from Firestore
-                db.collection('users').document(user_id).update({
-                    'billing.stripeCustomerId': firestore.DELETE_FIELD
-                })
                 raise HTTPException(
-                    status_code=400,
-                    detail="Your previous subscription was created in test mode. Please subscribe again to create a new account."
+                    status_code=409,
+                    detail="Your billing account needs review. Please contact support.",
                 )
             raise
     
     except HTTPException:
         raise
+    except BillingReconciliationError:
+        logger.exception("Billing account identity requires review")
+        raise HTTPException(status_code=409, detail="Your billing account needs review. Please contact support.")
     except Exception as e:
         logger.error(f"Error creating portal session: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -340,6 +343,9 @@ async def stripe_webhook(request: Request):
         logger.error("STRIPE_WEBHOOK_SECRET not configured")
         raise HTTPException(status_code=503, detail="Webhook secret not configured")
     
+    if not sig_header:
+        raise HTTPException(status_code=400, detail="Missing signature")
+
     try:
         event = stripe.Webhook.construct_event(
             payload, sig_header, webhook_secret
@@ -351,380 +357,16 @@ async def stripe_webhook(request: Request):
         logger.error("Invalid signature in webhook")
         raise HTTPException(status_code=400, detail="Invalid signature")
     
-    event_type = event['type']
-    logger.info(f"Processing Stripe webhook event: {event_type}")
-    
     try:
-        if event_type == 'checkout.session.completed':
-            session = event['data']['object']
-            await handle_checkout_completed(session)
-        elif event_type == 'customer.subscription.created':
-            subscription = event['data']['object']
-            await handle_subscription_created(subscription)
-        elif event_type == 'customer.subscription.updated':
-            subscription = event['data']['object']
-            await handle_subscription_updated(subscription)
-        elif event_type == 'customer.subscription.deleted':
-            subscription = event['data']['object']
-            await handle_subscription_deleted(subscription)
-        elif event_type == 'invoice.payment_succeeded':
-            invoice = event['data']['object']
-            await handle_invoice_payment_succeeded(invoice)
-        elif event_type == 'invoice.payment_failed':
-            invoice = event['data']['object']
-            await handle_invoice_payment_failed(invoice)
-        else:
-            logger.info(f"Unhandled webhook event type: {event_type}")
-        
-        return {"status": "success"}
-    
-    except Exception as e:
-        logger.error(f"Error processing webhook: {e}", exc_info=True)
-        return {"status": "error", "message": str(e)}
-
-
-async def handle_checkout_completed(session: Dict[str, Any]):
-    """Handle successful checkout completion"""
-    metadata = session.get('metadata', {})
-    user_id = metadata.get('user_id')
-    role = metadata.get('role', 'tier2')
-    
-    if not user_id:
-        logger.error(f"Missing user_id in checkout session: {session.get('id')}")
-        return
-    
-    user_ref = db.collection('users').document(user_id)
-    customer_id = session.get('customer')
-    subscription_id = session.get('subscription')
-    
-    now = datetime.now(timezone.utc)
-    now_timestamp = int(now.timestamp())
-    
-    # Get flat lay limit for role
-    flatlay_limit = ROLE_LIMITS.get(role, 1)
-    
-    # Fetch subscription from Stripe to get trial end date
-    trial_end = None
-    subscription_status = 'active'
-    if subscription_id:
-        try:
-            stripe_sub = stripe.Subscription.retrieve(subscription_id)
-            subscription_status = stripe_sub.get('status', 'active')
-            trial_end = stripe_sub.get('trial_end')
-            period_end = stripe_sub.get('current_period_end', now_timestamp + (30 * 24 * 60 * 60))
-        except Exception as e:
-            logger.warning(f"Failed to fetch subscription from Stripe: {e}")
-            period_end = now_timestamp + (30 * 24 * 60 * 60)  # Default 30 days
-    else:
-        period_end = now_timestamp + (30 * 24 * 60 * 60)  # Default 30 days
-    
-    updates = {
-        'billing.stripeCustomerId': customer_id,
-        'subscription.status': subscription_status,
-        'subscription.role': role,
-        'subscription.currentPeriodEnd': period_end,
-        'subscription.priceId': STRIPE_PRICE_IDS.get(role, 'free'),
-        'quotas.flatlaysRemaining': flatlay_limit,
-        'quotas.lastRefillAt': now_timestamp,
-    }
-    
-    # Add trial information if in trial period
-    if trial_end:
-        updates['subscription.trialEnd'] = trial_end
-        updates['subscription.trial_used'] = True
-        logger.info(f"User {user_id} started 30-day free trial, ends at {trial_end}")
-    
-    if subscription_id:
-        updates['subscription.stripeSubscriptionId'] = subscription_id
-    
-    # Clean up legacy fields
-    updates.update({
-        'subscription.tier': firestore.DELETE_FIELD,
-        'subscription.openai_flatlays_used': firestore.DELETE_FIELD,
-        'subscription.flatlay_week_start': firestore.DELETE_FIELD,
-    })
-    
-    user_ref.update(updates)
-    logger.info(f"Updated user {user_id} subscription to {role} (status: {subscription_status})")
-
-
-async def handle_subscription_updated(subscription: Dict[str, Any]):
-    """Handle subscription updates - including cancellation scheduling"""
-    customer_id = subscription.get('customer')
-    subscription_id = subscription.get('id')
-    
-    users_ref = db.collection('users')
-    query = users_ref.where('billing.stripeCustomerId', '==', customer_id).limit(1)
-    docs = list(query.stream())
-    
-    if not docs:
-        logger.warning(f"No user found for customer {customer_id}")
-        return
-    
-    # Determine role from subscription items
-    items = subscription.get('items', {}).get('data', [])
-    role = 'tier2'  # Default
-    if items:
-        price_id = items[0].get('price', {}).get('id', '')
-        # Check both monthly and yearly price IDs
-        if price_id == STRIPE_PRICE_IDS.get('tier3') or price_id == STRIPE_PRICE_IDS.get('tier3_yearly'):
-            role = 'tier3'
-        elif price_id == STRIPE_PRICE_IDS.get('tier2') or price_id == STRIPE_PRICE_IDS.get('tier2_yearly'):
-            role = 'tier2'
-    
-    # Get period end from subscription object or subscription items
-    period_end = subscription.get('current_period_end', 0)
-    if not period_end and items:
-        # Fallback: get from subscription item if not at subscription level
-        period_end = items[0].get('current_period_end', 0)
-    
-    # If still 0, try to get from latest_invoice or fetch from Stripe API
-    if not period_end:
-        try:
-            # Fetch subscription from Stripe to get current_period_end
-            stripe_sub = stripe.Subscription.retrieve(subscription_id)
-            period_end = stripe_sub.get('current_period_end', 0)
-            logger.info(f"Fetched period_end from Stripe API: {period_end}")
-        except Exception as e:
-            logger.warning(f"Failed to fetch subscription from Stripe: {e}")
-    
-    status = subscription.get('status', 'active')
-    cancel_at_period_end = subscription.get('cancel_at_period_end', False)
-    trial_end = subscription.get('trial_end')
-    
-    now_timestamp = int(datetime.now(timezone.utc).timestamp())
-    
-    doc = docs[0]
-    
-    # Determine priceId from subscription items
-    price_id = None
-    if items:
-        price_id = items[0].get('price', {}).get('id', '')
-    
-    # Log for debugging
-    logger.info(f"Processing subscription update: subscription_id={subscription_id}, price_id={price_id}, role={role}, period_end={period_end}, status={status}, trial_end={trial_end}")
-    
-    # If subscription is scheduled to cancel, mark it but keep premium access until period ends
-    updates = {
-        'subscription.role': role,
-        'subscription.status': status,
-        'subscription.currentPeriodEnd': period_end,
-        'subscription.cancelAtPeriodEnd': cancel_at_period_end,
-        'subscription.last_updated': firestore.SERVER_TIMESTAMP,
-    }
-    
-    # Update trial information
-    if trial_end:
-        updates['subscription.trialEnd'] = trial_end
-        updates['subscription.trial_used'] = True
-    elif status == 'trialing':
-        # If status is trialing but no trial_end, fetch from Stripe
-        try:
-            stripe_sub = stripe.Subscription.retrieve(subscription_id)
-            trial_end = stripe_sub.get('trial_end')
-            if trial_end:
-                updates['subscription.trialEnd'] = trial_end
-                updates['subscription.trial_used'] = True
-        except Exception as e:
-            logger.warning(f"Failed to fetch trial_end from Stripe: {e}")
-    
-    # Update priceId if we have it
-    if price_id:
-        updates['subscription.priceId'] = price_id
-    
-    # Clean up legacy fields
-    updates.update({
-        'subscription.tier': firestore.DELETE_FIELD,
-        'subscription.openai_flatlays_used': firestore.DELETE_FIELD,
-        'subscription.flatlay_week_start': firestore.DELETE_FIELD,
-    })
-    
-    # If period has already ended and subscription is canceled, downgrade now
-    if period_end > 0 and now_timestamp >= period_end and (status == 'canceled' or cancel_at_period_end):
-        flatlay_limit = ROLE_LIMITS.get(DEFAULT_ROLE, 1)
-        updates.update({
-            'subscription.role': DEFAULT_ROLE,
-            'subscription.status': 'canceled',
-            'subscription.priceId': 'free',
-            'quotas.flatlaysRemaining': flatlay_limit,
-            'quotas.lastRefillAt': now_timestamp,
-        })
-        logger.info(f"Period ended for subscription {subscription_id}, downgraded user {doc.id} to {DEFAULT_ROLE}")
-    else:
-        logger.info(f"Updated subscription {subscription_id} for user {doc.id} - cancel_at_period_end: {cancel_at_period_end}, period_end: {period_end}")
-    
-    doc.reference.update(updates)
-
-
-async def handle_subscription_created(subscription: Dict[str, Any]):
-    """Handle new subscription creation"""
-    customer_id = subscription.get('customer')
-    subscription_id = subscription.get('id')
-    
-    users_ref = db.collection('users')
-    query = users_ref.where('billing.stripeCustomerId', '==', customer_id).limit(1)
-    docs = list(query.stream())
-    
-    if not docs:
-        logger.warning(f"No user found for customer {customer_id}")
-        return
-    
-    # Determine role from subscription items
-    items = subscription.get('items', {}).get('data', [])
-    role = 'tier2'  # Default
-    price_id = None
-    if items:
-        price_id = items[0].get('price', {}).get('id', '')
-        # Check both monthly and yearly price IDs
-        if price_id == STRIPE_PRICE_IDS.get('tier3') or price_id == STRIPE_PRICE_IDS.get('tier3_yearly'):
-            role = 'tier3'
-        elif price_id == STRIPE_PRICE_IDS.get('tier2') or price_id == STRIPE_PRICE_IDS.get('tier2_yearly'):
-            role = 'tier2'
-    
-    # Get period end from subscription object or subscription items
-    period_end = subscription.get('current_period_end', 0)
-    if not period_end and items:
-        # Fallback: get from subscription item if not at subscription level
-        period_end = items[0].get('current_period_end', 0)
-    
-    # If still 0, try to get from latest_invoice or fetch from Stripe API
-    if not period_end:
-        try:
-            # Fetch subscription from Stripe to get current_period_end
-            stripe_sub = stripe.Subscription.retrieve(subscription_id)
-            period_end = stripe_sub.get('current_period_end', 0)
-            logger.info(f"Fetched period_end from Stripe API for created subscription: {period_end}")
-        except Exception as e:
-            logger.warning(f"Failed to fetch subscription from Stripe: {e}")
-    
-    status = subscription.get('status', 'active')
-    trial_end = subscription.get('trial_end')
-    flatlay_limit = ROLE_LIMITS.get(role, 1)
-    now_timestamp = int(datetime.now(timezone.utc).timestamp())
-    
-    doc = docs[0]
-    updates = {
-        'subscription.role': role,
-        'subscription.status': status,
-        'subscription.stripeSubscriptionId': subscription_id,
-        'subscription.currentPeriodEnd': period_end,
-        'quotas.flatlaysRemaining': flatlay_limit,
-        'quotas.lastRefillAt': now_timestamp,
-    }
-    
-    # Add trial information if in trial period
-    if trial_end:
-        updates['subscription.trialEnd'] = trial_end
-        updates['subscription.trial_used'] = True
-        logger.info(f"User {doc.id} started 30-day free trial, ends at {trial_end}")
-    
-    # Set priceId if we have it
-    if price_id:
-        updates['subscription.priceId'] = price_id
-    
-    # Clean up legacy fields
-    updates.update({
-        'subscription.tier': firestore.DELETE_FIELD,
-        'subscription.openai_flatlays_used': firestore.DELETE_FIELD,
-        'subscription.flatlay_week_start': firestore.DELETE_FIELD,
-    })
-    
-    # Log for debugging
-    logger.info(f"Processing subscription created: subscription_id={subscription_id}, price_id={price_id}, role={role}, period_end={period_end}, trial_end={trial_end}")
-    
-    doc.reference.update(updates)
-    logger.info(f"Created subscription {subscription_id} for user {doc.id}, role: {role}, priceId: {price_id}, status: {status}")
-
-
-async def handle_subscription_deleted(subscription: Dict[str, Any]):
-    """Handle subscription cancellation - downgrade to tier1"""
-    customer_id = subscription.get('customer')
-    
-    users_ref = db.collection('users')
-    query = users_ref.where('billing.stripeCustomerId', '==', customer_id).limit(1)
-    docs = list(query.stream())
-    
-    if not docs:
-        logger.warning(f"No user found for customer {customer_id}")
-        return
-    
-    now_timestamp = int(datetime.now(timezone.utc).timestamp())
-    next_period_end = now_timestamp + WEEKLY_ALLOWANCE_SECONDS
-    flatlay_limit = ROLE_LIMITS.get(DEFAULT_ROLE, 1)
-    
-    doc = docs[0]
-    updates = {
-        'subscription.role': DEFAULT_ROLE,
-        'subscription.status': 'canceled',
-        'subscription.currentPeriodEnd': next_period_end,
-        'subscription.priceId': 'free',
-        'quotas.flatlaysRemaining': flatlay_limit,
-        'quotas.lastRefillAt': now_timestamp,
-        # Clean up legacy fields
-        'subscription.tier': firestore.DELETE_FIELD,
-        'subscription.openai_flatlays_used': firestore.DELETE_FIELD,
-        'subscription.flatlay_week_start': firestore.DELETE_FIELD,
-    }
-    doc.reference.update(updates)
-    logger.info(f"Canceled subscription for user {doc.id}, downgraded to {DEFAULT_ROLE}")
-
-
-async def handle_invoice_payment_succeeded(invoice: Dict[str, Any]):
-    """Handle successful invoice payment - refill quotas"""
-    customer_id = invoice.get('customer')
-    subscription_id = invoice.get('subscription')
-    
-    if not subscription_id:
-        logger.info(f"Invoice {invoice.get('id')} has no subscription, skipping")
-        return
-    
-    users_ref = db.collection('users')
-    query = users_ref.where('billing.stripeCustomerId', '==', customer_id).limit(1)
-    docs = list(query.stream())
-    
-    if not docs:
-        logger.warning(f"No user found for customer {customer_id}")
-        return
-    
-    doc = docs[0]
-    user_data = doc.to_dict() or {}
-    subscription = user_data.get('subscription', {})
-    current_role = subscription.get('role', DEFAULT_ROLE)
-    
-    # Refill quotas based on current role
-    flatlay_limit = ROLE_LIMITS.get(current_role, 1)
-    now_timestamp = int(datetime.now(timezone.utc).timestamp())
-    
-    updates = {
-        'subscription.status': 'active',
-        'quotas.flatlaysRemaining': flatlay_limit,
-        'quotas.lastRefillAt': now_timestamp,
-        # Clean up legacy fields
-        'subscription.tier': firestore.DELETE_FIELD,
-        'subscription.openai_flatlays_used': firestore.DELETE_FIELD,
-        'subscription.flatlay_week_start': firestore.DELETE_FIELD,
-    }
-    doc.reference.update(updates)
-    logger.info(f"Refilled quotas for user {doc.id} after successful payment")
-
-
-async def handle_invoice_payment_failed(invoice: Dict[str, Any]):
-    """Handle failed invoice payment"""
-    customer_id = invoice.get('customer')
-    
-    users_ref = db.collection('users')
-    query = users_ref.where('billing.stripeCustomerId', '==', customer_id).limit(1)
-    docs = list(query.stream())
-    
-    if not docs:
-        logger.warning(f"No user found for customer {customer_id}")
-        return
-    
-    doc = docs[0]
-    doc.reference.update({
-        'subscription.status': 'past_due',
-    })
-    logger.warning(f"Payment failed for user {doc.id}, subscription marked as past_due")
+        # Stripe I/O is blocking. Keep it out of the event loop and outside every
+        # retryable Firestore transaction.
+        return await run_in_threadpool(reconcile_stripe_event, db, stripe, event, STRIPE_PRICE_IDS)
+    except BillingReconciliationError:
+        logger.exception("Stripe event requires retry or account review", extra={"event_id": event.get('id')})
+        raise HTTPException(status_code=503, detail="Subscription update is pending. Stripe may retry this event.")
+    except Exception:
+        logger.exception("Stripe event processing failed", extra={"event_id": event.get('id')})
+        raise HTTPException(status_code=503, detail="Subscription update could not be completed. Please retry.")
 
 
 @router.get("/usage/current")

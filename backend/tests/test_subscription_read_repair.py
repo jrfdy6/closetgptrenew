@@ -19,6 +19,8 @@ from pydantic import BaseModel
 
 from src.services import flatlay_lifecycle as lifecycle
 from src.services.subscription_read_repair import read_subscription_user
+from src.services.subscription_utils import current_quota, QuotaNeedsReview
+from src.services.account_bootstrap import ensure_user_account
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -135,7 +137,7 @@ class SubscriptionReadRepairTests(unittest.TestCase):
     def test_repeated_expired_canceled_reads_preserve_spent_credit_and_period(self):
         self.user['quotas']['flatlaysRemaining'] = 0
         first = self.read()
-        self.assertEqual(first['quotas'], {'flatlaysRemaining': 0, 'lastRefillAt': 1000})
+        self.assertEqual(first['quotas'], {'flatlaysRemaining': 0, 'lastRefillAt': 1000, 'highestAllowanceGranted': 1, 'highestAllowanceInferred': True})
         self.assertEqual(first['subscription']['currentPeriodEnd'], 0)
         self.assertFalse(first['subscription']['cancelAtPeriodEnd'])
         self.assertEqual(first['subscription']['status'], 'canceled')
@@ -143,21 +145,31 @@ class SubscriptionReadRepairTests(unittest.TestCase):
             self.assertEqual(self.read(), first)
         self.assertEqual(self.db.commits, 1)
 
-    def test_actual_downgrade_clamps_existing_balance_without_refilling(self):
-        for balance, expected in ((7, 1), (1, 1), (0, 0), (-2, 0), ('invalid', 0)):
+    def test_actual_downgrade_preserves_existing_and_uncertain_balances_without_refilling(self):
+        for balance, expected in ((7, 7), (1, 1), (0, 0), (-2, -2), ('invalid', 'invalid')):
             with self.subTest(balance=balance):
                 self.db = Database()
                 self.user['subscription']['role'] = 'tier2'
                 self.user['quotas']['flatlaysRemaining'] = balance
                 result = self.read()
                 self.assertEqual(result['subscription']['role'], 'tier1')
-                self.assertEqual(result['quotas'], {'flatlaysRemaining': expected, 'lastRefillAt': 1000})
+                self.assertEqual(result['quotas']['flatlaysRemaining'], expected)
+                self.assertEqual(result['quotas']['lastRefillAt'], 1000)
+
+    def test_downgrade_remembers_old_paid_high_water_before_removing_role(self):
+        from src.services.subscription_utils import apply_subscription_entitlement
+        self.user['subscription']['role'] = 'tier3'
+        self.user['quotas']['flatlaysRemaining'] = 2
+        result = self.read()
+        self.assertEqual(result['subscription']['role'], 'tier1')
+        self.assertEqual(result['quotas']['highestAllowanceGranted'], 30)
+        self.assertEqual(apply_subscription_entitlement(result, 'tier3', 1110)['flatlaysRemaining'], 2)
 
     def test_missing_quota_does_not_mint_an_allowance_or_start_a_period(self):
         del self.user['quotas']
         result = self.read()
-        self.assertEqual(result['quotas'], {'flatlaysRemaining': 0})
-        self.assertNotIn('lastRefillAt', self.user['quotas'])
+        self.assertNotIn('quotas', result)
+        self.assertNotIn('quotas', self.user)
 
     def test_valid_premium_or_not_yet_expired_cancellation_is_unchanged(self):
         self.user['subscription'].update(role='tier2', currentPeriodEnd=1200)
@@ -169,22 +181,19 @@ class SubscriptionReadRepairTests(unittest.TestCase):
         self.assertEqual(self.read(), before)
         self.assertEqual(self.db.commits, 0)
 
-    def test_unbacked_premium_reset_never_restores_a_spent_credit(self):
+    def test_unbacked_premium_is_report_only_not_automatically_reset(self):
         self.user['subscription'].update(role='tier2', stripeSubscriptionId='fixture', tier='tier2')
         self.user['billing'] = {}
         self.user['quotas']['flatlaysRemaining'] = 0
-        result = self.read(reset_unbacked_premium=True)
-        self.assertEqual(result['subscription']['status'], 'active')
-        self.assertNotIn('stripeSubscriptionId', result['subscription'])
-        self.assertNotIn('tier', result['subscription'])
-        self.assertEqual(result['quotas'], {'flatlaysRemaining': 0, 'lastRefillAt': 1000})
-        self.assertEqual(self.read(reset_unbacked_premium=True), result)
-        self.assertEqual(self.db.commits, 1)
+        before = copy.deepcopy(self.user)
+        self.assertEqual(self.read(reset_unbacked_premium=True), before)
+        self.assertEqual(self.user, before)
+        self.assertEqual(self.db.commits, 0)
 
     def test_reservation_after_downgrade_stays_spent_through_later_reads(self):
         self.read()
         request = self.reserve()
-        self.assertEqual(self.read()['quotas'], {'flatlaysRemaining': 0, 'lastRefillAt': 1000})
+        self.assertEqual(self.read()['quotas'], {'flatlaysRemaining': 0, 'lastRefillAt': 1000, 'highestAllowanceGranted': 1, 'highestAllowanceInferred': True})
         self.assertEqual(request['credit_status'], 'reserved')
         lifecycle.finish_request(self.db, 'look', request['request_id'], now=1120, url='https://example.invalid/result')
         self.assertEqual(self.read()['quotas']['flatlaysRemaining'], 0)
@@ -210,14 +219,14 @@ class SubscriptionReadRepairTests(unittest.TestCase):
                 resume_read.set()
             result = reading.result(timeout=5)
         self.assertEqual(self.db.conflicts, 1)
-        self.assertEqual(result['quotas'], {'flatlaysRemaining': 0, 'lastRefillAt': 1000})
+        self.assertEqual(result['quotas'], {'flatlaysRemaining': 0, 'lastRefillAt': 1000, 'highestAllowanceGranted': 1, 'highestAllowanceInferred': True})
         ledger = self.db.records[lifecycle.REQUESTS_COLLECTION]['look']
         self.assertEqual(ledger['quota_period_start'], 1000)
         self.assertEqual(ledger['credit_status'], 'reserved')
         # Preserving the period also lets a later proven failure refund once.
         self.assertTrue(lifecycle.finish_request(self.db, 'look', request['request_id'], now=1120,
                                                error='fixture failure', error_code='generation_failed'))
-        self.assertEqual(self.read()['quotas'], {'flatlaysRemaining': 1, 'lastRefillAt': 1000})
+        self.assertEqual(self.read()['quotas'], {'flatlaysRemaining': 1, 'lastRefillAt': 1000, 'highestAllowanceGranted': 1, 'highestAllowanceInferred': True})
         self.assertFalse(lifecycle.finish_request(self.db, 'look', request['request_id'], now=1130,
                                                 error='duplicate', error_code='generation_failed'))
         self.assertEqual(self.user['quotas']['flatlaysRemaining'], 1)
@@ -235,8 +244,11 @@ class SubscriptionReadRepairTests(unittest.TestCase):
         env = {'router': APIRouter(), 'Depends': Depends, 'HTTPException': HTTPException,
                'get_current_user_id': lambda: 'owner', 'BaseModel': BaseModel, 'Optional': Optional,
                'db': self.db, 'read_subscription_user': read_subscription_user,
+               'current_quota': current_quota, 'QuotaNeedsReview': QuotaNeedsReview,
+               'ensure_user_account': ensure_user_account,
                'DEFAULT_ROLE': 'tier1', 'ROLE_LIMITS': {'tier1': 1, 'tier2': 7, 'tier3': 30},
-               'datetime': datetime, 'timezone': timezone, 'logger': logging.getLogger(__name__)}
+               'datetime': SimpleNamespace(now=lambda tz: datetime.fromtimestamp(1100, tz)),
+               'timezone': timezone, 'logger': logging.getLogger(__name__)}
         exec(compile(ast.Module(body=nodes, type_ignores=[]), 'subscription_endpoint_under_test', 'exec'), env)
         app = FastAPI()
         app.include_router(env['router'], prefix='/api/payments')
@@ -249,7 +261,7 @@ class SubscriptionReadRepairTests(unittest.TestCase):
             response = client.get('/api/payments/subscription/current')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['role'], 'tier1')
-        self.assertEqual(response.json()['flatlays_remaining'], 1)
+        self.assertEqual(response.json()['flatlays_remaining'], 7)
         self.assertEqual(self.user['quotas']['lastRefillAt'], 1000)
 
     def test_current_subscription_http_does_not_replenish_zero(self):
@@ -261,6 +273,25 @@ class SubscriptionReadRepairTests(unittest.TestCase):
                 self.assertEqual(response.json()['flatlays_remaining'], 0)
         self.assertEqual(self.db.commits, 1)
 
+    def test_current_subscription_previews_due_refill_without_persisting_it(self):
+        self.user['quotas'].update(flatlaysRemaining=0, lastRefillAt=1)
+        # Fixture endpoint clock is 1100; use a custom pure helper that checks
+        # the same quota at the actual weekly boundary, without writes.
+        from src.services.subscription_utils import WEEKLY_ALLOWANCE_SECONDS
+        before = copy.deepcopy(self.user['quotas'])
+        preview = current_quota(self.user, 1 + WEEKLY_ALLOWANCE_SECONDS)
+        self.assertEqual(preview['flatlaysRemaining'], 1)
+        self.assertEqual(self.user['quotas'], before)
+
+    def test_current_subscription_unknown_quota_returns_review_state_without_minting(self):
+        self.user['quotas'] = {'flatlaysRemaining': 0}
+        with self.endpoint_client() as client:
+            response = client.get('/api/payments/subscription/current')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['flatlays_remaining'], 0)
+        self.assertTrue(response.json()['quota_review_required'])
+        self.assertEqual(self.user['quotas'], {'flatlaysRemaining': 0})
+
     def test_feature_access_uses_same_repair_and_preserves_quota(self):
         tree = ast.parse((ROOT / 'src/services/subscription_feature_access.py').read_text())
         node = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'check_feature_access')
@@ -268,6 +299,8 @@ class SubscriptionReadRepairTests(unittest.TestCase):
         import typing
         env = {'Tuple': typing.Tuple, 'Optional': Optional, 'Dict': typing.Dict, 'Any': typing.Any,
                'db': self.db, 'read_subscription_user': read_subscription_user,
+               'current_quota': current_quota, 'QuotaNeedsReview': QuotaNeedsReview,
+               'ensure_user_account': ensure_user_account,
                'FEATURE_ACCESS_MATRIX': {'flatlay_generation': ['tier1', 'tier2', 'tier3']},
                'ACTIVE_STATUSES': ['active', 'trialing'], 'logger': logging.getLogger(__name__)}
         exec(compile(ast.Module(body=[node], type_ignores=[]), 'feature_access_under_test', 'exec'), env)

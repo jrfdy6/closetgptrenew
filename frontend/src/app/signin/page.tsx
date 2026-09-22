@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { User as FirebaseUser } from 'firebase/auth';
+import { savePendingQuiz } from '@/lib/pendingQuizSubmission';
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -20,6 +22,22 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const router = useRouter();
   const [fromQuiz, setFromQuiz] = useState(false);
+  const [quizRetryUser, setQuizRetryUser] = useState<FirebaseUser | null>(null);
+
+  const saveQuizAndContinue = async (quizUser: FirebaseUser) => {
+    setQuizRetryUser(quizUser);
+    setIsLoading(true);
+    setError('');
+    try {
+      const destination = await savePendingQuiz(quizUser);
+      setQuizRetryUser(null);
+      router.push(destination);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Your quiz could not be saved. Please retry.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const [showPasswordLinkPrompt, setShowPasswordLinkPrompt] = useState(false);
   const [googleSignInEmail, setGoogleSignInEmail] = useState("");
   const [showPasswordLinkBanner, setShowPasswordLinkBanner] = useState(false);
@@ -45,36 +63,7 @@ export default function SignIn() {
         console.log("Signin successful:", result.user.email);
 
         if (fromQuiz && typeof window !== "undefined") {
-          try {
-            const pendingRaw = sessionStorage.getItem("pendingQuizSubmission");
-            if (pendingRaw) {
-              const pending = JSON.parse(pendingRaw);
-              const token = await result.user.getIdToken();
-              const submissionPayload = {
-                userId: result.user.uid,
-                token,
-                answers: pending.answers || [],
-                colorAnalysis: pending.colorAnalysis || null,
-                stylePreferences: pending.stylePreferences || [],
-                colorPreferences: pending.colorPreferences || []
-              };
-
-              await fetch("/api/style-quiz/submit", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify(submissionPayload)
-              });
-
-              sessionStorage.removeItem("pendingQuizSubmission");
-            }
-          } catch (quizError) {
-            console.error("Failed to submit pending quiz after signin:", quizError);
-          }
-
-          router.push("/style-persona?from=quiz");
+          if (result.user) await saveQuizAndContinue(result.user);
         } else {
           router.push("/dashboard");
         }
@@ -117,36 +106,7 @@ export default function SignIn() {
         }
 
         if (fromQuiz && typeof window !== "undefined") {
-          try {
-            const pendingRaw = sessionStorage.getItem("pendingQuizSubmission");
-            if (pendingRaw) {
-              const pending = JSON.parse(pendingRaw);
-              const token = await result.user.getIdToken();
-              const submissionPayload = {
-                userId: result.user.uid,
-                token,
-                answers: pending.answers || [],
-                colorAnalysis: pending.colorAnalysis || null,
-                stylePreferences: pending.stylePreferences || [],
-                colorPreferences: pending.colorPreferences || []
-              };
-
-              await fetch("/api/style-quiz/submit", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify(submissionPayload)
-              });
-
-              sessionStorage.removeItem("pendingQuizSubmission");
-            }
-          } catch (quizError) {
-            console.error("Failed to submit pending quiz after Google signin:", quizError);
-          }
-
-          router.push("/style-persona?from=quiz");
+          if (result.user) await saveQuizAndContinue(result.user);
         } else {
           router.push("/dashboard");
         }
@@ -178,6 +138,12 @@ export default function SignIn() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {quizRetryUser && (
+            <Button type="button" className="w-full mb-4" disabled={isLoading}
+              onClick={() => saveQuizAndContinue(quizRetryUser)}>
+              {isLoading ? 'Saving your quiz…' : 'Retry saving my quiz'}
+            </Button>
+          )}
           {error && (
             <div className={`mb-4 p-4 rounded-lg border ${
               error.includes('Google account') || error.includes('sign in with Google')

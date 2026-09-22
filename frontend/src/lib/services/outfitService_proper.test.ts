@@ -4,10 +4,6 @@ declare const describe: jest.Describe;
 declare const expect: jest.Expect;
 declare const it: jest.It;
 import outfitService from './outfitService_proper';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-
-jest.mock('@/lib/firebase/config', () => ({ db: {} }));
-jest.mock('firebase/firestore', () => ({ doc: jest.fn(), getDoc: jest.fn(), updateDoc: jest.fn() }));
 
 const draft = {
   name: 'Two-piece look', occasion: 'Casual', style: 'Classic', user_id: 'user-1',
@@ -51,35 +47,31 @@ describe('manual outfit response contract', () => {
   });
 });
 
-describe('edited outfit preview identity', () => {
-  const current = { ...draft, flat_lay_status: 'done', flat_lay_url: '/old.png', metadata: { flatLayUrl: '/old.png', preserved: 'keep' } };
-  function setup(data = current) {
-    (doc as jest.Mock).mockReturnValue({ id: 'saved-1' });
-    (getDoc as jest.Mock).mockResolvedValue({ id: 'saved-1', exists: () => true, data: () => data });
-    (updateDoc as jest.Mock).mockResolvedValue(undefined);
-  }
-  it('clears the old preview atomically when the item set changes and preserves metadata siblings', async () => {
-    setup();
-    await outfitService.updateOutfit('saved-1', { items: [{ ...draft.items[0], id: 'new-shirt' }] }, 'token');
-    expect(updateDoc).toHaveBeenCalledTimes(1);
-    expect((updateDoc as jest.Mock).mock.calls[0][1]).toMatchObject({
-      items: [expect.objectContaining({ id: 'new-shirt' })], flat_lay_url: null, flatLayUrl: null,
-      'metadata.flat_lay_url': null, 'metadata.flatLayUrl': null,
-      flat_lay_status: 'awaiting_consent', flat_lay_request_allowed: true,
-    });
-    expect((updateDoc as jest.Mock).mock.calls[0][1]).not.toHaveProperty('metadata');
+describe('outfit server authority', () => {
+  it('sends item changes to the server and uses the confirmed projection', async () => {
+    const saved = { ...draft, id: 'saved-1', flat_lay_url: null, flat_lay_status: 'awaiting_consent' };
+    (fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ outfit: saved }) });
+    const items = [{ ...draft.items[0], id: 'new-shirt' }];
+    await expect(outfitService.updateOutfit('saved-1', { items }, 'token')).resolves.toEqual(saved);
+    expect(fetch).toHaveBeenCalledWith('/api/outfits/saved-1', expect.objectContaining({
+      method: 'PUT', body: JSON.stringify({ items }), headers: expect.objectContaining({ Authorization: 'Bearer token' }),
+    }));
   });
-  it.each(['pending', 'processing'])('does not reopen or cancel an active %s job when editing items', async status => {
-    setup({ ...current, flat_lay_status: status });
-    await outfitService.updateOutfit('saved-1', { items: [] }, 'token');
-    const update = (updateDoc as jest.Mock).mock.calls[0][1];
-    expect(update.flat_lay_url).toBeNull();
-    expect(update).not.toHaveProperty('flat_lay_status');
-    expect(update).not.toHaveProperty('flat_lay_request_allowed');
+  it('does not send generated projection, identity or creation fields on an edit', async () => {
+    (fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ id: 'saved-1' }) });
+    await outfitService.updateOutfit('saved-1', { name: 'Renamed', user_id: 'other', flat_lay_url: '/forged.png', metadata: { flatLayStatus: 'done' }, updatedAt: 1 } as any, 'token');
+    expect(JSON.parse((fetch as jest.Mock).mock.calls[0][1].body)).toEqual({ name: 'Renamed' });
   });
-  it('preserves previews when only the outfit name changes', async () => {
-    setup();
-    await outfitService.updateOutfit('saved-1', { name: 'A new title', items: current.items }, 'token');
-    expect((updateDoc as jest.Mock).mock.calls[0][1]).not.toHaveProperty('flat_lay_url');
+  it('keeps the idempotency ID but excludes authority from a fallback create', async () => {
+    (fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ id: 'saved-1' }) });
+    await outfitService.createOutfit({ ...draft, id: 'saved-1', flatLayUrl: '/forged.png' } as any, 'token');
+    const sent = JSON.parse((fetch as jest.Mock).mock.calls[0][1].body);
+    expect(sent.id).toBe('saved-1');
+    expect(sent).not.toHaveProperty('user_id');
+    expect(sent).not.toHaveProperty('flatLayUrl');
+  });
+  it('keeps authorization failures visible to the editor', async () => {
+    (fetch as jest.Mock).mockResolvedValue({ ok: false, status: 403, json: async () => ({ error: 'Access denied' }) });
+    await expect(outfitService.updateOutfit('saved-1', { notes: 'Test' }, 'token')).rejects.toThrow('Access denied');
   });
 });

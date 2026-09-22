@@ -3,7 +3,7 @@
     "rules": "firebase/storage.rules"
   },
   "firestore": {
-    "rules": "firebase/firestore.rules",
+    "rules": "../frontend/firestore.rules",
     "indexes": "firestore.indexes.json"
   }
-} 
+}

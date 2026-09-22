@@ -1,6 +1,7 @@
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, orderBy, limit, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { User } from 'firebase/auth';
+import apiOutfitService from './outfitService_proper';
 
 // ===== DATA TYPES =====
 export interface OutfitItem {
@@ -33,6 +34,7 @@ export interface Outfit {
 }
 
 export interface OutfitCreate {
+  id?: string;
   name: string;
   occasion: string;
   style: string;
@@ -195,212 +197,26 @@ export class OutfitService {
    * Create a new outfit
    */
   static async createOutfit(user: User, outfitData: Omit<Outfit, 'id' | 'createdAt' | 'updatedAt' | 'user_id'>): Promise<Outfit> {
-    try {
-      console.log('🔍 [OutfitService] Creating new outfit');
-      
-      const newOutfit = {
-        ...outfitData,
-        user_id: user.uid, // Changed from userId to user_id to match backend
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-        wearCount: 0,
-        isFavorite: false,
-      };
-
-      const docRef = await addDoc(collection(db, this.COLLECTION_NAME), newOutfit);
-      
-      const createdOutfit: Outfit = {
-        id: docRef.id,
-        ...newOutfit,
-      };
-
-      console.log(`✅ [OutfitService] Successfully created outfit ${docRef.id}`);
-      return createdOutfit;
-
-    } catch (error) {
-      console.error('❌ [OutfitService] Error creating outfit:', error);
-      throw new Error('Failed to create outfit');
-    }
+    return apiOutfitService.createOutfit({ ...outfitData, user_id: user.uid }, await user.getIdToken());
   }
 
-  /**
-   * Update an existing outfit
-   */
   static async updateOutfit(user: User, outfitId: string, updates: Partial<Outfit>): Promise<void> {
-    try {
-      console.log(`🔍 [OutfitService] Updating outfit ${outfitId}`);
-      
-      // Verify ownership first
-      const existingOutfit = await this.getOutfitById(user, outfitId);
-      if (!existingOutfit) {
-        throw new Error('Outfit not found');
-      }
-
-      const updateData = {
-        ...updates,
-        updatedAt: Timestamp.now(),
-      };
-
-      await updateDoc(doc(db, this.COLLECTION_NAME, outfitId), updateData);
-      
-      console.log(`✅ [OutfitService] Successfully updated outfit ${outfitId}`);
-
-    } catch (error) {
-      console.error(`❌ [OutfitService] Error updating outfit ${outfitId}:`, error);
-      throw error;
-    }
+    await apiOutfitService.updateOutfit(outfitId, updates, await user.getIdToken());
   }
 
   /**
    * Delete an outfit
    */
   static async deleteOutfit(user: User, outfitId: string): Promise<void> {
-    try {
-      console.log(`🔍 [OutfitService] Deleting outfit ${outfitId}`);
-      
-      // Get Firebase ID token for authentication
-      const token = await user.getIdToken();
-      
-      // Use Next.js API route as proxy to avoid Railway HTTPS redirect issues
-      const fullUrl = `/api/outfit/${outfitId}`;
-      console.log('🔍 DEBUG: Using Next.js API route as proxy:', fullUrl);
-      
-      const response = await fetch(fullUrl, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      console.log('🔍 DEBUG: Outfit DELETE API response status:', response.status);
-      
-      if (!response.ok) {
-        console.log('🔍 DEBUG: Outfit DELETE API response not ok:', {
-          status: response.status,
-          statusText: response.statusText,
-          url: response.url
-        });
-        
-        if (response.status === 401) {
-          throw new Error('Authentication failed. Please sign in again.');
-        } else if (response.status === 403) {
-          throw new Error('Not authorized to delete this outfit.');
-        } else if (response.status === 404) {
-          throw new Error('Outfit not found.');
-        } else if (response.status >= 500) {
-          throw new Error('Backend server error. Please try again later.');
-        } else {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
-      }
-
-      const data = await response.json();
-      console.log('🔍 DEBUG: Outfit DELETE response received:', data);
-      
-      if (!data.success) {
-        throw new Error(data.message || 'Failed to delete outfit');
-      }
-      
-      console.log(`✅ [OutfitService] Successfully deleted outfit ${outfitId}`);
-
-    } catch (error) {
-      console.error(`❌ [OutfitService] Error deleting outfit ${outfitId}:`, error);
-      throw error;
-    }
+    await apiOutfitService.deleteOutfit(outfitId, await user.getIdToken());
   }
 
   /**
    * Mark outfit as worn
    */
   static async markOutfitAsWorn(user: User, outfitId: string): Promise<void> {
-    try {
-      console.log(`🔍 [OutfitService] Marking outfit ${outfitId} as worn`);
-      
-      const existingOutfit = await this.getOutfitById(user, outfitId);
-      if (!existingOutfit) {
-        throw new Error('Outfit not found');
-      }
-
-      // 1. Update the outfit document with wear count
-      const currentTimestamp = Timestamp.now(); // Declare once here
-      const updates = {
-        wearCount: (existingOutfit.wearCount || 0) + 1,
-        lastWorn: currentTimestamp,
-        updatedAt: currentTimestamp,
-      };
-
-      await updateDoc(doc(db, this.COLLECTION_NAME, outfitId), updates);
-      
-      // 2. Update individual wardrobe items wear counts
-      if (existingOutfit.items && Array.isArray(existingOutfit.items)) {
-        console.log(`🔍 [OutfitService] Updating wear counts for ${existingOutfit.items.length} wardrobe items`);
-        
-        const wardrobeUpdates = existingOutfit.items.map(async (item: any) => {
-          if (item.id) {
-            try {
-              const itemRef = doc(db, 'wardrobe', item.id);
-              const itemDoc = await getDoc(itemRef);
-              
-              if (itemDoc.exists()) {
-                const itemData = itemDoc.data();
-                // Verify ownership - check both possible field names
-                if (itemData.user_id === user.uid || itemData.userId === user.uid) {
-                  const currentWearCount = itemData.wearCount || 0;
-                  await updateDoc(itemRef, {
-                    wearCount: currentWearCount + 1,
-                    lastWorn: currentTimestamp,
-                    updatedAt: currentTimestamp
-                  });
-                  console.log(`✅ [OutfitService] Updated wear count for item: ${item.name || item.id}`);
-                } else {
-                  console.warn(`⚠️ [OutfitService] Skipping item ${item.id} - not owned by user`);
-                }
-              } else {
-                console.warn(`⚠️ [OutfitService] Item ${item.id} not found in wardrobe`);
-              }
-            } catch (itemError) {
-              console.error(`❌ [OutfitService] Error updating item ${item.id}:`, itemError);
-              // Don't fail the whole operation if one item fails
-            }
-          }
-        });
-        
-        // Wait for all wardrobe item updates to complete
-        await Promise.all(wardrobeUpdates);
-        console.log(`✅ [OutfitService] Completed wardrobe item wear count updates`);
-      }
-
-      // 3. Create outfit history entry for dashboard synchronization
-      const historyEntry = {
-        user_id: user.uid,
-        outfit_id: outfitId,
-        outfit_name: existingOutfit.name || 'Outfit',
-        outfit_image: existingOutfit.imageUrl || '',
-        date_worn: currentTimestamp,
-        occasion: existingOutfit.occasion || 'Casual',
-        mood: 'Comfortable', // Default mood
-        weather: {},
-        notes: '',
-        tags: [],
-        created_at: currentTimestamp,
-        updated_at: currentTimestamp
-      };
-
-      // Add to outfit_history collection for dashboard sync
-      await addDoc(collection(db, 'outfit_history'), historyEntry);
-      
-      // 4. Trigger dashboard refresh event
-      window.dispatchEvent(new CustomEvent('outfitMarkedAsWorn', { 
-        detail: { outfitId, outfitName: existingOutfit.name } 
-      }));
-      
-      console.log(`✅ [OutfitService] Successfully marked outfit ${outfitId} as worn and synced with dashboard and wardrobe items`);
-
-    } catch (error) {
-      console.error(`❌ [OutfitService] Error marking outfit ${outfitId} as worn:`, error);
-      throw error;
-    }
+    await apiOutfitService.markOutfitAsWorn(outfitId, await user.getIdToken());
+    window.dispatchEvent(new CustomEvent('outfitMarkedAsWorn', { detail: { outfitId } }));
   }
 
   /**

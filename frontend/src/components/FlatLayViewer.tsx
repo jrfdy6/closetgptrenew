@@ -101,7 +101,7 @@ export default function FlatLayViewer({
   const balanceText = flatLayLoading
     ? 'Checking flat lay credits…'
     : flatLayError || !flatLayUsage
-      ? 'Your credit balance is unavailable. Please try again later.'
+      ? flatLayError || 'Your credit balance is unavailable. Please try again later.'
       : flatLayUsage.remaining === null
         ? 'Unlimited flat lays on your plan.'
         : `${flatLayUsage.remaining} flat lay ${flatLayUsage.remaining === 1 ? 'credit' : 'credits'} remaining this week.`;
@@ -290,7 +290,7 @@ export default function FlatLayViewer({
                   {awaitingConsent && onSkipFlatLay && <Button variant="ghost" size="sm" onClick={onSkipFlatLay} disabled={flatLayActionLoading}>Maybe later</Button>}
                   {creditsExhausted && <Link href="/upgrade" className="rounded-md px-2 py-3 text-sm text-stone-600 underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-stone-300">View plans</Link>}
                 </div>
-                <p className="text-xs text-stone-500 dark:text-stone-400">{balanceText}</p>
+                {!flatLayError && <p className="text-xs text-stone-500 dark:text-stone-400">{balanceText}</p>}
                 {flatLayError && <p role="alert" className="text-sm text-destructive">{flatLayError}</p>}
               </div>
             )}

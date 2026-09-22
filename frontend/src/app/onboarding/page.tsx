@@ -629,6 +629,18 @@ function OnboardingContent() {
     }
   }, [user, authLoading, isGuestFlow, modeResolved, router]);
 
+  // Continue the same ten-piece capsule after a guest quiz is successfully
+  // saved during sign-in/sign-up. The upload wizard checks actual saved items.
+  useEffect(() => {
+    if (mounted && user && new URLSearchParams(window.location.search).get('resume') === 'uploads') {
+      try {
+        const context = JSON.parse(sessionStorage.getItem('capsuleUploadContext') || 'null');
+        if (context?.userId === user.uid && typeof context.gender === 'string') setUserGender(context.gender);
+      } catch { /* Upload remains available if browser storage is unavailable. */ }
+      setUploadPhase(true);
+    }
+  }, [mounted, user]);
+
   // NOTE: Removed auto-redirect for completed users
   // Users should be able to retake the style quiz anytime
   // Upload phase will be skipped if they already have items
@@ -1474,29 +1486,10 @@ function OnboardingContent() {
     } catch (error) {
       console.error('Error submitting quiz:', error);
       setError('Failed to submit quiz. Please try again.');
-      // Use actual user answers as fallback instead of mock data
-      const fallbackColorAnalysis = analyzeColors();
-      const userAnswers = answers.reduce((acc, answer) => {
-        acc[answer.question_id] = answer.selected_option;
-        return acc;
-      }, {} as Record<string, string>);
-      
-      setQuizCompleted(true);
-      setQuizResults({
-        hybridStyleName: determineStylePersona().name, // Use persona name
-        quizResults: {
-          aesthetic_scores: { "classic": 0.6, "sophisticated": 0.4 },
-          color_season: userAnswers.skin_tone || "warm_spring",
-          body_type: userAnswers.body_type_female || userAnswers.body_type_male || userAnswers.body_type_nonbinary || "rectangle",
-          style_preferences: { "classic": 0.7, "minimalist": 0.3 }
-        },
-        colorAnalysis: fallbackColorAnalysis,
-        userAnswers: userAnswers
-      });
-      
-      // Go directly to upload phase on error fallback
-      debugOnboarding('🎯 [Quiz] Using fallback, going to upload phase');
-      setUploadPhase(true);
+      // Retain answers on the current step so saving can be retried. A failed
+      // request must never advance onboarding or claim that the quiz is saved.
+      setQuizCompleted(false);
+
     } finally {
       setIsLoading(false);
     }

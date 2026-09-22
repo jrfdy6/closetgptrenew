@@ -1,71 +1,61 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only read/write their own wardrobe items
-    match /wardrobe/{itemId} {
-      allow read: if request.auth != null && 
-        resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && 
-        request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && 
-        resource.data.userId == request.auth.uid;
+    function signedIn() { return request.auth != null; }
+    function owns(field) { return signedIn() && resource.data[field] == request.auth.uid; }
+    function ownerUnchanged(field) {
+      return request.resource.data[field] == resource.data[field];
     }
-    
-    // Users can only read/write their own user profiles
+
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if signedIn() && request.auth.uid == userId;
+      // Account creation, profile validation and all financial authority belong
+      // to authenticated server APIs. Deny deletion/recreation credit resets too.
+      allow write: if false;
     }
-    
-    // Users can only read/write their own profile data
     match /profiles/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow write: if false;
     }
-    
-    // Users can only read/write their own outfits
+    match /wardrobe/{itemId} {
+      allow read, delete: if owns('userId');
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && (!('user_id' in request.resource.data) || request.resource.data.user_id == request.auth.uid);
+      allow update: if owns('userId') && ownerUnchanged('userId')
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['user_id']);
+    }
     match /outfits/{outfitId} {
-      allow read: if request.auth != null && 
-        resource.data.user_id == request.auth.uid;
-      allow create: if request.auth != null && 
-        request.resource.data.user_id == request.auth.uid;
-      allow update, delete: if request.auth != null && 
-        resource.data.user_id == request.auth.uid;
+      allow read: if owns('user_id');
+      // Creation, deletion, item changes and flatlay projections need server
+      // validation and coordination with the private generation ledger.
+      allow create, delete: if false;
+      allow update: if owns('user_id') && ownerUnchanged('user_id')
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['isFavorite', 'notes', 'updatedAt'])
+        && (!('isFavorite' in request.resource.data) || request.resource.data.isFavorite is bool)
+        && (!('notes' in request.resource.data) || (request.resource.data.notes is string && request.resource.data.notes.size() <= 10000));
     }
-    
-    // Users can only read/write their own outfit history
     match /outfit_history/{entryId} {
-      allow read: if request.auth != null && 
-        resource.data.user_id == request.auth.uid;
-      allow create: if request.auth != null && 
-        request.resource.data.user_id == request.auth.uid;
-      allow update, delete: if request.auth != null && 
-        resource.data.user_id == request.auth.uid;
+      allow read, delete: if owns('user_id');
+      allow create: if signedIn() && request.resource.data.user_id == request.auth.uid;
+      allow update: if owns('user_id') && ownerUnchanged('user_id');
     }
-    
-    // Users can only read/write their own daily outfit suggestions
     match /daily_outfit_suggestions/{suggestionId} {
-      allow read: if request.auth != null && 
-        resource.data.user_id == request.auth.uid;
-      allow create: if request.auth != null && 
-        request.resource.data.user_id == request.auth.uid;
-      allow update, delete: if request.auth != null && 
-        resource.data.user_id == request.auth.uid;
+      allow read, delete: if owns('user_id');
+      allow create: if signedIn() && request.resource.data.user_id == request.auth.uid;
+      allow update: if owns('user_id') && ownerUnchanged('user_id');
     }
-    
-    // Only admins can write to wardrobe_stats, all users can read
     match /wardrobe_stats/{docId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.token.admin == true;
     }
-    
-    // Trends: only authenticated users can read, only admins can write
     match /trends/{trendId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.token.admin == true;
     }
-    
-    // Deny all other access by default (CRITICAL SECURITY)
-    match /{document=**} {
-      allow read, write: if false;
-    }
+    // Includes flat_lay_requests, payment events and account-reconciliation
+    // ledgers: no authenticated client, including an admin claim, can access them.
+    match /{document=**} { allow read, write: if false; }
   }
-} 
+}
