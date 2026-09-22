@@ -120,6 +120,45 @@ def _available_garment(garment, user_id):
         garment.get(key) for key in ("deleted", "isDeleted", "deletedAt", "deleted_at")))
 
 
+def _has_source_identity(request):
+    """Older private requests need review, never inferred source provenance."""
+    items = request.get("items")
+    if not isinstance(items, list) or not items:
+        return False
+    seen = set()
+    for item in items:
+        if not isinstance(item, dict):
+            return False
+        garment_id = item.get("id")
+        fingerprint = item.get("referenceSourceFingerprint")
+        if (not isinstance(garment_id, str) or not garment_id or "/" in garment_id
+                or garment_id in seen or not isinstance(fingerprint, str)
+                or re.fullmatch(r"[0-9a-f]{64}", fingerprint) is None):
+            return False
+        seen.add(garment_id)
+    return True
+
+
+def _same_owned_sources(db, txn, request):
+    """Read current garment identity before any transaction writes.
+
+    Only the private reservation's source fingerprints prove which photos were
+    authorized. Pre-fingerprint requests cannot prove freshness, even when a
+    captured URL or a mutable legacy original path still looks the same. This
+    helper never infers a debit, refunds, or starts provider work.
+    """
+    if not _has_source_identity(request):
+        return False
+    for item in request["items"]:
+        garment_id = item["id"]
+        garment_doc = db.collection("wardrobe").document(garment_id).get(transaction=txn)
+        garment = (garment_doc.to_dict() or {}) if garment_doc.exists else {}
+        if (not _available_garment(garment, request.get("user_id"))
+                or item["referenceSourceFingerprint"] != _source_fingerprint(garment)):
+            return False
+    return True
+
+
 def _reserved_reference(garment_id, garment, job, user_id, request_id):
     """Snapshot a proven original or owned raw input, independent of cutout work."""
     try:
@@ -173,9 +212,16 @@ def reserve_request(db, outfit_id, user_id, *, now=None, request_id=None):
         ledger_doc = ledger_ref.get(transaction=txn)
         previous = (ledger_doc.to_dict() or {}) if ledger_doc.exists else {}
         if previous:
-            if previous.get("user_id") != user_id:
+            if previous.get("user_id") != user_id or previous.get("outfit_id") != outfit_id:
                 raise FlatlayRequestError(409, "This preview needs review before another request.")
-            same_items = _same_item_set(previous, outfit)
+            if previous.get("error_code") in ("provider_outcome_unknown", "worker_outcome_unknown"):
+                # An older/inconsistent retryable flag cannot resolve an unknown
+                # paid attempt. The same hold applies to the read projection.
+                raise FlatlayRequestError(409, previous.get("error") or "This preview needs review before another request.")
+            if previous.get("status") == "done" and not _has_source_identity(previous):
+                raise FlatlayRequestError(409, LEGACY_ERROR)
+            same_items = (_same_item_set(previous, outfit)
+                          and _same_owned_sources(db, txn, previous))
             if previous.get("status") in ("pending", "processing"):
                 # An edit cannot start another paid attempt while the existing
                 # request may be in flight. Claim/finish will settle its credit.
@@ -192,14 +238,16 @@ def reserve_request(db, outfit_id, user_id, *, now=None, request_id=None):
             if not (changed_completed or retryable_failure):
                 raise FlatlayRequestError(409, previous.get("error") or "This preview needs review before another request.")
             # A completed preview already consumed its own credit. Changed items
-            # require this explicit new request and a new credit; never auto-run.
+            # or unproven/currently different photos require this explicit new
+            # request and a new credit; never auto-run.
 
         else:
-            legacy_status = _status(outfit)
-            legacy_url = outfit.get("flat_lay_url") or outfit.get("flatLayUrl") or (outfit.get("metadata") or {}).get("flat_lay_url") or (outfit.get("metadata") or {}).get("flatLayUrl")
-            if legacy_status == "done" and legacy_url:
-                return _response(outfit_id, {"status": "done", "url": legacy_url})
-            if legacy_status in ("pending", "processing", "failed", "done"):
+            metadata = outfit.get("metadata") or {}
+            legacy_url = outfit.get("flat_lay_url") or outfit.get("flatLayUrl") or metadata.get("flat_lay_url") or metadata.get("flatLayUrl")
+            legacy_request = any(
+                (outfit.get(key) or metadata.get(key)) in ("pending", "processing", "queued", "failed", "done")
+                for key in ("flat_lay_status", "flatLayStatus"))
+            if legacy_url or legacy_request:
                 # No ledger means no provable debit. Never guess a refund/recharge.
                 txn.update(outfit_ref, _projection("failed", None, now, error=LEGACY_ERROR,
                                                   error_code="legacy_request_needs_review"))
@@ -258,21 +306,29 @@ def claim_request(db, outfit_id, *, now=None, allow_claim=True):
                                                   error_code="legacy_request_needs_review"))
             return None
         request = ledger_doc.to_dict() or {}
+        if request.get("outfit_id") != outfit_id:
+            # A misplaced private record is not authority for this outfit, its
+            # projection, or a credit settlement. Leave it untouched for review.
+            return None
         if request.get("status") != "pending" or request.get("credit_status") != "reserved":
+            legacy_completed = request.get("status") == "done" and not _has_source_identity(request)
+            changed_completed = (request.get("status") == "done"
+                                 and (not _same_item_set(request, outfit)
+                                      or not _same_owned_sources(db, txn, request)))
             # An old browser may overwrite its own projection with pending. The
             # private ledger wins, and reconciliation lets the legacy scan advance.
             if (request.get("status") in ("processing", "done", "failed")
                     and outfit_doc.exists and _owner_matches(outfit, request.get("user_id"))
                     and (_status(outfit) != request["status"]
                          or outfit.get("flat_lay_request_id") != request.get("request_id")
-                         or (request["status"] == "done" and not _same_item_set(request, outfit)))):
-                changed_completed = request["status"] == "done" and not _same_item_set(request, outfit)
+                         or changed_completed)):
                 txn.update(outfit_ref, _projection(
-                    "awaiting_consent" if changed_completed else request["status"], request.get("request_id"), now,
+                    "failed" if legacy_completed else "awaiting_consent" if changed_completed else request["status"],
+                    request.get("request_id"), now,
                     url=None if changed_completed else request.get("url"),
-                    error=None if changed_completed else request.get("error"),
-                    retryable=True if changed_completed else bool(request.get("retryable")),
-                    error_code=None if changed_completed else request.get("error_code"),
+                    error=LEGACY_ERROR if legacy_completed else None if changed_completed else request.get("error"),
+                    retryable=False if legacy_completed else True if changed_completed else bool(request.get("retryable")),
+                    error_code="legacy_request_needs_review" if legacy_completed else None if changed_completed else request.get("error_code"),
                     credit_status=request.get("credit_status"),
                 ))
             return None
@@ -284,7 +340,9 @@ def claim_request(db, outfit_id, *, now=None, allow_claim=True):
         # calling the provider. This keeps the refund and terminal state atomic.
         if not outfit_doc.exists or not _owner_matches(outfit, request.get("user_id")):
             claimed["preflight_error"] = "outfit_unavailable"
-        elif not _same_item_set(request, outfit):
+        elif not _has_source_identity(request):
+            claimed["preflight_error"] = "legacy_request_needs_review"
+        elif not _same_item_set(request, outfit) or not _same_owned_sources(db, txn, request):
             claimed["preflight_error"] = "outfit_changed"
         elif request.get("expires_at", 0) <= now:
             claimed["preflight_error"] = "queue_timeout"
@@ -361,7 +419,8 @@ def admit_provider_request(db, outfit_id, request_id, prepared_originals, *, now
         request = (ledger_doc.to_dict() or {}) if ledger_doc.exists else {}
         outfit = (outfit_doc.to_dict() or {}) if outfit_doc.exists else {}
         expires_at = request.get("expires_at")
-        if (request.get("request_id") != request_id or request.get("status") != "processing"
+        if (request.get("outfit_id") != outfit_id
+                or request.get("request_id") != request_id or request.get("status") != "processing"
                 or request.get("credit_status") != "reserved"
                 or request.get("provider_admitted_at") is not None
                 or not isinstance(expires_at, (int, float)) or isinstance(expires_at, bool)
@@ -371,13 +430,8 @@ def admit_provider_request(db, outfit_id, request_id, prepared_originals, *, now
         reports = _preparation_reports(request, prepared_originals)
         if reports is None:
             return False
-        for item in request.get("items") or []:
-            garment_doc = db.collection("wardrobe").document(item["id"]).get(transaction=txn)
-            garment = (garment_doc.to_dict() or {}) if garment_doc.exists else {}
-            if not _available_garment(garment, request["user_id"]):
-                return False
-            if "referenceSourceFingerprint" in item and item["referenceSourceFingerprint"] != _source_fingerprint(garment):
-                return False
+        if not _same_owned_sources(db, txn, request):
+            return False
         txn.update(ledger_ref, {"prepared_originals": reports, "provider_admitted_at": now})
         return True
 
@@ -399,7 +453,8 @@ def finish_request(db, outfit_id, request_id, *, url=None, error=None,
     def finish(txn):
         ledger_doc = ledger_ref.get(transaction=txn)
         request = (ledger_doc.to_dict() or {}) if ledger_doc.exists else {}
-        if (request.get("request_id") != request_id or request.get("status") not in ("pending", "processing")
+        if (request.get("outfit_id") != outfit_id
+                or request.get("request_id") != request_id or request.get("status") not in ("pending", "processing")
                 or request.get("credit_status") != "reserved"):
             return False
         if expired_only and request.get("expires_at", now + 1) > now:
@@ -413,7 +468,8 @@ def finish_request(db, outfit_id, request_id, *, url=None, error=None,
         outfit = (outfit_doc.to_dict() or {}) if outfit_doc.exists else {}
         result_url, result_error, result_code, can_offer_retry = url, error, error_code, retryable
         owned_outfit = outfit_doc.exists and _owner_matches(outfit, request["user_id"])
-        same_items = owned_outfit and _same_item_set(request, outfit)
+        same_items = (owned_outfit and _available_garment(outfit, request["user_id"])
+                      and _same_item_set(request, outfit) and _same_owned_sources(db, txn, request))
         if not same_items:
             # The provider may have completed an obsolete composition. Never
             # attach it to the edited outfit. Its product credit is still settled
@@ -424,6 +480,9 @@ def finish_request(db, outfit_id, request_id, *, url=None, error=None,
             if error_code not in ("provider_outcome_unknown", "worker_outcome_unknown"):
                 result_error = "This outfit changed before its preview was ready. Request a new preview for the updated items."
                 result_code = "outfit_changed" if owned_outfit else "outfit_unavailable"
+                if not _has_source_identity(request):
+                    result_error, result_code = LEGACY_ERROR, "legacy_request_needs_review"
+                    can_offer_retry = False
         user_ref = db.collection("users").document(request["user_id"])
         user_doc = user_ref.get(transaction=txn) if not result_url else None
         credit_status = "consumed" if result_url else "refund_needs_review"
@@ -436,7 +495,8 @@ def finish_request(db, outfit_id, request_id, *, url=None, error=None,
                 remaining += 1
             txn.update(user_ref, {"quotas.flatlaysRemaining": remaining, "quotas.lastRefillAt": period_start})
             credit_status = "refunded"
-        can_retry = not result_url and can_offer_retry and credit_status == "refunded"
+        can_retry = (not result_url and can_offer_retry and credit_status == "refunded"
+                     and result_code not in ("provider_outcome_unknown", "worker_outcome_unknown"))
         status = "done" if result_url else "failed"
         changes = {"status": status, "url": result_url, "error": result_error, "error_code": result_code,
                    "credit_status": credit_status, "retryable": bool(can_retry),

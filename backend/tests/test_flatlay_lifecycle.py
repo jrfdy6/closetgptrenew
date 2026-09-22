@@ -243,6 +243,84 @@ class FlatlayLifecycleTests(unittest.TestCase):
         self.assertNotIn(lifecycle.REQUESTS_COLLECTION, self.db.records)
         self.assertNotIn('flat_lay_status', self.db.records['outfits']['look'])
 
+    def test_same_owner_request_bound_to_another_outfit_cannot_reserve_or_return_preview(self):
+        for status in ('pending', 'processing', 'failed', 'done'):
+            with self.subTest(status=status):
+                self.db = Database()
+                self.reserve()
+                ledger = self.db.records[lifecycle.REQUESTS_COLLECTION]['look']
+                ledger.update(outfit_id='another-look', status=status, credit_status='refunded',
+                              retryable=True, url='https://assets.invalid/unrelated')
+                before = copy.deepcopy(self.db.records)
+                with self.assertRaises(lifecycle.FlatlayRequestError) as caught:
+                    self.reserve()
+                self.assertEqual(caught.exception.status_code, 409)
+                self.assertEqual(self.db.records, before)
+
+    def test_claim_and_reconciliation_leave_misbound_private_request_untouched(self):
+        for status in ('pending', 'processing', 'failed', 'done'):
+            for identity in ('another-look', None, ''):
+                with self.subTest(status=status, identity=identity):
+                    self.db = Database()
+                    self.reserve()
+                    self.db.records[lifecycle.REQUESTS_COLLECTION]['look'].update(
+                        outfit_id=identity, status=status, url='https://assets.invalid/unrelated')
+                    before = copy.deepcopy(self.db.records)
+                    self.assertIsNone(self.claim())
+                    self.assertIsNone(lifecycle.claim_request(self.db, 'look', now=1111, allow_claim=False))
+                    self.assertEqual(self.db.records, before)
+
+    def test_finish_does_not_publish_refund_or_expire_misbound_private_request(self):
+        outcomes = (
+            {'url': 'https://assets.invalid/unrelated'},
+            {'error': 'Known failure'},
+            {'error': 'Unknown outcome', 'error_code': 'provider_outcome_unknown', 'retryable': False},
+            {'error': 'Expired', 'expired_only': True},
+        )
+        for status in ('pending', 'processing'):
+            for identity in ('another-look', None, ''):
+                for outcome in outcomes:
+                    with self.subTest(status=status, identity=identity, outcome=outcome):
+                        self.db = Database()
+                        first = self.reserve()
+                        self.db.records[lifecycle.REQUESTS_COLLECTION]['look'].update(
+                            outfit_id=identity, status=status, expires_at=1110)
+                        before = copy.deepcopy(self.db.records)
+                        self.assertFalse(self.finish(first['request_id'], **outcome))
+                        self.assertEqual(self.db.records, before)
+
+    def test_unknown_outcome_blocks_stale_retryable_refunded_request_without_any_mutation(self):
+        for code in ('provider_outcome_unknown', 'worker_outcome_unknown'):
+            with self.subTest(code=code):
+                self.db = Database()
+                self.reserve()
+                self.db.records[lifecycle.REQUESTS_COLLECTION]['look'].update(
+                    status='failed', credit_status='refunded', retryable=True, error_code=code)
+                before = copy.deepcopy(self.db.records)
+                with self.assertRaises(lifecycle.FlatlayRequestError) as caught:
+                    self.reserve()
+                self.assertEqual(caught.exception.status_code, 409)
+                self.assertEqual(self.db.records, before)
+
+    def test_ledger_free_queued_projection_needs_review_for_each_legacy_alias(self):
+        cases = (
+            {'flat_lay_status': 'queued'}, {'flatLayStatus': 'queued'},
+            {'metadata': {'flat_lay_status': 'queued'}}, {'metadata': {'flatLayStatus': 'queued'}},
+            {'flat_lay_status': 'awaiting_consent', 'flatLayStatus': 'queued'},
+            {'flat_lay_status': 'awaiting_consent', 'metadata': {'flatLayStatus': 'queued'}},
+        )
+        for projection in cases:
+            with self.subTest(projection=projection):
+                self.db = Database()
+                self.db.records['outfits']['look'].update(projection)
+                response = self.reserve()
+                self.assertEqual(response['flat_lay_status'], 'failed')
+                self.assertEqual(response['error_code'], 'legacy_request_needs_review')
+                self.assertFalse(response['request_allowed'])
+                self.assertIsNone(response['flat_lay_url'])
+                self.assertEqual(self.remaining(), 7)
+                self.assertNotIn(lifecycle.REQUESTS_COLLECTION, self.db.records)
+
     def test_unknown_outfit_wrong_owner_and_conflicting_owner_never_charge(self):
         for ownership in ({'user_id': 'other'}, {'user_id': 'owner', 'userId': 'other'}):
             with self.subTest(ownership=ownership):
@@ -279,9 +357,14 @@ class FlatlayLifecycleTests(unittest.TestCase):
                 self.assertIsNone(self.claim())
                 self.assertNotIn(lifecycle.REQUESTS_COLLECTION, self.db.records)
 
-    def test_done_legacy_preview_is_returned_without_spending(self):
+    def test_done_legacy_preview_needs_review_without_spending_or_returning_unverified_url(self):
         self.db.records['outfits']['look'].update(flat_lay_status='done', flat_lay_url='https://assets.invalid/done')
-        self.assertEqual(self.reserve()['flat_lay_url'], 'https://assets.invalid/done')
+        response = self.reserve()
+        self.assertEqual(response['flat_lay_status'], 'failed')
+        self.assertIsNone(response['flat_lay_url'])
+        self.assertEqual(response['error_code'], 'legacy_request_needs_review')
+        self.assertFalse(response['request_allowed'])
+        self.assertNotIn(lifecycle.REQUESTS_COLLECTION, self.db.records)
         self.assertEqual(self.remaining(), 7)
 
     def test_worker_claim_is_exclusive_and_does_not_reserve_again(self):
@@ -355,9 +438,13 @@ class FlatlayLifecycleTests(unittest.TestCase):
         self.assertTrue(self.finish(response['request_id'], error='Outfit unavailable'))
         self.assertEqual(self.remaining(), 7)
 
-    def test_legacy_camelcase_metadata_preview_is_preserved(self):
+    def test_legacy_camelcase_metadata_preview_cannot_bypass_identity_review(self):
         self.db.records['outfits']['look']['metadata'] = {'flatLayStatus': 'done', 'flatLayUrl': 'https://assets.invalid/legacy'}
-        self.assertEqual(self.reserve()['flat_lay_url'], 'https://assets.invalid/legacy')
+        response = self.reserve()
+        self.assertIsNone(response['flat_lay_url'])
+        self.assertEqual(response['error_code'], 'legacy_request_needs_review')
+        self.assertFalse(response['request_allowed'])
+        self.assertIsNone(self.db.records['outfits']['look']['metadata']['flatLayUrl'])
         self.assertEqual(self.remaining(), 7)
 
     def test_stale_legacy_pending_projection_reconciles_from_terminal_private_ledger(self):
@@ -478,6 +565,166 @@ class FlatlayLifecycleTests(unittest.TestCase):
         self.assertTrue(outfit['flat_lay_request_allowed'])
         self.assertEqual(self.remaining(), 6)
 
+    def test_same_id_photo_edit_waits_for_pending_settlement_without_another_debit(self):
+        first = self.reserve()
+        self.db.records['wardrobe']['shirt']['imageUrl'] = 'https://assets.invalid/replacement'
+        duplicate = self.reserve()
+        self.assertEqual(duplicate['request_id'], first['request_id'])
+        self.assertEqual(duplicate['error_code'], 'outfit_changed')
+        self.assertFalse(duplicate['request_allowed'])
+        self.assertEqual(self.remaining(), 6)
+        before = copy.deepcopy(self.db.records)
+        self.assertIsNone(lifecycle.claim_request(self.db, 'look', now=1110, allow_claim=False))
+        self.assertEqual(self.db.records, before)
+        claimed = self.claim()
+        self.assertEqual(claimed['preflight_error'], 'outfit_changed')
+        self.assertFalse(lifecycle.admit_provider_request(self.db, 'look', first['request_id'], [], now=1111))
+        self.assertTrue(self.finish(first['request_id'], error='Preflight failed', error_code='outfit_changed'))
+        self.assertEqual(self.remaining(), 7)
+        self.assertFalse(self.finish(first['request_id'], error='Repeated settlement'))
+        self.assertEqual(self.remaining(), 7)
+
+    def test_same_id_photo_edit_during_provider_discards_output_and_refunds_exactly_once(self):
+        first = self.reserve()
+        self.claim()
+        self.assertTrue(lifecycle.admit_provider_request(self.db, 'look', first['request_id'], [], now=1111))
+        self.db.records['wardrobe']['shirt']['imageUrl'] = 'https://assets.invalid/replacement'
+        duplicate = self.reserve()
+        self.assertEqual(duplicate['request_id'], first['request_id'])
+        self.assertEqual(duplicate['flat_lay_status'], 'processing')
+        self.assertFalse(duplicate['request_allowed'])
+        self.assertEqual(self.remaining(), 6)
+        # A second worker rejected at admission cannot refund the still-active
+        # first call merely because the photo changed after admission.
+        before = copy.deepcopy(self.db.records)
+        self.assertFalse(self.finish(first['request_id'], error='Request changed', error_code='request_changed'))
+        self.assertEqual(self.db.records, before)
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            results = list(pool.map(lambda _: self.finish(first['request_id'], url='https://assets.invalid/stale'), range(12)))
+        self.assertEqual(sum(results), 1)
+        outfit = self.db.records['outfits']['look']
+        self.assertIsNone(outfit['flat_lay_url'])
+        self.assertIsNone(outfit['metadata']['flatLayUrl'])
+        self.assertEqual(outfit['flat_lay_error_code'], 'outfit_changed')
+        self.assertEqual(outfit['flat_lay_credit_status'], 'refunded')
+        self.assertTrue(outfit['flat_lay_request_allowed'])
+        self.assertEqual(self.remaining(), 7)
+        second = self.reserve()
+        self.assertNotEqual(second['request_id'], first['request_id'])
+        self.assertEqual(self.remaining(), 6)
+        self.assertFalse(self.finish(first['request_id'], url='https://assets.invalid/late'))
+
+    def test_completed_same_id_photo_edit_needs_explicit_concurrent_safe_new_credit(self):
+        first = self.reserve()
+        self.claim()
+        self.finish(first['request_id'], url='https://assets.invalid/old-photo')
+        self.db.records['wardrobe']['shirt']['imageUrl'] = 'https://assets.invalid/replacement'
+        # Reconciliation invalidates even a matching done projection/request ID.
+        self.assertIsNone(lifecycle.claim_request(self.db, 'look', now=1121, allow_claim=False))
+        outfit = self.db.records['outfits']['look']
+        self.assertEqual(outfit['flat_lay_status'], 'awaiting_consent')
+        self.assertIsNone(outfit['flat_lay_url'])
+        self.assertEqual(self.remaining(), 6)
+        self.assertEqual(self.db.records[lifecycle.REQUESTS_COLLECTION]['look']['status'], 'done')
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            responses = list(pool.map(lambda _: self.reserve(), range(12)))
+        self.assertEqual(len({response['request_id'] for response in responses}), 1)
+        self.assertNotEqual(responses[0]['request_id'], first['request_id'])
+        self.assertTrue(all(response['flat_lay_status'] == 'pending' for response in responses))
+        self.assertTrue(all(response['flat_lay_url'] is None for response in responses))
+        self.assertEqual(self.remaining(), 5)
+
+    def test_missing_deleted_foreign_or_conflicting_garments_cannot_publish_confirmed_output(self):
+        for mode in ('missing', 'deleted', 'owner', 'conflicting_owner'):
+            with self.subTest(mode=mode):
+                self.db = Database()
+                first = self.reserve()
+                self.claim()
+                garment = self.db.records['wardrobe']['shirt']
+                if mode == 'missing':
+                    self.db.records['wardrobe'].pop('shirt')
+                elif mode == 'deleted':
+                    garment['deletedAt'] = 1112
+                elif mode == 'owner':
+                    garment['userId'] = 'other'
+                else:
+                    garment['user_id'] = 'other'
+                self.finish(first['request_id'], url='https://assets.invalid/stale')
+                self.assertIsNone(self.db.records['outfits']['look']['flat_lay_url'])
+                self.assertEqual(self.remaining(), 7)
+                with self.assertRaises(lifecycle.FlatlayRequestError):
+                    self.reserve()
+                self.assertEqual(self.remaining(), 7)
+
+    def test_same_id_photo_edit_does_not_clear_unknown_provider_or_worker_outcome(self):
+        for code in ('provider_outcome_unknown', 'worker_outcome_unknown'):
+            with self.subTest(code=code):
+                self.db = Database()
+                first = self.reserve()
+                self.claim()
+                self.db.records['wardrobe']['shirt']['imageUrl'] = 'https://assets.invalid/replacement'
+                # Unknown outcome itself forbids retry, including an accidental default True.
+                self.finish(first['request_id'], error='Needs review', error_code=code)
+                outfit = self.db.records['outfits']['look']
+                self.assertEqual(outfit['flat_lay_error_code'], code)
+                self.assertFalse(outfit['flat_lay_request_allowed'])
+                self.assertEqual(self.remaining(), 7)
+                with self.assertRaises(lifecycle.FlatlayRequestError):
+                    self.reserve()
+                self.assertEqual(self.remaining(), 7)
+
+    def test_metadata_edits_keep_completed_source_identity(self):
+        first = self.reserve()
+        self.claim()
+        self.finish(first['request_id'], url='https://assets.invalid/current')
+        self.db.records['wardrobe']['shirt'].update(name='Renamed', category='Tops', updatedAt=1115)
+        self.assertEqual(self.reserve()['flat_lay_url'], 'https://assets.invalid/current')
+        self.assertEqual(self.remaining(), 6)
+
+    def test_unverifiable_private_completed_request_is_review_only_without_refund_or_recharge(self):
+        first = self.reserve()
+        self.claim()
+        self.finish(first['request_id'], url='https://assets.invalid/legacy')
+        self.db.records[lifecycle.REQUESTS_COLLECTION]['look']['items'][0].pop('referenceSourceFingerprint')
+        before = copy.deepcopy(self.db.records)
+        with self.assertRaises(lifecycle.FlatlayRequestError) as caught:
+            self.reserve()
+        self.assertEqual(caught.exception.status_code, 409)
+        self.assertEqual(self.db.records, before)
+        self.assertIsNone(self.claim())
+        outfit = self.db.records['outfits']['look']
+        self.assertEqual(outfit['flat_lay_status'], 'failed')
+        self.assertEqual(outfit['flat_lay_error_code'], 'legacy_request_needs_review')
+        self.assertIsNone(outfit['flat_lay_url'])
+        self.assertFalse(outfit['flat_lay_request_allowed'])
+        self.assertEqual(self.remaining(), 6)
+        self.assertEqual(self.db.records[lifecycle.REQUESTS_COLLECTION]['look']['credit_status'], 'consumed')
+
+    def test_unverifiable_private_pending_request_settles_known_reservation_without_provider(self):
+        first = self.reserve()
+        self.db.records[lifecycle.REQUESTS_COLLECTION]['look']['items'][0].pop('referenceSourceFingerprint')
+        claimed = self.claim()
+        self.assertEqual(claimed['preflight_error'], 'legacy_request_needs_review')
+        self.assertFalse(lifecycle.admit_provider_request(self.db, 'look', first['request_id'], [], now=1111))
+        self.assertTrue(self.finish(first['request_id'], error='Preflight failed', error_code=claimed['preflight_error']))
+        self.assertEqual(self.remaining(), 7)
+        self.assertFalse(self.db.records['outfits']['look']['flat_lay_request_allowed'])
+        with self.assertRaises(lifecycle.FlatlayRequestError):
+            self.reserve()
+
+    def test_changed_source_settlement_failed_commit_is_atomic(self):
+        first = self.reserve()
+        self.claim()
+        self.db.records['wardrobe']['shirt']['imageUrl'] = 'https://assets.invalid/replacement'
+        before = copy.deepcopy(self.db.records)
+        self.db.fail_commit = True
+        with self.assertRaises(RuntimeError):
+            self.finish(first['request_id'], url='https://assets.invalid/stale')
+        self.assertEqual(self.db.records, before)
+        self.db.fail_commit = False
+        self.assertTrue(self.finish(first['request_id'], url='https://assets.invalid/stale'))
+        self.assertEqual(self.remaining(), 7)
+
     def test_fabricated_browser_state_cannot_forge_ledger_or_refund(self):
         self.db.records['outfits']['look'].update(flat_lay_status='pending', flat_lay_request_id='forged',
                                                 flat_lay_credit_status='reserved')
@@ -578,6 +825,17 @@ class FlatlayProviderAdmissionTests(unittest.TestCase):
         self.assertEqual(self.ledger['credit_status'], 'reserved')
         self.assertEqual(self.db.records['users']['owner']['quotas']['flatlaysRemaining'], 6)
         self.assertEqual(self.ledger['status'], 'processing')
+
+    def test_provider_admission_cannot_run_misbound_private_request(self):
+        for identity in ('another-look', None, ''):
+            with self.subTest(identity=identity):
+                self.db = Database()
+                self.reserve()
+                self.claim()
+                self.ledger['outfit_id'] = identity
+                before = copy.deepcopy(self.db.records)
+                self.assertFalse(self.admit())
+                self.assertEqual(self.db.records, before)
 
     def test_duplicate_rejected_admission_cannot_refund_an_active_paid_call(self):
         self.reserve()
@@ -691,7 +949,7 @@ class FlatlayProviderAdmissionTests(unittest.TestCase):
         self.db.records['wardrobe']['shirt'].update(name='Edited name', updatedAt=1115, category='Top')
         self.assertTrue(self.admit())
 
-    def test_preexisting_request_without_source_fingerprint_still_checks_ownership(self):
+    def test_preexisting_request_without_source_fingerprint_cannot_prove_photo_identity(self):
         self.reserve(raw=False)
         self.claim()
         for item in self.ledger['items']:
@@ -700,7 +958,10 @@ class FlatlayProviderAdmissionTests(unittest.TestCase):
         self.db.records['wardrobe']['pants']['user_id'] = 'other'
         self.assertFalse(self.admit([]))
         self.db.records['wardrobe']['pants']['user_id'] = 'owner'
-        self.assertTrue(self.admit([]))
+        self.assertFalse(self.admit([]))
+        self.db.records['wardrobe']['shirt']['imageUrl'] = 'https://assets.invalid/shirt'
+        self.assertFalse(self.admit([]))
+        self.assertNotIn('provider_admitted_at', self.ledger)
 
     def test_failed_admission_commit_cannot_claim_provider_or_mutate_credit(self):
         self.reserve()

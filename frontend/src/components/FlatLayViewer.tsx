@@ -15,6 +15,9 @@ interface FlatLayUsageInfo {
 
 interface FlatLayViewerProps {
   flatLayUrl?: string | null;
+  outfitId?: string;
+  onRefresh?: () => void;
+  refreshPending?: boolean;
   outfitName?: string;
   outfitItems?: Array<{
     id: string;
@@ -39,6 +42,7 @@ interface FlatLayViewerProps {
 
 export default function FlatLayViewer({
   flatLayUrl,
+  outfitId, onRefresh, refreshPending = false,
   outfitName,
   outfitItems = [],
   className = '',
@@ -55,7 +59,14 @@ export default function FlatLayViewer({
   hasFlatLayCredits = false,
   requestAllowed = true,
 }: FlatLayViewerProps) {
+  const normalizedStatus = (status ?? '').toLowerCase();
+  const isComplete = ['done', 'completed', 'ready'].includes(normalizedStatus) || (!normalizedStatus && Boolean(flatLayUrl));
   const imageRef = useRef<HTMLImageElement>(null);
+  const identity = `${outfitId ?? ''}:${isComplete ? flatLayUrl ?? '' : ''}`;
+  const identityRef = useRef(identity);
+  identityRef.current = identity;
+  const actionRef = useRef<AbortController | null>(null);
+  const [imageVersion, setImageVersion] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(Boolean(flatLayUrl));
   const [imageError, setImageError] = useState(false);
@@ -70,20 +81,24 @@ export default function FlatLayViewer({
     setCurrentView(flatLayUrl ? 'flat-lay' : 'grid');
     setIsFullscreen(false);
     setActionFeedback(null);
-  }, [flatLayUrl]);
+    setActiveAction(null);
+    setImageVersion(0);
+    return () => { actionRef.current?.abort(); actionRef.current = null; };
+  }, [identity]);
 
-  const normalizedStatus = (status ?? '').toLowerCase();
   const isPending = ['pending', 'processing', 'queued'].includes(normalizedStatus);
   const isDelayed = normalizedStatus === 'delayed';
   const isFailed = ['failed', 'error'].includes(normalizedStatus);
   const awaitingConsent = ['awaiting_consent', 'manual_pending'].includes(normalizedStatus);
-  const hasImage = Boolean(flatLayUrl) && !imageError;
+  const isStale = ['stale', 'outdated'].includes(normalizedStatus);
+  const isUnknown = Boolean(normalizedStatus) && !isComplete && !isPending && !isDelayed && !isFailed && !isStale && !awaitingConsent && normalizedStatus !== 'skipped';
+  const hasImage = Boolean(flatLayUrl) && isComplete && !imageError;
   const canShowPieces = showItemGrid && outfitItems.length > 0;
   const showingImage = hasImage && (currentView === 'flat-lay' || !canShowPieces);
   const balanceKnown = Boolean(flatLayUsage) && !flatLayLoading && !flatLayError;
   const creditsExhausted = balanceKnown && flatLayUsage?.remaining !== null && Number.isFinite(flatLayUsage?.remaining) && (flatLayUsage?.remaining ?? 0) <= 0;
   const requestDisabled = flatLayActionLoading || !balanceKnown || !hasFlatLayCredits || creditsExhausted;
-  const canRequest = requestAllowed && !flatLayUrl && !isPending && !isDelayed && Boolean(onRequestFlatLay);
+  const canRequest = requestAllowed && !flatLayUrl && !isPending && !isDelayed && !isUnknown && !isComplete && Boolean(onRequestFlatLay);
   const imageSource = flatLayUrl && /(?:storage\.googleapis\.com|firebasestorage\.googleapis\.com)/.test(flatLayUrl)
     ? `/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}`
     : flatLayUrl;
@@ -110,13 +125,19 @@ export default function FlatLayViewer({
   let statusDescription = 'Create an AI-styled flat lay of these pieces.';
   if (imageError) {
     statusHeading = 'Your flat lay could not be loaded';
-    statusDescription = 'Your outfit pieces are still here. Reload the page to try loading the image again.';
+    statusDescription = 'Your outfit pieces are still here. Retry loading this image. This does not create another flat lay or use a credit.';
+  } else if (isStale || (awaitingConsent && Boolean(error))) {
+    statusHeading = 'Your outfit has changed';
+    statusDescription = error || 'The earlier flat lay no longer matches these pieces. Create a new one only when you are ready.';
+  } else if (isUnknown || (isComplete && !flatLayUrl)) {
+    statusHeading = 'Your flat lay status is unavailable';
+    statusDescription = 'Refresh the saved status before making another request. Your outfit pieces are still here.';
   } else if (isDelayed) {
     statusHeading = 'Your flat lay is taking longer than expected';
     statusDescription = 'The request is still on record. Please check back later; there is no need to request another.';
   } else if (isPending) {
     statusHeading = 'Your flat lay is being prepared';
-    statusDescription = 'Your pieces are ready to explore while the image is prepared.';
+    statusDescription = 'Your request is saved. You can leave and return to this look while the image is prepared.';
   } else if (isFailed) {
     statusHeading = 'Your flat lay could not be created';
     statusDescription = error || (requestAllowed
@@ -142,20 +163,23 @@ export default function FlatLayViewer({
   };
 
   const handleDownload = async () => {
-    if (!flatLayUrl || activeAction) return;
+    if (!flatLayUrl || actionRef.current) return;
+    const actionIdentity = identity;
     setActiveAction('download');
     setActionFeedback(null);
     let objectUrl: string | undefined;
     let link: HTMLAnchorElement | undefined;
     const controller = new AbortController();
+    actionRef.current = controller;
     const timeout = window.setTimeout(() => controller.abort(), 15000);
     try {
-      const response = await fetch(`/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}`, { signal: controller.signal });
+      const response = await fetch(imageSource || flatLayUrl, { signal: controller.signal });
       if (!response.ok || !response.headers.get('content-type')?.toLowerCase().startsWith('image/')) {
         throw new Error('Image download unavailable');
       }
       const blob = await response.blob();
       if (!blob.size || !blob.type.toLowerCase().startsWith('image/')) throw new Error('Invalid image response');
+      if (controller.signal.aborted || identityRef.current !== actionIdentity) return;
       objectUrl = window.URL.createObjectURL(blob);
       link = document.createElement('a');
       link.href = objectUrl;
@@ -165,17 +189,20 @@ export default function FlatLayViewer({
       link.click();
       setActionFeedback({ message: 'Download started.', error: false });
     } catch {
-      setActionFeedback({ message: 'The flat lay could not be downloaded. Please try again.', error: true });
+      if (identityRef.current === actionIdentity && actionRef.current === controller) setActionFeedback({ message: 'The flat lay could not be downloaded. Please try Download again.', error: true });
     } finally {
       window.clearTimeout(timeout);
       link?.remove();
       if (objectUrl) window.URL.revokeObjectURL(objectUrl);
-      setActiveAction(null);
+      if (actionRef.current === controller) { actionRef.current = null; setActiveAction(null); }
     }
   };
 
   const handleShare = async () => {
-    if (!flatLayUrl || activeAction) return;
+    if (!flatLayUrl || actionRef.current) return;
+    const actionIdentity = identity;
+    const controller = new AbortController();
+    actionRef.current = controller;
     setActiveAction('share');
     setActionFeedback(null);
     try {
@@ -184,25 +211,25 @@ export default function FlatLayViewer({
       } else {
         if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
         await navigator.clipboard.writeText(flatLayUrl);
-        setActionFeedback({ message: 'Flat lay link copied.', error: false });
+        if (!controller.signal.aborted && identityRef.current === actionIdentity) setActionFeedback({ message: 'Flat lay link copied.', error: false });
       }
     } catch (shareError) {
-      if (!(shareError instanceof Error && shareError.name === 'AbortError')) {
-        setActionFeedback({ message: 'The flat lay could not be shared. Please try again.', error: true });
+      if (!controller.signal.aborted && identityRef.current === actionIdentity && !(shareError instanceof Error && shareError.name === 'AbortError')) {
+        setActionFeedback({ message: 'The flat lay could not be shared. Try Share again or download the image.', error: true });
       }
     } finally {
-      setActiveAction(null);
+      if (actionRef.current === controller) { actionRef.current = null; setActiveAction(null); }
     }
   };
 
   const imageActions = (
     <div className="flex flex-wrap items-center gap-1">
       <Button variant="ghost" size="sm" onClick={handleDownload} disabled={Boolean(activeAction) || isLoading}>
-        {activeAction === 'download' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Download className="mr-2 h-4 w-4" aria-hidden="true" />}
+        {activeAction === 'download' ? <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Download className="mr-2 h-4 w-4" aria-hidden="true" />}
         Download
       </Button>
       <Button variant="ghost" size="sm" onClick={handleShare} disabled={Boolean(activeAction) || isLoading}>
-        {activeAction === 'share' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Share2 className="mr-2 h-4 w-4" aria-hidden="true" />}
+        {activeAction === 'share' ? <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Share2 className="mr-2 h-4 w-4" aria-hidden="true" />}
         Share
       </Button>
     </div>
@@ -215,7 +242,7 @@ export default function FlatLayViewer({
 
   return (
     <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-      <section className={`overflow-hidden rounded-3xl border border-stone-200 bg-[#f7f5f0] dark:border-stone-700 dark:bg-stone-900 ${className}`} aria-label="Outfit presentation">
+      <section className={`overflow-hidden rounded-3xl border border-stone-200 bg-[#f7f5f0] dark:border-stone-700 dark:bg-stone-900 motion-reduce:[&_button]:transition-none motion-reduce:[&_button]:transform-none ${className}`} aria-label="Outfit presentation">
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-6">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500 dark:text-stone-400">{showingImage ? 'AI styled preview' : 'From your wardrobe'}</p>
@@ -236,8 +263,8 @@ export default function FlatLayViewer({
         {showingImage ? (
           <>
             <div className="relative aspect-square w-full bg-[#f3f0e9] dark:bg-stone-950" aria-busy={isLoading}>
-              {isLoading && <div className="absolute inset-0 flex items-center justify-center" role="status"><Loader2 className="h-6 w-6 animate-spin text-stone-500" aria-hidden="true" /><span className="sr-only">Loading flat lay</span></div>}
-              <img ref={imageRef} src={imageSource || undefined} alt={`AI-styled preview of ${outfitName || 'your outfit'}`} className="h-full w-full object-contain" onLoad={() => setIsLoading(false)} onError={handleImageError} />
+              {isLoading && <div className="absolute inset-0 flex items-center justify-center" role="status"><Loader2 className="h-6 w-6 animate-spin motion-reduce:animate-none text-stone-500" aria-hidden="true" /><span className="sr-only">Loading flat lay</span></div>}
+              <img key={`${identity}:${imageVersion}`} ref={imageRef} src={imageSource || undefined} alt={`AI-styled preview of ${outfitName || 'your outfit'}`} className="h-full w-full object-contain" onLoad={() => setIsLoading(false)} onError={handleImageError} />
               <DialogTrigger asChild>
                 <Button variant="secondary" size="icon" className="absolute bottom-4 right-4 border border-stone-200 bg-white/90 text-stone-800 shadow-sm hover:bg-white" disabled={isLoading} aria-label="View flat lay in full screen">
                   <Maximize2 className="h-4 w-4" aria-hidden="true" />
@@ -270,7 +297,7 @@ export default function FlatLayViewer({
         {!hasImage && (
           <div className="space-y-3 border-t border-stone-200 px-5 py-4 dark:border-stone-700 sm:px-6">
             <div role={isFailed || imageError ? 'alert' : 'status'} className="flex items-start gap-3">
-              {isPending || flatLayActionLoading ? <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-stone-500" aria-hidden="true" /> : <Images className="mt-0.5 h-4 w-4 shrink-0 text-stone-500" aria-hidden="true" />}
+              {isPending || flatLayActionLoading ? <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none text-stone-500" aria-hidden="true" /> : <Images className="mt-0.5 h-4 w-4 shrink-0 text-stone-500" aria-hidden="true" />}
               <div className="space-y-1">
                 <p className="text-sm font-medium text-stone-800 dark:text-stone-100">
                   {statusHeading}
@@ -280,17 +307,19 @@ export default function FlatLayViewer({
                 </p>
               </div>
             </div>
+            {imageError && <Button variant="outline" size="sm" className="ml-7 min-h-11" onClick={() => { setImageError(false); setIsLoading(true); setImageVersion(value => value + 1); setCurrentView('flat-lay'); }}>Retry loading image</Button>}
+            {!imageError && onRefresh && (isPending || isDelayed || isUnknown || Boolean(flatLayError) || (canRequest && !balanceKnown) || (isComplete && !flatLayUrl) || (!requestAllowed && !hasImage)) && <Button variant="outline" size="sm" className="ml-7 min-h-11" onClick={onRefresh} disabled={refreshPending}>{refreshPending ? 'Refreshing…' : 'Refresh status'}</Button>}
             {canRequest && (
               <div className="space-y-2 pl-7">
                 <div className="flex flex-wrap items-center gap-2">
                   <Button variant="outline" size="sm" className="border-stone-300 bg-transparent text-stone-800 shadow-none dark:border-stone-600 dark:text-stone-100" onClick={onRequestFlatLay} disabled={requestDisabled}>
-                    {flatLayActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
+                    {flatLayActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />}
                     {flatLayActionLoading ? 'Requesting…' : isFailed ? 'Request a new flat lay' : 'Create flat lay'}
                   </Button>
                   {awaitingConsent && onSkipFlatLay && <Button variant="ghost" size="sm" onClick={onSkipFlatLay} disabled={flatLayActionLoading}>Maybe later</Button>}
                   {creditsExhausted && <Link href="/upgrade" className="rounded-md px-2 py-3 text-sm text-stone-600 underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-stone-300">View plans</Link>}
                 </div>
-                <p className="text-xs text-stone-500 dark:text-stone-400">{balanceText}</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400">Uses 1 flat lay credit. <span>{balanceText}</span></p>
                 {flatLayError && <p role="alert" className="text-sm text-destructive">{flatLayError}</p>}
               </div>
             )}
@@ -300,7 +329,7 @@ export default function FlatLayViewer({
       </section>
 
       {hasImage && (
-        <DialogContent className="w-[calc(100%_-_2rem)] max-w-5xl gap-3 overflow-hidden rounded-2xl border-stone-200 bg-[#f7f5f0] p-4 dark:border-stone-700 dark:bg-stone-900 sm:p-6">
+        <DialogContent className="w-[calc(100%_-_2rem)] max-w-5xl gap-3 overflow-hidden rounded-2xl border-stone-200 bg-[#f7f5f0] p-4 dark:border-stone-700 dark:bg-stone-900 motion-reduce:animate-none sm:p-6">
           <DialogTitle className="pr-8 text-stone-900 dark:text-stone-100">{outfitName || 'Your outfit'}</DialogTitle>
           <DialogDescription className="sr-only">AI-styled preview of your outfit. Download or share using the controls below.</DialogDescription>
           <img src={imageSource || undefined} alt={`AI-styled preview of ${outfitName || 'your outfit'}, enlarged`} className="max-h-[70dvh] w-full object-contain" onError={handleImageError} />

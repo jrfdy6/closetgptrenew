@@ -14,6 +14,8 @@ def parse_last_worn(ts):
     if not ts:
         return None
     try:
+        if isinstance(ts, (int, float)) and not isinstance(ts, bool):
+            return datetime.fromtimestamp(ts / 1000 if abs(ts) >= 1e12 else ts, tz=timezone.utc)
         if isinstance(ts, str):
             if ts.endswith("Z"):
                 return datetime.fromisoformat(ts.replace("Z", "+00:00"))
@@ -655,6 +657,11 @@ async def update_outfit_history_entry(
         if entry_data.get('user_id') != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorized to update this entry")
         
+        # A managed event and its counters were committed together. The
+        # legacy editor cannot rewrite/remove only the event half of that write.
+        if entry_id.startswith("wear-v1-") or "wear_operation_version" in entry_data:
+            raise HTTPException(status_code=409, detail="Saved wear events cannot be changed here.")
+
         # Prepare update data
         update_data = {
             'updated_at': int(datetime.utcnow().timestamp() * 1000)
@@ -697,6 +704,8 @@ async def update_outfit_history_entry(
             "message": "Outfit history entry updated successfully"
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error updating outfit history entry: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to update outfit history entry")
@@ -716,6 +725,7 @@ async def delete_outfit_history_entry(
         logger.info(f"Deleting outfit history entry {entry_id} for user {current_user.id}")
         
         # Get the entry
+        db = get_db()
         doc_ref = db.collection('outfit_history').document(entry_id)
         doc = doc_ref.get() if doc_ref else None
         
@@ -728,6 +738,11 @@ async def delete_outfit_history_entry(
         if entry_data.get('user_id') != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorized to delete this entry")
         
+        # A managed event and its counters were committed together. The
+        # legacy editor cannot rewrite/remove only the event half of that write.
+        if entry_id.startswith("wear-v1-") or "wear_operation_version" in entry_data:
+            raise HTTPException(status_code=409, detail="Saved wear events cannot be changed here.")
+
         # Delete the document
         doc_ref.delete()
         
@@ -755,6 +770,8 @@ async def delete_outfit_history_entry(
             "message": "Outfit history entry deleted successfully"
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error deleting outfit history entry: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to delete outfit history entry")

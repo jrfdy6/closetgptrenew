@@ -24,15 +24,9 @@ import { useFirebase } from '@/lib/firebase-context';
 import Navigation from '@/components/Navigation';
 import ClientOnlyNav from '@/components/ClientOnlyNav';
 import { useRouter } from 'next/navigation';
-import OutfitService from '@/lib/services/outfitService';
-import BodyPositiveMessage from '@/components/BodyPositiveMessage';
 import { useAutoWeather } from '@/hooks/useWeather';
 import type { WeatherData } from '@/types/weather';
-import { subscriptionService } from '@/lib/services/subscriptionService';
-import { SubscriptionPlan, mapRoleToPlan } from '@/types/subscription';
-import { FLATLAY_WEEKLY_LIMITS } from '@/utils/flatLayConfig';
-import { requestFlatLay, flatLayRequestFields } from '@/lib/services/flatLayService';
-import { extractFlatLayState, type FlatLaySource } from '@/lib/flatLayState';
+import { type FlatLaySource } from '@/lib/flatLayState';
 import {
   assertRequiredBaseItem,
   buildOutfitGenerationUserProfile,
@@ -43,12 +37,10 @@ import FirstLookSetup from '@/components/onboarding/FirstLookSetup';
 
 // Import new enhanced components
 import OutfitGenerationBottomSheet from '@/components/outfits/OutfitGenerationBottomSheet';
-import OutfitResultsDisplay from '@/components/ui/outfit-results-display';
 import { OutfitGenerating, WardrobeLoading } from '@/components/ui/outfit-loading';
 // Phase 2: Progressive Reveal Components
 import OutfitRevealAnimation from '@/components/OutfitRevealAnimation';
 import { useToast } from '@/components/ui/use-toast';
-import LearningConfirmation from '@/components/LearningConfirmation';
 import { motion } from 'framer-motion';
 
 interface OutfitGenerationForm {
@@ -100,27 +92,17 @@ interface GeneratedOutfit extends FlatLaySource {
   isWorn?: boolean;
 }
 
-interface OutfitRating {
-  rating: number;
-  isLiked: boolean;
-  isDisliked: boolean;
-  feedback?: string;
-}
-
-interface FlatLayUsage {
-  tier: string;
-  limit: number | null;
-  used: number;
-  remaining: number | null;
-}
-
 export default function OutfitGenerationPage() {
   const router = useRouter();
+  const generationInFlight = useRef(false);
+  const activeUser = useRef<string | undefined>();
   const [firstLookFlow, setFirstLookFlow] = useState(false);
   useEffect(() => {
     setFirstLookFlow(new URLSearchParams(window.location.search).get('onboarding') === '1');
   }, []);
   const { user, loading: authLoading } = useFirebase();
+  activeUser.current = user?.uid;
+  useEffect(() => () => { activeUser.current = undefined; }, []);
   const { weather, loading: weatherLoading, fetchWeatherByLocation } = useAutoWeather();
   const { toast } = useToast();
   const [baseItem, setBaseItem] = useState<any>(null);
@@ -129,43 +111,6 @@ export default function OutfitGenerationPage() {
   const [wardrobeLoadError, setWardrobeLoadError] = useState<string | null>(null);
   const [wardrobeLoadAttempt, setWardrobeLoadAttempt] = useState(0);
   const [freshWeatherData, setFreshWeatherData] = useState<WeatherData | null>(null);
-  const [flatLayUsage, setFlatLayUsage] = useState<FlatLayUsage | null>(null);
-  const [flatLayLoading, setFlatLayLoading] = useState(false);
-  const [flatLayError, setFlatLayError] = useState<string | null>(null);
-  const [flatLayActionLoading, setFlatLayActionLoading] = useState(false);
-  const flatLayRequestPending = useRef(false);
-  
-  const loadFlatLayUsage = useCallback(async () => {
-    if (!user) {
-      setFlatLayUsage(null);
-      return;
-    }
-
-    setFlatLayLoading(true);
-    setFlatLayError(null);
-
-    try {
-      // Use subscription service to get current subscription from payment system
-      const subscription = await subscriptionService.getCurrentSubscription(user);
-      const plan = mapRoleToPlan(subscription.role);
-      const limit = FLATLAY_WEEKLY_LIMITS[plan] ?? 1;
-      
-      // Get remaining from subscription (already calculated by backend)
-      const remaining = subscription.flatlays_remaining ?? 0;
-      
-      // Calculate used
-      const used = Math.max(0, limit - remaining);
-
-      setFlatLayUsage({ tier: plan, limit, used, remaining });
-    } catch (error) {
-      console.error('Error loading flat lay usage:', error);
-      setFlatLayError('Unable to load your flat lay balance right now.');
-      setFlatLayUsage(null);
-    } finally {
-      setFlatLayLoading(false);
-    }
-  }, [user]);
-  
   // Extract base item ID from URL parameters
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -286,27 +231,9 @@ export default function OutfitGenerationPage() {
   const [generatedOutfit, setGeneratedOutfit] = useState<GeneratedOutfit | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showRevealAnimation, setShowRevealAnimation] = useState(false);
-  const [outfitRating, setOutfitRating] = useState<OutfitRating>({
-    rating: 0,
-    isLiked: false,
-    isDisliked: false,
-    feedback: ''
-  });
-  const [ratingSubmitted, setRatingSubmitted] = useState(false);
-  const [learningData, setLearningData] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [filteredStyles, setFilteredStyles] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (generatedOutfit && user?.uid) {
-      loadFlatLayUsage();
-    }
-
-    if (!generatedOutfit) {
-      setFlatLayUsage(null);
-    }
-  }, [generatedOutfit?.id, user?.uid, loadFlatLayUsage]);
 
   const occasions = [
     // Simple occasion values (matching backend validation error)
@@ -497,6 +424,7 @@ export default function OutfitGenerationPage() {
   };
 
   const handleGenerateOutfit = async () => {
+    if (generationInFlight.current) return;
     if (!user) {
       setError('Please sign in to generate outfits');
       return;
@@ -516,6 +444,8 @@ export default function OutfitGenerationPage() {
       return;
     }
 
+    const requestUserId = user.uid;
+    generationInFlight.current = true;
     try {
       setGenerating(true);
       setShowRevealAnimation(true);
@@ -697,6 +627,7 @@ export default function OutfitGenerationPage() {
       };
       
       // Use robust API client with comprehensive error handling
+      if (activeUser.current !== requestUserId) return;
       const response = await generateOutfit(requestWithMode, authToken);
       const data = response.data;
       assertRequiredBaseItem(data, baseItem?.id);
@@ -705,468 +636,18 @@ export default function OutfitGenerationPage() {
       console.log('🎨 DEBUG: Metadata:', data.metadata);
       console.log('🎨 DEBUG: Flat lay URL:', data.metadata?.flat_lay_url);
 
-      const enrichedMetadata = {
-        ...(data.metadata ?? {}),
-        flat_lay_status: data.metadata?.flat_lay_status ?? data.flat_lay_status ?? 'awaiting_consent',
-        flatLayStatus: data.metadata?.flatLayStatus ?? data.flatLayStatus ?? 'awaiting_consent',
-        flat_lay_url: data.metadata?.flat_lay_url ?? data.flat_lay_url ?? null,
-        flatLayUrl: data.metadata?.flatLayUrl ?? data.flatLayUrl ?? null,
-        flat_lay_error: data.metadata?.flat_lay_error ?? data.flat_lay_error ?? null,
-        flatLayError: data.metadata?.flatLayError ?? data.flatLayError ?? null,
-        flat_lay_requested: data.metadata?.flat_lay_requested ?? data.flat_lay_requested ?? false,
-        flatLayRequested: data.metadata?.flatLayRequested ?? data.flatLayRequested ?? false,
-      };
-
-      const enrichedData = {
-        ...data,
-        metadata: enrichedMetadata,
-        flat_lay_status: data.flat_lay_status ?? enrichedMetadata.flat_lay_status,
-        flatLayStatus: data.flatLayStatus ?? enrichedMetadata.flatLayStatus,
-        flat_lay_url: data.flat_lay_url ?? enrichedMetadata.flat_lay_url,
-        flatLayUrl: data.flatLayUrl ?? enrichedMetadata.flatLayUrl,
-        flat_lay_error: data.flat_lay_error ?? enrichedMetadata.flat_lay_error,
-        flatLayError: data.flatLayError ?? enrichedMetadata.flatLayError,
-        flat_lay_requested: data.flat_lay_requested ?? enrichedMetadata.flat_lay_requested ?? false,
-        flatLayRequested: data.flatLayRequested ?? enrichedMetadata.flatLayRequested ?? false,
-      };
-
-      setGeneratedOutfit(enrichedData);
-      
-      // Check for slow request and show user-friendly message
-      if (enrichedData.metadata?.is_slow) {
-        const duration = enrichedData.metadata?.generation_duration || 0;
-        console.log(`⚠️ Slow generation detected: ${duration}s`);
-        // Note: User-facing message can be displayed in UI component
+      if (typeof data.id !== 'string' || !data.id.trim()) {
+        throw new Error('The server did not confirm that your outfit was saved.');
       }
-      
-      // Auto-save the generated outfit directly to Firestore
-      if (user) {
-        try {
-          // Validate minimum items before saving
-          if (!data.items || data.items.length < 3) {
-            console.warn('🔍 DEBUG: Skipping auto-save - need at least 3 items to save outfit');
-            return;
-          }
-          
-          console.log('💾 Auto-saving outfit to Firestore...');
-          
-          // Import Firebase directly to save
-          const { db } = await import('@/lib/firebase/config');
-          const { collection, doc, runTransaction } = await import('firebase/firestore');
-          
-          // Prepare outfit data for Firestore
-          const outfitId = enrichedData.id || `outfit_${Date.now()}`;
-          const now = new Date().toISOString();
-          const outfitData = {
-            id: outfitId,
-            name: enrichedData.name,
-            occasion: enrichedData.occasion || formData.occasion,
-            style: enrichedData.style,
-            mood: enrichedData.mood || 'neutral',
-            description: enrichedData.reasoning || enrichedData.description || '',
-            items: enrichedData.items.map((item: any) => ({
-              id: item.id,
-              name: item.name,
-              category: item.category || item.type,
-              type: item.type || item.category,
-              color: item.color,
-              imageUrl: item.imageUrl || "",
-              user_id: user.uid
-            })),
-            user_id: user.uid,
-            createdAt: now,
-            updatedAt: now,
-            wearCount: 0,
-            isFavorite: false,
-            confidence_score: enrichedData.confidence_score ?? null,
-            generation_strategy: enrichedData.generation_strategy || 'hybrid',
-            baseItemId: enrichedData.baseItemId ?? baseItem?.id ?? null,
-            metadata: enrichedMetadata,
-            flat_lay_status: enrichedMetadata.flat_lay_status,
-            flatLayStatus: enrichedMetadata.flatLayStatus,
-            flat_lay_url: enrichedMetadata.flat_lay_url,
-            flatLayUrl: enrichedMetadata.flatLayUrl,
-            flat_lay_error: enrichedMetadata.flat_lay_error,
-            flatLayError: enrichedMetadata.flatLayError,
-            flat_lay_requested: enrichedMetadata.flat_lay_requested ?? false,
-            flatLayRequested: enrichedMetadata.flatLayRequested ?? false,
-          };
-          
-          // Save directly to Firestore
-          const outfitRef = doc(collection(db, 'outfits'), outfitId);
-          await runTransaction(db, async transaction => {
-            const existing = await transaction.get(outfitRef);
-            // Never overwrite the server's saved outfit or concurrent preview state.
-            if (!existing.exists()) transaction.set(outfitRef, outfitData);
-          });
-          
-          console.log('✅ Outfit auto-saved successfully to Firestore with ID:', outfitId);
-          
-          // Update the outfit with the confirmed ID
-          setGeneratedOutfit(prev => prev ? {
-            ...prev,
-            id: outfitId,
-          } : null);
-        } catch (err) {
-          console.log('🔍 DEBUG: Auto-save failed, but outfit generation succeeded');
-        }
-      }
+      if (activeUser.current !== requestUserId) return;
+      setGeneratedOutfit(data);
+      router.push('/outfits/' + encodeURIComponent(data.id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate outfit');
+      if (activeUser.current === requestUserId) setError(err instanceof Error ? err.message : 'Failed to generate outfit');
     } finally {
+      generationInFlight.current = false;
       setGenerating(false);
       setShowRevealAnimation(false);
-    }
-  };
-
-  const hasFlatLayCredits = flatLayUsage
-    ? flatLayUsage.remaining === null || (flatLayUsage.remaining ?? 0) > 0
-    : false;
-
-  const handleFlatLayRequest = useCallback(async () => {
-    if (!generatedOutfit?.id || !user || flatLayRequestPending.current) return;
-    flatLayRequestPending.current = true;
-    setFlatLayActionLoading(true);
-    const outfitId = generatedOutfit.id;
-    try {
-      const result = await requestFlatLay(outfitId, await user.getIdToken());
-      const fields = flatLayRequestFields(result);
-      setGeneratedOutfit(prev => prev?.id === outfitId ? {
-        ...prev, ...fields, metadata: { ...prev.metadata, ...fields },
-      } : prev);
-      if (result.flat_lay_status === 'failed') {
-        toast({ title: 'Preview needs attention', description: result.flat_lay_error || 'This preview needs review before another request.', variant: 'destructive' });
-      } else toast({
-        title: result.flat_lay_status === 'done' ? 'Your flat lay is ready' : 'Flat lay requested',
-        description: result.flat_lay_status === 'done' ? 'Your existing preview is available.' : 'You can keep using your outfit while the preview is prepared.',
-      });
-      await loadFlatLayUsage();
-    } catch (error) {
-      toast({ title: 'Could not confirm the request', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
-    } finally {
-      flatLayRequestPending.current = false;
-      setFlatLayActionLoading(false);
-    }
-  }, [generatedOutfit?.id, user, toast, loadFlatLayUsage]);
-
-  const handleFlatLaySkip = useCallback(() => {
-    if (!generatedOutfit || flatLayRequestPending.current) return;
-    if (['pending', 'processing', 'queued', 'done'].includes(extractFlatLayState(generatedOutfit).status)) return;
-    // Dismiss this optional presentation locally. This never cancels or rewrites a server job.
-    setGeneratedOutfit(prev => prev ? {
-      ...prev, flat_lay_status: 'declined', flatLayStatus: 'declined',
-      metadata: { ...prev.metadata, flat_lay_status: 'declined', flatLayStatus: 'declined' },
-    } : prev);
-  }, [generatedOutfit]);
-
-  const handleWearOutfit = async () => {
-    if (!generatedOutfit || !user) return;
-    
-    // Validate minimum items before wearing
-    if (!generatedOutfit.items || generatedOutfit.items.length < 3) {
-      setError('Need at least 3 items to wear an outfit');
-      return;
-    }
-    
-    try {
-      const currentTimestamp = Date.now();
-      const currentDate = new Date(currentTimestamp);
-      console.log(`📅 [Generate] Sending timestamp: ${currentTimestamp} (${currentDate.toLocaleString()})`);
-      
-      // Use API route to mark as worn - this updates backend stats for dashboard counter
-      const wornToken = await user.getIdToken();
-      const response = await fetch(`/api/outfit-history/mark-worn`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${wornToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          outfitId: generatedOutfit.id,
-          outfitName: generatedOutfit.name,
-          dateWorn: currentTimestamp, // Send current timestamp in milliseconds to avoid timezone issues
-          occasion: generatedOutfit.occasion || 'Casual',
-          mood: generatedOutfit.mood || 'Confident',
-          weather: generatedOutfit.weather || {},
-          notes: `Generated outfit: ${generatedOutfit.name}`,
-          tags: ['generated'],
-          items: generatedOutfit.items // Include items for wear count updates
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to mark outfit as worn: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      console.log(`✅ [Generate] Successfully marked outfit as worn via API:`, result);
-      
-      // ✅ Show XP notification if XP was awarded
-      if (result.xp_earned && result.xp_earned > 0) {
-        console.log('✅ XP awarded from wearing outfit:', result.xp_earned, 'Dispatching xpAwarded event...');
-        window.dispatchEvent(new CustomEvent('xpAwarded', {
-          detail: {
-            xp: result.xp_earned,
-            reason: 'Outfit worn',
-            level_up: result.level_up || false,
-            new_level: result.new_level
-          }
-        }));
-      }
-      
-      // Dispatch event to notify dashboard of outfit being marked as worn
-      const event = new CustomEvent('outfitMarkedAsWorn', {
-        detail: {
-          outfitId: generatedOutfit.id,
-          outfitName: generatedOutfit.name,
-          timestamp: new Date().toISOString()
-        }
-      });
-      window.dispatchEvent(event);
-      console.log('🔄 [Generate] Dispatched outfitMarkedAsWorn event for dashboard refresh');
-      
-      // Show success message and navigate to outfits page
-      setError(null);
-      // Show success message briefly before navigating
-      setGeneratedOutfit(prev => prev ? {
-        ...prev,
-        isWorn: true,
-        lastWorn: new Date().toISOString()
-      } : null);
-      
-      // Navigate after a short delay to show success
-      setTimeout(() => {
-        // Add timestamp to force refresh of outfits page
-        const timestamp = Date.now();
-        console.log('🔄 [Generate] Navigating to outfits page with forced refresh');
-        router.push(`/outfits?refresh=${timestamp}`);
-      }, 1500);
-    } catch (err) {
-      console.error('Error wearing outfit:', err);
-      setError('Failed to wear outfit');
-    }
-  };
-
-  const handleRegenerate = () => {
-    setGeneratedOutfit(null);
-    setError(null);
-    setOutfitRating({ rating: 0, isLiked: false, isDisliked: false, feedback: '' });
-    setRatingSubmitted(false);
-  };
-
-  const handleRatingChange = (rating: number) => {
-    setOutfitRating(prev => ({ ...prev, rating }));
-    // Auto-submit after a short delay to allow user to see their selection
-    setTimeout(() => {
-      if (rating > 0) {
-        handleSubmitRating();
-      }
-    }, 500);
-  };
-
-  const handleLikeToggle = () => {
-    setOutfitRating(prev => ({ 
-      ...prev, 
-      isLiked: !prev.isLiked, 
-      isDisliked: false 
-    }));
-    // Auto-submit like/dislike changes
-    setTimeout(() => {
-      handleSubmitRating();
-    }, 300);
-  };
-
-  const handleDislikeToggle = () => {
-    setOutfitRating(prev => ({ 
-      ...prev, 
-      isDisliked: !prev.isDisliked, 
-      isLiked: false 
-    }));
-    // Auto-submit like/dislike changes
-    setTimeout(() => {
-      handleSubmitRating();
-    }, 300);
-  };
-
-  const handleFeedbackChange = (feedback: string) => {
-    setOutfitRating(prev => ({ ...prev, feedback }));
-    // Auto-submit feedback after user stops typing (debounced)
-    clearTimeout((window as any).feedbackTimeout);
-    (window as any).feedbackTimeout = setTimeout(() => {
-      if (feedback.trim() && outfitRating.rating > 0) {
-        handleSubmitRating();
-      }
-    }, 1000);
-  };
-
-  const handleSubmitRating = async () => {
-    if (!generatedOutfit || !user) return;
-    
-    // Only submit if there's actual rating data
-    if (outfitRating.rating === 0 && !outfitRating.isLiked && !outfitRating.isDisliked && !outfitRating.feedback.trim()) {
-      console.log('🔍 DEBUG: No rating data to submit, skipping');
-      return;
-    }
-    
-    try {
-      const ratingToken = await user.getIdToken();
-      
-      // If outfit doesn't have an ID yet, save it first
-      let outfitId = generatedOutfit.id;
-      console.log('🔍 DEBUG: Checking outfit ID for rating:', { 
-        outfitId, 
-        hasId: !!outfitId,
-        outfitName: generatedOutfit.name 
-      });
-      
-      if (!outfitId) {
-        console.log('🔍 DEBUG: No outfit ID found, will save outfit first');
-        // Validate minimum items before saving for rating
-        if (!generatedOutfit.items || generatedOutfit.items.length < 3) {
-          setError('Need at least 3 items to save and rate an outfit');
-          return;
-        }
-        
-        const outfitPayload = {
-          name: generatedOutfit.name,
-          occasion: generatedOutfit.occasion || formData.occasion,
-          style: generatedOutfit.style,
-          description: generatedOutfit.reasoning,
-          items: generatedOutfit.items.map((item: any) => ({
-            ...item,
-            userId: user.uid,  // Required: inject from Firebase auth
-            subType: item.subType || item.category || item.type || "item",  // Required: fallback chain
-            style: generatedOutfit.style ? [generatedOutfit.style] : ["casual"],
-            occasion: [generatedOutfit.occasion || formData.occasion || "casual"],
-            imageUrl: item.imageUrl || item.image_url || item.image || "",  // Normalize image field
-            color: item.color || "unknown",  // Ensure color is provided
-            type: item.type || "item",  // Ensure type is provided
-            
-            // Required ClothingItem fields that were missing:
-            season: ["All"],                               // fallback if no season logic yet
-            tags: [],                                      // default empty array
-            dominantColors: [],                            // default empty array
-            matchingColors: [],                            // default empty array
-            createdAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
-            updatedAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
-          })),
-          createdAt: Math.floor(Date.now() / 1000),
-          metadata: {
-            ...(generatedOutfit.metadata ?? {}),
-            flat_lay_status: 'awaiting_consent',
-            flatLayStatus: 'awaiting_consent',
-            flat_lay_requested: false,
-            flatLayRequested: false,
-          },
-          flat_lay_status: 'awaiting_consent',
-          flatLayStatus: 'awaiting_consent',
-          flat_lay_url: null,
-          flatLayUrl: null,
-          flat_lay_error: null,
-          flatLayError: null,
-          flat_lay_requested: false,
-          flatLayRequested: false,
-        };
-        
-        console.log('🔍 DEBUG: Outfit creation payload:', JSON.stringify(outfitPayload, null, 2));
-        
-        const saveResponse = await fetch('/api/outfits', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${ratingToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(outfitPayload),
-        });
-        
-        if (saveResponse.ok) {
-          const savedOutfit = await saveResponse.json();
-          outfitId = savedOutfit.id || savedOutfit.outfitId;
-          
-          console.log('✅ [Generate] Outfit saved successfully:', savedOutfit);
-          
-          // Update the generated outfit with the new ID
-          setGeneratedOutfit(prev => prev ? {
-            ...prev,
-            id: outfitId
-          } : null);
-        } else {
-          console.error('❌ [Generate] Failed to save outfit:', saveResponse.status, await saveResponse.text());
-          setError('Failed to save outfit for rating');
-          return;
-        }
-      }
-      
-      // Prepare rating payload - only include rating if stars were selected
-      const ratingPayload: any = {
-        outfitId: outfitId,
-        isLiked: outfitRating.isLiked,
-        isDisliked: outfitRating.isDisliked,
-        feedback: outfitRating.feedback
-      };
-      
-      // Only include rating if stars were actually selected (1-5)
-      if (outfitRating.rating > 0) {
-        ratingPayload.rating = outfitRating.rating;
-      }
-      
-      console.log('🔍 DEBUG: Submitting rating payload:', ratingPayload);
-      
-      // Submit rating to backend
-      const response = await fetch('/api/outfits/rate', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${ratingToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(ratingPayload),
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        setRatingSubmitted(true);
-        
-        // Show learning confirmation if provided
-        if (result.learning) {
-          setLearningData(result.learning);
-          console.log('✨ Learning data received:', result.learning);
-        }
-        
-        // Update the generated outfit with rating data
-        setGeneratedOutfit(prev => prev ? {
-          ...prev,
-          rating: outfitRating.rating,
-          isLiked: outfitRating.isLiked,
-          isDisliked: outfitRating.isDisliked
-        } : null);
-        console.log('✅ Rating submitted successfully');
-        console.log('🔄 [Generate] Rating submitted - outfit should now be available in outfits list');
-        
-        // ✅ Show XP notification if XP was awarded
-        if (result.xp_earned && result.xp_earned > 0) {
-          console.log('✅ XP awarded from rating:', result.xp_earned, 'Dispatching xpAwarded event...');
-          window.dispatchEvent(new CustomEvent('xpAwarded', {
-            detail: {
-              xp: result.xp_earned,
-              reason: 'Outfit rated',
-              level_up: result.level_up || false,
-              new_level: result.new_level
-            }
-          }));
-        }
-        
-        // ✅ Trigger gamification stats refresh for AI Fit Score update
-        window.dispatchEvent(new CustomEvent('outfitRated', { 
-          detail: { outfitId, rating: outfitRating.rating }
-        }));
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('❌ Rating submission failed:', errorData);
-        setError(`Failed to submit rating: ${errorData.detail || errorData.error || 'Unknown error'}`);
-      }
-    } catch (err) {
-      console.error('❌ Error submitting rating:', err);
-      setError('Failed to submit rating');
     }
   };
 
@@ -1193,13 +674,7 @@ export default function OutfitGenerationPage() {
         </div>
       </div>
       
-      {/* Learning Confirmation (Spotify-style feedback) */}
-      {learningData && (
-        <LearningConfirmation
-          learning={learningData}
-          onClose={() => setLearningData(null)}
-        />
-      )}
+
     </div>
   );
 }
@@ -1310,47 +785,10 @@ export default function OutfitGenerationPage() {
         <div className="max-w-4xl mx-auto">
           <div className="space-y-6">
             {generatedOutfit ? (
-              <>
-                {/* Slow request notification */}
-                {generatedOutfit.metadata?.is_slow && (
-                  <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/50">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                            This is taking longer than usual...
-                          </p>
-                          <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                            We're still working on it. Your outfit will be ready shortly.
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-                <BodyPositiveMessage variant="outfit" />
-                <OutfitResultsDisplay
-                outfit={generatedOutfit}
-                rating={outfitRating}
-                onRatingChange={handleRatingChange}
-                onLikeToggle={handleLikeToggle}
-                onDislikeToggle={handleDislikeToggle}
-                onFeedbackChange={handleFeedbackChange}
-                onWearOutfit={handleWearOutfit}
-                onRegenerate={handleRegenerate}
-                onViewOutfits={() => router.push(`/outfits?refresh=${Date.now()}`)}
-                ratingSubmitted={ratingSubmitted}
-                isWorn={generatedOutfit?.isWorn}
-                flatLayUsage={flatLayUsage}
-                flatLayLoading={flatLayLoading}
-                flatLayError={flatLayError}
-                onRequestFlatLay={handleFlatLayRequest}
-                onSkipFlatLay={handleFlatLaySkip}
-                flatLayActionLoading={flatLayActionLoading}
-                hasFlatLayCredits={hasFlatLayCredits}
-              />
-              </>
+              <div role="status" className="rounded-3xl border bg-card p-8 text-center">
+                <p>Your outfit is saved. Opening your look…</p>
+                <Button className="mt-4" onClick={() => router.push('/outfits/' + encodeURIComponent(generatedOutfit.id))}>Open saved outfit</Button>
+              </div>
             ) : generating ? (
               <>
                 {/* Phase 2: Progressive Reveal Animation */}
@@ -1406,13 +844,7 @@ export default function OutfitGenerationPage() {
 
       <ClientOnlyNav />
       
-      {/* Learning Confirmation (Spotify-style feedback) */}
-      {learningData && (
-        <LearningConfirmation
-          learning={learningData}
-          onClose={() => setLearningData(null)}
-        />
-      )}
+
     </div>
   );
 }

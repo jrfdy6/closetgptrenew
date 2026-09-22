@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import OutfitService from '@/lib/services/outfitService_proper';
-import { 
-  Outfit, 
-  OutfitFilters, 
+import { clearWearOperation, wearOperationKey } from '@/lib/savedOutfit';
+import {
+  Outfit,
+  OutfitFilters,
   OutfitCreate,
-  OutfitUpdate, 
-  OutfitStats 
+  OutfitUpdate
 } from '@/lib/services/outfitService';
+import type { OutfitStats } from '@/lib/types/outfit';
 
   // ===== HOOK RETURN INTERFACE =====
 interface UseOutfitsReturn {
@@ -21,7 +22,7 @@ interface UseOutfitsReturn {
   error: string | null;
   mutationErrors: Record<string, string>;
   pendingMutations: string[];
-  
+
   // ===== ACTIONS =====
   fetchOutfits: (filters?: OutfitFilters) => Promise<void>;
   fetchOutfit: (id: string) => Promise<void>;
@@ -34,7 +35,7 @@ interface UseOutfitsReturn {
   toggleFavorite: (id: string, isFavorite?: boolean) => Promise<boolean>;
   searchOutfits: (query: string, filters?: OutfitFilters) => Promise<Outfit[]>;
   fetchStats: () => Promise<void>;
-  
+
   // ===== UTILITIES =====
   clearError: () => void;
   refresh: () => Promise<void>;
@@ -51,6 +52,7 @@ const normalizeOutfitData = (raw: any): Outfit => {
         ...item,
         id: item.id ?? item.item_id ?? item._id ?? item.uuid ?? item.name ?? '',
         imageUrl: item.imageUrl ?? item.image_url ?? item.thumbnailUrl ?? item.thumbnail_url ?? null,
+        originalImageUrl: item.originalImageUrl ?? item.original_image_url ?? undefined,
         thumbnailUrl: item.thumbnailUrl ?? item.thumbnail_url ?? item.imageUrl ?? item.image_url ?? null,
         backgroundRemovedUrl:
           item.backgroundRemovedUrl ??
@@ -91,27 +93,39 @@ const normalizeOutfitData = (raw: any): Outfit => {
 export function useOutfits(): UseOutfitsReturn {
   // ===== STATE MANAGEMENT =====
   const { user, loading: authLoading } = useAuthContext();
-  
+
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [outfit, setOutfit] = useState<Outfit | null>(null);
   const [stats, setStats] = useState<OutfitStats | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
   const [currentFilters, setCurrentFilters] = useState<OutfitFilters>({});
   const [error, setError] = useState<string | null>(null);
   const [mutationErrors, setMutationErrors] = useState<Record<string, string>>({});
   const [pendingMutations, setPendingMutations] = useState<string[]>([]);
   const pendingMutationIds = useRef(new Set<string>());
-  const [lastLoadTime, setLastLoadTime] = useState<number>(0);
-  const [consecutiveEmptyLoads, setConsecutiveEmptyLoads] = useState(0);
 
   // Pagination constants
-  const INITIAL_PAGE_SIZE = 50; // Load 20 outfits initially
+  const INITIAL_PAGE_SIZE = 50;
   const PAGE_SIZE = 12; // Load 12 more each time
   const MAX_OUTFITS = 1000; // Maximum outfits to load to prevent infinite loops
-  const MAX_CONSECUTIVE_EMPTY = 2; // Stop after 2 consecutive loads with no new outfits
+
+  // Account revision changes synchronously, before effects, so an old request
+  // cannot reveal another account's rows or acknowledge its pending mutation.
+  const account = useRef({ uid: user?.uid ?? null, authLoading, revision: 0 });
+  if (account.current.uid !== (user?.uid ?? null) || account.current.authLoading !== authLoading) {
+    account.current = { uid: user?.uid ?? null, authLoading, revision: account.current.revision + 1 };
+  }
+  const mounted = useRef(true);
+  const [stateOwner, setStateOwner] = useState(user?.uid ?? null);
+  const listSequence = useRef(0);
+  const detailSequence = useRef(0);
+  const statsSequence = useRef(0);
+  const searchSequence = useRef(0);
+  const loadMoreInFlight = useRef(false);
+  const current = useCallback((revision: number, uid: string) => mounted.current &&
+    !account.current.authLoading && account.current.uid === uid && account.current.revision === revision, []);
 
   // ===== ERROR HANDLING =====
   const clearError = useCallback(() => {
@@ -149,243 +163,83 @@ export function useOutfits(): UseOutfitsReturn {
   }, []);
 
   // ===== CORE ACTIONS =====
-  
+
   /**
    * Fetch user's outfits with optional filtering (resets pagination)
    * Follows the established wardrobe service pattern
    */
   const fetchOutfits = useCallback(async (filters: OutfitFilters = {}) => {
-    if (!user) {
-      setError('User not authenticated');
-      return;
-    }
-
+    const revision = account.current.revision;
+    if (!user || !current(revision, user.uid)) return;
+    const sequence = ++listSequence.current;
+    loadMoreInFlight.current = false;
+    setLoadingMore(false);
+    setLoading(true);
+    clearError();
+    const pageSize = Math.min(MAX_OUTFITS, Math.max(1, filters.limit ?? INITIAL_PAGE_SIZE));
+    const active = () => current(revision, user.uid) && sequence === listSequence.current;
     try {
-      setLoading(true);
-      clearError();
-      
-      // Start fresh with initial page size
-      const finalFilters = {
-        limit: INITIAL_PAGE_SIZE,
-        offset: 0,
-        ...filters, // Allow filters to override if needed
-      };
-      
-      setCurrentFilters(filters); // Store for loadMore
-      
-      console.log('🔍 [useOutfits] Fetching initial outfits with filters:', finalFilters);
-      
-      // Call Next.js API route instead of backend directly
+      setCurrentFilters(filters);
       const token = await user.getIdToken();
-      
-      // Build query parameters
-      const params = new URLSearchParams();
-      if (finalFilters.limit) params.append('limit', finalFilters.limit.toString());
-      if (finalFilters.offset) params.append('offset', finalFilters.offset.toString());
-      if (finalFilters.occasion) params.append('occasion', finalFilters.occasion);
-      if (finalFilters.style) params.append('style', finalFilters.style);
-      
-      const queryString = params.toString();
-      const url = queryString ? `/api/outfits?${queryString}` : '/api/outfits';
-      
-      console.log('🔍 [useOutfits] Fetching from URL:', url);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      if (!active()) return;
+      const params = new URLSearchParams({ limit: String(pageSize), offset: String(filters.offset ?? 0) });
+      if (filters.occasion) params.set('occasion', filters.occasion);
+      if (filters.style) params.set('style', filters.style);
+      const response = await fetch(`/api/outfits?${params}`, {
+        method: 'GET', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, cache: 'no-store',
       });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch outfits: ${response.status}`);
-      }
-      
-      const responseData = await response.json();
-      console.log('🔍 [useOutfits] Raw response data:', {
-        isArray: Array.isArray(responseData),
-        hasOutfits: !!(responseData.outfits),
-        hasData: !!(responseData.data),
-        keys: Object.keys(responseData),
-        length: Array.isArray(responseData) ? responseData.length : 'N/A'
-      });
-      
-      // Handle different response formats
-      let fetchedOutfits;
-      if (Array.isArray(responseData)) {
-        // Backend returns array directly
-        fetchedOutfits = responseData;
-        console.log('🔍 [useOutfits] Using array format, length:', fetchedOutfits.length);
-      } else if (responseData.outfits && Array.isArray(responseData.outfits)) {
-        // Backend returns object with outfits array
-        fetchedOutfits = responseData.outfits;
-        console.log('🔍 [useOutfits] Using outfits format, length:', fetchedOutfits.length);
-      } else if (responseData.data && Array.isArray(responseData.data)) {
-        // Backend returns object with data array
-        fetchedOutfits = responseData.data;
-        console.log('🔍 [useOutfits] Using data format, length:', fetchedOutfits.length);
-      } else {
-        console.warn('🔍 [useOutfits] Unexpected response format:', responseData);
-        fetchedOutfits = [];
-      }
-      
-      const normalizedOutfits = fetchedOutfits.map(normalizeOutfitData);
-      setOutfits(normalizedOutfits);
-      
-      // Reset consecutive empty loads on initial fetch
-      setConsecutiveEmptyLoads(0);
-      
-      // Check if there are more to load
-      // If we got fewer items than requested, there are no more
-      setHasMore(normalizedOutfits.length > 0 && normalizedOutfits.length === INITIAL_PAGE_SIZE);
-      
-      console.log(`✅ [useOutfits] Successfully fetched ${fetchedOutfits.length} initial outfits`);
-      
-      // Reset retry count on success
-      setRetryCount(0);
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('❌ [useOutfits] Error fetching outfits:', errorMessage);
-      
-      // Prevent infinite retry loops
-      if (retryCount < 3) {
-        console.warn(`⚠️ [useOutfits] Retry ${retryCount + 1}/3 in 2 seconds...`);
-        setRetryCount(prev => prev + 1);
-        setTimeout(() => fetchOutfits(filters), 2000);
-      } else {
-        console.error('🚫 [useOutfits] Max retries reached, stopping fetch attempts');
-        handleError(error as Error);
-        setRetryCount(0); // Reset for next manual retry
-      }
+      if (!response.ok) throw new Error('Your saved outfits could not be loaded. Please try again.');
+      const payload = await response.json();
+      const rows = Array.isArray(payload) ? payload : Array.isArray(payload.outfits) ? payload.outfits : payload.data;
+      if (!Array.isArray(rows)) throw new Error('Your saved outfits could not be loaded. Please try again.');
+      if (!active()) return;
+      const normalized = rows.map(normalizeOutfitData);
+      setOutfits(normalized);
+      setHasMore(normalized.length === pageSize && normalized.length < MAX_OUTFITS);
+    } catch (failure) {
+      if (active()) handleError(failure as Error);
     } finally {
-      setLoading(false);
+      if (active()) setLoading(false);
     }
-  }, [user, clearError, handleError, INITIAL_PAGE_SIZE, retryCount]);
+  }, [user, current, clearError, handleError]);
 
-  /**
-   * Load more outfits (pagination)
-   */
+  /** A failed next page keeps already loaded outfits and requires explicit retry. */
   const loadMoreOutfits = useCallback(async () => {
-    if (!user || !hasMore || loadingMore) {
-      return;
-    }
-
-    // Prevent rapid successive calls (debounce)
-    const now = Date.now();
-    if (now - lastLoadTime < 500) {
-      console.log('⏸️ [useOutfits] Debouncing load more request');
-      return;
-    }
-    setLastLoadTime(now);
-
+    const revision = account.current.revision;
+    if (!user || !current(revision, user.uid) || !hasMore || loading || loadMoreInFlight.current) return;
+    loadMoreInFlight.current = true;
+    setLoadingMore(true);
+    clearError();
+    const sequence = listSequence.current;
+    const active = () => current(revision, user.uid) && sequence === listSequence.current;
     try {
-      setLoadingMore(true);
-      clearError();
-      
-      // Get current outfit count before making request
-      let currentOutfitCount = 0;
-      setOutfits(prev => {
-        currentOutfitCount = prev.length;
-        return prev;
-      });
-
-      // Check if we've exceeded maximum
-      if (currentOutfitCount >= MAX_OUTFITS) {
-        console.log(`🛑 [useOutfits] Reached maximum outfits limit (${MAX_OUTFITS}), stopping`);
-        setHasMore(false);
-        setLoadingMore(false);
-        return;
-      }
-      
-      const finalFilters = {
-        limit: PAGE_SIZE,
-        offset: currentOutfitCount, // Use current length as offset
-        ...currentFilters,
-      };
-      
-      console.log('🔍 [useOutfits] Loading more outfits with filters:', finalFilters);
-      
       const token = await user.getIdToken();
-      
-      // Build query parameters
-      const params = new URLSearchParams();
-      if (finalFilters.limit) params.append('limit', finalFilters.limit.toString());
-      if (finalFilters.offset) params.append('offset', finalFilters.offset.toString());
-      if (finalFilters.occasion) params.append('occasion', finalFilters.occasion);
-      if (finalFilters.style) params.append('style', finalFilters.style);
-      
-      const queryString = params.toString();
-      const url = queryString ? `/api/outfits?${queryString}` : '/api/outfits';
-      
-      console.log('🔍 [useOutfits] Loading more from URL:', url);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      if (!active()) return;
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(outfits.length) });
+      if (currentFilters.occasion) params.set('occasion', currentFilters.occasion);
+      if (currentFilters.style) params.set('style', currentFilters.style);
+      const response = await fetch(`/api/outfits?${params}`, {
+        method: 'GET', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, cache: 'no-store',
       });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to load more outfits: ${response.status}`);
-      }
-      
-      const responseData = await response.json();
-      
-      // Handle structured response format
-      const moreOutfitsRaw = responseData.outfits || responseData;
-      const moreOutfits = Array.isArray(moreOutfitsRaw)
-        ? moreOutfitsRaw.map(normalizeOutfitData)
-        : [];
-      
-      // Filter out duplicates (in case backend returns same outfits) and update state
-      let actualNewCount = 0;
-      let finalOutfitCount = 0;
-      setOutfits(prev => {
-        const existingIds = new Set(prev.map(o => o.id));
-        const newOutfits = moreOutfits.filter(o => !existingIds.has(o.id));
-        actualNewCount = newOutfits.length;
-        finalOutfitCount = prev.length + newOutfits.length;
-        return [...prev, ...newOutfits];
+      if (!response.ok) throw new Error('More saved outfits could not be loaded. Please try again.');
+      const payload = await response.json();
+      const rows = Array.isArray(payload) ? payload : Array.isArray(payload.outfits) ? payload.outfits : payload.data;
+      if (!Array.isArray(rows)) throw new Error('More saved outfits could not be loaded. Please try again.');
+      if (!active()) return;
+      const existing = new Set(outfits.map(row => row.id));
+      const additions = rows.map(normalizeOutfitData).filter(row => !existing.has(row.id));
+      const available = Math.max(0, MAX_OUTFITS - outfits.length);
+      setOutfits(previous => {
+        const ids = new Set(previous.map(row => row.id));
+        return [...previous, ...additions.filter(row => !ids.has(row.id)).slice(0, available)];
       });
-      
-      // Calculate new consecutive empty loads count
-      const newConsecutiveEmptyLoads = actualNewCount === 0 ? consecutiveEmptyLoads + 1 : 0;
-      setConsecutiveEmptyLoads(newConsecutiveEmptyLoads);
-      
-      // Check if there are more to load
-      // Stop if:
-      // 1. We got no new outfits (all duplicates or empty response) - and this happened multiple times
-      // 2. We got fewer items than requested (backend has no more)
-      // 3. We've reached the maximum limit
-      // 4. We've had multiple consecutive loads with no new outfits (backend is looping)
-      const shouldStop = (actualNewCount === 0 && newConsecutiveEmptyLoads >= MAX_CONSECUTIVE_EMPTY) ||
-                        (actualNewCount > 0 && actualNewCount < PAGE_SIZE) ||
-                        finalOutfitCount >= MAX_OUTFITS;
-      
-      setHasMore(!shouldStop);
-      
-      console.log(`✅ [useOutfits] Successfully loaded ${actualNewCount} new outfits (total: ${finalOutfitCount}, hasMore: ${!shouldStop}, consecutiveEmpty: ${newConsecutiveEmptyLoads})`);
-      
-      if (shouldStop) {
-        if (actualNewCount === 0 && newConsecutiveEmptyLoads >= MAX_CONSECUTIVE_EMPTY) {
-          console.log(`🛑 [useOutfits] ${newConsecutiveEmptyLoads} consecutive loads with no new outfits, setting hasMore to false`);
-        } else if (actualNewCount > 0 && actualNewCount < PAGE_SIZE) {
-          console.log(`🛑 [useOutfits] Got fewer outfits than requested (${actualNewCount} < ${PAGE_SIZE}), setting hasMore to false`);
-        } else if (finalOutfitCount >= MAX_OUTFITS) {
-          console.log(`🛑 [useOutfits] Reached maximum limit (${finalOutfitCount} >= ${MAX_OUTFITS}), setting hasMore to false`);
-        }
-      }
-      
-    } catch (error) {
-      handleError(error as Error);
+      setHasMore(rows.length === PAGE_SIZE && additions.length > 0 && outfits.length + additions.length < MAX_OUTFITS);
+    } catch (failure) {
+      if (active()) handleError(failure as Error);
     } finally {
-      setLoadingMore(false);
+      if (active()) { loadMoreInFlight.current = false; setLoadingMore(false); }
     }
-  }, [user, hasMore, loadingMore, lastLoadTime, consecutiveEmptyLoads, currentFilters, clearError, handleError, PAGE_SIZE, MAX_OUTFITS, MAX_CONSECUTIVE_EMPTY]);
+  }, [user, current, hasMore, loading, outfits, currentFilters, clearError, handleError]);
 
   /**
    * Add a new outfit to the beginning of the list (for newly generated outfits)
@@ -399,7 +253,7 @@ export function useOutfits(): UseOutfitsReturn {
         console.log('🔍 [useOutfits] Outfit already exists, not adding duplicate');
         return prev;
       }
-      
+
       console.log('🔍 [useOutfits] Adding new outfit to the beginning of list:', normalized.name);
       return [normalized, ...prev];
     });
@@ -409,153 +263,181 @@ export function useOutfits(): UseOutfitsReturn {
    * Fetch a specific outfit by ID
    */
   const fetchOutfit = useCallback(async (id: string) => {
+    const revision = account.current.revision;
+    if (user && !current(revision, user.uid)) { return; }
     if (!user) {
       setError('User not authenticated');
       return;
     }
 
+    const sequence = ++detailSequence.current;
+    const active = () => current(revision, user.uid) && sequence === detailSequence.current;
     try {
       setLoading(true);
       clearError();
-      
+
       console.log(`🔍 [useOutfits] Fetching outfit ${id}`);
-      
+
       const token = await user.getIdToken();
+      if (!active()) { return; }
       const fetchedOutfit = await OutfitService.getOutfitById(id, token);
+      if (!active()) { return; }
       setOutfit(fetchedOutfit ? normalizeOutfitData(fetchedOutfit) : null);
-      
+
       if (fetchedOutfit) {
         console.log(`✅ [useOutfits] Successfully fetched outfit ${id}`);
       } else {
         console.log(`⚠️ [useOutfits] Outfit ${id} not found`);
       }
-      
+
     } catch (error) {
-      handleError(error as Error);
+      if (active()) handleError(error as Error);
     } finally {
-      setLoading(false);
+      if (active()) setLoading(false);
     }
-  }, [user, clearError, handleError]);
+  }, [user, current, clearError, handleError]);
 
   /**
    * Create a new outfit
    */
   const createOutfit = useCallback(async (data: OutfitCreate): Promise<Outfit | null> => {
+    const revision = account.current.revision;
+    if (user && !current(revision, user.uid)) { return null; }
     if (!user) {
       handleMutationError('create', new Error('Please sign in to save changes.'));
       return null;
     }
 
+    const active = () => current(revision, user.uid);
     if (!beginMutation('create')) return null;
     try {
-      
+
       console.log('🎨 [useOutfits] Creating new outfit:', data);
-      
+
       const token = await user.getIdToken();
+      if (!active()) { return null; }
       const newOutfit = await OutfitService.createOutfit(data, token);
-      
+      if (!active()) { return null; }
+
       const normalized = normalizeOutfitData(newOutfit);
       if (!normalized?.id) throw new Error('The server did not confirm that your outfit was saved.');
       setOutfits(prev => [normalized, ...prev.filter(o => o.id !== normalized.id)]);
       return normalized;
-      
+
     } catch (error) {
-      handleMutationError('create', error);
+      if (active()) handleMutationError('create', error);
       return null;
     } finally {
-      finishMutation('create');
+      if (active()) finishMutation('create');
     }
-  }, [user, beginMutation, finishMutation, handleMutationError]);
+  }, [user, current, beginMutation, finishMutation, handleMutationError]);
 
   /**
    * Update an existing outfit
    */
   const updateOutfit = useCallback(async (id: string, updates: OutfitUpdate): Promise<Outfit | null> => {
+    const revision = account.current.revision;
+    if (user && !current(revision, user.uid)) { return null; }
     if (!user) {
       handleMutationError(id, new Error('Please sign in to save changes.'));
       return null;
     }
 
+    const active = () => current(revision, user.uid);
     if (!beginMutation(id)) return null;
     try {
-      
+
       console.log(`🔄 [useOutfits] Updating outfit ${id}:`, updates);
-      
+
       const token = await user.getIdToken();
+      if (!active()) { return null; }
       const updatedOutfit = await OutfitService.updateOutfit(id, updates, token);
-      
+      if (!active()) { return null; }
+
       if (updatedOutfit) {
         // Update local state
         const normalized = normalizeOutfitData(updatedOutfit);
         setOutfits(prev => prev.map(o => o.id === id ? normalized : o));
-        if (outfit?.id === id) {
-          setOutfit(normalized);
-        }
+        setOutfit(previous => previous?.id === id ? normalized : previous);
         console.log(`✅ [useOutfits] Successfully updated outfit ${id}`);
       }
-      
+
       return updatedOutfit;
-      
+
     } catch (error) {
-      handleMutationError(id, error);
+      if (active()) handleMutationError(id, error);
       return null;
     } finally {
-      finishMutation(id);
+      if (active()) finishMutation(id);
     }
-  }, [user, outfit, beginMutation, finishMutation, handleMutationError]);
+  }, [user, current, outfit, beginMutation, finishMutation, handleMutationError]);
 
   /**
    * Delete an outfit
    */
   const deleteOutfit = useCallback(async (id: string): Promise<boolean> => {
+    const revision = account.current.revision;
+    if (user && !current(revision, user.uid)) { return false; }
     if (!user) {
       handleMutationError(id, new Error('Please sign in to save changes.'));
       return false;
     }
 
+    const active = () => current(revision, user.uid);
     if (!beginMutation(id)) return false;
     try {
-      
+
       console.log(`🗑️ [useOutfits] Deleting outfit ${id}`);
-      
+
       const token = await user.getIdToken();
+      if (!active()) { return false; }
       await OutfitService.deleteOutfit(id, token);
-      
+      if (!active()) { return false; }
+
       // Remove from local state
       setOutfits(prev => prev.filter(o => o.id !== id));
-      if (outfit?.id === id) {
-        setOutfit(null);
-      }
-      
+      setOutfit(previous => previous?.id === id ? null : previous);
+
       console.log(`✅ [useOutfits] Successfully deleted outfit ${id}`);
       return true;
-      
+
     } catch (error) {
-      handleMutationError(id, error);
+      if (active()) handleMutationError(id, error);
       return false;
     } finally {
-      finishMutation(id);
+      if (active()) finishMutation(id);
     }
-  }, [user, outfit, beginMutation, finishMutation, handleMutationError]);
+  }, [user, current, outfit, beginMutation, finishMutation, handleMutationError]);
 
   /**
    * Mark an outfit as worn
    */
   const markAsWorn = useCallback(async (id: string): Promise<boolean> => {
+    const revision = account.current.revision;
+    if (user && !current(revision, user.uid)) { return false; }
     if (!user) {
       handleMutationError(id, new Error('Please sign in to save changes.'));
       return false;
     }
 
+    const active = () => current(revision, user.uid);
     if (!beginMutation(id)) return false;
     try {
-      
+
       console.log(`👕 [useOutfits] Marking outfit ${id} as worn`);
-      
+
       const token = await user.getIdToken();
-      const result = await OutfitService.markOutfitAsWorn(id, token);
-      
-      // ✅ Show XP notification if XP was awarded
+      if (!active()) { return false; }
+      const result = await OutfitService.markOutfitAsWorn(id, token, wearOperationKey(user.uid, id), Intl.DateTimeFormat().resolvedOptions().timeZone);
+      if (result?.success !== true || !Number.isInteger(result.wear_count) || result.wear_count < 0 ||
+        typeof result.last_worn !== 'number' || !Number.isFinite(result.last_worn)) {
+        throw new Error('The server did not confirm the wear record. Please try again.');
+      }
+      if (!active()) { return false; }
+
+      clearWearOperation(user.uid, id);
+
+      // Show XP notification only after the current account receives confirmation.
       if (result && result.xp_earned && result.xp_earned > 0) {
         console.log('✅ XP awarded from wearing outfit (grid):', result.xp_earned, 'Dispatching xpAwarded event...');
         window.dispatchEvent(new CustomEvent('xpAwarded', {
@@ -567,59 +449,60 @@ export function useOutfits(): UseOutfitsReturn {
           }
         }));
       }
-      
+
       // Update local state
       setOutfits(prev => prev.map(o => {
         if (o.id === id) {
           return {
             ...o,
-            wearCount: (o.wearCount || 0) + 1,
-            lastWorn: new Date().toISOString()
+            wearCount: result.wear_count,
+            lastWorn: result.last_worn
           };
         }
         return o;
       }));
-      
-      if (outfit?.id === id) {
-        setOutfit(prev => prev ? {
-          ...prev,
-          wearCount: (prev.wearCount || 0) + 1,
-          lastWorn: new Date().toISOString()
-        } : null);
-      }
-      
+
+      setOutfit(previous => previous?.id === id ? {
+        ...previous, wearCount: result.wear_count, lastWorn: result.last_worn,
+      } : previous);
+
       console.log(`✅ [useOutfits] Successfully marked outfit ${id} as worn`);
       return true;
-      
+
     } catch (error) {
-      handleMutationError(id, error);
+      if (active()) handleMutationError(id, error);
       return false;
     } finally {
-      finishMutation(id);
+      if (active()) finishMutation(id);
     }
-  }, [user, outfit, beginMutation, finishMutation, handleMutationError]);
+  }, [user, current, outfit, beginMutation, finishMutation, handleMutationError]);
 
   /**
    * Toggle outfit favorite status
    */
   const toggleFavorite = useCallback(async (id: string, isFavorite?: boolean): Promise<boolean> => {
+    const revision = account.current.revision;
+    if (user && !current(revision, user.uid)) { return false; }
     if (!user) {
       handleMutationError(id, new Error('Please sign in to save changes.'));
       return false;
     }
 
+    const active = () => current(revision, user.uid);
     if (!beginMutation(id)) return false;
     try {
-      
+
       console.log(`❤️ [useOutfits] Toggling favorite for outfit ${id}`);
-      
+
       const token = await user.getIdToken();
-      const current = outfits.find(o => o.id === id) ?? (outfit?.id === id ? outfit : undefined);
-      if (isFavorite === undefined && !current) throw new Error('Outfit not found. Please refresh and try again.');
-      const desiredState = isFavorite ?? !current?.isFavorite;
+      if (!active()) { return false; }
+      const currentOutfit = outfits.find(o => o.id === id) ?? (outfit?.id === id ? outfit : undefined);
+      if (isFavorite === undefined && !currentOutfit) throw new Error('Outfit not found. Please refresh and try again.');
+      const desiredState = isFavorite ?? !currentOutfit?.isFavorite;
       const result = await OutfitService.setOutfitFavorite(id, desiredState, token);
+      if (!active()) { return false; }
       if (typeof result?.isFavorite !== 'boolean') throw new Error('The server did not confirm the favorite update.');
-      
+
       // Update local state
       setOutfits(prev => prev.map(o => {
         if (o.id === id) {
@@ -627,55 +510,61 @@ export function useOutfits(): UseOutfitsReturn {
         }
         return o;
       }));
-      
-      if (outfit?.id === id) {
-        setOutfit(prev => prev ? { ...prev, isFavorite: result.isFavorite } : null);
-      }
-      
+
+      setOutfit(previous => previous?.id === id ? { ...previous, isFavorite: result.isFavorite } : previous);
+
       console.log(`✅ [useOutfits] Successfully toggled favorite for outfit ${id}`);
       return true;
-      
+
     } catch (error) {
-      handleMutationError(id, error);
+      if (active()) handleMutationError(id, error);
       return false;
     } finally {
-      finishMutation(id);
+      if (active()) finishMutation(id);
     }
-  }, [user, outfits, outfit, beginMutation, finishMutation, handleMutationError]);
+  }, [user, current, outfits, outfit, beginMutation, finishMutation, handleMutationError]);
 
   /**
    * Search outfits with text query
    */
   const searchOutfits = useCallback(async (query: string, filters: OutfitFilters = {}): Promise<Outfit[]> => {
+    const revision = account.current.revision;
+    if (user && !current(revision, user.uid)) { return []; }
     if (!user) {
       setError('User not authenticated');
       return [];
     }
 
+    const sequence = ++searchSequence.current;
+    const active = () => current(revision, user.uid) && sequence === searchSequence.current;
     try {
       setLoading(true);
       clearError();
-      
+
       console.log(`🔍 [useOutfits] Searching outfits with query: "${query}"`);
-      
+
       const token = await user.getIdToken();
+      if (!active()) { return []; }
       const searchResults = await OutfitService.searchOutfits(query, filters, token);
-      
+      if (!active()) { return []; }
+
       console.log(`✅ [useOutfits] Search returned ${searchResults.length} results`);
       return searchResults.map(normalizeOutfitData);
-      
+
     } catch (error) {
-      handleError(error as Error);
+      if (active()) handleError(error as Error);
       return [];
     } finally {
-      setLoading(false);
+      if (active()) setLoading(false);
     }
-  }, [user, clearError, handleError]);
+  }, [user, current, clearError, handleError]);
 
   /**
    * Fetch outfit statistics
    */
   const fetchStats = useCallback(async () => {
+    const revision = account.current.revision;
+    if (user && !current(revision, user.uid)) { return; }
     // RE-ENABLED - stats endpoint should be working now
     if (!user) {
       setError('User not authenticated');
@@ -684,14 +573,16 @@ export function useOutfits(): UseOutfitsReturn {
 
     console.log('📊 [useOutfits] Fetching outfit stats...');
 
+    const sequence = ++statsSequence.current;
+    const active = () => current(revision, user.uid) && sequence === statsSequence.current;
     try {
       // Don't set main loading state for stats to avoid blocking outfit display
-      clearError();
-      
+
       console.log('📊 [useOutfits] Fetching outfit statistics');
-      
+
       // Call Next.js API route instead of backend directly
       const token = await user.getIdToken();
+      if (!active()) { return; }
       const response = await fetch('/api/outfit-stats/stats', {
         method: 'GET',
         headers: {
@@ -699,33 +590,34 @@ export function useOutfits(): UseOutfitsReturn {
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch stats: ${response.status}`);
       }
-      
+
       const outfitStats = await response.json();
+      if (!active()) return;
       setStats(outfitStats?.data || outfitStats);
-      
+
       console.log('✅ [useOutfits] Successfully fetched outfit statistics');
-      
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.warn('⚠️ [useOutfits] Stats fetch failed (non-critical):', errorMessage);
       // Don't set error state for stats failures - just log as warning
-      setStats(null);
+      if (active()) setStats(null);
     }
-  }, [user, clearError, handleError]);
+  }, [user, current, clearError, handleError]);
 
   /**
    * Refresh all data
    */
   const refresh = useCallback(async () => {
     console.log('🔄 [useOutfits] Refreshing all data');
-    
+
     // Reset pagination state
     setHasMore(true);
-    
+
     await Promise.all([
       fetchOutfits(currentFilters),
       fetchStats()
@@ -736,35 +628,40 @@ export function useOutfits(): UseOutfitsReturn {
    * Get outfit by ID from local state
    */
   const getOutfitById = useCallback((id: string): Outfit | undefined => {
-    return outfits.find(o => o.id === id);
-  }, [outfits]);
+    return stateOwner === account.current.uid && !account.current.authLoading ? outfits.find(o => o.id === id) : undefined;
+  }, [outfits, stateOwner]);
 
   // ===== EFFECTS =====
-  
-  /**
-   * Auto-fetch outfits when user changes
-   */
   useEffect(() => {
+    mounted.current = true;
+    setStateOwner(user?.uid ?? null);
+    setOutfits([]); setOutfit(null); setStats(null);
+    setError(null); setMutationErrors({}); setPendingMutations([]);
+    pendingMutationIds.current.clear();
+    loadMoreInFlight.current = false;
+    setLoadingMore(false); setHasMore(false); setCurrentFilters({});
     if (user && !authLoading) {
-      console.log('👤 [useOutfits] User authenticated, fetching outfits');
-      fetchOutfits();
-      fetchStats();
-    }
-  }, [user?.uid, authLoading]); // Use user.uid instead of user object to prevent re-renders
+      void fetchOutfits();
+      void fetchStats();
+    } else setLoading(Boolean(authLoading));
+    return () => { mounted.current = false; account.current.revision += 1; };
+  }, [user?.uid, authLoading]);
+
+  const visible = !authLoading && stateOwner === (user?.uid ?? null);
 
   // ===== RETURN VALUE =====
   return {
     // State
-    outfits,
-    outfit,
-    stats,
-    loading,
-    loadingMore,
-    hasMore,
-    error,
-    mutationErrors,
-    pendingMutations,
-    
+    outfits: visible ? outfits : [],
+    outfit: visible ? outfit : null,
+    stats: visible ? stats : null,
+    loading: visible ? loading : true,
+    loadingMore: visible ? loadingMore : false,
+    hasMore: visible ? hasMore : false,
+    error: visible ? error : null,
+    mutationErrors: visible ? mutationErrors : {},
+    pendingMutations: visible ? pendingMutations : [],
+
     // Actions
     fetchOutfits,
     fetchOutfit,
@@ -777,7 +674,7 @@ export function useOutfits(): UseOutfitsReturn {
     toggleFavorite,
     searchOutfits,
     fetchStats,
-    
+
     // Utilities
     clearError,
     refresh,
