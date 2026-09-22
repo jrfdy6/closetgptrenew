@@ -4,6 +4,8 @@ import '@testing-library/jest-dom';
 import SmartWeatherOutfitGenerator from './SmartWeatherOutfitGenerator';
 import { dailyOutfitKey } from '@/lib/dailyOutfitAttempt';
 
+declare const afterEach: jest.Lifecycle;
+declare const beforeEach: jest.Lifecycle;
 declare const expect: jest.Expect;
 declare const it: jest.It;
 
@@ -63,6 +65,23 @@ it('retains the saved weather context and final style compromise in the dashboar
   await waitFor(() => expect(onOutfitGenerated).toHaveBeenCalledWith(expect.objectContaining({
     weather, reasoning: insight, confidence: null,
   })));
+});
+
+it('opens the persisted outfit through an encoded link without wearing it or sending another write', async () => {
+  mockGenerate.mockResolvedValue({ data: { id: 'saved look?#', name: 'Saved look', items } });
+  render(<SmartWeatherOutfitGenerator generationEnabled />);
+  const open = await screen.findByRole('link', { name: 'Open outfit' });
+  expect(open).toHaveAttribute('href', '/outfits/saved%20look%3F%23');
+  expect(screen.queryByRole('button', { name: /wear/i })).not.toBeInTheDocument();
+  const requestsBeforeOpen = (fetch as jest.Mock).mock.calls.length;
+  // Prevent jsdom's unsupported full document navigation; the native link is
+  // the contract, and clicking it must not invoke the old wear mutation.
+  open.addEventListener('click', event => event.preventDefault());
+  fireEvent.click(open);
+  await act(async () => undefined);
+  expect(fetch).toHaveBeenCalledTimes(requestsBeforeOpen);
+  expect(mockGenerate).toHaveBeenCalledTimes(1);
+  expect((fetch as jest.Mock).mock.calls.every(([, options]) => !options?.method || options.method === 'GET')).toBe(true);
 });
 
 it('shows a retryable failure when the saved style profile cannot be loaded', async () => {

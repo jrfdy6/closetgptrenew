@@ -37,14 +37,24 @@ service cloud.firestore {
         resource.data.user_id == request.auth.uid;
     }
 
-    // Users can only read/write their own outfit history
+    // New transactional wear events are immutable to clients. Legacy entries
+    // retain their existing edit policy; only the server can create receipt IDs.
     match /outfit_history/{entryId} {
-      allow read: if request.auth != null && 
+      allow read: if request.auth != null &&
         resource.data.user_id == request.auth.uid;
-      allow create: if request.auth != null && 
-        request.resource.data.user_id == request.auth.uid;
-      allow update, delete: if request.auth != null && 
-        resource.data.user_id == request.auth.uid;
+      allow create: if request.auth != null &&
+        request.resource.data.user_id == request.auth.uid &&
+        !entryId.matches('wear-v1-.*') &&
+        !request.resource.data.keys().hasAny(['wear_operation_version']);
+      allow update, delete: if request.auth != null &&
+        resource.data.user_id == request.auth.uid &&
+        !entryId.matches('wear-v1-.*') &&
+        !resource.data.keys().hasAny(['wear_operation_version']);
+    }
+
+    // Idempotency keys and per-day wear receipts are exclusively server-owned.
+    match /outfit_wear_receipts/{receiptId} {
+      allow read, write: if false;
     }
 
     // Users can only read/write their own daily outfit suggestions

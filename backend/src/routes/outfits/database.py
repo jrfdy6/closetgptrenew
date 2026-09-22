@@ -452,6 +452,8 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_c
             if wardrobe_cache and item in wardrobe_cache:
                 # Use cached item - fix imageUrl
                 cached_item = wardrobe_cache[item].copy()
+                if not outfit_belongs_to_user(cached_item, user_id):
+                    continue
                 raw_url = cached_item.get('imageUrl', '') or cached_item.get('image_url', '') or cached_item.get('image', '')
                 cached_item['imageUrl'] = convert_firebase_url(raw_url)
                 resolved_items.append(cached_item)
@@ -468,6 +470,8 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_c
                     item_doc = item_ref.get() if item_ref else None
                     if item_doc and item_doc.exists:
                         item_data = item_doc.to_dict()
+                        if not outfit_belongs_to_user(item_data, user_id):
+                            continue
                         item_data['id'] = item_doc.id
                         # Fix imageUrl
                         raw_url = item_data.get('imageUrl', '') or item_data.get('image_url', '') or item_data.get('image', '')

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { buildOutfitGenerationUserProfile } from '@/lib/outfitGenerationContract';
 import { claimDailyOutfitAttempt, dailyOutfitKey, hasCompleteDailyOutfit } from '@/lib/dailyOutfitAttempt';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -86,7 +87,6 @@ export function SmartWeatherOutfitGenerator({
   
   const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied'>('idle');
   const [isGeneratingOutfit, setIsGeneratingOutfit] = useState(false);
-  const [isWearingOutfit, setIsWearingOutfit] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<GeneratedOutfit | null>(null);
   const [outfitError, setOutfitError] = useState<string | null>(null);
   const [lastGenerated, setLastGenerated] = useState<Date | null>(null);
@@ -392,164 +392,6 @@ export function SmartWeatherOutfitGenerator({
       void generateTodaysOutfit();
     }
   }, [weather, user, todayKey, generatedOutfit, isGeneratingOutfit, generationEnabled, generateTodaysOutfit]);
-
-  const wearTodaysOutfit = async () => {
-    if (!generatedOutfit || !user) return;
-
-    setIsWearingOutfit(true);
-
-    try {
-      console.log('👕 Wearing today\'s outfit:', generatedOutfit.name);
-      
-      const currentTimestamp = Date.now();
-      const currentDate = new Date(currentTimestamp);
-      console.log(`📅 [Weather] Sending timestamp: ${currentTimestamp} (${currentDate.toLocaleString()})`);
-      
-      const token = await user.getIdToken();
-      
-      // Mark outfit as worn - send required data
-      const response = await fetch(`/api/outfit-history/mark-worn`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          outfitId: generatedOutfit.id,
-          outfitName: generatedOutfit.name,
-          dateWorn: currentTimestamp, // Send current timestamp in milliseconds to avoid timezone issues
-          occasion: 'Daily',
-          mood: 'Confident',
-          weather: generatedOutfit.weather || {},
-          notes: `Weather-based outfit: ${generatedOutfit.name}`,
-          tags: ['weather-optimized', 'daily-suggestion'],
-          items: generatedOutfit.items // Include items for wear count updates
-        }),
-      });
-
-      console.log('🔍 DEBUG: Mark-worn response status:', response.status);
-      const result = await response.json();
-      console.log('🔍 DEBUG: Mark-worn response data:', result);
-      
-      if (response.ok) {
-        console.log('✅ Outfit marked as worn:', result);
-        
-        // ✅ Show XP notification if XP was awarded
-        if (result.xp_earned && result.xp_earned > 0) {
-          window.dispatchEvent(new CustomEvent('xpAwarded', {
-            detail: {
-              xp: result.xp_earned,
-              reason: 'Outfit worn',
-              level_up: result.level_up || false,
-              new_level: result.new_level
-            }
-          }));
-        }
-        
-        // Update local state
-        const updatedOutfit = { ...generatedOutfit, isWorn: true };
-        setGeneratedOutfit(updatedOutfit);
-        saveTodaysOutfit(updatedOutfit);
-        
-        // Dispatch event to notify dashboard to refresh
-        const event = new CustomEvent('outfitMarkedAsWorn', {
-          detail: {
-            outfitId: generatedOutfit.id,
-            outfitName: generatedOutfit.name,
-            timestamp: new Date().toISOString()
-          }
-        });
-        window.dispatchEvent(event);
-        console.log('🔄 [Weather Generator] Dispatched outfitMarkedAsWorn event for dashboard refresh');
-        
-            // Test: Directly check user_stats after wear action
-            setTimeout(async () => {
-              try {
-                console.log('🧪 Testing: Fetching user_stats directly to check increment...');
-                const token = await user.getIdToken();
-                const testResponse = await fetch('/api/simple-analytics/outfits-worn-this-week', {
-                  method: 'GET',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                  },
-                });
-                
-                if (testResponse.ok) {
-                  const testData = await testResponse.json();
-                  console.log('🧪 Direct user_stats check:', testData);
-                  console.log(`🧪 Current worn count: ${testData.outfits_worn_this_week}`);
-                }
-              } catch (error) {
-                console.error('🧪 Error testing user_stats:', error);
-              }
-            }, 500); // Quick test
-            
-            // RAILWAY-PROOF: Check debug stats to see actual backend operations
-            setTimeout(async () => {
-              try {
-                console.log('🔍 Railway-proof debug: Checking backend increment operations...');
-                const debugResponse = await fetch(`/api/debug-stats?userId=${user.uid}`, {
-                  method: 'GET',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                });
-                
-                if (debugResponse.ok) {
-                  const debugData = await debugResponse.json();
-                  console.log('🔍 Debug stats response:', debugData);
-                  console.log(`🔍 Current user_stats from debug: ${debugData.current_stats?.worn_this_week || 'N/A'}`);
-                  console.log(`🔍 Recent debug entries (${debugData.debug_entries?.length || 0}):`);
-                  debugData.debug_entries?.slice(0, 3).forEach((entry: any, index: number) => {
-                    // Handle different debug entry formats
-                    const event = entry.event || entry.action || 'unknown_event';
-                    const oldCount = entry.old_count || entry.old_wear_count || 'N/A';
-                    const newCount = entry.new_count || entry.new_wear_count || 'N/A';
-                    const timestamp = entry.timestamp || 'N/A';
-                    console.log(`🔍   ${index + 1}. ${event}: ${oldCount} -> ${newCount} at ${timestamp}`);
-                  });
-                } else {
-                  console.log('🔍 Debug stats endpoint not ready yet (expected during deployment)');
-                }
-              } catch (error) {
-                console.log('🔍 Debug stats not available yet:', error);
-              }
-            }, 2000); // Wait longer for debug endpoint
-        
-        // Dispatch event to refresh dashboard stats with a longer delay 
-        // to allow Firestore write to be fully committed and readable
-        setTimeout(() => {
-          const event = new CustomEvent('outfitMarkedAsWorn', {
-            detail: {
-              outfitId: generatedOutfit.id,
-              outfitName: generatedOutfit.name,
-              timestamp: new Date().toISOString(),
-              forceFresh: true  // Force analytics to bypass cache
-            }
-          });
-          window.dispatchEvent(event);
-          console.log('🔄 Dispatched outfitMarkedAsWorn event for dashboard refresh (force fresh)');
-        }, 5000); // 5 second delay for stronger Firestore consistency
-        
-        // Show success message briefly
-        setTimeout(() => {
-          console.log('🎉 Outfit worn successfully!');
-        }, 1000);
-      } else {
-        console.error('❌ MARK-WORN FAILED:', {
-          status: response.status,
-          errorData: result
-        });
-        throw new Error(`Failed to mark outfit as worn: ${result.detail || result.error || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('❌ Error wearing outfit:', error);
-      setOutfitError('Failed to mark outfit as worn');
-    } finally {
-      setIsWearingOutfit(false);
-    }
-  };
 
   // Enhanced weather-based outfit parameters with comprehensive logic
   const determineOccasionFromWeather = (weather: any): string => {
@@ -903,32 +745,8 @@ export function SmartWeatherOutfitGenerator({
                     <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 ${isGeneratingOutfit ? 'animate-spin' : ''}`} />
                     Regenerate
                   </Button>
-                  <Button 
-                    onClick={wearTodaysOutfit}
-                    disabled={isWearingOutfit || generatedOutfit.isWorn}
-                    size="sm"
-                    className={`${
-                      generatedOutfit.isWorn 
-                        ? 'bg-[var(--copper-mid)] hover:bg-[var(--copper-mid)]/90 text-white' 
-                        : 'bg-gradient-to-r from-[var(--copper-mid)] to-[var(--copper-mid)] hover:from-[var(--copper-mid)] hover:to-accent text-white shadow-lg shadow-[var(--copper-mid)]/25'
-                    } text-xs sm:text-sm h-8 sm:h-9`}
-                  >
-                    {isWearingOutfit ? (
-                      <>
-                        <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 animate-spin" />
-                        Wearing...
-                      </>
-                    ) : generatedOutfit.isWorn ? (
-                      <>
-                        <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5" />
-                        Worn Today
-                      </>
-                    ) : (
-                      <>
-                        <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5" />
-                        Wear This Outfit
-                      </>
-                    )}
+                  <Button asChild size="sm" className="min-h-11">
+                    <Link href={'/outfits/' + encodeURIComponent(generatedOutfit.id)}>Open outfit</Link>
                   </Button>
                 </div>
               </div>

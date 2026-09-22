@@ -1,97 +1,68 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import ClientOnlyNav from '@/components/ClientOnlyNav';
 import OutfitGrid from '@/components/OutfitGrid';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Plus } from 'lucide-react';
-import { useFirebase } from '@/lib/firebase-context';
-import { useWardrobe } from '@/lib/hooks/useWardrobe';
-import MissingWardrobeModal from '@/components/MissingWardrobeModal';
+import { Sparkles, Plus, ArrowRight } from 'lucide-react';
+import { useOnboardingState } from '@/lib/hooks/useOnboardingState';
 
 type OutfitsPageProps = {
-  searchParams?: {
-    view?: string;
-    favorites?: string;
-  };
+  searchParams?: { view?: string; favorites?: string };
 };
 
-// ===== MAIN PAGE COMPONENT =====
 export default function OutfitsPage({ searchParams }: OutfitsPageProps) {
-  const initialFavoritesOnly =
-    searchParams?.view === 'favorites' ||
-    searchParams?.favorites === 'true';
-  
-  const { user } = useFirebase();
-  const { items: wardrobeItems, loading: wardrobeLoading, refetch } = useWardrobe();
-
-  // Modal should show if user has fewer than 10 items (direct computation, no state needed)
-  const shouldShowMissingWardrobeModal = !wardrobeLoading && wardrobeItems.length < 10;
+  const initialFavoritesOnly = searchParams?.view === 'favorites' || searchParams?.favorites === 'true';
+  const { state, loading, error, refresh } = useOnboardingState();
+  const needsStyle = state?.stage === 'style';
+  const needsCapsule = state && !state.capsule.ready;
 
   return (
     <div className="min-h-screen">
       <Navigation />
-      
-      {/* Header */}
-      <div className="px-4 py-12">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-card/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-lg">
+      <main className="mx-auto max-w-7xl px-4 pb-28 pt-6 sm:px-6 sm:pt-10 lg:px-8">
+        <header className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="font-display text-3xl font-semibold text-card-foreground sm:text-4xl">My looks</h1>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+              Your outfits, ready to revisit. Open a look to see every piece, create a flatlay, or record a wear.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild className="motion-reduce:transform-none motion-reduce:transition-none">
+              <Link href="/outfits/generate"><Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />New outfit</Link>
+            </Button>
+            <Button asChild variant="outline" className="motion-reduce:transform-none motion-reduce:transition-none">
+              <Link href="/outfits/create"><Plus className="mr-2 h-4 w-4" aria-hidden="true" />Build my own</Link>
+            </Button>
+          </div>
+        </header>
+
+        {/* A changing capsule must never block returning to an already saved look. */}
+        {!loading && !error && (needsStyle || needsCapsule) && (
+          <aside aria-label="Continue your setup" className="mb-6 flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/80 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-4xl font-display font-semibold text-card-foreground mb-3">My looks</h1>
-              <p className="text-muted-foreground text-base leading-relaxed max-w-2xl">
-                Save the fits you love, remix them for new occasions, and generate fresh looks whenever inspiration hits.
+              <h2 className="text-sm font-medium text-card-foreground">{needsStyle ? 'Finish your style profile' : 'Complete your capsule for new outfits'}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {needsStyle ? 'Continue your questionnaire when you are ready. Your saved looks are available below.'
+                  : 'New outfits need at least 10 usable pieces with shoes and either tops and bottoms or a one-piece. Your saved looks are still available.'}
               </p>
             </div>
-            
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <Link href="/outfits/generate">
-                <Button className="w-full sm:w-auto h-12 px-6 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:shadow-lg hover:shadow-primary/30 transition-all">
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Generate Outfit
-                </Button>
-              </Link>
-              
-              <Link href="/outfits/create">
-                <Button variant="outline" className="w-full sm:w-auto h-12 px-6 border-2 border-border text-card-foreground hover:bg-secondary transition-all">
-                  <Plus className="w-5 h-5 mr-2" />
-                  Create Outfit
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Main Content - Bottom padding for nav */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 sm:pb-24">
-        {/* Saved Outfits Grid */}
-        <div>
-          <h2 className="text-2xl font-display font-semibold text-card-foreground mb-6">
-            Saved Outfits
-          </h2>
-          <OutfitGrid 
-            showFilters={true}
-            showSearch={true}
-            maxOutfits={1000}
-            initialFavoritesOnly={initialFavoritesOnly}
-          />
-        </div>
+            <Button asChild variant="outline" className="shrink-0 self-start motion-reduce:transform-none motion-reduce:transition-none">
+              <Link href="/onboarding">{needsStyle ? 'Continue my style profile' : 'Continue my capsule'}<ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></Link>
+            </Button>
+          </aside>
+        )}
+        {error && (
+          <aside role="alert" className="mb-6 rounded-2xl border border-border/60 bg-card/80 p-4">
+            <p className="text-sm text-muted-foreground">Your setup progress could not be loaded. You can still open your saved looks below.</p>
+            <Button variant="outline" size="sm" onClick={() => { void refresh(); }} disabled={loading} className="mt-2">Retry setup progress</Button>
+          </aside>
+        )}
+        <OutfitGrid showFilters showSearch maxOutfits={1000} initialFavoritesOnly={initialFavoritesOnly} />
       </main>
-      
-      {/* Missing Wardrobe Modal - Block access if < 10 items */}
-      <MissingWardrobeModal
-        userId={user?.uid || ''}
-        isOpen={shouldShowMissingWardrobeModal}
-        onComplete={() => {
-          refetch();
-        }}
-        targetCount={10}
-      />
-      
-      {/* Client-Only Navigation - No Props to Avoid Serialization */}
       <ClientOnlyNav />
     </div>
   );

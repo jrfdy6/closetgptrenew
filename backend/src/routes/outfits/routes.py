@@ -11,13 +11,14 @@ from typing import List, Optional, Dict, Any
 from uuid import uuid4
 from collections import defaultdict
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Body, Request
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, ConfigDict, StrictBool
+from pydantic import BaseModel, ConfigDict, StrictBool, Field
 
 # Import from parent modules
 from ...auth.auth_service import get_current_user, get_current_user_id
+from ...auth.verified_user import verified_user_id
 from ...custom_types.profile import UserProfile
 from ...custom_types.outfit import OutfitGeneratedOutfit
 from ...core.cache import cache_manager
@@ -491,176 +492,40 @@ async def debug_specific_outfit(outfit_id: str):
         "debug_info": debug_info
     }
 
+class OutfitWearRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    idempotency_key: str = Field(min_length=1, max_length=128, strict=True)
+    timezone: str = Field(default="UTC", min_length=1, max_length=100, strict=True)
+
+
 @router.post("/{outfit_id}/worn")
 async def mark_outfit_as_worn(
     outfit_id: str,
-    current_user: UserProfile = Depends(get_current_user)
+    request: Request,
+    body: Optional[OutfitWearRequest] = Body(default=None),
+    user_id: str = Depends(verified_user_id),
 ):
-    """
-    Mark an outfit as worn (simplified endpoint for frontend compatibility).
-    This will update both the outfit wear counter AND individual wardrobe item wear counters.
-    """
-    # Write endpoint entry to Firestore immediately (silent)
-    try:
-        debug_ref = db.collection('debug_stats_updates').document()
-        debug_ref.set({
-            'event': 'mark_outfit_as_worn_endpoint_entered',
-            'user_id': current_user.id,
-            'outfit_id': outfit_id,
-            'timestamp': datetime.utcnow().isoformat(),
-            'message': 'Successfully entered mark_outfit_as_worn endpoint'
-        })
-    except Exception as entry_error:
-        pass  # Silent error handling
+    """Atomically log an owned outfit once today, with a durable retry receipt."""
+    from ...services.outfit_wear import OutfitWearError, mark_outfit_worn, mark_legacy_outfit_worn
+
+    # Only an omitted body gets the compatibility adapter. An explicit null or
+    # malformed object must not silently turn into a different wear request.
+    if body is None and await request.body():
+        raise HTTPException(status_code=422, detail="A wear request must be a valid object")
 
     try:
-        if not current_user:
-            raise HTTPException(status_code=401, detail="Not authenticated")
+        from ...config.firebase import db
+        if db is None:
+            raise RuntimeError("Storage unavailable")
+        result = (mark_legacy_outfit_worn(db, outfit_id, user_id) if body is None else
+                  mark_outfit_worn(db, outfit_id, user_id, body.idempotency_key, body.timezone))
+        return JSONResponse(result, headers={"Cache-Control": "private, no-store"})
+    except OutfitWearError as error:
+        raise HTTPException(status_code=error.status_code, detail=error.detail) from None
+    except Exception:
+        logger.warning("Outfit wear could not be acknowledged")
+        raise HTTPException(status_code=503, detail="We couldn't confirm this wear was saved. Please retry.") from None
 
-        # Import Firebase inside function to prevent import-time crashes
-        try:
-            from ..config.firebase import db, firebase_initialized
-        except ImportError as e:
-            raise HTTPException(status_code=503, detail="Firebase service unavailable")
-
-        if not db:
-            raise HTTPException(status_code=503, detail="Firebase service unavailable")
-
-        # Simple direct update instead of using the complex OutfitService
-        outfit_ref = db.collection('outfits').document(outfit_id)
-        outfit_doc = outfit_ref.get() if outfit_ref else None
-
-        if not outfit_doc or not outfit_doc.exists:
-            raise HTTPException(status_code=404, detail="Outfit not found")
-
-        outfit_data = outfit_doc.to_dict()
-
-        # Verify ownership
-        if outfit_data.get('user_id') != current_user.id:
-            raise HTTPException(status_code=403, detail="Outfit does not belong to user")
-
-        # Update wear count and last worn
-        current_wear_count = (outfit_data.get('wearCount', 0) if outfit_data else 0)
-        current_time = datetime.utcnow()
-
-        logger.info(f"📊 COUNTER 1: Updating outfit wear count for {outfit_id}")
-        logger.info(f"    Before: wearCount={current_wear_count}")
-
-        outfit_ref.update({
-            'wearCount': current_wear_count + 1,
-            'lastWorn': current_time,
-            'updatedAt': current_time
-        })
-
-        logger.info(f"✅ COUNTER 1 UPDATED: Outfit {outfit_id} wearCount {current_wear_count} → {current_wear_count + 1}")
-        logger.info(f"    lastWorn set to: {current_time.isoformat()}")
-
-        # Update user preferences from wear (Spotify-style learning)
-        try:
-            from ...services.user_preference_service import user_preference_service
-            await user_preference_service.update_from_wear(
-                user_id=current_user.id,
-                outfit=outfit_data
-            )
-            logger.info(f"✨ Updated user preferences from wear event")
-        except Exception as pref_error:
-            logger.warning(f"⚠️ Failed to update preferences from wear: {pref_error}")
-            # Don't fail the whole request if preference update fails
-        
-        # ✅ Award XP for wearing outfit
-        xp_result = {"xp_earned": 0, "level_up": False, "new_level": None}
-        try:
-            from ...services.gamification_service import gamification_service
-            xp_result = await gamification_service.award_xp(
-                user_id=current_user.id,
-                amount=10,
-                reason="outfit_worn"
-            )
-            logger.info(f"🎮 Awarded {xp_result.get('xp_awarded', 0)} XP for wearing outfit")
-        except Exception as xp_error:
-            logger.warning(f"⚠️ Failed to award XP: {xp_error}")
-            # Don't fail the request if XP award fails
-        
-        # ✅ Increment TVE for each item in outfit
-        try:
-            from ...services.tve_service import tve_service
-            items = outfit_data.get('items', [])
-            for item in items:
-                item_id = item.get('id') if isinstance(item, dict) else str(item)
-                if item_id:
-                    # Get item data to find value_per_wear
-                    item_ref = db.collection('wardrobe').document(item_id)
-                    item_doc = item_ref.get()
-                    if item_doc.exists:
-                        item_data = item_doc.to_dict()
-                        value_per_wear = item_data.get('value_per_wear', 0.0)
-                        if value_per_wear > 0:
-                            await tve_service.increment_item_tve(item_id, value_per_wear)
-            logger.info(f"✅ Updated TVE for {len(items)} items")
-        except Exception as tve_error:
-            logger.warning(f"⚠️ Failed to update TVE: {tve_error}")
-            # Don't fail the request if TVE update fails
-
-        try:
-            debug_ref = db.collection('debug_stats_updates').document()
-            debug_ref.set({
-                'event': 'outfit_update_successful',
-                'user_id': current_user.id,
-                'outfit_id': outfit_id,
-                'old_wear_count': current_wear_count,
-                'new_wear_count': current_wear_count + 1,
-                'timestamp': datetime.utcnow().isoformat(),
-                'message': 'Successfully updated outfit wear count'
-            })
-        except Exception as outfit_error:
-            pass  # Silent error handling
-
-        print("🚨 DEPLOYMENT_TEST: Surgical debug code is LIVE", flush=True)
-
-        # Write entry debug to Firestore immediately (before any potential errors) - SILENT
-        try:
-            debug_ref = db.collection('debug_stats_updates').document()
-            debug_ref.set({
-                'event': 'user_stats_section_entered',
-                'user_id': current_user.id,
-                'outfit_id': outfit_id,
-                'timestamp': datetime.utcnow().isoformat(),
-                'message': 'Successfully entered user_stats update section'
-            })
-        except Exception as entry_error:
-            pass  # Silent error handling
-
-        # FIXED: Simple user_stats update with proper increment logic
-        try:
-            from google.cloud.firestore import Increment
-            stats_ref = db.collection('user_stats').document(current_user.id)
-
-            # Use Firestore Increment to properly add 1 to existing count
-            stats_ref.set({
-                'user_id': current_user.id,
-                'worn_this_week': Increment(1),  # FIXED: Proper increment instead of hardcoded 1
-                'last_updated': datetime.utcnow(),
-                'updated_at': datetime.utcnow()
-            }, merge=True)
-            print("✅ FIXED: Updated user_stats with proper increment")
-        except Exception as simple_stats_error:
-            # Don't fail - outfit was still marked as worn successfully
-            print(f"⚠️ SIMPLIFIED: Stats update failed: {simple_stats_error}")
-            pass
-
-        return {
-            "success": True,
-            "message": "Outfit marked as worn",
-            "outfit_id": outfit_id,
-            "wear_count": current_wear_count + 1,
-            "xp_earned": xp_result.get('xp_awarded', 0),
-            "level_up": xp_result.get('level_up', False),
-            "new_level": xp_result.get('level', None)
-        }
-
-    except Exception as e:
-        logger.error(f"Error marking outfit as worn: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/", response_model=dict)
 async def create_custom_outfit(
@@ -1970,3 +1835,24 @@ async def clear_all_caches(
     except Exception as e:
         logger.error(f"Error clearing all caches: {e}")
         raise HTTPException(status_code=500, detail=f"Error clearing all caches: {str(e)}")
+
+
+# Keep the dynamic customer detail route after the fixed /stats and /analytics paths.
+from ...auth.verified_user import verified_user_id
+
+
+@router.get('/{outfit_id}')
+async def get_saved_outfit(outfit_id: str, user_id: str = Depends(verified_user_id)):
+    from ...config.firebase import db
+    from ...services.saved_outfit import read_saved_outfit, SavedOutfitNotFound
+    from fastapi.encoders import jsonable_encoder
+    if db is None:
+        raise HTTPException(status_code=503, detail='Saved outfits are temporarily unavailable.')
+    try:
+        result = read_saved_outfit(db, outfit_id, user_id)
+        return JSONResponse(jsonable_encoder(result), headers={'Cache-Control': 'private, no-store'})
+    except SavedOutfitNotFound:
+        raise HTTPException(status_code=404, detail='Outfit not found')
+    except Exception:
+        logger.exception('Unable to read saved outfit')
+        raise HTTPException(status_code=503, detail='We could not load this saved outfit. Please try again.')

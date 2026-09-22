@@ -1,7 +1,8 @@
 import type { Outfit, OutfitCreate, OutfitUpdate, OutfitFilters as BaseOutfitFilters } from '@/lib/services/outfitService';
 
 type OutfitFilters = BaseOutfitFilters & { season?: string };
-import { db } from '@/lib/firebase/config';
+import { db, auth } from '@/lib/firebase/config';
+import { wearOperationKey, clearWearOperation } from '@/lib/savedOutfit';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { extractFlatLayState } from '@/lib/flatLayState';
 
@@ -62,7 +63,8 @@ class OutfitService {
   }
 
   async getOutfitById(id: string, token: string): Promise<Outfit> {
-    return this.makeRequest(`/outfits/${id}`, {
+    return this.makeRequest(`/outfits/${encodeURIComponent(id)}`, {
+      cache: 'no-store',
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -162,14 +164,19 @@ class OutfitService {
     });
   }
 
-  async markOutfitAsWorn(id: string, token: string): Promise<any> {
-    // Returns: { success, message, outfit_id, wear_count, xp_earned, level_up, new_level }
-    return this.makeRequest(`/outfits/${id}/worn`, {
+  async markOutfitAsWorn(id: string, token: string, operationKey?: string, timezone?: string): Promise<any> {
+    const uid = auth?.currentUser?.uid || 'signed-in';
+    const key = operationKey || wearOperationKey(uid, id);
+    const result = await this.makeRequest('/outfits/' + encodeURIComponent(id) + '/worn', {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      body: JSON.stringify({ idempotency_key: key, timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' }),
+      headers: { Authorization: 'Bearer ' + token },
     });
+    if (result?.success !== true || result.outfit_id !== id || !result.event_id || !Number.isInteger(result.wear_count)) {
+      throw new Error('We could not confirm the wear record. Retry to check the same action.');
+    }
+    if (!operationKey) clearWearOperation(uid, id);
+    return result;
   }
 
   async setOutfitFavorite(id: string, isFavorite: boolean, token: string): Promise<{ isFavorite: boolean }> {

@@ -1,113 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBackendUrl } from '@/lib/server/backendUrl';
-import { serverDebugLog, serverDebugWarn } from '@/lib/server/debug';
 
 export const dynamic = 'force-dynamic';
+const headers = { 'Cache-Control': 'private, no-store' };
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const outfitId = params.id;
-    
-    // Get the authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Unauthorized',
-          details: 'No authorization token provided'
-        },
-        { status: 401 }
-      );
-    }
-
-    // Get the backend URL with fallbacks
-    const backendUrl = getBackendUrl();
-
-    const currentTimestamp = Date.now();
-    serverDebugLog(`👕 [API] Marking outfit ${outfitId} as worn`);
-
-    // Prepare request body with required fields
-    const requestBody = {
-      outfitId: outfitId,
-      dateWorn: currentTimestamp, // Send timestamp in milliseconds to avoid timezone issues
-      occasion: 'Daily',
-      mood: 'Confident',
-      weather: {},
-      notes: '',
-      tags: []
-    };
-
-    // Forward request to backend with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-    try {
-      const backendResponse = await fetch(`${backendUrl}/api/outfit-history/mark-worn`, {
-        method: 'POST',
-        headers: {
-          'Authorization': authHeader,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      const data = await backendResponse.json();
-
-      if (!backendResponse.ok) {
-        serverDebugWarn(`❌ [API] Backend error marking outfit ${outfitId} as worn:`, data);
-        return NextResponse.json(
-          { 
-            success: false,
-            error: data.detail || 'Backend request failed',
-            details: data.detail || 'Unknown backend error'
-          },
-          { status: backendResponse.status }
-        );
-      }
-
-      serverDebugLog(`✅ [API] Successfully marked outfit ${outfitId} as worn`, data);
-      return NextResponse.json(data);
-
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-      if (fetchError.name === 'AbortError') {
-        serverDebugWarn(`⏰ [API] Timeout marking outfit ${outfitId} as worn`);
-        return NextResponse.json(
-          { 
-            success: false,
-            error: 'Backend request timeout',
-            details: 'Backend took too long to respond'
-          },
-          { status: 504 }
-        );
-      }
-      console.error(`❌ [API] Error marking outfit ${outfitId} as worn:`, fetchError);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Failed to forward request',
-          details: fetchError.message
-        },
-        { status: 500 }
-      );
-    }
-
-  } catch (error) {
-    console.error(`❌ [API] Error in mark outfit ${params.id} as worn route:`, error);
-    return NextResponse.json(
-      { 
-        success: false,
-        error: 'Failed to mark outfit as worn',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  const authorization = request.headers.get('authorization');
+  if (!authorization || !/^Bearer \S+$/.test(authorization)) return NextResponse.json({ success: false, error: 'Sign in to record a wear.' }, { status: 401, headers });
+  const raw = await request.text();
+  let body: { idempotency_key?: string; timezone?: string } | null = null;
+  try { body = raw ? JSON.parse(raw) : null; } catch { /* rejected below */ }
+  const legacy = raw.length === 0;
+  if (!legacy && (typeof body?.idempotency_key !== 'string' || !body.idempotency_key.trim() || body.idempotency_key.length > 128)) {
+    return NextResponse.json({ success: false, error: 'A wear operation identifier is required.' }, { status: 422, headers });
   }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(getBackendUrl().replace(/\/$/, '') + '/api/outfits/' + encodeURIComponent(params.id) + '/worn', {
+      method: 'POST', cache: 'no-store', signal: controller.signal,
+      headers: { Authorization: authorization, 'Content-Type': 'application/json' },
+      ...(legacy ? {} : { body: JSON.stringify({ idempotency_key: body!.idempotency_key, timezone: body!.timezone || 'UTC' }) }),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok) return NextResponse.json({ success: false, error: response.status === 404 ? 'This saved outfit is unavailable.' : response.status === 409 ? 'The pieces in this outfit are unavailable. Open a current outfit to record a wear.' : 'We could not confirm the wear record. Retry the same action.' }, { status: response.status, headers });
+    if (result?.success !== true || result.outfit_id !== params.id || typeof result.event_id !== 'string' || !result.event_id.trim() || !Number.isInteger(result.wear_count) || result.wear_count < 0) {
+      return NextResponse.json({ success: false, error: 'The wear response could not be confirmed. Retry the same action.' }, { status: 502, headers });
+    }
+    return NextResponse.json(result, { headers });
+  } catch {
+    return NextResponse.json({ success: false, error: 'The wear record may have saved. Retry to check the same action.' }, { status: 503, headers });
+  } finally { clearTimeout(timer); }
 }
