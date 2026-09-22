@@ -57,8 +57,48 @@ it('Previous cancels a pending auto-advance from the question being left', () =>
   expect(screen.getByText('Getting started')).toBeVisible();
 });
 
-it('still starts a ten-item capsule after the authenticated quiz continuation', () => {
-  window.history.replaceState({}, '', '/onboarding?resume=uploads');
-  render(<Onboarding />);
-  expect(screen.getByTestId('capsule-target')).toHaveTextContent('10');
+it('starts a ten-item capsule after submitting all 25 questions with fewer than ten wardrobe items', async () => {
+  const originalFetch = globalThis.fetch;
+  const mockFetch = jest.fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true, wardrobeCount: 9, hasExistingWardrobe: false }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ wardrobeItemCount: 9 }),
+    });
+  globalThis.fetch = mockFetch;
+  mockUser.getIdToken.mockResolvedValue('quiz-test-token');
+  mockRouter.push.mockClear();
+
+  try {
+    render(<Onboarding />);
+    choose('Male');
+    choose('Next');
+
+    for (let question = 2; question <= 25; question += 1) {
+      expect(screen.getByText(`Question ${question} of 25`)).toBeVisible();
+      if (!screen.queryByRole('slider', { name: 'Skin tone depth' })) {
+        // Each choice question renders its answer buttons before navigation.
+        fireEvent.click(screen.getAllByRole('button')[0]);
+      }
+      if (question < 25) choose('Next');
+    }
+
+    await act(async () => { choose('Discover My Style'); });
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockFetch).toHaveBeenNthCalledWith(1, '/api/style-quiz/submit', expect.objectContaining({
+      method: 'POST',
+      headers: expect.objectContaining({ Authorization: 'Bearer quiz-test-token' }),
+    }));
+    const submission = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(submission.answers).toHaveLength(25);
+    expect(mockFetch).toHaveBeenNthCalledWith(2, '/api/user/profile', expect.any(Object));
+    expect(screen.getByTestId('capsule-target')).toHaveTextContent('10');
+    expect(mockRouter.push).not.toHaveBeenCalled();
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
