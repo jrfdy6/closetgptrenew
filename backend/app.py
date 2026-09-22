@@ -245,6 +245,7 @@ ROUTERS = [
     ("src.routes.image_processing_minimal_test", "/api/image-test"),  # Minimal test router
     ("src.routes.wardrobe_analysis", "/api/wardrobe-analysis"), # Router mounted at /api/wardrobe-analysis - ENABLED for gap analysis
     ("src.routes.wardrobe", "/api/wardrobe"),               # Main wardrobe router - mounted at /api/wardrobe
+    ("src.routes.garment_processing", "/api/wardrobe"),    # Authenticated, attempt-fenced image retries
     ("src.routes.image_upload_minimal", "/api/image"),  # Minimal image upload router - RE-ENABLED
     ("src.routes.image_analysis", ""),   # Full image analysis router - RE-ENABLED for image hash generation
     ("src.routes.auth_working", "/api/auth"),    # Using working auth router that follows same pattern as outfits/wardrobe

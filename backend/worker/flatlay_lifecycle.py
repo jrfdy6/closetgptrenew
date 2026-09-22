@@ -6,6 +6,8 @@ No provider call runs inside a transaction (Firestore may retry its callback).
 """
 from datetime import datetime, timezone
 from uuid import uuid4
+import re
+import math
 from firebase_admin import firestore
 
 REQUESTS_COLLECTION = "flat_lay_requests"
@@ -105,6 +107,53 @@ def _same_item_set(request, outfit):
         return False
 
 
+def _source_fingerprint(garment):
+    try:
+        from .garment_lifecycle import garment_source_fingerprint
+    except ImportError:
+        from garment_lifecycle import garment_source_fingerprint
+    return garment_source_fingerprint(garment)
+
+
+def _available_garment(garment, user_id):
+    return bool(garment and _owner_matches(garment, user_id) and not any(
+        garment.get(key) for key in ("deleted", "isDeleted", "deletedAt", "deleted_at")))
+
+
+def _reserved_reference(garment_id, garment, job, user_id, request_id):
+    """Snapshot a proven original or owned raw input, independent of cutout work."""
+    try:
+        from .original_source import owned_upload_source, request_original_path
+    except ImportError:
+        from original_source import owned_upload_source, request_original_path
+    fingerprint = _source_fingerprint(garment)
+    reference = {"referenceSourceFingerprint": fingerprint}
+    if job is not None:
+        if job.get("user_id") != user_id:
+            raise FlatlayRequestError(422, "One or more original item photos are unavailable.")
+        original = job.get("original")
+        attempt_id = job.get("original_attempt_id")
+        if (isinstance(original, dict)
+                and job.get("source_fingerprint") == fingerprint
+                and job.get("original_source_fingerprint") == fingerprint
+                and isinstance(attempt_id, str)
+                and re.fullmatch(r"[A-Za-z0-9_-]{1,128}", attempt_id)
+                and original.get("originalStoragePath") == f"items/{garment_id}/attempts/{attempt_id}/original.png"):
+            return {**reference, "originalStoragePath": original["originalStoragePath"]}
+    # Never fetch arbitrary/client-controlled URLs here or in the image worker.
+    # The helper admits only this user's upload prefix in the configured bucket.
+    descriptor = owned_upload_source(garment.get("imageUrl") or garment.get("image_url"), user_id)
+    if descriptor:
+        try:
+            path = request_original_path(garment_id, request_id)
+        except (ValueError, TypeError):
+            raise FlatlayRequestError(422, "One or more original item photos are unavailable.")
+        return {**reference, "originalPreparation": descriptor, "originalStoragePath": path}
+    if job is None:
+        return {**reference, "originalStoragePath": f"items/{garment_id}/original.png"}
+    raise FlatlayRequestError(422, "The original item photo is unavailable. Please replace this item's photo and try again.")
+
+
 def reserve_request(db, outfit_id, user_id, *, now=None, request_id=None):
     """Reserve one credit and queue one explicit request in the same commit."""
     now = _now() if now is None else now
@@ -171,9 +220,12 @@ def reserve_request(db, outfit_id, user_id, *, now=None, request_id=None):
         for item_id in _item_ids(outfit.get("items")):
             garment_doc = db.collection("wardrobe").document(item_id).get(transaction=txn)
             garment = (garment_doc.to_dict() or {}) if garment_doc.exists else {}
-            if not garment or not _owner_matches(garment, user_id):
+            if not _available_garment(garment, user_id):
                 raise FlatlayRequestError(422, "One or more outfit items are no longer in your wardrobe.")
-            items.append({"id": item_id, **{key: garment[key] for key in asset_fields if key in garment}})
+            job_doc = db.collection("garment_processing_jobs").document(item_id).get(transaction=txn)
+            job = (job_doc.to_dict() or {}) if job_doc.exists else None
+            reference = _reserved_reference(item_id, garment, job, user_id, request_id)
+            items.append({"id": item_id, **{key: garment[key] for key in asset_fields if key in garment}, **reference})
         request = {
             "request_id": request_id, "outfit_id": outfit_id, "user_id": user_id,
             "status": "pending", "credit_status": "reserved", "quota_period_start": period_start,
@@ -189,7 +241,7 @@ def reserve_request(db, outfit_id, user_id, *, now=None, request_id=None):
     return reserve(db.transaction())
 
 
-def claim_request(db, outfit_id, *, now=None):
+def claim_request(db, outfit_id, *, now=None, allow_claim=True):
     """Exactly one worker can move the private request from pending to processing."""
     now = _now() if now is None else now
     ledger_ref = db.collection(REQUESTS_COLLECTION).document(outfit_id)
@@ -224,6 +276,8 @@ def claim_request(db, outfit_id, *, now=None):
                     credit_status=request.get("credit_status"),
                 ))
             return None
+        if not allow_claim:
+            return None
         claimed = {**request, "status": "processing", "started_at": now, "queued_at": None,
                    "expires_at": now + PROCESSING_TIMEOUT_SECONDS}
         # Hand invalid/expired jobs to the normal settlement path without ever
@@ -240,6 +294,94 @@ def claim_request(db, outfit_id, *, now=None):
         return claimed
 
     return claim(db.transaction())
+
+
+
+def _preparation_reports(request, reports):
+    """Validate exact preparation proof for precisely the snapshotted raw inputs."""
+    try:
+        from .original_source import DEFAULT_BUCKET_NAME, is_owned_upload_path, request_original_path
+    except ImportError:
+        from original_source import DEFAULT_BUCKET_NAME, is_owned_upload_path, request_original_path
+    if not isinstance(reports, list):
+        return None
+    expected = {}
+    for item in request.get("items") or []:
+        if not isinstance(item, dict):
+            return None
+        if "originalPreparation" in item:
+            descriptor = item["originalPreparation"]
+            if (not isinstance(descriptor, dict) or set(descriptor) != {"bucket", "sourceStoragePath"}
+                    or descriptor.get("bucket") != DEFAULT_BUCKET_NAME
+                    or not is_owned_upload_path(descriptor.get("sourceStoragePath"), request.get("user_id"))):
+                return None
+            expected[item.get("id")] = item
+    if len(reports) != len(expected):
+        return None
+    accepted = []
+    seen = set()
+    for report in reports:
+        if not isinstance(report, dict) or set(report) != {"id", "sourceStoragePath", "sourceGeneration", "originalStoragePath", "sha256"}:
+            return None
+        garment_id = report.get("id")
+        if not isinstance(garment_id, str) or garment_id not in expected or garment_id in seen:
+            return None
+        item = expected[garment_id]
+        try:
+            path = request_original_path(garment_id, request["request_id"])
+        except (ValueError, TypeError, KeyError):
+            return None
+        if (report.get("originalStoragePath") != path or item.get("originalStoragePath") != path
+                or report.get("sourceStoragePath") != item["originalPreparation"]["sourceStoragePath"]
+                or not isinstance(report.get("sourceGeneration"), str)
+                or re.fullmatch(r"[0-9]+", report["sourceGeneration"]) is None
+                or not isinstance(report.get("sha256"), str)
+                or re.fullmatch(r"[0-9a-f]{64}", report["sha256"]) is None):
+            return None
+        seen.add(garment_id)
+        accepted.append(dict(report))
+    return accepted
+
+
+def admit_provider_request(db, outfit_id, request_id, prepared_originals, *, now=None):
+    """Fence the one paid provider call after originals are prepared, before I/O.
+
+    This transaction never settles credits. False prevents stale/duplicate work;
+    the coordinator uses the existing settlement path. A committed admission is
+    deliberately ambiguous if the process dies before learning provider outcome.
+    """
+    now = _now() if now is None else now
+    ledger_ref = db.collection(REQUESTS_COLLECTION).document(outfit_id)
+    outfit_ref = db.collection("outfits").document(outfit_id)
+
+    @firestore.transactional
+    def admit(txn):
+        ledger_doc = ledger_ref.get(transaction=txn)
+        outfit_doc = outfit_ref.get(transaction=txn)
+        request = (ledger_doc.to_dict() or {}) if ledger_doc.exists else {}
+        outfit = (outfit_doc.to_dict() or {}) if outfit_doc.exists else {}
+        expires_at = request.get("expires_at")
+        if (request.get("request_id") != request_id or request.get("status") != "processing"
+                or request.get("credit_status") != "reserved"
+                or request.get("provider_admitted_at") is not None
+                or not isinstance(expires_at, (int, float)) or isinstance(expires_at, bool)
+                or not math.isfinite(expires_at) or expires_at <= now
+                or not _available_garment(outfit, request.get("user_id")) or not _same_item_set(request, outfit)):
+            return False
+        reports = _preparation_reports(request, prepared_originals)
+        if reports is None:
+            return False
+        for item in request.get("items") or []:
+            garment_doc = db.collection("wardrobe").document(item["id"]).get(transaction=txn)
+            garment = (garment_doc.to_dict() or {}) if garment_doc.exists else {}
+            if not _available_garment(garment, request["user_id"]):
+                return False
+            if "referenceSourceFingerprint" in item and item["referenceSourceFingerprint"] != _source_fingerprint(garment):
+                return False
+        txn.update(ledger_ref, {"prepared_originals": reports, "provider_admitted_at": now})
+        return True
+
+    return admit(db.transaction())
 
 
 def finish_request(db, outfit_id, request_id, *, url=None, error=None,
@@ -261,6 +403,11 @@ def finish_request(db, outfit_id, request_id, *, url=None, error=None,
                 or request.get("credit_status") != "reserved"):
             return False
         if expired_only and request.get("expires_at", now + 1) > now:
+            return False
+        if error_code == "request_changed" and request.get("provider_admitted_at") is not None:
+            # A duplicate admission rejection is not proof the first provider
+            # call stopped. Leave its reservation to the real result or expiry;
+            # never refund it and enable another paid request in the meantime.
             return False
         outfit_doc = outfit_ref.get(transaction=txn)
         outfit = (outfit_doc.to_dict() or {}) if outfit_doc.exists else {}

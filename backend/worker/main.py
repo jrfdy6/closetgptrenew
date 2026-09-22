@@ -14,8 +14,10 @@ print("🔍 Using railway.worker.toml config with NIXPACKS builder (root railway
 from flatlay_lifecycle import (
     REQUESTS_COLLECTION,
     claim_request,
+    admit_provider_request,
     finish_request,
 )
+from flatlay_original_preparation import prepare_request_originals
 from flatlay_reference_images import (
     prepare_original_references,
     build_reference_edit_payload,
@@ -26,17 +28,15 @@ from flatlay_reference_images import (
 
 # Continue with other imports
 import base64
+import json
+import signal
 import time
 import requests
-import numpy as np
-import multiprocessing
 from datetime import datetime, timezone
 from pathlib import Path
 from io import BytesIO
 from urllib.parse import urlparse, unquote
-from rembg import remove
 from PIL import Image, UnidentifiedImageError, ImageFilter, ImageDraw, ImageOps
-from concurrent.futures import ProcessPoolExecutor, TimeoutError
 from uuid import uuid4
 from openai import OpenAI
 import firebase_admin
@@ -64,10 +64,6 @@ ALPHA_TIMEOUT_SECONDS = 240
 # Ensure deterministic OpenMP threading inside worker processes
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 
-alpha_executor = ProcessPoolExecutor(
-    max_workers=1,
-    mp_context=multiprocessing.get_context("spawn")
-)
 
 
 MATERIAL_SHADOWS = {
@@ -636,15 +632,6 @@ def upload_flatlay_image(image: Image.Image, outfit_id: str, renderer_tag: str =
     print(f"✅ Uploaded {renderer_tag} flat lay for outfit {outfit_id}: {url}")
     return url
 
-
-def _alpha_matting(bytes_data: bytes) -> bytes:
-    return remove(
-        bytes_data,
-        alpha_matting=True,
-        alpha_matting_foreground_threshold=240,
-        alpha_matting_background_threshold=10,
-        alpha_matting_erode_size=10,
-    )
 
 
 def smooth_edges(img: Image.Image, edge_blur_radius: float = 1.5) -> Image.Image:
@@ -1287,12 +1274,15 @@ def process_outfit_flat_lay(doc_id: str, data: dict | None = None):
         expected_ids = {item.get('id') for item in items}
         if not items or None in expected_ids or len(expected_ids) != len(items):
             raise FlatlayGenerationError("invalid_items", "The outfit items could not be prepared.")
-        references = prepare_original_references(items, bucket)
+        prepared_originals = prepare_request_originals(request, bucket)
+        references = prepare_original_references(items, bucket, request_id=request_id)
         actual_ids = {reference.get('id') for reference in references}
         if actual_ids != expected_ids or len(references) != len(items):
             raise FlatlayGenerationError("missing_original_references", "Some original item photos are unavailable. Please check your wardrobe items.")
         if int(time.time()) >= request['expires_at']:
             raise FlatlayGenerationError("preparation_timeout", "Preparing the item photos took too long. Please try again.")
+        if not admit_provider_request(db, doc_id, request_id, prepared_originals):
+            raise FlatlayGenerationError("request_changed", "The outfit or its photos changed while preparing the preview. Please request it again.")
         image = generate_original_reference_flatlay(references, doc_id)
         # Each attempt gets a unique object; a late image cannot replace pixels
         # belonging to a newer request. No compositor or automatic retry is used.
@@ -1321,8 +1311,8 @@ def process_outfit_flat_lay(doc_id: str, data: dict | None = None):
 def expire_stale_flatlay_requests():
     """Settle the oldest expired jobs before new work, without paid retries.
 
-    These are eligibility thresholds, not a wall-clock SLA: this sequential loop
-    can run only while the worker is alive and previous operations have returned.
+    The coordinator runs this independently from garment and flatlay children.
+    Storage availability and the polling interval still bound observed recovery.
     Numeric range queries exclude the null expiry on completed requests and use
     a single-field index, so active jobs cannot hide expired jobs in the batch.
     """
@@ -1331,7 +1321,7 @@ def expire_stale_flatlay_requests():
         db.collection(REQUESTS_COLLECTION)
         .where(filter=FieldFilter('expires_at', '>=', 0))
         .where(filter=FieldFilter('expires_at', '<=', now))
-        .order_by('expires_at').limit(20).stream()
+        .order_by('expires_at').limit(20).stream(timeout=10, retry=None)
     )
     for doc in expired_requests:
         request = doc.to_dict() or {}
@@ -1348,255 +1338,101 @@ def expire_stale_flatlay_requests():
 
 
 # ----------------------------
-# Wardrobe Item Processing
-# ----------------------------
-
-def process_item(doc_id, data):
-    """Process a single wardrobe item with alpha matting, retry logic, and optimizations"""
-    original_url = data.get("imageUrl") or data.get("image_url")
-    if not original_url:
-        return
-    
-    retry_count = data.get("processing_retry_count", 0)
-    if retry_count >= MAX_RETRIES:
-        print(f"⛔ {doc_id}: Max retries reached, skipping")
-        return
-
-    doc_ref = db.collection(FIRESTORE_COLLECTION).document(doc_id)
-
-    try:
-        start_time = time.time()
-
-        # 1. Fetch or decode the original image bytes
-        if original_url.startswith("data:"):
-            original_bytes = decode_data_uri(original_url)
-        else:
-            if not original_url.lower().startswith(("http://", "https://")):
-                mark_failure(doc_id, "failed", "Unsupported image URL format", retry_count)
-                metrics["failed"] += 1
-                return
-            response = requests.get(original_url, timeout=30)
-            response.raise_for_status()
-            original_bytes = response.content
-
-        # 2. Open image and normalize to RGBA
-        try:
-            original_image = ImageOps.exif_transpose(Image.open(BytesIO(original_bytes))).convert("RGBA")
-        except UnidentifiedImageError:
-            mark_failure(doc_id, "failed", "Unrecognized image format", retry_count)
-            metrics["failed"] += 1
-            return
-
-        original_size = original_image.size
-        # Keep the canonical reference before resizing the background-removal
-        # working copy. Flat-lay requests read this identity-preserving original.
-        original_image = constrain_original_reference_image(original_image)
-        original_storage_path = f"items/{doc_id}/original.png"
-        original_storage_url = upload_png(original_image, original_storage_path)
-
-        # 3. Resize image if it's too large (either by file size or dimensions)
-        # Check if file size exceeds limit OR if dimensions are very large
-        needs_resize = False
-        if len(original_bytes) > MAX_IMAGE_BYTES:
-            print(f"📏 {doc_id}: Image file size ({len(original_bytes) / 1024 / 1024:.1f}MB) exceeds 5MB limit, resizing...")
-            needs_resize = True
-        elif original_size[0] > 2048 or original_size[1] > 2048:
-            print(f"📏 {doc_id}: Image dimensions ({original_size[0]}x{original_size[1]}) are large, resizing for efficiency...")
-            needs_resize = True
-        
-        if needs_resize:
-            # Resize to max 2048x2048 to reduce file size while maintaining quality
-            original_image = resize_image(original_image, max_width=2048, max_height=2048)
-            print(f"✅ {doc_id}: Resized to {original_image.size[0]}x{original_image.size[1]}")
-
-        # 4. Check if image already has transparency (skip rembg if it does)
-        alpha_channel = np.array(original_image.split()[3])  # Get alpha channel
-        has_transparency = np.any(alpha_channel < 255)  # Check if any pixel is not fully opaque
-
-        if has_transparency:
-            print(f"✨ {doc_id}: Image already has transparency, preserving original")
-            output_img = original_image
-            processing_mode = "preserved"
-        else:
-            # Run background removal
-            print(f"🎨 {doc_id}: Running alpha matting (timeout {ALPHA_TIMEOUT_SECONDS}s)...")
-            original_buffer = BytesIO()
-            original_image.save(original_buffer, format="PNG")
-            original_bytes_png = original_buffer.getvalue()
-
-            try:
-                future = alpha_executor.submit(_alpha_matting, original_bytes_png)
-                output_bytes = future.result(timeout=ALPHA_TIMEOUT_SECONDS)
-                processing_mode = "alpha"
-            except TimeoutError:
-                future.cancel()
-                print(f"⚠️  {doc_id}: Alpha matting timed out after {ALPHA_TIMEOUT_SECONDS}s, falling back to fast mode")
-                output_bytes = remove(original_bytes_png)
-                processing_mode = "fast"
-            except Exception as alpha_exc:
-                print(f"⚠️  {doc_id}: Alpha matting failed ({alpha_exc}), falling back to fast mode")
-                output_bytes = remove(original_bytes_png)
-                processing_mode = "fast"
-
-            output_img = Image.open(BytesIO(output_bytes)).convert("RGBA")
-            print(f"✅ {doc_id}: Background removal complete using {processing_mode} mode")
-            
-        # Preserve the clean cutout before any presentation resize. Do not whiten
-        # RGB values, fill transparent pixels, add shadows, or crop collars/hangers
-        # from canonical garment evidence. The image model handles presentation.
-        if output_img.getchannel("A").getbbox() is None:
-            raise ValueError("Background removal produced an empty garment image")
-        clean_storage_path = f"items/{doc_id}/nobg.png"
-        clean_url = upload_png(output_img, clean_storage_path)
-
-        # The legacy processed asset remains a clean, smaller compatibility copy.
-        if output_img.size[0] > MAX_OUTPUT_WIDTH or output_img.size[1] > MAX_OUTPUT_HEIGHT:
-            output_img = resize_image(output_img, MAX_OUTPUT_WIDTH, MAX_OUTPUT_HEIGHT)
-
-        # 8. Generate thumbnail (object-contain)
-        thumbnail_img = generate_thumbnail(output_img)
-
-        # 9. Upload processed and thumbnail images
-        print(f"📤 {doc_id}: Uploading processed image...")
-        processed_storage_path = f"items/{doc_id}/processed.png"
-        processed_url = upload_png(output_img, processed_storage_path)
-
-        print(f"📤 {doc_id}: Uploading thumbnail...")
-        thumbnail_storage_path = f"items/{doc_id}/thumbnail.png"
-        thumbnail_url = upload_png(thumbnail_img, thumbnail_storage_path)
-
-        total_time = time.time() - start_time
-
-        # 10. Update Firestore document with new URLs and status
-        doc_ref.update({
-            "imageUrl": original_storage_url,
-            "backgroundRemovedUrl": clean_url,
-            "thumbnailUrl": thumbnail_url,
-            "backgroundRemoved": True,
-            "processing_status": "done",
-            "processing_error": None,
-            "processing_retry_count": 0,
-            "processing_last_error": None,
-            "processing_time": total_time,
-            "processing_mode": processing_mode,
-            "original_size": f"{original_size[0]}x{original_size[1]}",
-            "processed_size": f"{output_img.size[0]}x{output_img.size[1]}"
-        })
-
-        metrics["processed"] += 1
-        print(f"✅ {doc_id}: Done using {processing_mode} mode ({total_time:.1f}s)")
-
-    except requests.RequestException as exc:
-        doc_ref.update({
-            "processing_retry_count": retry_count + 1,
-            "processing_last_error": f"Network: {str(exc)}"
-        })
-        print(f"⚠️  {doc_id}: Network error - {str(exc)[:80]}")
-    except Exception as exc:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"❌ {doc_id}: Error - {str(exc)[:100]}")
-        print(f"   Traceback: {error_details[:200]}...")
-        mark_failure(doc_id, "failed", str(exc), retry_count + 1)
-        metrics["failed"] += 1
-
-
-# ----------------------------
-# Worker Loop
+# Lightweight coordinator
 # ----------------------------
 def run_worker():
-    """Main worker loop - checks for pending items and processes them"""
-    print("🔥 Worker started. Listening for new images...")
-    print(f"📊 Configuration:")
-    print(f"   Firebase Project: {firebase_creds.get('project_id')}")
-    print(f"   Collection: {FIRESTORE_COLLECTION}")
-    print(f"   Batch size: {BATCH_SIZE} items")
-    print(f"   Poll interval: {POLL_INTERVAL}s")
-    print(f"   Max retries: {MAX_RETRIES}")
-    print(f"   Max output size: {MAX_OUTPUT_WIDTH}x{MAX_OUTPUT_HEIGHT}")
-    print(f"   Thumbnail size: {THUMBNAIL_SIZE}x{THUMBNAIL_SIZE}")
-    print()
-    
-    loop_count = 0
-    
-    while True:
-        try:
-            loop_count += 1
-            processed_any = False
+    from coordinator import WorkerCoordinator
+    from process_supervisor import JobProcess
+    from garment_lifecycle import (
+        claim_garment, finish_garment, publish_original, recover_expired_garments,
+        LEASE_SECONDS,
+    )
+    from flatlay_lifecycle import PROCESSING_TIMEOUT_SECONDS
 
-            # Wardrobe queue
-            wardrobe_pending = list(
-                db.collection(FIRESTORE_COLLECTION)
-                .where(filter=FieldFilter("processing_status", "==", "pending"))
-                .limit(BATCH_SIZE)
-                .stream()
-            )
+    worker_id = uuid4().hex
+    pending_cursor = None
 
-            if wardrobe_pending:
-                print(f"🎯 Found {len(wardrobe_pending)} pending wardrobe items")
-                for doc in wardrobe_pending:
-                    process_item(doc.id, doc.to_dict())
-                    processed_any = True
-                    time.sleep(1)
+    def wardrobe_candidates():
+        nonlocal pending_cursor
+        now = int(time.time())
+        # Private due work remains schedulable even if an older client has
+        # replaced the public wardrobe status projection.
+        due = list(db.collection("garment_processing_jobs")
+                   .where(filter=FieldFilter("next_attempt_at", ">=", 0))
+                   .where(filter=FieldFilter("next_attempt_at", "<=", now))
+                   .order_by("next_attempt_at").limit(25).stream(timeout=10, retry=None))
+        query = (db.collection(FIRESTORE_COLLECTION)
+                 .where(filter=FieldFilter("processing_status", "==", "pending"))
+                 .order_by("__name__").limit(25))
+        if pending_cursor is not None:
+            query = query.start_after(pending_cursor)
+        rows = list(query.stream(timeout=10, retry=None))
+        pending_cursor = rows[-1] if rows else None
+        return list(dict.fromkeys([doc.id for doc in due] + [doc.id for doc in rows]))
 
-            # The private ledger is the only paid work queue. Missing/null outfit
-            # status is not consent, and an old client cannot fabricate a debit.
-            expire_stale_flatlay_requests()
-            outfit_pending = list(
-                db.collection(REQUESTS_COLLECTION)
-                .where(filter=FieldFilter('queued_at', '>=', 0))
-                .order_by('queued_at').limit(1).stream()
-            )
-            for doc in outfit_pending:
-                process_outfit_flat_lay(doc.id)
-                processed_any = True
+    def flatlay_candidates():
+        rows = (db.collection(REQUESTS_COLLECTION)
+                .where(filter=FieldFilter("queued_at", ">=", 0))
+                .order_by("queued_at").limit(1).stream(timeout=10, retry=None))
+        return [doc.id for doc in rows]
 
-            # Retire old untracked pending records safely; never call the provider
-            # or infer a historical refund from a client-writable status field.
-            legacy_pending = list(
-                db.collection('outfits')
-                .where(filter=FieldFilter('flat_lay_status', "==", 'pending'))
-                .limit(1).stream()
-            )
-            for doc in legacy_pending:
-                process_outfit_flat_lay(doc.id)
+    def reconcile_legacy():
+        rows = (db.collection("outfits")
+                .where(filter=FieldFilter("flat_lay_status", "==", "pending"))
+                .limit(20).stream(timeout=10, retry=None))
+        for doc in rows:
+            # Projection repair must never claim a paid job in the coordinator.
+            claim_request(db, doc.id, allow_claim=False)
 
-            if processed_any:
-                print(
-                    "📊 Metrics: wardrobe_processed={processed} wardrobe_failed={failed} wardrobe_skipped={skipped} "
-                    "flatlays_done={flat_lay_processed} flatlays_failed={flat_lay_failed}"
-                    .format(**metrics)
-                )
-            else:
-                if loop_count % (300 // POLL_INTERVAL) == 1:
-                    print(
-                        "💤 No pending tasks. wardrobe_processed={processed}, flatlays_done={flat_lay_processed}"
-                        .format(**metrics)
-                    )
-                time.sleep(POLL_INTERVAL)
+    def start_garment(claim):
+        environment = {key: value for key, value in os.environ.items()
+                       if not key.startswith("OPENAI_")}
+        remaining = min(LEASE_SECONDS, claim["expires_at"] - time.time())
+        if remaining <= 0:
+            raise TimeoutError("Garment lease expired before dispatch")
+        return JobProcess({"item_id": claim["garment_id"], "attempt_id": claim["attempt_id"],
+                           "image_url": claim["source_url"], "bucket_name": FIREBASE_BUCKET_NAME},
+                          timeout_seconds=remaining, env=environment)
 
-        except Exception as e:
-            print(f"⚠️  Worker loop error: {str(e)[:100]}")
-            metrics["failed"] += 1
-            time.sleep(POLL_INTERVAL)
+    def start_flatlay(outfit_id):
+        return JobProcess({}, command=[sys.executable, str(Path(__file__).resolve()),
+                                       "--flatlay-job", outfit_id],
+                          timeout_seconds=PROCESSING_TIMEOUT_SECONDS)
 
-
-# ----------------------------
-# Entry Point
-# ----------------------------
-if __name__ == "__main__":
+    coordinator = WorkerCoordinator(
+        expire_flatlays=expire_stale_flatlay_requests,
+        recover_garments=lambda: recover_expired_garments(db),
+        garment_candidates=wardrobe_candidates,
+        claim_garment=lambda item_id: claim_garment(db, item_id, worker_id),
+        start_garment=start_garment,
+        publish_original=lambda item_id, attempt_id, original: publish_original(db, item_id, attempt_id, original),
+        finish_garment=lambda item_id, attempt_id, **outcome: finish_garment(db, item_id, attempt_id, **outcome),
+        flatlay_candidates=flatlay_candidates,
+        start_flatlay=start_flatlay,
+        legacy_reconcile=reconcile_legacy,
+        report=lambda event, fields: print(json.dumps({"schema_version": 1, "event": event, **fields}), flush=True),
+    )
+    print("Worker coordinator started: independent garment and flatlay slots", flush=True)
     try:
-        print("=" * 60)
-        print("🚀 Easy Outfit Background Image Processor")
-        print("=" * 60)
-        print()
-        run_worker()
+        while True:
+            coordinator.tick()
+            time.sleep(POLL_INTERVAL)
+    finally:
+        coordinator.close()
+
+
+def _shutdown(_signal, _frame):
+    raise KeyboardInterrupt
+
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, _shutdown)
+    try:
+        if len(sys.argv) == 3 and sys.argv[1] == "--flatlay-job":
+            process_outfit_flat_lay(sys.argv[2])
+        elif len(sys.argv) == 1:
+            run_worker()
+        else:
+            raise SystemExit("Unsupported worker command")
     except KeyboardInterrupt:
-        print("\n👋 Worker stopped by user")
-    except Exception as e:
-        import traceback
-        print(f"❌ Fatal error during worker startup:")
-        print(f"   {str(e)}")
-        print(f"   Traceback:")
-        traceback.print_exc()
-        raise
+        print("Worker stopped", flush=True)
