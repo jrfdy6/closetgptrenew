@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-import re
 import math
 from collections.abc import Mapping, Sequence
 from typing import Any, Dict, List, Optional, Tuple
+
+from ..utils.profile_normalization import (
+    normalize_body_type, normalize_skin_tone, normalize_profile_signals,
+)
 
 
 class RequiredBaseItemNotFound(ValueError):
@@ -164,57 +167,6 @@ def _string_list(value: Any) -> List[str]:
     return result
 
 
-def normalize_body_type(value: Any) -> str:
-    token = re.sub(r"[^a-z0-9]+", "_", str(value or "").lower()).strip("_")
-    aliases = {
-        "round": "apple",
-        "apple": "apple",
-        "round_apple": "apple",
-        "apple_round": "apple",
-        "triangle": "pear",
-        "pear_triangle": "pear",
-        "triangle_pear": "pear",
-        "straight": "rectangle",
-        "straight_rectangle": "rectangle",
-        "rectangle_straight": "rectangle",
-        "inverted_triangle": "inverted_triangle",
-    }
-    normalized = aliases.get(token, token)
-    return normalized if normalized in {
-        "hourglass",
-        "pear",
-        "apple",
-        "rectangle",
-        "inverted_triangle",
-        "oval",
-        "average",
-    } else "average"
-
-
-def normalize_skin_tone(value: Any) -> str:
-    """Normalize depth without inferring warm/cool undertone from the quiz slider."""
-    raw_value = str(value or "").strip()
-    slider_match = re.fullmatch(r"skin_tone_(\d{1,3})", raw_value.lower())
-    numeric_match = re.fullmatch(r"(\d{1,3})", raw_value)
-    if slider_match or numeric_match:
-        depth = int((slider_match or numeric_match).group(1))
-        if 0 <= depth <= 100:
-            if depth <= 33:
-                return "light"
-            if depth <= 66:
-                return "medium"
-            return "deep"
-
-    lowered = raw_value.lower()
-    if any(label in lowered for label in ("fair", "light")):
-        return "light"
-    if any(label in lowered for label in ("deep", "dark")):
-        return "deep"
-    if any(label in lowered for label in ("warm", "cool", "neutral")):
-        return next(label for label in ("warm", "cool", "neutral") if label in lowered)
-    return "medium"
-
-
 def normalize_generation_user_profile(
     profile: Optional[Mapping[str, Any]], user_id: Optional[str] = None
 ) -> Dict[str, Any]:
@@ -225,8 +177,11 @@ def normalize_generation_user_profile(
     preferences = source.get("preferences")
     preferences = dict(preferences) if isinstance(preferences, Mapping) else {}
 
-    body_type = source.get("bodyType") or source.get("body_type") or measurements.get("bodyType")
-    skin_tone = source.get("skinTone") or source.get("skin_tone") or measurements.get("skinTone")
+    def first_answer(*values: Any) -> Any:
+        return next((value for value in values if value is not None and value != ""), None)
+
+    body_type = first_answer(source.get("bodyType"), source.get("body_type"), measurements.get("bodyType"))
+    skin_tone = first_answer(source.get("skinTone"), source.get("skin_tone"), measurements.get("skinTone"))
     height = source.get("height") or measurements.get("height") or ""
     weight = source.get("weight") or measurements.get("weight") or ""
 
@@ -246,13 +201,11 @@ def normalize_generation_user_profile(
     )
     brands = _string_list(style_profile.get("preferredBrands"))
 
-    normalized_body_type = normalize_body_type(body_type)
-    normalized_skin_tone = normalize_skin_tone(skin_tone)
     normalized = {
         **source,
         "id": user_id or source.get("id") or "",
-        "bodyType": normalized_body_type,
-        "skinTone": normalized_skin_tone,
+        "bodyType": body_type,
+        "skinTone": skin_tone,
         "height": height,
         "weight": weight,
         "style_preferences": styles,
@@ -265,12 +218,13 @@ def normalize_generation_user_profile(
         },
         "measurements": {
             **measurements,
-            "bodyType": normalized_body_type,
-            "skinTone": normalized_skin_tone,
+            "bodyType": body_type,
+            "skinTone": skin_tone,
             "height": height,
             "weight": weight,
         },
     }
+    normalized["profileSignals"] = normalize_profile_signals(normalized)
     return normalized
 
 

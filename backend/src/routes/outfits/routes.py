@@ -154,6 +154,8 @@ class OutfitResponse(BaseModel):
     occasion: Optional[str] = None
     confidence_score: Optional[float] = None
     reasoning: Optional[str] = None
+    weather: Optional[Dict[str, Any]] = None
+    outfitAnalysis: Optional[Dict[str, Any]] = None
     createdAt: Optional[datetime] = None
     user_id: Optional[str] = None
     generated_at: Optional[str] = None

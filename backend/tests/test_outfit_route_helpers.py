@@ -101,15 +101,16 @@ class GenerationProfileNormalizationTests(unittest.TestCase):
         )
 
         self.assertEqual(normalized["id"], "user-1")
-        self.assertEqual(normalized["bodyType"], "apple")
-        self.assertEqual(normalized["skinTone"], "deep")
+        self.assertEqual(normalized["bodyType"], "Round/Apple")
+        self.assertEqual(normalized["profileSignals"]["body_type"], "apple")
+        self.assertEqual(normalized["profileSignals"]["skin_depth"], "deep")
         self.assertEqual(normalized["stylePreferences"]["preferredStyles"], ["Classic"])
         self.assertEqual(normalized["stylePreferences"]["favoriteColors"], ["navy", "camel"])
 
     def test_normalizes_legacy_numeric_skin_tone(self):
         normalized = normalize_generation_user_profile({"skinTone": "82"}, "user-1")
 
-        self.assertEqual(normalized["skinTone"], "deep")
+        self.assertEqual(normalized["profileSignals"]["skin_depth"], "deep")
 
     def test_uses_nested_measurements_and_does_not_infer_undertone(self):
         normalized = normalize_generation_user_profile(
@@ -121,8 +122,9 @@ class GenerationProfileNormalizationTests(unittest.TestCase):
             }
         )
 
-        self.assertEqual(normalized["bodyType"], "inverted_triangle")
-        self.assertEqual(normalized["skinTone"], "light")
+        self.assertEqual(normalized["bodyType"], "Inverted Triangle")
+        self.assertEqual(normalized["profileSignals"]["body_type"], "inverted_triangle")
+        self.assertEqual(normalized["profileSignals"]["skin_depth"], "light")
 
 
 class RobustGenerationLatencyContractTests(unittest.TestCase):

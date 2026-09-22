@@ -559,48 +559,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* AI Fit Score Card - PRO/PREMIUM ONLY */}
-          {canAccessPro ? (
-            <div className="component-card p-4 sm:p-6">
-              <div className="flex flex-col space-y-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--copper-mid)]/30 to-primary/35 dark:from-[var(--copper-mid)]/20 dark:to-primary/25 rounded-xl flex items-center justify-center shadow-inner">
-                  <Star className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80 dark:text-primary/70" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">AI Fit Score</p>
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E8A4A4] to-[#D4A574] bg-clip-text text-transparent mb-0.5">
-                    {Math.round(gamificationStats?.ai_fit_score?.total_score || 0)}
-                  </p>
-                  <p className="text-xs sm:text-sm component-text-secondary">
-                    {gamificationStats?.ai_fit_score?.total_score === undefined || gamificationStats?.ai_fit_score?.total_score === 0 
-                      ? 'Getting Started' 
-                      : gamificationStats?.ai_fit_score?.total_score >= 75 
-                        ? 'AI Master' 
-                        : gamificationStats?.ai_fit_score?.total_score >= 50 
-                          ? 'AI Apprentice' 
-                          : 'Learning'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="component-card p-4 sm:p-6 relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-[var(--copper-mid)]/5 to-primary/5 dark:from-[var(--copper-mid)]/10 dark:to-primary/10 blur-sm" />
-              <div className="relative flex flex-col space-y-3 opacity-60">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--copper-mid)]/30 to-primary/35 dark:from-[var(--copper-mid)]/20 dark:to-primary/25 rounded-xl flex items-center justify-center shadow-inner">
-                  <Star className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80 dark:text-primary/70" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">AI Fit Score</p>
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E8A4A4] to-[#D4A574] bg-clip-text text-transparent mb-0.5">
-                    --
-                  </p>
-                  <p className="text-xs sm:text-sm component-text-secondary">Upgrade to PRO</p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Total Items Card */}
           <div className="component-card p-4 sm:p-6">
             <div className="flex flex-col space-y-3">

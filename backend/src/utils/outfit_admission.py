@@ -86,7 +86,9 @@ def normalize_stored_garment(item, allowed_types):
     """Adapt legacy persisted shapes to ClothingItem without trusting client fields."""
     from datetime import datetime, timezone
 
-    normalized = dict(item)
+    from src.utils.garment_metadata import normalize_garment_metadata
+
+    normalized = normalize_garment_metadata(item)
     raw_type = str(item.get('type') or '').lower().removeprefix('clothingtype.')
     canonical_type = re.sub(r'[-\s]+', '_', raw_type).strip('_')
     category_defaults = {'top': 'shirt', 'bottom': 'pants', 'one-piece': 'dress',

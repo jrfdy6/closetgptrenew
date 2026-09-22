@@ -1,11 +1,48 @@
+declare const expect: jest.Expect;
 import { DataValidator } from './dataValidator';
 import {
   assertRequiredBaseItem,
   buildOutfitGenerationUserProfile,
 } from './outfitGenerationContract';
 import { ensureDefaultSkinToneAnswer, upsertQuizAnswer } from './quizAnswerContract';
+import { convertToPydanticShape } from './outfitDataConverter';
 
 describe('outfit generation contract', () => {
+  it('does not invent demographics in the complete request conversion path', () => {
+    const profile = buildOutfitGenerationUserProfile({}, { uid: 'owner' });
+    const converted = convertToPydanticShape({
+      occasion: 'Casual', style: 'Minimalist', mood: 'Serene',
+      weather: { temperature: 72, condition: 'Clear' },
+      wardrobe: [{ id: 'top', name: 'Plain tee', type: 'shirt', color: 'white' }],
+      user_profile: profile,
+    });
+    const result = DataValidator.getInstance().validateOutfitRequest(converted);
+    expect(result.isValid).toBe(true);
+    expect(result.sanitizedValue.user_profile).toMatchObject({ gender: '', bodyType: '', skinTone: '' });
+    expect(result.sanitizedValue.user_profile.age).toBeUndefined();
+  });
+
+  it('preserves optional and corrected quiz values through conversion and validation', () => {
+    const profile = buildOutfitGenerationUserProfile({
+      gender: 'Non-binary', age: 38, bodyType: 'Inverted Triangle', skinTone: 'skin_tone_0',
+      height: '5\'8" - 5\'11"', weight: 'Prefer not to specify',
+      measurements: { bodyType: 'Round/Apple', skinTone: 'skin_tone_82' },
+    }, { uid: 'owner' });
+    const converted = convertToPydanticShape({
+      occasion: 'Casual', style: 'Minimalist', mood: 'Serene',
+      weather: { temperature: 72, condition: 'Clear' },
+      wardrobe: [{ id: 'top', name: 'Plain tee', type: 'shirt', color: 'white' }],
+      user_profile: profile,
+    });
+    const result = DataValidator.getInstance().validateOutfitRequest(converted);
+    expect(result.isValid).toBe(true);
+    expect(result.sanitizedValue.user_profile).toMatchObject({
+      gender: 'non-binary', age: 38, bodyType: 'Inverted Triangle', skinTone: 'skin_tone_0',
+      height: '5\'8" - 5\'11"', weight: 'Prefer not to specify',
+      measurements: { bodyType: 'Inverted Triangle', skinTone: 'skin_tone_0' },
+    });
+  });
+
   it('hydrates quiz signals from the stored profile schema', () => {
     const profile = buildOutfitGenerationUserProfile(
       {

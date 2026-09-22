@@ -1,0 +1,40 @@
+[
+  {
+    "name": "saved upload with file metadata and nested analysis",
+    "item": {
+      "id": "shirt", "name": "White T-shirt", "type": "shirt", "color": "white", "season": ["all"],
+      "metadata": {"fileName": "shirt-on-bed.jpg", "basicMetadata": {"width": 1200}},
+      "material": "",
+      "analysis": {"providerNote": "retained raw source", "metadata": {
+        "basicMetadata": {"height": 1600},
+        "visualAttributes": {"pattern": "solid", "material": "cotton", "neckline": "crew", "futureAttribute": {"value": "unclassified"}},
+        "naturalDescription": "A plain white cotton T-shirt"
+      }}
+    },
+    "expectedVisual": {"pattern": "solid", "material": "cotton", "neckline": "crew", "futureAttribute": {"value": "unclassified"}},
+    "expectedMetadata": {"fileName": "shirt-on-bed.jpg", "basicMetadata": {"width": 1200, "height": 1600}, "naturalDescription": "A plain white cotton T-shirt"}
+  },
+  {
+    "name": "root corrections override stale analysis and root visual metadata",
+    "item": {
+      "id": "shirt", "name": "Corrected shirt", "type": "shirt", "color": "blue", "season": ["all"],
+      "pattern": "solid", "fit": "unknown", "material": ["linen", "cotton"], "statementLevel": 0, "canLayer": false,
+      "temperatureCompatibility": {"minTemp": 65, "maxTemp": 95}, "warmthFactor": "light",
+      "style": ["Minimalist"], "occasion": ["Casual"], "description": "My plain shirt", "brand": "My brand",
+      "metadata": {"visualAttributes": {"pattern": "striped", "fit": "slim", "neckline": "v-neck"}, "imageHash": "photo-hash"},
+      "analysis": {"metadata": {"visualAttributes": {"pattern": "graphic", "fit": "oversized", "material": "synthetic", "neckline": "crew", "statementLevel": 8, "canLayer": true, "temperatureCompatibility": {"minTemp": 30, "maxTemp": 60}, "warmthFactor": "heavy"}}}
+    },
+    "expectedVisual": {"pattern": "solid", "fit": "unknown", "material": "linen, cotton", "statementLevel": 0, "canLayer": false, "neckline": "v-neck", "temperatureCompatibility": {"minTemp": 65, "maxTemp": 95}, "warmthFactor": "light"},
+    "expectedMetadata": {"imageHash": "photo-hash", "styleTags": ["Minimalist"], "occasionTags": ["Casual"], "naturalDescription": "My plain shirt", "brand": "My brand"}
+  },
+  {
+    "name": "snake case visual container and incomplete root metadata",
+    "item": {
+      "id": "shirt", "name": "Unknown shirt", "type": "shirt", "color": "unknown", "season": ["all"],
+      "metadata": {"visualAttributes": {"material": null, "fit": "", "pattern": "unknown"}},
+      "analysis": {"metadata": {"visual_attributes": {"pattern": "graphic", "material": "unidentified blend", "fit": "relaxed", "futureAttribute": "unknown"}}}
+    },
+    "expectedVisual": {"pattern": "unknown", "material": "unidentified blend", "fit": "relaxed", "futureAttribute": "unknown"},
+    "expectedMetadata": {}
+  }
+]
