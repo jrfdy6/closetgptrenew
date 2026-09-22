@@ -830,6 +830,8 @@ async def get_wardrobe_items_with_slash(
             )
         
         # OPTIMIZED: Process items in single pass with efficient defaults
+        from src.services.garment_lifecycle import ERRORS as garment_processing_errors
+
         current_time = int(time.time())
         transformed_items = []
         errors = []
@@ -865,7 +867,11 @@ async def get_wardrobe_items_with_slash(
                     "name": item_data.get('name', 'Unknown Item'),
                     "type": item_data.get('type', 'unknown'),
                     "color": item_data.get('color', 'unknown'),
-                    "imageUrl": item_data.get('imageUrl', '/placeholder.png'),
+                    # A display placeholder is not a saved original and must not
+                    # satisfy capsule readiness after the wardrobe is reloaded.
+                    "imageUrl": next((value.strip() for value in (
+                        item_data.get('imageUrl'), item_data.get('image_url'), item_data.get('originalImageUrl'),
+                    ) if isinstance(value, str) and value.strip()), ''),
                     "wearCount": item_data.get('wearCount', 0),
                     "favorite": item_data.get('favorite', False),
                     "style": item_data.get('style', []),
@@ -893,7 +899,36 @@ async def get_wardrobe_items_with_slash(
                     "backgroundRemovedUrl": item_data.get('backgroundRemovedUrl'),
                     "thumbnailUrl": item_data.get('thumbnailUrl'),
                     "processing_status": item_data.get('processing_status'),
+                    # Preserve capsule identity and the worker's public projection
+                    # across reloads. Private jobs/leases and arbitrary processing
+                    # fields are deliberately not copied into this read response.
+                    **{field: item_data[field] for field in (
+                        'contentHash', 'imageHash', 'image_hash',
+                        'image_url', 'originalImageUrl', 'originalUrl', 'originalStoragePath',
+                        'deleted', 'isDeleted', 'deletedAt',
+                        'processing_attempt_id', 'processing_attempt_count',
+                        'processing_retry_count', 'processing_retryable',
+                        'processing_retry_action',
+                    ) if field in item_data},
                 }
+
+                # Older documents may contain raw exception text. Expose only
+                # Goal 2's finite, user-facing messages, including on legacy rows.
+                error_code = item_data.get('processing_error_code')
+                if isinstance(error_code, str) and error_code in garment_processing_errors:
+                    safe_code = error_code
+                elif error_code or item_data.get('processing_error') or item_data.get('processing_last_error'):
+                    safe_code = 'processing_failed'
+                else:
+                    safe_code = None
+                transformed_item.update({
+                    'processing_error_code': safe_code,
+                    'processing_error': garment_processing_errors.get(safe_code),
+                    'processing_last_error': garment_processing_errors.get(safe_code),
+                })
+                for field in ('processing_next_attempt_at', 'processing_expires_at', 'processing_updated_at'):
+                    if field in item_data:
+                        transformed_item[field] = convert_timestamp(item_data[field], None)
                 
                 transformed_items.append(transformed_item)
                 

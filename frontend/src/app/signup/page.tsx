@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, User, CheckCircle, AlertCircle } from "lucide-react";
 import { signUp, signInWithGoogle, saveSignUpName } from "@/lib/auth";
 import type { User as FirebaseUser } from 'firebase/auth';
-import { transferGuestDraftToNewAccount } from '@/lib/guestDraftTransfer';
+import { authorizeNewAccountGuestTransfer, getPendingGuestTransfer, transferGuestDraftToNewAccount } from '@/lib/guestDraftTransfer';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { auth } from '@/lib/firebase/config';
 
 export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
@@ -25,12 +27,15 @@ export default function SignUp() {
     confirmPassword: ""
   });
   const router = useRouter();
+  const { user: signedInUser, loading: authLoading } = useAuthContext();
   const [fromQuiz, setFromQuiz] = useState(false);
   const [createdAccount, setCreatedAccount] = useState<{ user: FirebaseUser; isNew: boolean; name?: string } | null>(null);
 
   const finishAccountSetup = async (account: { user: FirebaseUser; isNew: boolean; name?: string }) => {
+    if (auth.currentUser?.uid !== account.user.uid) throw new Error('Your signed-in account changed. Sign in with the account you created to retry setup.');
     if (account.name) await saveSignUpName(account.user, account.name);
     if (fromQuiz) await transferGuestDraftToNewAccount(account.user, account.isNew);
+    if (auth.currentUser?.uid !== account.user.uid) return;
     router.push('/onboarding');
   };
 
@@ -49,6 +54,16 @@ export default function SignUp() {
       setFromQuiz(params.get("from") === "quiz");
     }
   }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+    const receipt = fromQuiz && signedInUser ? getPendingGuestTransfer(signedInUser.uid) : null;
+    if (receipt && signedInUser) {
+      setCreatedAccount({ user: signedInUser, isNew: false, name: receipt.name });
+    } else {
+      setCreatedAccount(previous => previous?.user.uid === signedInUser?.uid ? previous : null);
+    }
+  }, [authLoading, signedInUser?.uid, fromQuiz]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -69,8 +84,10 @@ export default function SignUp() {
       if (result.success && result.user) {
         const account = { user: result.user, isNew: true, name: fullName };
         setCreatedAccount(account);
+        if (fromQuiz) authorizeNewAccountGuestTransfer(result.user, fullName);
         if (result.profileError) { setError(result.profileError); return; }
         if (fromQuiz) await transferGuestDraftToNewAccount(result.user, true);
+        if (auth.currentUser?.uid !== result.user.uid) return;
         router.push('/onboarding');
       } else {
         setError(result.error || "Sign up failed");
@@ -97,6 +114,7 @@ export default function SignUp() {
       if (result.success && result.user) {
         const account = { user: result.user, isNew: result.isNewUser === true };
         setCreatedAccount(account);
+        if (fromQuiz && account.isNew) authorizeNewAccountGuestTransfer(result.user);
         await finishAccountSetup(account);
       } else {
         setError(result.error || "Google sign up failed");
