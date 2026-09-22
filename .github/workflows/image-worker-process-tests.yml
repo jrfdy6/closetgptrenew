@@ -1,0 +1,43 @@
+name: Image worker process tests
+
+on:
+  pull_request:
+    branches: ['**']
+    paths:
+      - 'backend/worker/**'
+      - 'backend/tests/**'
+      - '.github/workflows/image-worker-process-tests.yml'
+  push:
+    branches: ['**']
+    paths:
+      - 'backend/worker/**'
+      - 'backend/tests/**'
+      - '.github/workflows/image-worker-process-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  linux-process-tests:
+    name: Linux subprocess and coordinator contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: backend
+        shell: bash
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      # Both suites use only the standard library. Do not install production
+      # dependencies or inject cloud/provider credentials for these contracts.
+      - name: Verify real subprocess termination and reaping
+        run: python -m unittest discover -s tests -p test_process_supervisor.py -v
+      - name: Verify coordinator fairness and recovery
+        run: python -m unittest discover -s tests -p test_worker_coordinator.py -v

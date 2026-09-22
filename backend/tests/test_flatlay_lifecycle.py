@@ -15,6 +15,8 @@ import requests
 from PIL import Image
 from src.services import flatlay_lifecycle as lifecycle
 from worker.flatlay_reference_images import ReferenceImageError
+from worker import flatlay_lifecycle as worker_lifecycle
+from worker.original_source import DEFAULT_BUCKET_NAME
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -93,7 +95,7 @@ class Collection:
     def limit(self, maximum):
         return Collection(self.db, self.name, self.filters, self.order, maximum)
 
-    def stream(self):
+    def stream(self, **_kwargs):
         rows = sorted(self.db.records.get(self.name, {}).items())
         for field, operator, expected in self.filters:
             if operator == '==':
@@ -149,6 +151,72 @@ class FlatlayLifecycleTests(unittest.TestCase):
     def test_worker_and_api_contracts_stay_identical(self):
         self.assertEqual((ROOT / 'worker/flatlay_lifecycle.py').read_bytes(),
                          (ROOT / 'src/services/flatlay_lifecycle.py').read_bytes())
+
+    def test_projection_reconciliation_cannot_claim_pending_paid_work(self):
+        reserved = self.reserve()
+        self.assertIsNone(lifecycle.claim_request(self.db, 'look', now=1110, allow_claim=False))
+        request = self.db.records[lifecycle.REQUESTS_COLLECTION]['look']
+        self.assertEqual(request['status'], 'pending')
+        self.assertEqual(request['request_id'], reserved['request_id'])
+        self.assertEqual(self.remaining(), 6)
+
+    def test_original_path_comes_from_private_publication_and_is_immutable_in_request(self):
+        from src.services.garment_lifecycle import garment_source_fingerprint
+        garment = self.db.records['wardrobe']['shirt']
+        garment['originalStoragePath'] = 'items/other/attempts/stolen/original.png'
+        private_path = 'items/shirt/attempts/first-attempt/original.png'
+        self.db.records['garment_processing_jobs'] = {'shirt': {
+            'user_id': 'owner', 'attempt_id': 'first-attempt', 'original_attempt_id': 'first-attempt',
+            'source_fingerprint': garment_source_fingerprint(garment),
+            'original_source_fingerprint': garment_source_fingerprint(garment),
+            'original': {'originalStoragePath': private_path, 'originalUrl': 'https://assets.invalid/original'},
+        }}
+        self.reserve()
+        self.db.records['garment_processing_jobs']['shirt']['attempt_id'] = 'later-attempt'
+        request = self.claim()
+        self.assertEqual(request['items'][0]['originalStoragePath'], private_path)
+        self.assertEqual(request['items'][1]['originalStoragePath'], 'items/pants/original.png')
+
+    def test_missing_changed_or_foreign_private_original_never_reserves_credit(self):
+        from src.services.garment_lifecycle import garment_source_fingerprint
+        item = self.db.records['wardrobe']['shirt']
+        valid = {'user_id': 'owner', 'attempt_id': 'attempt-one', 'original_attempt_id': 'attempt-one',
+                 'source_fingerprint': garment_source_fingerprint(item),
+                 'original_source_fingerprint': garment_source_fingerprint(item),
+                 'original': {'originalStoragePath': 'items/shirt/attempts/attempt-one/original.png'}}
+        cases = [
+            {**valid, 'original': {}}, {**valid, 'user_id': 'other'},
+            {**valid, 'source_fingerprint': 'previous-image'},
+            {**valid, 'original': {'originalStoragePath': 'items/pants/attempts/attempt-one/original.png'}},
+            {**valid, 'original': {'originalStoragePath': 'https://attacker.invalid/photo'}},
+        ]
+        for job in cases:
+            with self.subTest(job=job):
+                self.db.records['garment_processing_jobs'] = {'shirt': job}
+                with self.assertRaises(lifecycle.FlatlayRequestError) as caught:
+                    self.reserve()
+                self.assertEqual(caught.exception.status_code, 422)
+                self.assertEqual(self.remaining(), 7)
+                self.assertNotIn('look', self.db.records.get(lifecycle.REQUESTS_COLLECTION, {}))
+
+    def test_previous_attempt_original_remains_available_after_later_crash(self):
+        from src.services.garment_lifecycle import garment_source_fingerprint
+        garment = self.db.records['wardrobe']['shirt']
+        original_path = 'items/shirt/attempts/first-attempt/original.png'
+        self.db.records['garment_processing_jobs'] = {'shirt': {
+            'user_id': 'owner', 'attempt_id': 'third-attempt', 'status': 'failed',
+            'source_fingerprint': garment_source_fingerprint(garment),
+            'original_source_fingerprint': garment_source_fingerprint(garment),
+            'original_attempt_id': 'first-attempt',
+            'original': {'originalStoragePath': original_path},
+        }}
+        self.reserve()
+        self.assertEqual(self.claim()['items'][0]['originalStoragePath'], original_path)
+
+    def test_legacy_original_path_does_not_trust_public_path_field(self):
+        self.db.records['wardrobe']['shirt']['originalStoragePath'] = 'items/other/original.png'
+        self.reserve()
+        self.assertEqual(self.claim()['items'][0]['originalStoragePath'], 'items/shirt/original.png')
 
     def test_concurrent_requests_reserve_exactly_one_credit_and_snapshot_unique_owned_assets(self):
         with ThreadPoolExecutor(max_workers=8) as pool:
@@ -418,6 +486,233 @@ class FlatlayLifecycleTests(unittest.TestCase):
         self.assertEqual(self.remaining(), 7)
 
 
+class FlatlayProviderAdmissionTests(unittest.TestCase):
+    def setUp(self):
+        self.db = Database()
+        self.decorator = patch.object(worker_lifecycle.firestore, 'transactional', transactional)
+        self.decorator.start()
+        self.addCleanup(self.decorator.stop)
+
+    def raw_source(self, filename='shirt.jpg'):
+        return f'https://storage.googleapis.com/{DEFAULT_BUCKET_NAME}/wardrobe/owner/{filename}'
+
+    def reserve(self, raw=True):
+        if raw:
+            self.db.records['wardrobe']['shirt']['imageUrl'] = self.raw_source()
+        return worker_lifecycle.reserve_request(self.db, 'look', 'owner', request_id='request-one', now=1100)
+
+    def claim(self):
+        return worker_lifecycle.claim_request(self.db, 'look', now=1110)
+
+    @property
+    def ledger(self):
+        return self.db.records[worker_lifecycle.REQUESTS_COLLECTION]['look']
+
+    def reports(self):
+        return [{'id': item['id'], 'sourceStoragePath': item['originalPreparation']['sourceStoragePath'],
+                 'sourceGeneration': '1234567890', 'originalStoragePath': item['originalStoragePath'], 'sha256': 'a' * 64}
+                for item in self.ledger['items'] if 'originalPreparation' in item]
+
+    def admit(self, reports=None, now=1120):
+        return worker_lifecycle.admit_provider_request(self.db, 'look', 'request-one',
+                                                      self.reports() if reports is None else reports, now=now)
+
+    def test_raw_original_reservation_does_not_wait_for_unstarted_garment_or_cutout(self):
+        self.db.records['garment_processing_jobs'] = {'shirt': {'user_id': 'owner', 'status': 'pending'}}
+        self.reserve()
+        snapshot = self.claim()['items'][0]
+        self.assertEqual(snapshot['originalPreparation'], {'bucket': DEFAULT_BUCKET_NAME, 'sourceStoragePath': 'wardrobe/owner/shirt.jpg'})
+        self.assertEqual(snapshot['originalStoragePath'], 'items/shirt/flatlay-requests/request-one/original.png')
+        self.assertEqual(self.db.records['users']['owner']['quotas']['flatlaysRemaining'], 6)
+        self.assertTrue(all(item.get('referenceSourceFingerprint') for item in self.ledger['items']))
+
+    def test_raw_owned_upload_takes_precedence_over_unprepared_legacy_static_path(self):
+        self.reserve()
+        self.assertIn('originalPreparation', self.ledger['items'][0])
+        self.assertEqual(self.ledger['items'][1]['originalStoragePath'], 'items/pants/original.png')
+        self.assertNotIn('originalPreparation', self.ledger['items'][1])
+
+    def test_published_private_original_takes_precedence_over_raw_preparation(self):
+        from worker.garment_lifecycle import garment_source_fingerprint
+        garment = self.db.records['wardrobe']['shirt']
+        garment['imageUrl'] = self.raw_source()
+        fingerprint = garment_source_fingerprint(garment)
+        self.db.records['garment_processing_jobs'] = {'shirt': {
+            'user_id': 'owner', 'source_fingerprint': fingerprint, 'original_source_fingerprint': fingerprint,
+            'original_attempt_id': 'earlier-attempt', 'attempt_id': 'later-attempt',
+            'original': {'originalStoragePath': 'items/shirt/attempts/earlier-attempt/original.png'},
+        }}
+        self.reserve()
+        self.assertNotIn('originalPreparation', self.ledger['items'][0])
+        self.assertEqual(self.ledger['items'][0]['originalStoragePath'], 'items/shirt/attempts/earlier-attempt/original.png')
+
+    def test_new_source_can_prepare_independently_of_older_same_owner_job(self):
+        self.db.records['garment_processing_jobs'] = {'shirt': {'user_id': 'owner', 'status': 'processing',
+                                                               'source_fingerprint': 'old-image'}}
+        self.reserve()
+        self.assertIn('originalPreparation', self.ledger['items'][0])
+
+    def test_owned_raw_cannot_bypass_conflicting_private_owner(self):
+        self.db.records['garment_processing_jobs'] = {'shirt': {'user_id': 'other'}}
+        with self.assertRaises(worker_lifecycle.FlatlayRequestError) as error:
+            self.reserve()
+        self.assertEqual(error.exception.status_code, 422)
+        self.assertEqual(self.db.records['users']['owner']['quotas']['flatlaysRemaining'], 7)
+        self.assertNotIn(worker_lifecycle.REQUESTS_COLLECTION, self.db.records)
+
+    def test_reservation_rejects_deleted_garment_before_debit(self):
+        self.db.records['wardrobe']['shirt']['deletedAt'] = 1090
+        with self.assertRaises(worker_lifecycle.FlatlayRequestError):
+            self.reserve()
+        self.assertEqual(self.db.records['users']['owner']['quotas']['flatlaysRemaining'], 7)
+
+    def test_admission_is_exactly_once_with_all_preparation_proof_and_no_credit_mutation(self):
+        self.reserve()
+        self.claim()
+        reports = self.reports()
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            results = list(pool.map(lambda _: self.admit(reports), range(20)))
+        self.assertEqual(sum(results), 1)
+        self.assertEqual(self.ledger['provider_admitted_at'], 1120)
+        self.assertEqual(self.ledger['prepared_originals'], reports)
+        self.assertEqual(self.ledger['credit_status'], 'reserved')
+        self.assertEqual(self.db.records['users']['owner']['quotas']['flatlaysRemaining'], 6)
+        self.assertEqual(self.ledger['status'], 'processing')
+
+    def test_duplicate_rejected_admission_cannot_refund_an_active_paid_call(self):
+        self.reserve()
+        self.claim()
+        self.assertTrue(self.admit())
+        self.assertFalse(self.admit())
+        before = copy.deepcopy(self.db.records)
+        self.assertFalse(worker_lifecycle.finish_request(self.db, 'look', 'request-one',
+                         error='Request changed', error_code='request_changed', retryable=True, now=1121))
+        self.assertEqual(self.db.records, before)
+        self.assertTrue(worker_lifecycle.finish_request(self.db, 'look', 'request-one',
+                        url='https://assets.test/final.png', retryable=False, now=1122))
+        self.assertEqual(self.ledger['status'], 'done')
+        self.assertEqual(self.ledger['credit_status'], 'consumed')
+        self.assertEqual(self.db.records['users']['owner']['quotas']['flatlaysRemaining'], 6)
+        self.assertFalse(worker_lifecycle.finish_request(self.db, 'look', 'request-one',
+                         error='Duplicate failure', error_code='request_changed', retryable=True, now=1123))
+
+    def test_changed_request_before_any_admission_can_refund_and_allow_explicit_retry(self):
+        self.reserve()
+        self.claim()
+        self.db.records['wardrobe']['shirt']['imageUrl'] = self.raw_source('replacement.jpg')
+        self.assertFalse(self.admit())
+        self.assertTrue(worker_lifecycle.finish_request(self.db, 'look', 'request-one',
+                        error='Request changed', error_code='request_changed', retryable=True, now=1121))
+        self.assertEqual(self.ledger['status'], 'failed')
+        self.assertEqual(self.ledger['credit_status'], 'refunded')
+        self.assertTrue(self.ledger['retryable'])
+        self.assertEqual(self.db.records['users']['owner']['quotas']['flatlaysRemaining'], 7)
+
+    def test_legacy_static_references_admit_without_raw_preparation(self):
+        self.reserve(raw=False)
+        self.claim()
+        self.assertEqual(self.reports(), [])
+        self.assertTrue(self.admit([]))
+
+    def test_admission_rejects_missing_extra_duplicate_malformed_or_wrong_provenance_reports(self):
+        self.reserve()
+        self.claim()
+        report = self.reports()[0]
+        invalid = [[], {}, None, [report, report], [{**report, 'id': 'pants'}],
+                   [{**report, 'extra': True}], [{key: value for key, value in report.items() if key != 'sha256'}],
+                   [{**report, 'sourceStoragePath': 'wardrobe/other/shirt.jpg'}],
+                   [{**report, 'originalStoragePath': 'items/shirt/flatlay-requests/old-request/original.png'}]]
+        invalid.extend([[{**report, 'sourceGeneration': value}] for value in ('', '1.2', '-1', 123, None)])
+        invalid.extend([[{**report, 'sha256': value}] for value in ('f' * 63, 'G' * 64, None)])
+        for reports in invalid:
+            with self.subTest(reports=reports):
+                self.assertFalse(worker_lifecycle.admit_provider_request(self.db, 'look', 'request-one', reports, now=1120))
+                self.assertNotIn('provider_admitted_at', self.ledger)
+        self.assertTrue(self.admit())
+
+    def test_preparation_proof_cannot_validate_malformed_or_foreign_descriptor(self):
+        for change in ({'bucket': 'foreign-bucket'}, {'sourceStoragePath': 'wardrobe/other/shirt.jpg'},
+                       {'sourceStoragePath': '../shirt.jpg'}, {'extra': True}):
+            with self.subTest(change=change):
+                self.db = Database()
+                self.reserve()
+                self.claim()
+                self.ledger['items'][0]['originalPreparation'].update(change)
+                self.assertFalse(self.admit())
+                self.assertNotIn('provider_admitted_at', self.ledger)
+
+    def test_admission_rejects_changed_missing_deleted_and_foreign_garments_without_mutation(self):
+        for mode in ('photo', 'missing', 'deleted', 'owner', 'conflicting_owner'):
+            with self.subTest(mode=mode):
+                self.db = Database()
+                self.reserve()
+                self.claim()
+                row = self.db.records['wardrobe']['shirt']
+                if mode == 'photo':
+                    row['imageUrl'] = self.raw_source('new-photo.jpg')
+                elif mode == 'missing':
+                    self.db.records['wardrobe'].pop('shirt')
+                elif mode == 'deleted':
+                    row['deleted'] = True
+                elif mode == 'owner':
+                    row['userId'] = 'other'
+                else:
+                    row['user_id'] = 'other'
+                before = copy.deepcopy(self.db.records)
+                self.assertFalse(self.admit())
+                self.assertEqual(self.db.records, before)
+
+    def test_admission_rejects_changed_or_unavailable_outfit(self):
+        for updates in ({'items': ['shirt']}, {'user_id': 'other'}, {'userId': 'other'}, {'isDeleted': True}):
+            with self.subTest(updates=updates):
+                self.db = Database()
+                self.reserve()
+                self.claim()
+                self.db.records['outfits']['look'].update(updates)
+                self.assertFalse(self.admit())
+                self.assertNotIn('provider_admitted_at', self.ledger)
+        self.db.records['outfits'].clear()
+        self.assertFalse(self.admit())
+
+    def test_admission_rejects_wrong_state_stale_request_settlement_expiry_and_prior_admission(self):
+        for changes in ({'status': 'pending'}, {'status': 'failed'}, {'credit_status': 'refunded'},
+                        {'request_id': 'newer-request'}, {'expires_at': 1120}, {'expires_at': None},
+                        {'expires_at': float('nan')}, {'provider_admitted_at': 0}):
+            with self.subTest(changes=changes):
+                self.db = Database()
+                self.reserve()
+                self.claim()
+                self.ledger.update(changes)
+                self.assertFalse(self.admit())
+
+    def test_metadata_edits_do_not_invalidate_same_owned_source(self):
+        self.reserve()
+        self.claim()
+        self.db.records['wardrobe']['shirt'].update(name='Edited name', updatedAt=1115, category='Top')
+        self.assertTrue(self.admit())
+
+    def test_preexisting_request_without_source_fingerprint_still_checks_ownership(self):
+        self.reserve(raw=False)
+        self.claim()
+        for item in self.ledger['items']:
+            item.pop('referenceSourceFingerprint')
+        self.db.records['wardrobe']['shirt']['imageUrl'] = self.raw_source('new-photo.jpg')
+        self.db.records['wardrobe']['pants']['user_id'] = 'other'
+        self.assertFalse(self.admit([]))
+        self.db.records['wardrobe']['pants']['user_id'] = 'owner'
+        self.assertTrue(self.admit([]))
+
+    def test_failed_admission_commit_cannot_claim_provider_or_mutate_credit(self):
+        self.reserve()
+        self.claim()
+        self.db.fail_commit = True
+        with self.assertRaises(RuntimeError):
+            self.admit()
+        self.assertNotIn('provider_admitted_at', self.ledger)
+        self.assertEqual(self.ledger['credit_status'], 'reserved')
+        self.assertEqual(self.db.records['users']['owner']['quotas']['flatlaysRemaining'], 6)
+
+
 class FlatlayWorkerTests(unittest.TestCase):
     def setUp(self):
         tree = ast.parse((ROOT / 'worker/main.py').read_text())
@@ -434,6 +729,7 @@ class FlatlayWorkerTests(unittest.TestCase):
             'REQUESTS_COLLECTION': lifecycle.REQUESTS_COLLECTION, 'FieldFilter': lambda *args: args,
             'time': SimpleNamespace(time=lambda: self.now), 'openai_client': object(),
             'claim_request': Mock(return_value=self.request), 'finish_request': Mock(return_value=True),
+            'prepare_request_originals': Mock(return_value=[]), 'admit_provider_request': Mock(return_value=True),
             'prepare_original_references': Mock(return_value=[{'id': 'shirt'}, {'id': 'pants'}]),
             'compose_flatlay_image': Mock(return_value=Image.new('RGB', (1024, 1024))),
             'upload_flatlay_image': Mock(return_value='https://assets.invalid/preview'),
@@ -462,6 +758,14 @@ class FlatlayWorkerTests(unittest.TestCase):
         self.env['generate_original_reference_flatlay'].assert_not_called()
         self.env['upload_flatlay_image'].assert_not_called()
         self.assertEqual(self.env['finish_request'].call_args.kwargs['error_code'], 'outfit_changed')
+        self.assertTrue(self.env['finish_request'].call_args.kwargs['retryable'])
+
+    def test_rejected_admission_never_calls_provider_and_settles_known_preprovider_failure(self):
+        self.env['admit_provider_request'].return_value = False
+        self.process()
+        self.env['generate_original_reference_flatlay'].assert_not_called()
+        self.env['upload_flatlay_image'].assert_not_called()
+        self.assertEqual(self.env['finish_request'].call_args.kwargs['error_code'], 'request_changed')
         self.assertTrue(self.env['finish_request'].call_args.kwargs['retryable'])
 
     def test_partial_assets_stop_before_provider_and_refund_terminally(self):
@@ -547,9 +851,8 @@ class FlatlayWorkerTests(unittest.TestCase):
 
     def test_pending_queue_selects_oldest_request_not_document_id(self):
         tree = ast.parse((ROOT / 'worker/main.py').read_text())
-        node = next(node.value for node in ast.walk(tree)
-                    if isinstance(node, ast.Assign) and
-                    any(isinstance(target, ast.Name) and target.id == 'outfit_pending' for target in node.targets))
+        node = next(node for node in ast.walk(tree)
+                    if isinstance(node, ast.FunctionDef) and node.name == 'flatlay_candidates')
         db = Database()
         db.records[lifecycle.REQUESTS_COLLECTION] = {
             'a-newest': {'status': 'pending', 'queued_at': 2000},
@@ -558,8 +861,8 @@ class FlatlayWorkerTests(unittest.TestCase):
             'a-terminal': {'status': 'done', 'queued_at': None},
         }
         self.env['db'] = db
-        result = eval(compile(ast.Expression(node), 'worker_queue_under_test', 'eval'), self.env)
-        self.assertEqual([doc.id for doc in result], ['z-oldest'])
+        exec(compile(ast.Module(body=[node], type_ignores=[]), 'worker_queue_under_test', 'exec'), self.env)
+        self.assertEqual(self.env['flatlay_candidates'](), ['z-oldest'])
 
     def test_null_consent_queue_was_removed(self):
         tree = ast.parse((ROOT / 'worker/main.py').read_text())
