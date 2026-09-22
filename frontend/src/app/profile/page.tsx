@@ -15,6 +15,7 @@ import { getLinkedProviders, hasPasswordLinked, linkEmailPassword } from '@/lib/
 import { Lock, CheckCircle, XCircle } from 'lucide-react';
 import SpendingRangesCard from '@/components/SpendingRangesCard';
 import { subscriptionService, Subscription } from '@/lib/services/subscriptionService';
+import { formatProfileDate } from '@/lib/profilePresentation';
 
 const PROFILE_DEBUG = process.env.NODE_ENV === 'development';
 
@@ -139,10 +140,10 @@ interface UserProfile {
   budget?: string;
   
   // Timestamps
-  createdAt?: number;
-  updatedAt?: number;
-  created_at?: string;
-  updated_at?: string;
+  createdAt?: number | string;
+  updatedAt?: number | string;
+  created_at?: number | string | { seconds: number };
+  updated_at?: number | string | { seconds: number };
   
   // Legacy fields for backward compatibility
   onboardingCompleted?: boolean;
@@ -748,27 +749,13 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-muted-foreground">Member since</span>
               <span className="text-sm text-muted-foreground">
-                {(() => {
-                  // Prioritize created_at over createdAt since created_at is the newer field
-                  const timestamp = profile.created_at || profile.createdAt || 0;
-                  // created_at is always Unix timestamp in seconds, so multiply by 1000
-                  // createdAt might be in milliseconds, so check if it's very large
-                  const date = timestamp > 1000000000000 ? new Date(timestamp) : new Date(timestamp * 1000);
-                  return date.toLocaleDateString();
-                })()}
+                {formatProfileDate(profile.created_at, profile.createdAt)}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-muted-foreground">Last updated</span>
               <span className="text-sm text-muted-foreground">
-                {(() => {
-                  // Prioritize updated_at over updatedAt since updated_at is the newer field
-                  const timestamp = profile.updated_at || profile.updatedAt || 0;
-                  // updated_at is always Unix timestamp in seconds, so multiply by 1000
-                  // updatedAt might be in milliseconds, so check if it's very large
-                  const date = timestamp > 1000000000000 ? new Date(timestamp) : new Date(timestamp * 1000);
-                  return date.toLocaleDateString();
-                })()}
+                {formatProfileDate(profile.updated_at, profile.updatedAt)}
               </span>
             </div>
             {user && (

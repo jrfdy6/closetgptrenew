@@ -599,6 +599,14 @@ function OnboardingContent() {
   }, [quizResults]);
   const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const autoAdvanceTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelAutoAdvance = React.useCallback(() => {
+    if (autoAdvanceTimer.current !== null) {
+      clearTimeout(autoAdvanceTimer.current);
+      autoAdvanceTimer.current = null;
+    }
+  }, []);
+  useEffect(() => cancelAutoAdvance, [cancelAutoAdvance]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { user, loading: authLoading, getIdToken } = useAuthContext();
@@ -742,14 +750,18 @@ function OnboardingContent() {
   }, [userGender]);
 
   const nextStep = () => {
+    cancelAutoAdvance();
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
+      // The timer and a click may originate from the same rendered question.
+      // Only that question may advance; a stale callback cannot skip the next.
+      setCurrentQuestionIndex(prev => prev === currentQuestionIndex ? prev + 1 : prev);
     }
   };
 
   const prevStep = () => {
+    cancelAutoAdvance();
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
+      setCurrentQuestionIndex(prev => prev === currentQuestionIndex ? prev - 1 : prev);
     }
   };
 
@@ -2005,11 +2017,11 @@ function OnboardingContent() {
       answersCount: answers.length + 1
     });
 
-    // Auto-advance to next question after a short delay (except for the last question)
+    // Only the latest choice owns an auto-advance. Manual navigation and
+    // unmounting cancel this timer, preserving the visual feedback delay.
+    cancelAutoAdvance();
     if (currentQuestionIndex < questions.length - 1) {
-      setTimeout(() => {
-        nextStep();
-      }, 300); // Small delay for visual feedback
+      autoAdvanceTimer.current = setTimeout(nextStep, 300);
     }
   };
 
@@ -2021,8 +2033,9 @@ function OnboardingContent() {
       isLastQuestion: currentQuestionIndex === questions.length - 1
     });
     
+    cancelAutoAdvance();
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
+      nextStep();
     } else {
       // If this is the last question, submit the quiz
       debugOnboarding('🎯 [Quiz] Last question reached, submitting quiz...');
@@ -2033,13 +2046,10 @@ function OnboardingContent() {
     }
   };
 
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
-    }
-  };
+  const handlePrevious = prevStep;
 
   const handleSubmit = async () => {
+    cancelAutoAdvance();
     debugOnboarding('🚀 [handleSubmit] Called - redirecting to submitQuiz');
     setIsSubmitting(true);
     try {
