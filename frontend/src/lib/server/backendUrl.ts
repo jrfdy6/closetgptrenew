@@ -1,3 +1,5 @@
+import 'server-only';
+
 const DEFAULT_DEVELOPMENT_BACKEND_URL = 'http://localhost:8080';
 
 function normalizeBackendUrl(url: string): string {

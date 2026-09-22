@@ -6,9 +6,9 @@ test token. The verified Firebase UID is the only ownership authority here.
 
 import logging
 
-from fastapi import APIRouter, Depends, Header, HTTPException
-from firebase_admin import auth
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
+from ..auth.verified_identity import verified_identity
 
 
 logger = logging.getLogger(__name__)
@@ -23,32 +23,13 @@ class GarmentRetryRequest(BaseModel):
     expected_attempt_id: str = Field(min_length=1, max_length=256, strict=True)
 
 
-def verified_garment_user(authorization: str | None = Header(default=None)) -> str:
-    parts = (authorization or "").split()
-    if len(parts) != 2 or parts[0].lower() != "bearer" or parts[1].lower() == "test":
-        raise HTTPException(status_code=401, detail="A valid sign-in is required")
-
-    try:
-        claims = auth.verify_id_token(parts[1], check_revoked=True)
-    except (auth.InvalidIdTokenError, auth.RevokedIdTokenError, auth.UserDisabledError, ValueError):
-        raise HTTPException(status_code=401, detail="A valid sign-in is required") from None
-    except Exception:
-        # Do not expose the token or provider's error text in logs/responses.
-        logger.warning("Garment retry authentication verification is unavailable")
-        raise HTTPException(status_code=503, detail="Sign-in verification is temporarily unavailable") from None
-
-    user_id = claims.get("uid")
-    if not isinstance(user_id, str) or not user_id.strip():
-        raise HTTPException(status_code=401, detail="A valid sign-in is required")
-    return user_id
-
-
 @router.post("/{item_id}/retry-processing")
 def retry_garment_processing(
     item_id: str,
     body: GarmentRetryRequest,
-    user_id: str = Depends(verified_garment_user),
+    claims: dict = Depends(verified_identity),
 ):
+    user_id = claims['uid']
     if not item_id.strip() or item_id in {".", ".."} or "/" in item_id:
         raise HTTPException(status_code=422, detail="Invalid garment identifier")
     if not body.expected_attempt_id.strip():

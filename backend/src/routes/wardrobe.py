@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import List, Dict, Any, Optional
+from types import SimpleNamespace
 from firebase_admin import firestore
 import uuid
 import time
@@ -8,6 +9,7 @@ import logging
 import traceback
 
 from .wardrobe_update_contract import build_wardrobe_update
+from ..auth.verified_identity import verified_identity, reject_identity_overrides
 
 # Import production monitoring
 try:
@@ -109,19 +111,23 @@ except ImportError as e:
     def log_analytics_event(*args, **kwargs):
         pass  # No-op fallback
 
-try:
-    from ..auth.auth_service import get_current_user, get_current_user_id, get_current_user_optional
-    AUTH_SERVICE_AVAILABLE = True
-    pass  # Auth service imported
-except ImportError as e:
-    logger.warning(f"⚠️ Auth service import failed: {e}")
-    AUTH_SERVICE_AVAILABLE = False
-    def get_current_user():
-        return None
-    def get_current_user_id():
-        return "fallback-user-id"
-    def get_current_user_optional():
-        return None
+async def verified_wardrobe_user(request: Request, claims: dict = Depends(verified_identity)):
+    # All wardrobe operations use the verified token; body aliases are only
+    # compatibility hints and cannot choose a different owner.
+    if request.method in {'POST', 'PUT', 'PATCH'}:
+        try:
+            body = await request.json()
+        except ValueError:
+            body = None  # The route's body validation reports malformed JSON.
+        if isinstance(body, dict):
+            reject_identity_overrides(claims, body)
+    return SimpleNamespace(id=claims['uid'])
+
+
+def _owned_wardrobe_item(data, user_id):
+    owners = [data[key] for key in ('userId', 'user_id', 'firebase_uid', 'uid', 'ownerId')
+              if data.get(key) is not None]
+    return bool(owners) and all(isinstance(owner, str) and owner == user_id for owner in owners)
 
 try:
     from ..services.ai_runtime import merge_completed_upload_analysis_into_item_data
@@ -150,7 +156,7 @@ async def debug_test():
 
 @router.get("/top-worn-items")
 async def get_top_worn_items(
-    current_user: Optional[UserProfile] = Depends(get_current_user_optional),
+    current_user: Optional[UserProfile] = Depends(verified_wardrobe_user),
     limit: int = 10
 ) -> Dict[str, Any]:
     """Get the top worn wardrobe items for the current user."""
@@ -248,7 +254,7 @@ async def get_top_worn_items(
 
 @router.get("/most-worn-by-category")
 async def get_most_worn_by_category(
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(verified_wardrobe_user)
 ) -> Dict[str, Any]:
     """Get the most worn items organized by category (tops, bottoms, shoes, etc.)."""
     try:
@@ -338,7 +344,7 @@ async def get_most_worn_by_category(
 
 @router.get("/trending-styles")
 async def get_trending_styles(
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(verified_wardrobe_user)
 ) -> Dict[str, Any]:
     """Get trending styles based on user's wardrobe and preferences."""
     try:
@@ -446,7 +452,7 @@ async def get_trending_styles(
 @router.post("/add")
 async def add_wardrobe_item(
     item_data: Dict[str, Any],
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(verified_wardrobe_user)
 ) -> Dict[str, Any]:
     """
     Add a new wardrobe item for the current user.
@@ -776,7 +782,7 @@ async def debug_wardrobe_data() -> Dict[str, Any]:
 
 @router.get("/")
 async def get_wardrobe_items_with_slash(
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(verified_wardrobe_user)
 ) -> Dict[str, Any]:
     """Get all wardrobe items for the current user."""
     import time
@@ -839,6 +845,8 @@ async def get_wardrobe_items_with_slash(
         for doc in items_list:
             try:
                 item_data = doc.to_dict() or {}
+                if not _owned_wardrobe_item(item_data, current_user.id):
+                    continue
                 doc_id = doc.id
                 
                 # Efficient timestamp conversion helper
@@ -1024,7 +1032,7 @@ async def get_wardrobe_items_with_slash(
 @router.get("/{item_id}")
 async def get_wardrobe_item(
     item_id: str,
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(verified_wardrobe_user)
 ) -> Dict[str, Any]:
     """
     Get a specific wardrobe item by ID.
@@ -1040,7 +1048,7 @@ async def get_wardrobe_item(
         item_data['id'] = doc.id
         
         # Check if user owns this item
-        if item_data.get('userId') != current_user.id:
+        if not _owned_wardrobe_item(item_data, current_user.id):
             raise HTTPException(status_code=403, detail="Access denied")
         
         # Log analytics event
@@ -1070,7 +1078,7 @@ async def get_wardrobe_item(
 async def update_wardrobe_item(
     item_id: str,
     item_data: Dict[str, Any],
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(verified_wardrobe_user)
 ) -> Dict[str, Any]:
     """Update a wardrobe item."""
     try:
@@ -1082,7 +1090,7 @@ async def update_wardrobe_item(
             raise HTTPException(status_code=404, detail="Wardrobe item not found")
         
         item = doc.to_dict()
-        if item.get('userId') != current_user.id:
+        if not _owned_wardrobe_item(item, current_user.id):
             raise HTTPException(status_code=403, detail="Not authorized to update this item")
         
         try:
@@ -1151,7 +1159,7 @@ async def update_wardrobe_item(
 @router.delete("/{item_id}")
 async def delete_wardrobe_item(
     item_id: str,
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(verified_wardrobe_user)
 ) -> Dict[str, Any]:
     """Delete a wardrobe item."""
     try:
@@ -1163,7 +1171,7 @@ async def delete_wardrobe_item(
             raise HTTPException(status_code=404, detail="Wardrobe item not found")
         
         item = doc.to_dict()
-        if item.get('userId') != current_user.id:
+        if not _owned_wardrobe_item(item, current_user.id):
             raise HTTPException(status_code=403, detail="Not authorized to delete this item")
         
         # Log analytics event before deletion
@@ -1207,7 +1215,7 @@ async def delete_wardrobe_item(
 
 @router.post("/enhance-metadata")
 async def enhance_wardrobe_metadata(
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(verified_wardrobe_user)
 ) -> Dict[str, Any]:
     """Enhance metadata for all user's wardrobe items."""
     try:
@@ -1280,7 +1288,7 @@ async def enhance_wardrobe_metadata(
 @router.post("/{item_id}/increment-wear")
 async def increment_wardrobe_item_wear_count(
     item_id: str,
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(verified_wardrobe_user)
 ) -> Dict[str, Any]:
     """Increment the wear count for a specific wardrobe item."""
     try:
@@ -1292,7 +1300,7 @@ async def increment_wardrobe_item_wear_count(
             raise HTTPException(status_code=404, detail="Wardrobe item not found")
         
         item = doc.to_dict()
-        if item.get('userId') != current_user.id:
+        if not _owned_wardrobe_item(item, current_user.id):
             raise HTTPException(status_code=403, detail="Not authorized to update this item")
         
         # Get current wear count and increment it

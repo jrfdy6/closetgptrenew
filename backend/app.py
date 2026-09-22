@@ -241,6 +241,9 @@ except Exception as e:
 
 # Router loading section - removed outer try-catch to allow individual routers to load
 ROUTERS = [
+    ("src.routes.onboarding", "/api/onboarding"),
+    ("src.routes.style_quiz", "/api/style-quiz"),
+    ("src.routes.user_profile", "/api/user"),
     ("src.routes.test_category", "/api/test"),  # Test category mapping fix
     ("src.routes.image_processing_minimal_test", "/api/image-test"),  # Minimal test router
     ("src.routes.wardrobe_analysis", "/api/wardrobe-analysis"), # Router mounted at /api/wardrobe-analysis - ENABLED for gap analysis
@@ -1520,16 +1523,22 @@ async def check_wardrobe_item(item_name: str, current_user_id: str = Depends(get
         import traceback
         return {"error": str(e), "traceback": traceback.format_exc()}
 
+from src.auth.verified_identity import verified_identity as verified_wardrobe_identity, reject_identity_overrides as reject_wardrobe_identity_overrides
+
+
 @app.post("/api/wardrobe/add-direct")
-async def add_wardrobe_item_direct(item_data: dict, current_user_id: str = Depends(get_current_user_id)):
+async def add_wardrobe_item_direct(item_data: dict, claims: dict = Depends(verified_wardrobe_identity)):
     """Create an owned garment, or acknowledge an already-persisted owned retry."""
+    reject_wardrobe_identity_overrides(claims, item_data)
+    current_user_id = claims['uid']
     from src.config.firebase import db
-    from src.services.wardrobe_persistence import create_owned_wardrobe_item, WardrobeOwnershipConflict
+    from src.services.wardrobe_persistence import create_owned_wardrobe_item, WardrobeOwnershipConflict, WardrobeInputError
+    from starlette.concurrency import run_in_threadpool
 
     if db is None:
         raise HTTPException(status_code=503, detail="Wardrobe storage is unavailable")
     try:
-        wardrobe_item = create_owned_wardrobe_item(db, current_user_id, item_data)
+        wardrobe_item = await run_in_threadpool(create_owned_wardrobe_item, db, current_user_id, item_data)
         return {
             "success": True,
             "message": "Item saved",
@@ -1538,7 +1547,7 @@ async def add_wardrobe_item_direct(item_data: dict, current_user_id: str = Depen
         }
     except WardrobeOwnershipConflict:
         raise HTTPException(status_code=409, detail="This item ID is already in use")
-    except ValueError as error:
+    except WardrobeInputError as error:
         raise HTTPException(status_code=422, detail=str(error))
     except Exception:
         raise HTTPException(status_code=503, detail="Your item was not confirmed saved. Please retry.")

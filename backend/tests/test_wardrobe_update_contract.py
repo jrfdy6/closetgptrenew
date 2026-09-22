@@ -61,7 +61,8 @@ def load_update_route(document, route_name='update_wardrobe_item', overrides=Non
     # Compile the actual route body without importing its unrelated AI/Firebase
     # initialization. This tests auth, persistence, and error mapping entirely offline.
     source = Path(__file__).parents[1] / 'src/routes/wardrobe.py'
-    route = next(node for node in ast.parse(source.read_text()).body
+    nodes = ast.parse(source.read_text()).body
+    route = next(node for node in nodes
                  if isinstance(node, ast.AsyncFunctionDef) and node.name == route_name)
     route.decorator_list = []
     route.args.defaults = []
@@ -73,7 +74,8 @@ def load_update_route(document, route_name='update_wardrobe_item', overrides=Non
         'UserProfile': SimpleNamespace, 'datetime': datetime,
     }
     namespace.update(overrides or {})
-    exec(compile(ast.Module(body=[route], type_ignores=[]), str(source), 'exec'), namespace)
+    owned = next(node for node in nodes if isinstance(node, ast.FunctionDef) and node.name == '_owned_wardrobe_item')
+    exec(compile(ast.Module(body=[owned, route], type_ignores=[]), str(source), 'exec'), namespace)
     return namespace[route_name]
 
 

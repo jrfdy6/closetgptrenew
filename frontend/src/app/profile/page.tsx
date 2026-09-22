@@ -16,6 +16,7 @@ import { Lock, CheckCircle, XCircle } from 'lucide-react';
 import SpendingRangesCard from '@/components/SpendingRangesCard';
 import { subscriptionService, Subscription } from '@/lib/services/subscriptionService';
 import { formatProfileDate } from '@/lib/profilePresentation';
+import { buildProfileUpdate } from '@/lib/profileUpdate';
 
 const PROFILE_DEBUG = process.env.NODE_ENV === 'development';
 
@@ -74,6 +75,8 @@ interface UserProfile {
   // Body type and fit
   bodyType?: string;
   skinTone?: string;
+  height?: number | string;
+  weight?: number | string;
   fitPreference?: string;
   sizePreference?: string;
   
@@ -283,7 +286,7 @@ export default function ProfilePage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(buildProfileUpdate(formData)),
       });
 
       if (!response.ok) {

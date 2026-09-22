@@ -17,9 +17,27 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
     }
 
-    // Users can only read/write their own user profile
+    // Browser bootstrap/name edits cannot grant account or quiz authority.
+    // Full editable profiles are persisted by the verified Railway API.
+    function safeProfileBootstrap(userId) {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['name', 'email', 'userId', 'user_id', 'firebase_uid', 'createdAt', 'created_at', 'updatedAt', 'updated_at']) &&
+        data.get('userId', userId) == userId && data.get('user_id', userId) == userId &&
+        data.get('firebase_uid', userId) == userId &&
+        data.get('email', request.auth.token.get('email', '')) == request.auth.token.get('email', '') &&
+        data.get('name', '') is string && data.get('name', '').size() <= 200;
+    }
+
+    // Server-owned account, quiz and derived fields survive every client write.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId &&
+        request.auth.token.get('firebase', {}).get('sign_in_provider', '') != 'anonymous' &&
+        safeProfileBootstrap(userId);
+      allow update: if request.auth != null && request.auth.uid == userId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'updatedAt', 'updated_at']) &&
+        request.resource.data.get('name', '') is string && request.resource.data.get('name', '').size() <= 200;
+      allow delete: if false;
     }
 
     // Users can only read/write their own profile data
@@ -94,4 +112,4 @@ service cloud.firestore {
       allow read, write: if false;
     }
   }
-} 
+}

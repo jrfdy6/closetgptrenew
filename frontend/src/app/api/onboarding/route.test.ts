@@ -1,74 +1,54 @@
+/** @jest-environment node */
 declare const beforeEach: jest.Lifecycle;
-declare const expect: jest.Expect;
+declare const afterAll: jest.Lifecycle;
 declare const it: jest.It;
+declare const expect: jest.Expect;
 import { GET, POST, PATCH } from './route';
-import { getFirebaseAdminAuth } from '@/lib/server/firebaseAdmin';
-import { DraftRevisionConflict, readOnboardingState, reconcileOnboardingState, saveOnboardingDraft } from '@/lib/server/onboarding';
-import { deriveOnboardingState } from '@/lib/onboarding/state';
 
-jest.mock('next/server', () => ({ NextResponse: { json: (body: unknown, init?: { status?: number; headers?: unknown }) => ({ status: init?.status ?? 200, headers: init?.headers, json: async () => body }) } }));
-jest.mock('@/lib/server/firebaseAdmin', () => ({ getFirebaseAdminAuth: jest.fn(), getFirebaseAdminDb: () => 'injected-test-store' }));
-jest.mock('@/lib/server/onboarding', () => ({ ...jest.requireActual('@/lib/server/onboarding'), readOnboardingState: jest.fn(), reconcileOnboardingState: jest.fn(), saveOnboardingDraft: jest.fn() }));
-const verify = jest.fn();
-const state = deriveOnboardingState({ wardrobe: [], outfits: [] });
-const draft = { answers: [{ question_id: 'gender', selected_option: 'Male' }], currentQuestionId: 'body_type_male' };
-const request = (body?: unknown, token: string | null = 'signed-user-token') => ({ headers: new Headers(token ? { authorization: `Bearer ${token}` } : {}), json: async () => body }) as Request;
-
+const originalFetch = global.fetch;
+const originalEnv = { ...process.env };
+const upstream = jest.fn();
+const draft = { answers: [{ question_id: 'gender', selected_option: 'Male' }], currentQuestionId: 'skin_tone' };
 beforeEach(() => {
-  jest.clearAllMocks();
-  (getFirebaseAdminAuth as jest.Mock).mockReturnValue({ verifyIdToken: verify });
-  verify.mockResolvedValue({ uid: 'verified-user' });
-  (readOnboardingState as jest.Mock).mockResolvedValue(state);
-  (reconcileOnboardingState as jest.Mock).mockResolvedValue(state);
-  (saveOnboardingDraft as jest.Mock).mockResolvedValue({ ...state, revision: 1, draft });
+  jest.clearAllMocks(); global.fetch = upstream;
+  process.env.BACKEND_URL = 'https://railway.example';
+  delete process.env.FIREBASE_PRIVATE_KEY;
+  delete process.env.FIREBASE_CLIENT_EMAIL;
+  delete process.env.FIREBASE_PROJECT_ID;
+});
+afterAll(() => { global.fetch = originalFetch; process.env = originalEnv; });
+const request = (method: string, body?: unknown, auth = 'Bearer signed-token') => new Request('https://front.example/api/onboarding?backend=https://evil.example', {
+  method, headers: { Authorization: auth, 'Content-Type': 'application/json', 'X-User-Id': 'forged', Cookie: 'private' },
+  ...(body === undefined ? {} : { body: JSON.stringify(body) }),
 });
 
-it('verifies a real token and never trusts a supplied account ID', async () => {
-  const response = await PATCH(request({ expectedRevision: 0, draft, userId: 'another-user' }));
-  expect(response.status).toBe(200);
-  expect(verify).toHaveBeenCalledWith('signed-user-token', true);
-  expect(saveOnboardingDraft).toHaveBeenCalledWith('injected-test-store', 'verified-user', 0, draft);
+it.each([['GET', GET], ['POST', POST], ['PATCH', PATCH]] as const)('forwards %s to Railway without Admin config or identity assertions', async (method, handler) => {
+  upstream.mockResolvedValue(Response.json({ success: true, state: { revision: 3, draft } }));
+  const response = await handler(request(method, method === 'GET' ? undefined : { expectedRevision: 2, draft }));
+  expect(await response.json()).toEqual({ success: true, state: { revision: 3, draft } });
+  expect(response.headers.get('cache-control')).toBe('private, no-store');
+  const [url, options] = upstream.mock.calls[0];
+  expect(url).toBe('https://railway.example/api/onboarding');
+  expect(options.method).toBe(method);
+  expect(options.redirect).toBe('manual');
+  expect(options.headers.get('x-user-id')).toBeNull();
+  expect(options.headers.get('cookie')).toBeNull();
+  if (method !== 'GET') expect(JSON.parse(new TextDecoder().decode(options.body))).toEqual({ expectedRevision: 2, draft });
 });
-
-it('reconciles milestones solely from the verified account, ignoring client completion claims', async () => {
-  const response = await POST(request({ userId: 'foreign', capsuleCompletedAt: 'forged', firstOutfitId: 'forged' }));
-  expect(response.status).toBe(200);
-  expect(reconcileOnboardingState).toHaveBeenCalledWith('injected-test-store', 'verified-user');
-  expect(await response.json()).toEqual({ success: true, state });
+it.each([401, 403, 409, 422, 503])('retains backend %s and the conflict/retry envelope', async status => {
+  const body = { success: false, code: 'revision_conflict', state: { revision: 4, draft } };
+  upstream.mockResolvedValue(Response.json(body, { status }));
+  const response = await PATCH(request('PATCH', { expectedRevision: 2, draft }));
+  expect(response.status).toBe(status); expect(await response.json()).toEqual(body);
 });
-
-it('rejects unauthenticated and invalid tokens without reading private state', async () => {
-  expect((await GET(request(undefined, null))).status).toBe(401);
-  expect((await POST(request(undefined, null))).status).toBe(401);
-  verify.mockRejectedValue(new Error('invalid token'));
-  expect((await GET(request(undefined, 'test'))).status).toBe(401);
-  expect(readOnboardingState).not.toHaveBeenCalled();
-  expect(reconcileOnboardingState).not.toHaveBeenCalled();
+it('rejects missing/test authentication before forwarding private progress', async () => {
+  expect((await GET(request('GET', undefined, ''))).status).toBe(401);
+  expect((await GET(request('GET', undefined, 'Bearer test'))).status).toBe(401);
+  expect(upstream).not.toHaveBeenCalled();
 });
-
-it('returns one uncached state envelope shared by load, save and guest transfer', async () => {
-  const response = await GET(request());
-  expect(await response.json()).toEqual({ success: true, state });
-  expect((response.headers as unknown as Record<string, string>)['Cache-Control']).toBe('private, no-store');
-});
-
-it('returns the newer draft on stale revision without declaring success', async () => {
-  (saveOnboardingDraft as jest.Mock).mockRejectedValue(new DraftRevisionConflict({ ...state, revision: 4 }));
-  const response = await PATCH(request({ expectedRevision: 2, draft }));
-  expect(response.status).toBe(409);
-  expect(await response.json()).toMatchObject({ success: false, code: 'revision_conflict', state: { revision: 4 } });
-});
-
-it('fails truthfully on storage failure instead of returning an empty or successful state', async () => {
-  (readOnboardingState as jest.Mock).mockRejectedValue(new Error('offline'));
-  (saveOnboardingDraft as jest.Mock).mockRejectedValue(new Error('offline'));
-  (reconcileOnboardingState as jest.Mock).mockRejectedValue(new Error('offline'));
-  expect((await GET(request())).status).toBe(503);
-  expect((await POST(request())).status).toBe(503);
-  expect((await PATCH(request({ expectedRevision: 0, draft }))).status).toBe(503);
-});
-
-it.each([{}, { expectedRevision: -1, draft }, { expectedRevision: 0, draft: { answers: 'invalid' } }])('rejects invalid patch %j', async body => {
-  expect((await PATCH(request(body))).status).toBe(422);
-  expect(saveOnboardingDraft).not.toHaveBeenCalled();
+it('does not retry a lost commit acknowledgement or invent empty progress', async () => {
+  upstream.mockRejectedValue(new TypeError('connection lost after save'));
+  const response = await PATCH(request('PATCH', { expectedRevision: 2, draft }));
+  expect(response.status).toBe(503); expect((await response.json()).error).toMatch(/may have been saved/);
+  expect(upstream).toHaveBeenCalledTimes(1);
 });

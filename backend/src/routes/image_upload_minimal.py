@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
 from firebase_admin import storage
 import uuid
@@ -6,6 +6,7 @@ import logging
 import tempfile
 import os
 from PIL import Image
+from src.auth.verified_identity import verified_identity, reject_identity_overrides, IDENTITY_KEYS
 
 logger = logging.getLogger(__name__)
 
@@ -134,14 +135,6 @@ def process_image_file(contents: bytes, filename: str, content_type: str) -> tup
         raise HTTPException(status_code=400, detail=f"Failed to process image: {str(e)}")
 
 router = APIRouter()
-
-# Import auth dependency
-try:
-    from src.auth.auth_service import get_current_user_id
-    AUTH_AVAILABLE = True
-except ImportError:
-    AUTH_AVAILABLE = False
-    logger.warning("Auth service not available, uploads will be anonymous")
 
 @router.get("/create-firebase-bucket")
 async def create_firebase_bucket():
@@ -297,10 +290,16 @@ async def debug_firebase():
 
 @router.post("/upload")
 async def upload_image(
+    request: Request,
     file: UploadFile = File(...),
-    user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
+    claims: dict = Depends(verified_identity),
 ):
-    """Minimal working image upload handler"""
+    """Store an original only for a verified, enabled Firebase identity."""
+    form = await request.form()
+    for key in IDENTITY_KEYS:
+        for value in form.getlist(key):
+            reject_identity_overrides(claims, {key: value})
+    user_id = claims['uid']
     try:
         logger.info(f"Starting image upload for user: {user_id}")
         logger.info(f"File: {file.filename}, Content-Type: {file.content_type}")
@@ -364,7 +363,7 @@ async def upload_image(
             logger.info(f"Blob created successfully")
             
             logger.info(f"Uploading {len(contents)} bytes to Firebase Storage...")
-            blob.upload_from_string(contents, content_type=file.content_type)
+            blob.upload_from_string(contents, content_type=processed_content_type)
             logger.info("Successfully uploaded to Firebase Storage")
             
             # Make public and get URL
@@ -373,12 +372,12 @@ async def upload_image(
             public_url = blob.public_url
             logger.info(f"Public URL: {public_url}")
             
-            return {
+            return JSONResponse(content={
                 "success": True, 
                 "image_url": public_url,
                 "filename": file.filename,
                 "size": len(contents)
-            }
+            }, headers={"Cache-Control": "private, no-store"})
             
         except Exception:
             # An upload or visibility failure is not a saved original. Never

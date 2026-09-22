@@ -12,6 +12,77 @@ Use it for:
 
 If OpenClaw workspace docs and the product repo disagree, this file wins for EasyOutfit runtime and deployment truth.
 
+## Goal 6 Candidate Boundary — Not Yet Live
+
+The integrated Goal 6 candidate changes where privileged work runs. This section
+describes the candidate contract, not an observed production rollout. No cloud
+configuration, rules or deployment has been changed as part of this preparation.
+
+- Vercel runs the frontend and thin API proxies. The candidate has no Firebase
+  Admin runtime/package and needs no Firebase Admin credentials in Vercel. Do not
+  add `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL` or `FIREBASE_PRIVATE_KEY` to
+  Vercel to make these routes work. Browser Firebase configuration remains public
+  client configuration and does not confer Admin access.
+- Railway owns privileged profile, onboarding, quiz, garment and image writes.
+  The migrated endpoints verify bearer tokens with revocation checks, reject
+  disabled/anonymous users and conflicting identity headers/query/body fields,
+  and preserve server-owned account fields, completion receipts and private job
+  state. Fresh profile edits cannot establish quiz completion through style
+  preference aliases; only previously completed or legacy profiles can edit those
+  aliases. Direct legacy profile GET/PUT clients use the same protected contract.
+- Proxies choose a fixed configured Railway origin and application path. They
+  forward bearer identity and the required content type/body, never cookies or
+  UID/role assertions, reject redirects and unexpected non-JSON responses, and
+  return private, no-store responses. The upstream request deadline is 50 seconds
+  by default; multipart photo upload preserves its fields/files and uses a
+  45-second upstream deadline. A timeout is an uncertain outcome, not proof that
+  a write failed; confirm through retry/readback.
+- Unused legacy Admin/Clerk/migration routes return `410`. Do not restore them as
+  a fallback. Supported uploads use `/api/image/upload`; supported profile edits
+  use `/api/user/profile` or the retained Railway `/api/auth/profile` alias.
+- Release `frontend/firestore.rules`, including protected user fields and private
+  job/receipt collections. The additional nested wardrobe grant in the backend
+  rules copy is outside this release. Deploying rules must not also deploy Storage
+  rules or indexes.
+- Raw image-URL admission retains its prior policy. The worker's
+  `original_source` check is a check at use time; this candidate does not establish
+  a new blanket admission or fetch-safety guarantee.
+
+Parent review must independently accept the final candidate, tests, build,
+typecheck, rules hash and recovery procedure before any production action.
+Refresh the existing release inventory immediately before release. With flatlay
+admission paused and worker dispatch stopped, apply the protected rules, deploy
+and verify the matching API, then deliberately replace the worker from
+`backend/worker` (`python main.py`, one replica). Verify an authenticated frontend
+preview before deploying a build made with Production variables; confirm every
+canonical domain. Keep intermediate Git-triggered deployments from publishing
+mixed versions. Record exact source and platform artifact IDs after acceptance.
+
+The Goal 5 source archive is now historical evidence only, not a compatible
+complete fallback for this boundary change. Containment and forward repair must
+retain Railway Admin ownership, protected rules, versioned asset readers, private
+ledgers and receipts. `EASYOUTFIT_FLATLAY_REQUESTS_PAUSED=true` stops API admission
+only; stop the worker deployment to stop dispatch. Do not blindly restore old
+source, old rules or Vercel Admin keys. A rebuilt recovery candidate needs its own
+review and verification.
+
+Current local evidence: frontend 720 tests in 57 suites passed; backend 534 tests
+ran with 533 passed and one macOS skip; Firestore rules 263 checks passed against
+SHA-256 `eafa27b3270d6906835309c68a10b13b71822852d8a35f8b501e36da9f9811ca`.
+The production frontend build passed with the existing public Firebase client
+configuration and no server Firebase credentials; all 134 compiled server-route
+traces exclude Firebase Admin. Typecheck still reports 115 existing diagnostics,
+compared with 124 at the preceding candidate, with no new diagnostic positions
+or diagnostics in changed files. Build configuration still skips type/lint gates;
+a successful build is not a clean repository-wide typecheck. Frozen TypeScript
+oracles verify 189 quiz cases and 241 onboarding cases. The parent's earlier
+real local Firestore service checks passed 23/23 and require final-candidate
+acceptance. Live authenticated/provider-image and physical-device checks remain
+pending. The three canonical backend URL variables were verified read-only;
+that does not constitute deployment. See
+[the Goal 6 handoff](ONBOARDING_RELEASE_GOAL6_HANDOFF.md) for release gates and the
+inventory to refresh. No final source SHA or CI pass is asserted here.
+
 ## Canonical Surfaces
 
 - Product repo: `/Users/neo/Desktop/closetgptrenew`

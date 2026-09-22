@@ -1,7 +1,10 @@
 # Goal 6 — integrated onboarding release
 
-Status: candidate preparation and verification in progress; this document does
-not yet assert a production release or successful live-account/device checks.
+Status: candidate preparation and verification in progress; the new privileged
+boundary is **not yet live**. No cloud configuration, rules or deployment changes
+have occurred during this preparation. No final candidate SHA, CI pass or
+successful live-account/provider/device checks are asserted. Independent parent
+review must accept the complete candidate before production actions.
 
 ## Candidate and scope
 
@@ -22,6 +25,42 @@ Jev, new models, imports/reminders and a new multiple-required-item selector
 remain excluded. Do not reset credits, delete historical outfits or transfer
 the owner's photographs to the test account.
 
+## Privileged boundary migration
+
+The candidate moves profile, onboarding, quiz, garment and image privileged work
+to Railway. Vercel contains thin fixed-origin proxies and the browser Firebase
+client, with no Firebase Admin package/runtime or service-account credentials.
+Do not provision Vercel Admin keys to make the release work. The canonical
+operator playbook was updated first; the production architecture describes the
+same candidate boundary.
+
+Migrated Railway endpoints verify bearer tokens with revocation checks, deny
+disabled/anonymous users and mismatched UID assertions in headers/query/body,
+and preserve account authority, private job state and quiz/wear receipts.
+The active direct `/api/auth/profile` GET/PUT clients use the same protected
+profile contract. Profile transactions execute outside the request event loop.
+Fresh profile edits cannot establish quiz completion through `stylePreferences`
+or `preferences.style`: the transaction permits these edits only with completion
+or legacy evidence in the stored profile before applying the update. Name-only
+signup and completed/legacy profile edits remain supported.
+
+Proxy destinations come from trusted configuration and fixed application paths,
+not request headers or URLs. Proxies forward bearer authorization and required
+body/content type, reject redirects and non-JSON responses, and return private,
+no-store JSON. The default upstream request deadline is 50 seconds. Multipart
+`/api/image/upload` preserves file/field semantics with a 45-second upstream
+deadline. Timeouts can leave writes committed; confirm by retry/readback.
+
+Unused frontend endpoints return `410`: `/api/profile/save`,
+`/api/user/style-profile`, `/api/update-style-profile`, `/api/upload-photo`,
+`/api/delete-photo`, `/api/migrate`, `/api/image/upload-direct`, `/api/analyze`
+and `/api/admin/fix-onboarding-status`. Active callers use supported paths;
+retirement does not authorize restoring permissive identity or migration scans.
+
+Raw image-URL admission retains its previous policy. The worker checks
+`original_source` at use time; no new general URL-admission or external-fetch
+safety guarantee is claimed by this migration.
+
 ## Narrow integrated fix
 
 The worker's oldest-only flatlay query could repeatedly launch an unclaimable
@@ -37,24 +76,36 @@ retain their standard-library-only CI contract.
 
 ## Verification before cloud changes
 
-- Final integrated backend: 436 tests, 435 passed and one macOS-specific skip.
-- Standard-library-only coordinator/process run: 29 tests, 28 passed and one
-  macOS-specific skip. Linux CI on the final candidate remains a release gate.
-- Frontend is unchanged from accepted Goal 5: 691 tests in 51 suites and build
-  passed there. The 124 existing TypeScript diagnostics remain recorded in that
-  handoff; none were in changed Goal 5 files.
-- Parent independently verified all 14 canonical public-health/private-debug
-  checks before release on September 22, 2026.
-- Reading the actual Firebase Rules release and source succeeded. Synthetic
-  `projects.test` was denied by the current service account (HTTP 403); it did
-  not deploy rules or access app documents. No IAM permissions were changed.
-- All 178 local Firestore emulator checks passed against the exact frontend
-  rules hash below: owner/foreign/anonymous CRUD, private collections including
-  admin-claim and list denial, managed-history immutability and legacy behavior.
-  Used cached Firestore emulator 1.19.8, JRE 21 and official rules-unit-testing on
-  localhost with a demo project. The emulator was stopped after verification.
-- Authenticated deployed-rule/cloud, physical-phone and provider-image proof
-  are still pending. Local and viewport tests are not substitutes for them.
+These checks cover the integrated migration, including the profile completion
+guard and exact onboarding parity fixes. Source freeze, independent acceptance
+and Linux CI remain distinct release gates.
+
+| Check | Latest recorded result | Release follow-up |
+| --- | --- | --- |
+| Full frontend | 720 tests in 57 suites passed | Includes runtime Admin-boundary guards |
+| Full backend | 534 tests: 533 passed, one macOS-specific skip | Includes completion-guard, transaction and route-registration regressions |
+| Executed TypeScript parity oracles | 189 quiz cases and 241 onboarding cases match | Frozen-source mapping, submission hashes, state, classification and timestamp behavior |
+| Coordinator/process standard-library-only run | 29 tests: 28 passed, one macOS-specific skip | Linux CI on the final candidate remains required |
+| Firestore rules emulator | 263 checks passed against the exact source hash below | Recheck if rules change |
+| Parent independent real local Firestore emulator service checks | 23/23 passed, including concurrent drafts | Refresh acceptance against the final candidate |
+| Production build | Passed with public Firebase client configuration and no server Firebase credentials | All 134 compiled server-route traces exclude Firebase Admin |
+| Typecheck | 115 existing diagnostics; baseline 124 at `3ed2ecc4`; zero new diagnostic positions or changed-file errors | Repository-wide typecheck remains failing; the existing build skips type/lint gates |
+| Final source SHA and CI | **Pending** | Record frozen commit and actual CI result |
+| Authenticated deployed/provider-image/physical-device checks | **Pending** | Local and viewport tests do not replace these gates |
+
+The parent independently verified all 14 canonical public-health/private-debug
+checks before release on September 22, 2026, and read-only verification confirmed
+all three canonical backend URL environment variables. Reading the Firebase
+Rules release and source succeeded. Synthetic `projects.test` was denied to the
+current service account (HTTP 403); no IAM change, alternate credential, rules
+deployment or app-document operation was used to bypass it. Current signed-in
+operator Firebase-console sign-in has since been verified read-only; actual
+publication and deployed-rule proof remain release gates.
+
+The rules emulator checks cover owner/foreign/anonymous policy, server-owned
+profile authority, private job/receipt collections, managed wear immutability
+and legacy behavior. They are local evidence, distinct from the independent
+service-level emulator checks and from authenticated deployed-rule evidence.
 
 ## Original production state
 
@@ -79,72 +130,83 @@ Railway project `97ed14e7-f7a6-4f86-b919-94f133ed478e`, production environment
 ## Rules and environment boundary
 
 Use `frontend/firestore.rules` as the explicit release source, SHA-256
-`a12dd16fb49562d4548c6c3f7b13ede62147772579a63479f807ab42ca1fbe75`.
-A complete deployed-versus-candidate review found no live-only explicit allow/admin policy
-removed. The backend copy additionally contains a pre-existing nested
-`users/{uid}/wardrobe/{itemId}` allow absent from live and frontend rules; do not
-activate that unrelated grant during this release. The frontend source keeps
-the existing collection policy and adds private job/onboarding/receipt denial
-and client immutability for managed wear history. Deploy only Firestore rules;
-do not implicitly update Storage rules or indexes.
+`eafa27b3270d6906835309c68a10b13b71822852d8a35f8b501e36da9f9811ca`.
+The candidate intentionally constrains direct user-document writes to safe
+bootstrap/name edits; full profile changes go through verified Railway APIs.
+It also denies direct access to private jobs, onboarding state and receipts,
+and protects managed wear history. The backend rules copy additionally contains
+a pre-existing nested `users/{uid}/wardrobe/{itemId}` grant absent from live and
+frontend rules; do not activate that unrelated grant. Refresh the complete
+live-to-final-source rules diff before release. Deploy Firestore rules only,
+without implicitly deploying Storage rules or indexes.
 
-Vercel currently lacks the three server-only Admin variables. Explicit browser
-credential-entry consent is pending for `FIREBASE_PROJECT_ID`,
-`FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` in Production and only the
-release preview branch. If approved, import only those three values from the
-intended existing credential source through a private mode-0600 temporary file.
-Never import a complete backend environment or expose values in logs. No new
-provider, pricing or unrelated preview-branch access is authorized by that step.
+Vercel uses `BACKEND_URL`, `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_BACKEND_URL`
+pointing to `https://closetgptrenew-production.up.railway.app`; the parent verified
+all three read-only. No Vercel Admin credentials or `firebase-admin` package are
+required. Keep privileged Firebase access in the intended Railway services.
+Public browser Firebase configuration remains separate. The previous Vercel
+Admin credential-entry proposal is withdrawn; do not import backend credentials
+or restore old Admin handlers as a release or recovery step.
 
 ## Controlled release and recovery
 
-1. Freeze a clean cumulative candidate, push one draft PR against `main`, and
-   require its Linux process/queue checks. Do not merge the stacked PRs one by
-   one: Git triggers must never publish intermediate runtime combinations.
-2. Validate the chosen rules source and environment names. Record the exact
-   candidate and original artifact IDs. Keep `main` untouched while deploying
-   the candidate manually to canonical services through official interfaces.
-3. Deploy and verify the exact `frontend/firestore.rules` source/hash recorded
-   above before new API endpoints can create managed wear records. Record the
-   resulting live ruleset ID and actual client allow/deny evidence. Deploy the
-   matching API from the frozen source. Verify health, ownership,
-   legacy bodyless-wear compatibility and new endpoint availability. Keep the
-   worker stopped until the API/rules boundary is compatible.
+1. Freeze the tested clean cumulative source and obtain independent parent
+   acceptance of source, tests,
+   final rules drift/hash, recovery plan and remaining live gates. Record the
+   actual SHA and CI results; no final SHA or CI pass is recorded yet. Do not
+   merge stacked PRs one by one or allow Git triggers to publish intermediate
+   runtime combinations.
+2. Refresh the original production inventory and canonical environment bindings.
+   Use the intended signed-in operator console without bypassing the service
+   account denial. Keep `main` untouched while validating the accepted
+   candidate through controlled official deployment interfaces.
+3. Pause new flatlay admission and keep worker dispatch stopped while establishing
+   compatibility. Apply and verify the exact protected frontend Firestore rules
+   before enabling writes that rely on them. Record the deployed ruleset ID and
+   actual client allow/deny evidence. Deploy and verify the matching Railway API,
+   including strict bearer identity, profile/quiz authority, upload ownership,
+   private receipts and legacy bodyless-wear compatibility.
 4. Deliberately retire any old worker deployment before starting the candidate
-   worker (`backend/worker`, `python main.py`, one replica). Verify new bounded
+   worker (`backend/worker`, `python main.py`, one replica). Verify bounded
    recovery and independent garment/flatlay progress. Do not use the stale
-   `backend/Dockerfile.worker` path.
-5. Verify a configured authenticated preview, then deploy a frontend build made
-   with Production environment values. Do not assume promoting a Preview build
-   rebuilds it with Production variables. Verify all canonical domains.
-6. Integrate only the final accepted cumulative candidate into `main` once
-   services are compatible. Confirm Git source connections remain correct and
-   subsequent deployments use the accepted tree. Record final artifact IDs.
+   `backend/Dockerfile.worker` path. Resume admissions only after compatibility
+   and dispatch are verified.
+5. Verify the configured authenticated frontend preview, then release a frontend
+   build made with Production environment values. A Preview promotion does not
+   imply a rebuild with Production variables. Verify all canonical domains and
+   retain the Railway-only privileged boundary.
+6. Integrate only the final accepted cumulative candidate into `main` once the
+   controlled rollout is compatible. Confirm Git source connections and record
+   actual API/worker/frontend/rules artifacts, source SHA, live evidence and
+   parent acceptance.
 
-The minimum compatible source recovery target is accepted Goal 5 commit
-`b0f7dfb3d5a56c5aa3ff43f7c24b52735d90f768`, subject to the recorded review and
-platform build/health checks. It contains the same versioned asset readers,
-leases, protected request/source checks and atomic wear receipts; Goal 6's queue
-fix has no schema migration. Its worker retains the queue-starvation defect,
-so keep dispatch stopped if that incident is present and prefer a forward fix.
+The accepted Goal 5 commit `b0f7dfb3d5a56c5aa3ff43f7c24b52735d90f768` is now
+**historical evidence only, not a compatible complete fallback**. Its versioned
+asset readers, leases and receipts were compatible with the earlier queue-only
+candidate, but it predates the privileged-boundary migration and protected
+profile rules. It also retains the queue-starvation defect. Do not deploy it
+blindly or restore Vercel Admin keys to make its old writers work.
 
-For containment, set `EASYOUTFIT_FLATLAY_REQUESTS_PAUSED=true` on the API,
-deploy that setting, verify admission is paused, and stop the worker deployment;
-the API flag alone does not stop queued work. Record its prior value/presence
-and restore that exact state deliberately after recovery is verified.
-For a source rollback, deploy the compatible Goal 5 API and frontend, then
-start its worker only after health and ledger compatibility checks. Preserve
-the new protected rules, receipts, job ledgers and immutable assets. Never
-blindly restore the original API/worker or old rules after new writes exist.
-SIGTERM on the new coordinator terminates and reaps its children while retaining
-leases for normal recovery. Record any actual rollback artifacts when built;
-an accepted source SHA is not an already-built recovery deployment.
+Contain incidents by setting `EASYOUTFIT_FLATLAY_REQUESTS_PAUSED=true` on the API,
+applying that setting and verifying admission is paused, then stopping the worker
+deployment. The API flag alone does not stop queued work. Record the prior flag
+value/presence and restore that exact state only after deliberate verification.
+The coordinator's SIGTERM handling terminates/reaps children and retains leases
+for normal recovery.
 
-An immutable source archive of that exact fallback commit was prepared as
-`easyoutfit-goal6-goal5-rollback-source.tar.gz`, SHA-256
-`5085bebe9134be5551d05e2dc5b8706a8f659ce068ec06c5434b6f0773649310`.
-Its matching manifest records the full commit and archive digest. This is a
-verified source recovery artifact, not a prebuilt image or live rollback pass.
+Prepare and review a forward repair or a separately proven recovery candidate
+that retains Railway Admin ownership, protected rules, versioned asset readers,
+private job ledgers, receipts and immutable assets. Never blindly restore the
+original API/worker/rules after new writes exist. Neither an old source SHA nor
+a successful historical deployment is proof of a compatible recovery artifact.
+Record actual recovery build/deployment IDs and health/contract evidence when
+available; none is claimed here.
+
+The immutable archive `easyoutfit-goal6-goal5-rollback-source.tar.gz`, SHA-256
+`5085bebe9134be5551d05e2dc5b8706a8f659ce068ec06c5434b6f0773649310`, and its
+matching full-commit manifest are retained as historical source evidence. The
+archive name does not designate a supported full rollback, prebuilt image or
+live recovery pass for the current candidate.
 
 ## Remaining live gates
 

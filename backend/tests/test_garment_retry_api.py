@@ -69,7 +69,7 @@ class GarmentRetryApiTests(unittest.TestCase):
         modules_patch = patch.dict("sys.modules", collaborators)
         modules_patch.start()
         self.addCleanup(modules_patch.stop)
-        auth_patch = patch.object(route.auth, "verify_id_token", return_value={"uid": "verified-owner"})
+        auth_patch = patch('src.auth.verified_user.auth.verify_id_token', return_value={"uid": "verified-owner"})
         self.verify = auth_patch.start()
         self.addCleanup(auth_patch.stop)
         self.client = TestClient(registered_app())
@@ -135,6 +135,17 @@ class GarmentRetryApiTests(unittest.TestCase):
             with self.subTest(field=field):
                 response = self.post(body={"expected_attempt_id": "failed-attempt-3", field: "spoofed"})
                 self.assertEqual(response.status_code, 422)
+        self.retry.assert_not_called()
+
+    def test_spoofed_identity_headers_and_query_are_rejected_before_retry(self):
+        for suffix, headers in (
+            ('?userId=other', {}), ('?user_id=other', {}), ('?firebase_uid=other', {}),
+            ('', {'X-User-ID': 'other'}), ('', {'X-Firebase-UID': 'other'}),
+        ):
+            response = self.client.post('/api/wardrobe/shirt-1/retry-processing' + suffix,
+                                        headers={'Authorization': 'Bearer real-token', **headers},
+                                        json={'expected_attempt_id': 'failed-attempt-3'})
+            self.assertEqual(response.status_code, 403)
         self.retry.assert_not_called()
 
     def test_missing_empty_or_nonstring_failed_attempt_rejected(self):

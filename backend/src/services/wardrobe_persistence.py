@@ -5,23 +5,29 @@ from uuid import uuid4
 
 from firebase_admin import firestore
 
+OWNER_FIELDS = ("userId", "user_id", "firebase_uid", "uid", "ownerId")
+
 
 class WardrobeOwnershipConflict(Exception):
     """A caller-supplied identifier already belongs to a different account."""
 
 
+class WardrobeInputError(ValueError):
+    """Known input validation, distinct from Firestore transaction failures."""
+
+
 def create_owned_wardrobe_item(db, user_id: str, item_data: dict, *, now=None) -> dict:
     if not isinstance(user_id, str) or not user_id.strip():
-        raise ValueError("A verified account is required")
+        raise WardrobeInputError("A verified account is required")
     for field in ("name", "type", "color"):
         if field not in item_data:
-            raise ValueError(f"Missing required field: {field}")
+            raise WardrobeInputError(f"Missing required field: {field}")
     item_id = item_data.get("id")
     if item_id is None:
         item_id = str(uuid4())
     if (not isinstance(item_id, str) or not item_id.strip() or "/" in item_id
             or item_id in (".", "..") or len(item_id.encode("utf-8")) > 1500):
-        raise ValueError("Invalid wardrobe item ID")
+        raise WardrobeInputError("Invalid wardrobe item ID")
 
     timestamp = now or datetime.now(timezone.utc).isoformat()
     garment = {
@@ -33,8 +39,10 @@ def create_owned_wardrobe_item(db, user_id: str, item_data: dict, *, now=None) -
         "backgroundRemovedUrl": None,
         "processing_status": "pending",
     }
-    # A caller cannot plant a second, conflicting ownership field.
-    garment.pop("user_id", None)
+    # The verified UID is stored once. Legacy aliases remain readable on
+    # existing records but cannot introduce a second owner on a new upload.
+    for alias in OWNER_FIELDS[1:]:
+        garment.pop(alias, None)
     reference = db.collection("wardrobe").document(item_id)
 
     @firestore.transactional
@@ -42,8 +50,8 @@ def create_owned_wardrobe_item(db, user_id: str, item_data: dict, *, now=None) -
         snapshot = reference.get(transaction=transaction)
         if snapshot.exists:
             existing = snapshot.to_dict() or {}
-            owners = [existing.get(key) for key in ("userId", "user_id") if existing.get(key)]
-            if not owners or any(owner != user_id for owner in owners):
+            owners = [existing[key] for key in OWNER_FIELDS if existing.get(key) is not None]
+            if not owners or any(not isinstance(owner, str) or owner != user_id for owner in owners):
                 raise WardrobeOwnershipConflict("This item ID is already in use")
             # An upload retry must not reset completed image work, wear history,
             # or edits. Return the original persisted garment without writing.
