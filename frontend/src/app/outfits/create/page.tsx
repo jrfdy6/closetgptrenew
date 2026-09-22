@@ -377,6 +377,11 @@ export default function CreateOutfitPage() {
     try {
       // Use subscription service to get current subscription from payment system
       const subscription = await subscriptionService.getCurrentSubscription(user);
+      if (subscription.quota_review_required) {
+        setFlatLayUsage(null);
+        setFlatLayError('Your credit balance needs review. Flatlay creation is temporarily unavailable; your saved outfits are still available.');
+        return;
+      }
       const tier = subscription.role || 'tier1';
       
       // Get tier info to get the limit

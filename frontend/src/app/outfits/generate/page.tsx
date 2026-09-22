@@ -24,7 +24,8 @@ import { useFirebase } from '@/lib/firebase-context';
 import Navigation from '@/components/Navigation';
 import ClientOnlyNav from '@/components/ClientOnlyNav';
 import { useRouter } from 'next/navigation';
-import OutfitService from '@/lib/services/outfitService';
+import outfitApi from '@/lib/services/outfitService_proper';
+import type { OutfitCreate } from '@/lib/services/outfitService';
 import BodyPositiveMessage from '@/components/BodyPositiveMessage';
 import { useAutoWeather } from '@/hooks/useWeather';
 import type { WeatherData } from '@/types/weather';
@@ -126,6 +127,26 @@ export default function OutfitGenerationPage() {
   const [flatLayError, setFlatLayError] = useState<string | null>(null);
   const [flatLayActionLoading, setFlatLayActionLoading] = useState(false);
   const flatLayRequestPending = useRef(false);
+  const [pendingSave, setPendingSave] = useState<OutfitCreate | null>(null);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const saveInFlight = useRef(false);
+
+  const confirmGeneratedSave = async (draft: OutfitCreate) => {
+    if (!user || saveInFlight.current) return;
+    saveInFlight.current = true;
+    setSaveLoading(true);
+    setPendingSave(draft);
+    try {
+      const saved = await outfitApi.createOutfit(draft, await user.getIdToken());
+      setPendingSave(current => current?.id === draft.id ? null : current);
+      setGeneratedOutfit(current => current?.id === draft.id ? { ...current, id: saved.id } : current);
+    } catch {
+      toast({ title: 'Save needs confirmation', description: 'Your outfit is ready. Retry saving it before leaving this page.', variant: 'destructive' });
+    } finally {
+      saveInFlight.current = false;
+      setSaveLoading(false);
+    }
+  };
   
   const loadFlatLayUsage = useCallback(async () => {
     if (!user) {
@@ -139,6 +160,11 @@ export default function OutfitGenerationPage() {
     try {
       // Use subscription service to get current subscription from payment system
       const subscription = await subscriptionService.getCurrentSubscription(user);
+      if (subscription.quota_review_required) {
+        setFlatLayUsage(null);
+        setFlatLayError('Your credit balance needs review. Flatlay creation is temporarily unavailable; your saved outfits are still available.');
+        return;
+      }
       const plan = mapRoleToPlan(subscription.role);
       const limit = FLATLAY_WEEKLY_LIMITS[plan] ?? 1;
       
@@ -708,6 +734,7 @@ export default function OutfitGenerationPage() {
 
       const enrichedData = {
         ...data,
+        id: data.id || crypto.randomUUID(),
         metadata: enrichedMetadata,
         flat_lay_status: data.flat_lay_status ?? enrichedMetadata.flat_lay_status,
         flatLayStatus: data.flatLayStatus ?? enrichedMetadata.flatLayStatus,
@@ -728,78 +755,21 @@ export default function OutfitGenerationPage() {
         // Note: User-facing message can be displayed in UI component
       }
       
-      // Auto-save the generated outfit directly to Firestore
-      if (user) {
-        try {
-          // Validate minimum items before saving
-          if (!data.items || data.items.length < 3) {
-            console.warn('🔍 DEBUG: Skipping auto-save - need at least 3 items to save outfit');
-            return;
-          }
-          
-          console.log('💾 Auto-saving outfit to Firestore...');
-          
-          // Import Firebase directly to save
-          const { db } = await import('@/lib/firebase/config');
-          const { collection, doc, runTransaction } = await import('firebase/firestore');
-          
-          // Prepare outfit data for Firestore
-          const outfitId = enrichedData.id || `outfit_${Date.now()}`;
-          const now = new Date().toISOString();
-          const outfitData = {
-            id: outfitId,
-            name: enrichedData.name,
+      // Confirm the server save idempotently. Never write generation authority
+      // or flatlay fields from the browser, even when the first response was lost.
+      if (user && enrichedData.items?.length) {
+        await confirmGeneratedSave({
+            id: enrichedData.id,
+            name: enrichedData.name || 'My outfit',
             occasion: enrichedData.occasion || formData.occasion,
-            style: enrichedData.style,
+            style: enrichedData.style || formData.style,
             mood: enrichedData.mood || 'neutral',
             description: enrichedData.reasoning || enrichedData.description || '',
-            items: enrichedData.items.map((item: any) => ({
-              id: item.id,
-              name: item.name,
-              category: item.category || item.type,
-              type: item.type || item.category,
-              color: item.color,
-              imageUrl: item.imageUrl || "",
-              user_id: user.uid
-            })),
+            items: enrichedData.items,
             user_id: user.uid,
-            createdAt: now,
-            updatedAt: now,
-            wearCount: 0,
-            isFavorite: false,
-            confidence_score: enrichedData.confidence_score ?? null,
-            generation_strategy: enrichedData.generation_strategy || 'hybrid',
-            baseItemId: enrichedData.baseItemId ?? baseItem?.id ?? null,
-            metadata: enrichedMetadata,
-            flat_lay_status: enrichedMetadata.flat_lay_status,
-            flatLayStatus: enrichedMetadata.flatLayStatus,
-            flat_lay_url: enrichedMetadata.flat_lay_url,
-            flatLayUrl: enrichedMetadata.flatLayUrl,
-            flat_lay_error: enrichedMetadata.flat_lay_error,
-            flatLayError: enrichedMetadata.flatLayError,
-            flat_lay_requested: enrichedMetadata.flat_lay_requested ?? false,
-            flatLayRequested: enrichedMetadata.flatLayRequested ?? false,
-          };
-          
-          // Save directly to Firestore
-          const outfitRef = doc(collection(db, 'outfits'), outfitId);
-          await runTransaction(db, async transaction => {
-            const existing = await transaction.get(outfitRef);
-            // Never overwrite the server's saved outfit or concurrent preview state.
-            if (!existing.exists()) transaction.set(outfitRef, outfitData);
-          });
-          
-          console.log('✅ Outfit auto-saved successfully to Firestore with ID:', outfitId);
-          
-          // Update the outfit with the confirmed ID
-          setGeneratedOutfit(prev => prev ? {
-            ...prev,
-            id: outfitId,
-          } : null);
-        } catch (err) {
-          console.log('🔍 DEBUG: Auto-save failed, but outfit generation succeeded');
-        }
+        });
       }
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate outfit');
     } finally {
@@ -1304,6 +1274,14 @@ export default function OutfitGenerationPage() {
                   </Card>
                 )}
                 <BodyPositiveMessage variant="outfit" />
+                {pendingSave?.id === generatedOutfit.id && (
+                  <div role="status" className="rounded-xl border border-amber-300 p-4 space-y-2">
+                    <p className="text-sm">{saveLoading ? 'Confirming your saved outfit…' : 'Your outfit is ready, but its save needs confirmation.'}</p>
+                    <Button variant="outline" disabled={saveLoading} onClick={() => confirmGeneratedSave(pendingSave)}>
+                      {saveLoading ? 'Saving…' : 'Retry saving outfit'}
+                    </Button>
+                  </div>
+                )}
                 <OutfitResultsDisplay
                 outfit={generatedOutfit}
                 rating={outfitRating}

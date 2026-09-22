@@ -115,6 +115,36 @@ def get_db():
         logger.warning(f"⚠️ Firebase import failed: {e}")
         raise HTTPException(status_code=500, detail="Database service unavailable")
 
+
+def _owned_record(record: Dict[str, Any], user_id: str) -> bool:
+    """Honor legacy owner aliases, but reject ambiguous ownership."""
+    owners = [record[key] for key in ('user_id', 'userId') if record.get(key) is not None]
+    return bool(user_id) and bool(owners) and all(owner == user_id for owner in owners)
+
+
+def _owned_wear_items(db, items, user_id: str):
+    """Authorize every garment before any counters or history are changed."""
+    if not isinstance(items, list):
+        raise HTTPException(status_code=422, detail="Outfit items must be a list")
+    owned = []
+    seen = set()
+    for item in items:
+        item_id = item.get('id') if isinstance(item, dict) else item
+        if not isinstance(item_id, str) or not item_id.strip() or '/' in item_id:
+            raise HTTPException(status_code=422, detail="Invalid outfit item")
+        if item_id in seen:
+            continue
+        seen.add(item_id)
+        item_ref = db.collection('wardrobe').document(item_id)
+        item_doc = item_ref.get()
+        if not item_doc.exists:
+            raise HTTPException(status_code=422, detail="An outfit item is no longer in your wardrobe")
+        item_data = item_doc.to_dict() or {}
+        if not _owned_record(item_data, user_id):
+            raise HTTPException(status_code=403, detail="An outfit item does not belong to you")
+        owned.append((item_ref, item_data))
+    return owned
+
 def serialize_firestore_doc(doc):
     """Serialize Firestore document, converting Timestamps to ISO strings"""
     data = doc.to_dict()
@@ -292,6 +322,11 @@ async def mark_outfit_as_worn(
         # Get outfit details from outfits collection (if it exists)
         outfit_doc = db.collection('outfits').document(outfit_id).get()
         outfit_data = outfit_doc.to_dict() if outfit_doc.exists else {}
+
+        if outfit_doc.exists and not _owned_record(outfit_data, current_user.id):
+            raise HTTPException(status_code=403, detail="Outfit does not belong to you")
+        items_source = outfit_data.get('items') or data.get('items', [])
+        owned_items = _owned_wear_items(db, items_source, current_user.id)
         
         # Update outfit's own wear count if it exists in outfits collection
         if outfit_doc.exists:
@@ -306,15 +341,7 @@ async def mark_outfit_as_worn(
         
         # Extract item IDs from the outfit
         # First try from Firestore outfit_data, then from request data
-        item_ids = []
-        items_source = outfit_data.get('items') or data.get('items', [])
-        
-        if items_source:
-            for item in items_source:
-                if isinstance(item, dict) and 'id' in item:
-                    item_ids.append(item['id'])
-                elif isinstance(item, str):
-                    item_ids.append(item)
+        item_ids = [item_ref.id for item_ref, _ in owned_items]
         
         logger.info(f"🔍 DEBUG: Found {len(item_ids)} items to update wear counts for")
         
@@ -322,22 +349,12 @@ async def mark_outfit_as_worn(
         current_timestamp = int(datetime.utcnow().timestamp() * 1000)
         if item_ids:
             batch = db.batch()
-            wardrobe_ref = db.collection('wardrobe')
-            
-            for item_id in item_ids:
-                item_ref = wardrobe_ref.document(item_id)
-                item_doc = item_ref.get() if item_ref else None
-                
-                if item_doc.exists:
-                    item_data = item_doc.to_dict()
-                    current_wear_count = (item_data.get('wearCount', 0) if item_data else 0)
-                    
-                    # Update wear count and last worn timestamp
-                    batch.update(item_ref, {
-                        'wearCount': current_wear_count + 1,
-                        'lastWorn': current_timestamp,
-                        'updatedAt': current_timestamp
-                    })
+            for item_ref, item_data in owned_items:
+                batch.update(item_ref, {
+                    'wearCount': item_data.get('wearCount', 0) + 1,
+                    'lastWorn': current_timestamp,
+                    'updatedAt': current_timestamp
+                })
             
             # Commit the batch update
             batch.commit()
@@ -652,7 +669,7 @@ async def update_outfit_history_entry(
         entry_data = doc.to_dict()
         
         # Verify ownership
-        if entry_data.get('user_id') != current_user.id:
+        if not _owned_record(entry_data, current_user.id):
             raise HTTPException(status_code=403, detail="Not authorized to update this entry")
         
         # Prepare update data
@@ -697,6 +714,8 @@ async def update_outfit_history_entry(
             "message": "Outfit history entry updated successfully"
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error updating outfit history entry: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to update outfit history entry")
@@ -716,6 +735,7 @@ async def delete_outfit_history_entry(
         logger.info(f"Deleting outfit history entry {entry_id} for user {current_user.id}")
         
         # Get the entry
+        db = get_db()
         doc_ref = db.collection('outfit_history').document(entry_id)
         doc = doc_ref.get() if doc_ref else None
         
@@ -725,7 +745,7 @@ async def delete_outfit_history_entry(
         entry_data = doc.to_dict()
         
         # Verify ownership
-        if entry_data.get('user_id') != current_user.id:
+        if not _owned_record(entry_data, current_user.id):
             raise HTTPException(status_code=403, detail="Not authorized to delete this entry")
         
         # Delete the document
@@ -755,6 +775,8 @@ async def delete_outfit_history_entry(
             "message": "Outfit history entry deleted successfully"
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error deleting outfit history entry: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to delete outfit history entry")
@@ -1133,6 +1155,8 @@ async def clear_todays_suggestion_cache(
             raise HTTPException(status_code=400, detail="User not found")
         
         logger.info(f"Clearing today's outfit suggestion cache for user {current_user.id}")
+        db = get_db()
+        from google.cloud.firestore_v1 import FieldFilter
         
         # Get today's date
         from datetime import datetime, timezone
@@ -1152,6 +1176,8 @@ async def clear_todays_suggestion_cache(
         
         deleted_count = 0
         for doc in existing_docs:
+            if not _owned_record(doc.to_dict() or {}, current_user.id):
+                continue
             doc.reference.delete()
             deleted_count += 1
         
@@ -1187,6 +1213,7 @@ async def mark_today_suggestion_as_worn(
         logger.info(f"Marking today's suggestion {suggestion_id} as worn for user {current_user.id}")
         
         # Check if firebase is available
+        db = get_db()
         if not db:
             raise HTTPException(status_code=503, detail="Service temporarily unavailable")
         
@@ -1200,7 +1227,7 @@ async def mark_today_suggestion_as_worn(
         suggestion_data = suggestion_doc.to_dict()
         
         # Verify ownership
-        if suggestion_data.get('user_id') != current_user.id:
+        if not _owned_record(suggestion_data, current_user.id):
             raise HTTPException(status_code=403, detail="Not authorized")
         
         # Check if already worn
@@ -1211,6 +1238,11 @@ async def mark_today_suggestion_as_worn(
                 "alreadyWorn": True
             }
         
+        # Validate every garment before marking the suggestion or changing counts.
+        outfit_data = suggestion_data.get('outfit_data') or {}
+        outfit_items = outfit_data.get('items', [])
+        owned_items = _owned_wear_items(db, outfit_items, current_user.id)
+
         # Mark suggestion as worn
         current_timestamp = int(datetime.utcnow().timestamp() * 1000)
         suggestion_ref.update({
@@ -1219,31 +1251,18 @@ async def mark_today_suggestion_as_worn(
             'updated_at': current_timestamp
         })
         
-        # Extract and update wardrobe item wear counts
-        outfit_data = (suggestion_data.get('outfit_data', {}) if suggestion_data else {})
-        outfit_items = (outfit_data.get('items', []) if outfit_data else [])
-        
-        if outfit_items:
+        # Update only the already-authorized wardrobe items.
+        if owned_items:
             try:
                 batch = db.batch()
                 wardrobe_ref = db.collection('wardrobe')
                 
-                for item in outfit_items:
-                    if isinstance(item, dict) and 'id' in item:
-                        item_id = item['id']
-                        item_ref = wardrobe_ref.document(item_id)
-                        item_doc = item_ref.get() if item_ref else None
-                        
-                        if item_doc.exists:
-                            item_data = item_doc.to_dict()
-                            current_wear_count = (item_data.get('wearCount', 0) if item_data else 0)
-                            
-                            # Update wear count and last worn timestamp
-                            batch.update(item_ref, {
-                                'wearCount': current_wear_count + 1,
-                                'lastWorn': current_timestamp,
-                                'updatedAt': current_timestamp
-                            })
+                for item_ref, item_data in owned_items:
+                    batch.update(item_ref, {
+                        'wearCount': item_data.get('wearCount', 0) + 1,
+                        'lastWorn': current_timestamp,
+                        'updatedAt': current_timestamp
+                    })
                 
                 # Commit the batch update
                 batch.commit()
@@ -1260,7 +1279,7 @@ async def mark_today_suggestion_as_worn(
                             item_ref = wardrobe_ref.document(item_id)
                             item_doc = item_ref.get()
                             
-                            if item_doc.exists:
+                            if item_doc.exists and _owned_record(item_doc.to_dict() or {}, current_user.id):
                                 item_data = item_doc.to_dict()
                                 value_per_wear = item_data.get('value_per_wear', 0)
                                 

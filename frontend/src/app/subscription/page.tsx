@@ -184,12 +184,12 @@ export default function SubscriptionPage() {
                       Flat Lays This Week
                     </span>
                     <span className="text-sm text-muted-foreground">
-                      {flatlaysRemaining} of {flatlayLimit} remaining
+                      {subscription.quota_review_required ? 'Credit balance needs review' : `${flatlaysRemaining} of ${flatlayLimit} remaining`}
                     </span>
                   </div>
-                  <Progress value={flatlayPercentage} className="h-2" />
+                  {!subscription.quota_review_required && <Progress value={flatlayPercentage} className="h-2" />}
                   <p className="text-xs text-muted-foreground mt-1">
-                    {flatlayUsage} used • Resets weekly
+                    {subscription.quota_review_required ? 'Flatlay creation is temporarily unavailable while your balance is reviewed.' : `${flatlayUsage} used • Resets weekly`}
                   </p>
                 </div>
 

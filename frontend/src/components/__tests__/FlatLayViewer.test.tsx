@@ -243,3 +243,10 @@ describe('Flat lay presentation', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
+
+it('shows a review hold as unavailable without suggesting a purchase fixes it', () => {
+  render(<FlatLayViewer outfitItems={pieces} status="awaiting_consent" onRequestFlatLay={jest.fn()} flatLayUsage={null} flatLayError="Your credit balance needs review." />);
+  expect(screen.getByRole('alert')).toHaveTextContent('Your credit balance needs review.');
+  expect(screen.queryByRole('link', { name: 'View plans' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Create flat lay' })).toBeDisabled();
+});

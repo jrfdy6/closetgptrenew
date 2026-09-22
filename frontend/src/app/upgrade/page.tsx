@@ -233,7 +233,7 @@ export default function UpgradePage() {
           {subscription && (
             <div className="mt-4">
               <Badge variant="secondary">
-                Current Plan: {currentTierInfo?.name || 'Free'} • {subscription.flatlays_remaining} flat lays remaining
+                Current Plan: {currentTierInfo?.name || 'Free'} • {subscription.quota_review_required ? 'Credit balance needs review' : `${subscription.flatlays_remaining} flat lays remaining`}
               </Badge>
             </div>
           )}

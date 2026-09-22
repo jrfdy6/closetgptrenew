@@ -3,34 +3,8 @@ import { NextRequest } from 'next/server';
 import { getBackendUrl } from '@/lib/server/backendUrl';
 import { serverDebugLog, serverDebugWarn } from '@/lib/server/debug';
 
-// Simple JWT token decoder for client-side tokens
-function decodeFirebaseToken(token: string) {
-  try {
-    // Firebase JWT tokens have 3 parts separated by dots
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      throw new Error('Invalid token format');
-    }
 
-    // Decode the payload (second part)
-    const payload = parts[1];
-    
-    // Convert URL-safe base64 to standard base64
-    const standardBase64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-    
-    // Add padding if needed
-    const paddedBase64 = standardBase64 + '='.repeat((4 - standardBase64.length % 4) % 4);
-    
-    // Decode the base64 string
-    const decodedPayload = atob(paddedBase64);
-    
-    // Parse the JSON payload
-    return JSON.parse(decodedPayload);
-  } catch (error) {
-    console.error('Error decoding token:', error);
-    throw new Error('Invalid token');
-  }
-}
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
@@ -44,27 +18,43 @@ export async function POST(req: NextRequest) {
       answersCount: submission.answers?.length,
       hasStylePreferences: !!submission.stylePreferences
     });
-    const userId = submission.userId || submission.user_id || 'demo-user';
-
-    // Extract user answers from submission
+    const token = req.headers.get('authorization')?.replace(/^Bearer /, '') || submission.token;
+    if (!token || typeof token !== 'string') {
+      return NextResponse.json({ success: false, error: 'Please sign in to save your quiz.' }, { status: 401 });
+    }
+    const backendUrl = getBackendUrl();
+    // The backend verifies the Firebase signature and supplies authoritative
+    // identity. This route needs no independent Vercel Admin credentials.
+    let verifiedProfile;
+    try {
+      const identityResponse = await fetch(`${backendUrl}/api/auth/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store', signal: AbortSignal.timeout(10000),
+      });
+      if (!identityResponse.ok) {
+        return NextResponse.json({ success: false, error: 'Your session could not be verified. Please retry.', retryable: identityResponse.status >= 500 }, { status: [401, 403].includes(identityResponse.status) ? identityResponse.status : 503 });
+      }
+      verifiedProfile = await identityResponse.json();
+    } catch {
+      return NextResponse.json({ success: false, error: 'Your session could not be verified. Please retry.', retryable: true }, { status: 503 });
+    }
+    const userId = verifiedProfile?.user_id;
+    if (typeof userId !== 'string' || !userId) {
+      return NextResponse.json({ success: false, error: 'Your session could not be verified. Please retry.', retryable: true }, { status: 503 });
+    }
+    if ([submission.userId, submission.user_id].some(value => value !== undefined && value !== userId)) {
+      return NextResponse.json({ success: false, error: 'User ID mismatch' }, { status: 403 });
+    }
+    if (!Array.isArray(submission.answers) || !submission.answers.every((answer: any) =>
+      answer && typeof answer.question_id === 'string' && typeof answer.selected_option === 'string')) {
+      return NextResponse.json({ success: false, error: 'Quiz answers are invalid.' }, { status: 422 });
+    }
     const userAnswers = submission.answers.reduce((acc: Record<string, string>, answer: any) => {
       acc[answer.question_id] = answer.selected_option;
       return acc;
     }, {});
-
-    // Get user info from token for proper name/email
-    let userName = 'Quiz User';
-    let userEmail = 'quiz@example.com';
-    
-    try {
-      const tokenPayload = decodeFirebaseToken(submission.token);
-      serverDebugLog('🔍 [Quiz Submit] Token payload:', tokenPayload);
-      userName = tokenPayload.name || tokenPayload.email?.split('@')[0] || 'Quiz User';
-      userEmail = tokenPayload.email || 'quiz@example.com';
-      serverDebugLog('🔍 [Quiz Submit] Extracted user info:', { userName, userEmail });
-    } catch (e) {
-      serverDebugWarn('Could not decode token for user info:', e);
-    }
+    const userName = verifiedProfile.name || verifiedProfile.email?.split('@')[0] || 'Quiz User';
+    const userEmail = verifiedProfile.email || '';
 
     // Map quiz answers to profile structure
     serverDebugLog('⏱️ [Quiz Submit API] Mapping quiz answers to profile...');
@@ -99,8 +89,6 @@ export async function POST(req: NextRequest) {
       updated_at: profileUpdate.updated_at
     });
 
-    const backendUrl = getBackendUrl();
-
     // Save to user profile via backend API directly with timeout
     // Use null to distinguish "missing" from a leading 0.
     let wardrobeCount: number | null = null; // Track wardrobe count from backend response
@@ -112,8 +100,7 @@ export async function POST(req: NextRequest) {
       serverDebugLog('🔍 [Quiz Submit] Token present:', !!submission.token);
       
       // Add 10 second timeout for backend call
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const signal = AbortSignal.timeout(10000);
       
       const backendStart = Date.now();
       serverDebugLog('⏱️ [Quiz Submit API] Calling backend at:', Date.now() - startTime, 'ms');
@@ -121,20 +108,22 @@ export async function POST(req: NextRequest) {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${submission.token || ''}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(profileUpdate),
-        signal: controller.signal
+        signal
       });
 
-      clearTimeout(timeoutId);
       serverDebugLog('⏱️ [Quiz Submit API] Backend call took:', Date.now() - backendStart, 'ms');
       serverDebugLog('🔍 [Quiz Submit] Backend response status:', backendResponse.status);
       
       if (!backendResponse.ok) {
         const errorText = await backendResponse.text();
         console.error('❌ Failed to save profile to backend:', backendResponse.status, errorText);
-        throw new Error(`Backend profile update failed: ${backendResponse.status} - ${errorText}`);
+        if ([401, 403, 422].includes(backendResponse.status)) {
+          return NextResponse.json({ success: false, error: 'Your quiz could not be saved. Check your session and answers, then retry.' }, { status: backendResponse.status });
+        }
+        throw new Error(`Backend profile update failed: ${backendResponse.status}`);
       } else {
         const responseData = await backendResponse.json();
         serverDebugLog('✅ Successfully saved profile to backend:', responseData);
@@ -163,18 +152,11 @@ export async function POST(req: NextRequest) {
     } catch (apiError) {
       console.error('❌ Backend save failed:', apiError);
       
-      // Fallback: Try to save directly to Firestore
-      try {
-        serverDebugLog('🔄 [Quiz Submit] Attempting Firestore fallback...');
-        const { db } = await import('@/lib/firebase/config');
-        const { doc, setDoc } = await import('firebase/firestore');
-        
-        const userRef = doc(db, 'users', userId);
-        await setDoc(userRef, profileUpdate, { merge: true });
-        serverDebugLog('✅ Successfully saved profile to Firestore fallback');
-      } catch (firestoreError) {
-        console.error('❌ Firestore fallback also failed:', firestoreError);
-      }
+      return NextResponse.json({
+        success: false,
+        error: 'Your quiz could not be saved. Please retry; your answers are still available.',
+        retryable: true,
+      }, { status: 503 });
     }
 
     serverDebugLog('⏱️ [Quiz Submit API] TOTAL API TIME:', Date.now() - startTime, 'ms');
@@ -201,7 +183,7 @@ export async function POST(req: NextRequest) {
           {
             method: 'GET',
             headers: {
-              'Authorization': `Bearer ${submission.token || ''}`,
+              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
             signal: AbortSignal.timeout(2500),
@@ -380,10 +362,7 @@ function mapQuizAnswersToProfile(
     // Spending ranges saved during quiz submit.
     // Backend marks TVE recalculation as queued (non-blocking).
     ...(spendingRanges ? { spending_ranges: spendingRanges } : {}),
-    createdAt: Math.floor(Date.now() / 1000), // Unix timestamp like backend
-    updatedAt: Math.floor(Date.now() / 1000), // Unix timestamp like backend
-    created_at: Math.floor(Date.now() / 1000), // Also add with underscore for backend compatibility
-    updated_at: Math.floor(Date.now() / 1000) // Also add with underscore for backend compatibility
+
   };
 
   return profileUpdate;

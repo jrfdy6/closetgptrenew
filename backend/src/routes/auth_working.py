@@ -90,6 +90,8 @@ async def get_user_profile(current_user: UserProfile = Depends(get_current_user)
                 
                 # Firestore get() is synchronous, but we'll wrap it
                 logger.info(f"⏱️ PROFILE: Starting Firestore query for user: {current_user.id}")
+                from ..services.account_bootstrap import ensure_user_account
+                ensure_user_account(db, current_user.id, email=current_user.email, name=current_user.name)
                 user_doc = db.collection('users').document(current_user.id).get()
                 
                 logger.info(f"⏱️ PROFILE: Firestore get() completed ({time.time() - firestore_start:.2f}s)")
@@ -108,7 +110,8 @@ async def get_user_profile(current_user: UserProfile = Depends(get_current_user)
                     filtered_user_data = {k: v for k, v in user_data.items() if k not in excluded_fields}
                     
                     # Merge Firestore data with basic profile (Firestore takes precedence)
-                    merged_profile = {**basic_profile, **filtered_user_data}
+                    merged_profile = {**basic_profile, **filtered_user_data,
+                                      'user_id': current_user.id, 'email': current_user.email}
                     logger.info(f"⏱️ PROFILE: Profile prepared (total: {time.time() - profile_start:.2f}s)")
                     return merged_profile
                 else:
@@ -175,89 +178,14 @@ async def update_user_profile(
         
         user_ref = db.collection('users').document(current_user.id)
         
-        # Prepare update data with all profile fields
-        frontend_updated_at = ((profile_data.get('updated_at') if profile_data else None) if profile_data else None) or profile_data.get('updatedAt')
-        current_time = int(time.time())
-        final_updated_at = frontend_updated_at or current_time
-        
-        # Also check for createdAt/created_at
-        frontend_created_at = ((profile_data.get('created_at') if profile_data else None) if profile_data else None) or profile_data.get('createdAt')
-        final_created_at = frontend_created_at or current_time
-        
-        logger.info(f"🔍 DEBUG: Timestamp handling - frontend_updated_at: {frontend_updated_at}, current_time: {current_time}, final_updated_at: {final_updated_at}")
-        logger.info(f"🔍 DEBUG: Profile data keys: {list(profile_data.keys())}")
-        logger.info(f"🔍 DEBUG: measurements in profile_data: {'measurements' in profile_data}, value: {profile_data.get('measurements')}")
-        logger.info(f"🔍 DEBUG: stylePreferences in profile_data: {'stylePreferences' in profile_data}, value: {profile_data.get('stylePreferences')}")
-        
-        # Get existing user data to preserve created_at
-        existing_user_doc = user_ref.get()
-        existing_created_at = None
-        existing_spending_ranges = None
-        if existing_user_doc.exists:
-            existing_data = existing_user_doc.to_dict()
-            existing_created_at = existing_data.get('created_at') or existing_data.get('createdAt')
-            existing_spending_ranges = existing_data.get('spending_ranges')
-        
-        update_data = {
-            'name': (profile_data.get('name') if profile_data else None),
-            'email': (profile_data.get('email') if profile_data else None),
-            # NEVER overwrite created_at if it already exists
-            'created_at': existing_created_at or final_created_at,
-            'updated_at': final_updated_at  # Always update this
-        }
-        
-        # Add all the detailed profile fields if they exist
-        if 'gender' in profile_data:
-            update_data['gender'] = profile_data['gender']
-        if 'measurements' in profile_data:
-            update_data['measurements'] = profile_data['measurements']
-            logger.info(f"✅ DEBUG: Added measurements to update_data")
-        if 'stylePreferences' in profile_data:
-            update_data['stylePreferences'] = profile_data['stylePreferences']
-            logger.info(f"✅ DEBUG: Added stylePreferences to update_data: {profile_data['stylePreferences']}")
-        if 'preferences' in profile_data:
-            update_data['preferences'] = profile_data['preferences']
-        if 'bodyType' in profile_data:
-            update_data['bodyType'] = profile_data['bodyType']
-        if 'skinTone' in profile_data:
-            update_data['skinTone'] = profile_data['skinTone']
-        if 'fitPreference' in profile_data:
-            update_data['fitPreference'] = profile_data['fitPreference']
-        if 'sizePreference' in profile_data:
-            update_data['sizePreference'] = profile_data['sizePreference']
-        if 'colorPalette' in profile_data:
-            update_data['colorPalette'] = profile_data['colorPalette']
-        if 'stylePersonality' in profile_data:
-            update_data['stylePersonality'] = profile_data['stylePersonality']
-        if 'materialPreferences' in profile_data:
-            update_data['materialPreferences'] = profile_data['materialPreferences']
-        if 'fitPreferences' in profile_data:
-            update_data['fitPreferences'] = profile_data['fitPreferences']
-        if 'comfortLevel' in profile_data:
-            update_data['comfortLevel'] = profile_data['comfortLevel']
-        if 'preferredBrands' in profile_data:
-            update_data['preferredBrands'] = profile_data['preferredBrands']
-        if 'budget' in profile_data:
-            update_data['budget'] = profile_data['budget']
-        if 'avatar_url' in profile_data:
-            update_data['avatar_url'] = profile_data['avatar_url']
-        if 'stylePersona' in profile_data:
-            update_data['stylePersona'] = profile_data['stylePersona']
-        spending_ranges_changed = False
-        if 'spending_ranges' in profile_data:
-            update_data['spending_ranges'] = profile_data['spending_ranges']
-            logger.info(f"✅ DEBUG: Added spending_ranges to update_data: {profile_data['spending_ranges']}")
-            spending_ranges_changed = (profile_data.get('spending_ranges') != existing_spending_ranges)
-        if 'height' in profile_data:
-            update_data['height'] = profile_data['height']
-        if 'weight' in profile_data:
-            update_data['weight'] = profile_data['weight']
-        if 'heightFeetInches' in profile_data:
-            update_data['heightFeetInches'] = profile_data['heightFeetInches']
-        
-        # Use set() instead of update() to create the document if it doesn't exist
-        user_ref.set(update_data, merge=True)
-        
+        from ..services.account_bootstrap import ensure_user_account
+        from ..services.profile_updates import profile_patch
+        update_data = profile_patch(profile_data, current_user, int(time.time()))
+        existing_data = ensure_user_account(db, current_user.id, email=current_user.email, name=current_user.name)
+        spending_ranges_changed = ('spending_ranges' in update_data and
+                                   update_data['spending_ranges'] != existing_data.get('spending_ranges'))
+        user_ref.update(update_data)
+
         logger.info(f"✅ User profile updated successfully: {current_user.id}")
         logger.info(f"🔍 DEBUG: Updated profile data: user_id={current_user.id}, fields_updated={len(update_data.keys()) if update_data else 0}")
         logger.info(f"🔍 DEBUG: Fields in update_data: {list(update_data.keys())}")
@@ -292,11 +220,15 @@ async def update_user_profile(
         
         # Return the updated profile data with wardrobe count
         return {
-            **update_data,
+            **(updated_doc.to_dict() or {}),
+            'user_id': current_user.id,
+            'email': current_user.email,
             'wardrobeCount': wardrobe_count,
             'wardrobe_count': wardrobe_count  # Support both naming conventions
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to update user profile: {e}")
         raise HTTPException(

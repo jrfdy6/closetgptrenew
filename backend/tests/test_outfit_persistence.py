@@ -57,7 +57,7 @@ class FakeDocument:
     def exists(self):
         return self.id in self.store.records.get(self.collection, {})
 
-    def get(self):
+    def get(self, transaction=None):
         return self
 
     def to_dict(self):
@@ -74,6 +74,10 @@ class FakeDocument:
             raise RuntimeError('simulated write failure')
         self.store.records[self.collection][self.id].update(copy.deepcopy(data))
         self.store.writes.append(('update', self.collection, self.id, copy.deepcopy(data)))
+
+    def delete(self, unused=None):
+        self.store.records[self.collection].pop(self.id, None)
+        self.store.writes.append(('delete', self.collection, self.id, None))
 
 
 class FakeQuery:
@@ -120,6 +124,30 @@ class FakeQuery:
             yield FakeDocument(self.store, self.collection, key)
 
 
+class FakeTransaction:
+    def __init__(self, store):
+        self.store, self.pending = store, []
+    def set(self, ref, data):
+        self.pending.append(('set', ref, data))
+    def update(self, ref, data):
+        self.pending.append(('update', ref, data))
+    def delete(self, ref):
+        self.pending.append(('delete', ref, None))
+    def commit(self):
+        if self.store.fail_writes:
+            raise RuntimeError('simulated transaction failure')
+        for operation, ref, data in self.pending:
+            getattr(ref, operation)(data)
+
+
+def transactional(callback):
+    def run(transaction):
+        result = callback(transaction)
+        transaction.commit()
+        return result
+    return run
+
+
 class FakeFirestore:
     def __init__(self):
         self.records = {'outfits': {}, 'wardrobe': {}}
@@ -131,6 +159,9 @@ class FakeFirestore:
         self.fail_writes = False
         self.fail_reads = False
 
+    def transaction(self):
+        return FakeTransaction(self)
+
     def collection(self, name):
         return FakeQuery(self, name)
 
@@ -141,6 +172,10 @@ class OutfitPersistenceTests(unittest.TestCase):
         logging.disable(logging.CRITICAL)
         self.addCleanup(logging.disable, previous_logging)
         self.store = FakeFirestore()
+        self.store.records['wardrobe'] = {f'item-{i}': {'id': f'item-{i}', 'userId': 'owner-1', 'name': 'Garment'} for i in range(2)}
+        transaction_patch = patch('firebase_admin.firestore.transactional', transactional)
+        transaction_patch.start()
+        self.addCleanup(transaction_patch.stop)
         self.firebase = ModuleType('src.config.firebase')
         self.firebase.db = self.store
         self.firebase.firebase_initialized = True
@@ -162,10 +197,26 @@ class OutfitPersistenceTests(unittest.TestCase):
             'notes': 'Keep this note',
             'description': 'A manually selected combination',
             'items': [{'id': f'item-{index}', 'name': 'Garment'} for index in range(item_count)],
-            # Ownership is derived from authentication, never the request.
-            'user_id': 'foreign-owner',
-            'userId': 'foreign-owner',
         })
+
+    def test_create_rejects_client_ownership_fields(self):
+        response = self.client.post('/api/outfits/', json={
+            'name': 'Spoof', 'occasion': 'Casual', 'style': 'Classic',
+            'items': [{'id': 'item-0'}], 'user_id': 'foreign-owner'})
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(self.store.writes, [])
+
+    def test_delete_checks_owner_and_preserves_private_history(self):
+        self.seed('foreign', user_id='other')
+        self.assertEqual(self.client.delete('/api/outfits/foreign').status_code, 403)
+        self.seed('owned', user_id='owner-1')
+        self.store.records['flat_lay_requests'] = {'owned': {'status': 'processing', 'credit_status': 'reserved'}}
+        self.assertEqual(self.client.delete('/api/outfits/owned').status_code, 409)
+        self.store.records['flat_lay_requests']['owned']['status'] = 'done'
+        self.assertEqual(self.client.delete('/api/outfits/owned').status_code, 200)
+        self.assertNotIn('owned', self.store.records['outfits'])
+        self.assertIn('owned', self.store.records['flat_lay_requests'])
+        self.assertEqual(self.client.delete('/api/outfits/owned').status_code, 200)
 
     def seed(self, document_id, **data):
         self.store.records['outfits'][document_id] = {

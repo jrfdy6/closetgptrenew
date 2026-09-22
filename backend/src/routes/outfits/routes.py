@@ -104,13 +104,16 @@ class OutfitRequest(BaseModel):
 
 class CreateOutfitRequest(BaseModel):
     """Request model for outfit creation."""
+    model_config = ConfigDict(extra="forbid")
+    id: Optional[str] = None
     name: str
     occasion: str
     style: str
+    mood: Optional[str] = None
     description: Optional[str] = None
     notes: Optional[str] = None
     items: List[Dict[str, Any]]
-    createdAt: Optional[int] = None
+    createdAt: Optional[Any] = None
 
 class OutfitFavoriteRequest(BaseModel):
     """Set a favorite explicitly, so retries cannot toggle it back."""
@@ -679,45 +682,37 @@ async def create_custom_outfit(
         if db is None or not firebase_initialized:
             raise HTTPException(status_code=503, detail="Database unavailable")
         
-        # Create outfit document
-        outfit_id = f"outfit_{uuid4().hex}"
-        now = datetime.now(timezone.utc).isoformat()
-        outfit_data = {
-            "id": outfit_id,
-            "name": req.name,
-            "occasion": req.occasion,
-            "style": req.style,
-            "description": req.description or "",
-            "notes": req.notes,
-            "items": req.items,
-            "user_id": current_user_id,
-            "userId": current_user_id,
-            "createdAt": now,
-            "updatedAt": now,
-            "wearCount": 0,
-            "isFavorite": False,
-            "metadata": {
-                "creation_type": "manual",
-                "item_count": len(req.items)
-            }
-        }
-        
-        # Save to Firestore
-        db.collection('outfits').document(outfit_id).set(outfit_data)
-        logger.info(f"✅ Custom outfit saved: {outfit_id}")
-        
-        return {
-            **outfit_data,
-            "success": True,
-            "outfit_id": outfit_id,
-            "message": "Outfit created successfully"
-        }
-        
+        from ...services.outfit_edits import save_owned_outfit
+        payload = req.model_dump(exclude={'id', 'createdAt'}, exclude_none=True)
+        outfit_data = save_owned_outfit(db, current_user_id, payload, outfit_id=req.id, create=True)
+        return {**outfit_data, "success": True, "outfit_id": outfit_data['id']}
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"❌ Failed to create outfit: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create outfit: {str(e)}")
+
+@router.put("/{outfit_id}", response_model=dict)
+async def update_owned_outfit(outfit_id: str, payload: Dict[str, Any],
+                             current_user_id: str = Depends(get_current_user_id)):
+    from ...config.firebase import db, firebase_initialized
+    from ...services.outfit_edits import save_owned_outfit
+    if db is None or not firebase_initialized:
+        raise HTTPException(503, "Database unavailable")
+    result = save_owned_outfit(db, current_user_id, payload, outfit_id=outfit_id)
+    return {**result, "success": True, "outfit_id": outfit_id}
+
+
+@router.delete("/{outfit_id}", response_model=dict)
+async def delete_outfit(outfit_id: str, current_user_id: str = Depends(get_current_user_id)):
+    from ...config.firebase import db, firebase_initialized
+    from ...services.outfit_edits import delete_owned_outfit
+    if db is None or not firebase_initialized:
+        raise HTTPException(503, "Database unavailable")
+    delete_owned_outfit(db, current_user_id, outfit_id)
+    return {"success": True, "outfit_id": outfit_id}
+
 
 @router.post("/{outfit_id}/flat-lay-request", response_model=dict)
 async def request_outfit_flat_lay(

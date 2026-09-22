@@ -599,6 +599,14 @@ function OnboardingContent() {
   }, [quizResults]);
   const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const autoAdvanceTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelAutoAdvance = React.useCallback(() => {
+    if (autoAdvanceTimer.current !== null) {
+      clearTimeout(autoAdvanceTimer.current);
+      autoAdvanceTimer.current = null;
+    }
+  }, []);
+  useEffect(() => cancelAutoAdvance, [cancelAutoAdvance]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { user, loading: authLoading, getIdToken } = useAuthContext();
@@ -628,6 +636,18 @@ function OnboardingContent() {
       router.push('/');
     }
   }, [user, authLoading, isGuestFlow, modeResolved, router]);
+
+  // Continue the same ten-piece capsule after a guest quiz is successfully
+  // saved during sign-in/sign-up. The upload wizard checks actual saved items.
+  useEffect(() => {
+    if (mounted && user && new URLSearchParams(window.location.search).get('resume') === 'uploads') {
+      try {
+        const context = JSON.parse(sessionStorage.getItem('capsuleUploadContext') || 'null');
+        if (context?.userId === user.uid && typeof context.gender === 'string') setUserGender(context.gender);
+      } catch { /* Upload remains available if browser storage is unavailable. */ }
+      setUploadPhase(true);
+    }
+  }, [mounted, user]);
 
   // NOTE: Removed auto-redirect for completed users
   // Users should be able to retake the style quiz anytime
@@ -742,14 +762,18 @@ function OnboardingContent() {
   }, [userGender]);
 
   const nextStep = () => {
+    cancelAutoAdvance();
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
+      // The timer and a click may originate from the same rendered question.
+      // Only that question may advance; a stale callback cannot skip the next.
+      setCurrentQuestionIndex(prev => prev === currentQuestionIndex ? prev + 1 : prev);
     }
   };
 
   const prevStep = () => {
+    cancelAutoAdvance();
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
+      setCurrentQuestionIndex(prev => prev === currentQuestionIndex ? prev - 1 : prev);
     }
   };
 
@@ -1474,29 +1498,10 @@ function OnboardingContent() {
     } catch (error) {
       console.error('Error submitting quiz:', error);
       setError('Failed to submit quiz. Please try again.');
-      // Use actual user answers as fallback instead of mock data
-      const fallbackColorAnalysis = analyzeColors();
-      const userAnswers = answers.reduce((acc, answer) => {
-        acc[answer.question_id] = answer.selected_option;
-        return acc;
-      }, {} as Record<string, string>);
-      
-      setQuizCompleted(true);
-      setQuizResults({
-        hybridStyleName: determineStylePersona().name, // Use persona name
-        quizResults: {
-          aesthetic_scores: { "classic": 0.6, "sophisticated": 0.4 },
-          color_season: userAnswers.skin_tone || "warm_spring",
-          body_type: userAnswers.body_type_female || userAnswers.body_type_male || userAnswers.body_type_nonbinary || "rectangle",
-          style_preferences: { "classic": 0.7, "minimalist": 0.3 }
-        },
-        colorAnalysis: fallbackColorAnalysis,
-        userAnswers: userAnswers
-      });
-      
-      // Go directly to upload phase on error fallback
-      debugOnboarding('🎯 [Quiz] Using fallback, going to upload phase');
-      setUploadPhase(true);
+      // Retain answers on the current step so saving can be retried. A failed
+      // request must never advance onboarding or claim that the quiz is saved.
+      setQuizCompleted(false);
+
     } finally {
       setIsLoading(false);
     }
@@ -2005,11 +2010,11 @@ function OnboardingContent() {
       answersCount: answers.length + 1
     });
 
-    // Auto-advance to next question after a short delay (except for the last question)
+    // Only the latest choice owns an auto-advance. Manual navigation and
+    // unmounting cancel this timer, preserving the visual feedback delay.
+    cancelAutoAdvance();
     if (currentQuestionIndex < questions.length - 1) {
-      setTimeout(() => {
-        nextStep();
-      }, 300); // Small delay for visual feedback
+      autoAdvanceTimer.current = setTimeout(nextStep, 300);
     }
   };
 
@@ -2021,8 +2026,9 @@ function OnboardingContent() {
       isLastQuestion: currentQuestionIndex === questions.length - 1
     });
     
+    cancelAutoAdvance();
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
+      nextStep();
     } else {
       // If this is the last question, submit the quiz
       debugOnboarding('🎯 [Quiz] Last question reached, submitting quiz...');
@@ -2033,13 +2039,10 @@ function OnboardingContent() {
     }
   };
 
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
-    }
-  };
+  const handlePrevious = prevStep;
 
   const handleSubmit = async () => {
+    cancelAutoAdvance();
     debugOnboarding('🚀 [handleSubmit] Called - redirecting to submitQuiz');
     setIsSubmitting(true);
     try {

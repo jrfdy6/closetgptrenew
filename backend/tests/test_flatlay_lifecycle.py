@@ -254,6 +254,66 @@ class FlatlayLifecycleTests(unittest.TestCase):
         self.assertEqual(self.remaining(), 7)
         self.assertEqual(self.db.records['users']['owner']['quotas']['lastRefillAt'], 1000 + lifecycle.WEEK_SECONDS)
 
+    def test_new_policy_preserves_high_water_through_downgrade_and_refund(self):
+        user = self.db.records['users']['owner']
+        user['quotas'].update(highestAllowanceGranted=7, highestAllowanceInferred=False)
+        request = self.reserve()
+        user['subscription']['role'] = 'tier1'
+        self.assertTrue(self.finish(request['request_id'], error='failed'))
+        self.assertEqual(user['quotas']['flatlaysRemaining'], 7)
+        self.assertEqual(user['quotas']['highestAllowanceGranted'], 7)
+        self.assertEqual(user['quotas']['lastRefillAt'], 1000)
+
+    def test_proven_legacy_refund_can_complete_after_prior_downgrade(self):
+        request = self.reserve()
+        user = self.db.records['users']['owner']
+        user['subscription']['role'] = 'tier1'
+        user['quotas'].pop('highestAllowanceGranted')
+        user['quotas'].pop('highestAllowanceInferred')
+        self.assertTrue(self.finish(request['request_id'], error='failed'))
+        self.assertEqual(user['quotas']['flatlaysRemaining'], 7)
+        self.assertEqual(user['quotas']['highestAllowanceGranted'], 7)
+        self.assertTrue(user['quotas']['highestAllowanceInferred'])
+
+    def test_refund_cannot_exceed_a_recorded_grant(self):
+        user = self.db.records['users']['owner']
+        user['quotas'].update(highestAllowanceGranted=7, highestAllowanceInferred=False)
+        request = self.reserve()
+        user['quotas']['flatlaysRemaining'] = 7  # Evidence of an inconsistent prior write.
+        self.assertTrue(self.finish(request['request_id'], error='failed'))
+        self.assertEqual(user['quotas']['flatlaysRemaining'], 7)
+        self.assertEqual(self.db.records[lifecycle.REQUESTS_COLLECTION]['look']['credit_status'], 'refund_needs_review')
+
+    def test_unknown_quota_denies_new_request_without_writing_or_charging(self):
+        user = self.db.records['users']['owner']
+        del user['quotas']['lastRefillAt']
+        before = copy.deepcopy(self.db.records)
+        with self.assertRaises(lifecycle.FlatlayRequestError) as raised:
+            self.reserve()
+        self.assertEqual(raised.exception.status_code, 409)
+        self.assertEqual(self.db.records, before)
+
+    def test_unknown_quota_at_refund_finishes_for_review_without_guessing_balance(self):
+        request = self.reserve()
+        user = self.db.records['users']['owner']
+        del user['quotas']['lastRefillAt']
+        before = copy.deepcopy(user)
+        self.assertTrue(self.finish(request['request_id'], error='failed'))
+        self.assertEqual(user, before)
+        ledger = self.db.records[lifecycle.REQUESTS_COLLECTION]['look']
+        self.assertEqual(ledger['credit_status'], 'refund_needs_review')
+        self.assertFalse(ledger['retryable'])
+        self.assertFalse(self.finish(request['request_id'], error='again'))
+
+    def test_refund_after_downgrade_and_rollover_uses_new_tier_without_extra_credit(self):
+        request = self.reserve()
+        user = self.db.records['users']['owner']
+        user['subscription']['role'] = 'tier1'
+        lifecycle.finish_request(self.db, 'look', request['request_id'], error='failed',
+                                 now=1000 + lifecycle.WEEK_SECONDS)
+        self.assertEqual(user['quotas']['flatlaysRemaining'], 1)
+        self.assertEqual(user['quotas']['highestAllowanceGranted'], 1)
+
     def test_unconfirmed_crash_returns_known_credit_once_but_blocks_paid_retry(self):
         request = self.reserve()
         claimed = self.claim()

@@ -1,26 +1,9 @@
 import type { Outfit, OutfitCreate, OutfitUpdate, OutfitFilters as BaseOutfitFilters } from '@/lib/services/outfitService';
 
 type OutfitFilters = BaseOutfitFilters & { season?: string };
-import { db } from '@/lib/firebase/config';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import { extractFlatLayState } from '@/lib/flatLayState';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
-function omitUndefined<T extends object>(value: T): T {
-  const result = { ...value };
-  for (const key of Object.keys(result) as Array<keyof T>) {
-    if (result[key] === undefined) delete result[key];
-  }
-  return result;
-}
-
-function itemIdentity(items: unknown): string {
-  if (!Array.isArray(items)) return '';
-  return JSON.stringify(Array.from(new Set(items.map(item => {
-    if (typeof item === 'string') return item;
-    return item && typeof item === 'object' ? item.id ?? item.itemId ?? item.item_id : null;
-  }).filter(id => typeof id === 'string'))).sort());
+function editableOutfitFields(outfit: OutfitCreate | OutfitUpdate, create = false) {
+  const fields = ['name', 'occasion', 'style', 'mood', 'description', 'notes', 'items', ...(create ? ['id'] : ['isFavorite'])];
+  return Object.fromEntries(fields.filter(key => (outfit as any)[key] !== undefined).map(key => [key, (outfit as any)[key]]));
 }
 
 class OutfitService {
@@ -72,7 +55,7 @@ class OutfitService {
   async createOutfit(outfit: OutfitCreate, token: string): Promise<Outfit> {
     const response = await this.makeRequest('/outfits', {
       method: 'POST',
-      body: JSON.stringify(outfit),
+      body: JSON.stringify(editableOutfitFields(outfit, true)),
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -89,68 +72,15 @@ class OutfitService {
   }
 
   async updateOutfit(id: string, outfit: OutfitUpdate, token: string): Promise<Outfit> {
-    try {
-      console.log(`🔍 [OutfitService] Updating outfit ${id} directly in Firestore`);
-      
-      // Get the current outfit to verify it exists
-      const outfitRef = doc(db, 'outfits', id);
-      const outfitDoc = await getDoc(outfitRef);
-      
-      if (!outfitDoc.exists()) {
-        throw new Error('Outfit not found');
-      }
-      
-      // Update the outfit in Firestore
-      // Filter out undefined values as Firestore doesn't accept them
-      const updateData: Record<string, unknown> = omitUndefined({
-        ...outfit,
-        updatedAt: new Date(),
-      });
-      
-      // Also filter undefined values from nested objects in items array
-      if (updateData.items && Array.isArray(updateData.items)) {
-        updateData.items = updateData.items.map(item => {
-          if (typeof item === 'object' && item !== null) {
-            return omitUndefined(item);
-          }
-          return item;
-        });
-      }
-
-      const currentOutfit = outfitDoc.data();
-      if (Array.isArray(updateData.items) && itemIdentity(updateData.items) !== itemIdentity(currentOutfit?.items)) {
-        // Clear the old visual in the same write as its changed pieces. The
-        // private server ledger still controls consent, charges and in-flight work.
-        const previous = extractFlatLayState(currentOutfit ?? {});
-        const presentation: Record<string, unknown> = { flat_lay_url: null, flatLayUrl: null };
-        if (previous.status === 'done') {
-          Object.assign(presentation, {
-            flat_lay_status: 'awaiting_consent', flatLayStatus: 'awaiting_consent',
-            flat_lay_error: null, flatLayError: null, flat_lay_request_allowed: true,
-          });
-        }
-        Object.assign(updateData, presentation);
-        for (const [key, value] of Object.entries(presentation)) updateData[`metadata.${key}`] = value;
-      }
-      
-      console.log('🔍 [OutfitService] Filtered update data:', updateData);
-      
-      await updateDoc(outfitRef, updateData);
-      
-      // Get the updated outfit
-      const updatedDoc = await getDoc(outfitRef);
-      const updatedOutfit = {
-        id: updatedDoc.id,
-        ...updatedDoc.data(),
-      } as Outfit;
-      
-      console.log(`✅ [OutfitService] Successfully updated outfit ${id} in Firestore`);
-      return updatedOutfit;
-      
-    } catch (error) {
-      console.error(`❌ [OutfitService] Error updating outfit ${id}:`, error);
-      throw error;
-    }
+    const response = await this.makeRequest(`/outfits/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(editableOutfitFields(outfit)),
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const saved = response?.outfit ?? response?.data ?? response;
+    if (response?.success === false) throw new Error('Your outfit could not be updated.');
+    // Older API responses confirm the update without the document.
+    return saved?.id ? saved as Outfit : this.getOutfitById(id, token);
   }
 
   async deleteOutfit(id: string, token: string): Promise<void> {

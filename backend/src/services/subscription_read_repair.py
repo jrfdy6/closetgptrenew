@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from firebase_admin import firestore
 
-from .subscription_utils import DEFAULT_SUBSCRIPTION_TIER, TIER_LIMITS
+from .subscription_utils import DEFAULT_SUBSCRIPTION_TIER, apply_subscription_entitlement, QuotaNeedsReview
 
 
 def read_subscription_user(db, user_id, *, now=None, reset_unbacked_premium=False):
@@ -24,45 +24,48 @@ def read_subscription_user(db, user_id, *, now=None, reset_unbacked_premium=Fals
             return None
         user = snapshot.to_dict() or {}
         subscription = user.get('subscription') or {}
-        role = subscription.get('role') or subscription.get('tier', DEFAULT_SUBSCRIPTION_TIER)
         status = subscription.get('status', 'active')
         try:
             period_end = int(subscription.get('currentPeriodEnd') or 0)
         except (TypeError, ValueError, OverflowError):
             period_end = 0
-        unbacked = (reset_unbacked_premium and role != DEFAULT_SUBSCRIPTION_TIER
-                    and not (user.get('billing') or {}).get('stripeCustomerId'))
-        expired = (period_end > 0 and now >= period_end
+        # Keep the old keyword for callers during rollout. A read must not
+        # revoke historically uncertain access merely because billing is absent.
+        expired = (bool((user.get('billing') or {}).get('stripeCustomerId'))
+                   and period_end > 0 and now >= period_end
                    and (subscription.get('cancelAtPeriodEnd') or status == 'canceled'))
-        if not (unbacked or expired):
+        if not expired:
             return user
 
-        # Never increase a balance or move the period backing a live reservation.
-        quotas = user.get('quotas') or {}
-        try:
-            remaining = max(0, int(quotas.get('flatlaysRemaining', 0)))
-        except (TypeError, ValueError, OverflowError):
-            remaining = 0
-        remaining = min(remaining, TIER_LIMITS.get(DEFAULT_SUBSCRIPTION_TIER, 1))
+        # Downgrades preserve every remaining credit and its anchor until the
+        # next actual weekly refill. Payment reconciliation controls grants.
         updates = {
             'subscription.role': DEFAULT_SUBSCRIPTION_TIER,
-            'subscription.status': 'active' if unbacked else 'canceled',
+            'subscription.status': 'canceled',
             'subscription.priceId': 'free',
             'subscription.currentPeriodEnd': 0,
             'subscription.cancelAtPeriodEnd': False,
             'subscription.tier': firestore.DELETE_FIELD,
             'subscription.openai_flatlays_used': firestore.DELETE_FIELD,
             'subscription.flatlay_week_start': firestore.DELETE_FIELD,
-            'quotas.flatlaysRemaining': remaining,
         }
-        if unbacked:
-            updates['subscription.stripeSubscriptionId'] = firestore.DELETE_FIELD
+        try:
+            # Remember the paid high-water before removing the old role. This
+            # prevents read repair itself from reopening an upgrade grant.
+            quotas = apply_subscription_entitlement(user, DEFAULT_SUBSCRIPTION_TIER, now)
+        except QuotaNeedsReview:
+            quotas = None
+        if quotas is not None and quotas != user.get('quotas'):
+            updates['quotas'] = quotas
         transaction.update(user_ref, updates)
 
         # Mirror only this transaction's committed patch, not the stale read that
         # preceded a separate write. Never expose Firestore delete sentinels.
-        result = {**user, 'subscription': dict(subscription), 'quotas': dict(quotas)}
+        result = {**user, 'subscription': dict(subscription)}
         for path, value in updates.items():
+            if path == 'quotas':
+                result['quotas'] = value
+                continue
             section, field = path.split('.', 1)
             if value is firestore.DELETE_FIELD:
                 result[section].pop(field, None)
