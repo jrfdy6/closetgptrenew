@@ -61,9 +61,6 @@ export default function FinishProfilePage() {
     );
   }
 
-  const personaName = pendingData?.persona?.name || "Your Signature Style";
-  const personaTagline = pendingData?.persona?.tagline || "Let's finish setting things up.";
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950 flex flex-col">
       <Navigation />
@@ -75,14 +72,19 @@ export default function FinishProfilePage() {
               <div>
                 <div className="inline-flex items-center px-3 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 text-sm font-medium">
                   <ShieldCheck className="h-4 w-4 mr-2" />
-                  Finish profile setup
+                  Your style · Saved start
                 </div>
                 <h1 className="mt-4 text-3xl sm:text-4xl font-serif font-semibold text-card-foreground leading-snug">
-                  You're moments away from {personaName}
+                  Your style is taking shape
                 </h1>
                 <p className="mt-3 text-base sm:text-lg text-muted-foreground leading-relaxed">
-                  {personaTagline} Complete your profile so we can unlock your personalized style persona and wardrobe plan.
+                  Your answers are saved in this browser. Create an account to keep them, finish your full style profile, then build your capsule.
                 </p>
+                {pendingData?.persona?.name && (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Your early style direction: <span className="font-medium text-card-foreground">{pendingData.persona.name}</span>. The rest of your profile will help us understand your preferences.
+                  </p>
+                )}
               </div>
               <div className="hidden sm:flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-amber-200 to-orange-200 dark:from-amber-900/50 dark:to-orange-900/50">
                 <Sparkles className="h-10 w-10 text-amber-600 dark:text-amber-300" />
@@ -97,15 +99,15 @@ export default function FinishProfilePage() {
                 <ul className="space-y-3 text-muted-foreground text-sm sm:text-base">
                   <li className="flex items-start gap-3">
                     <span className="mt-1 h-2 w-2 rounded-full bg-amber-500" />
-                    Create your Easy Outfit account so we can save your results securely.
+                    Create your Easy Outfit account to save the answers you've started.
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="mt-1 h-2 w-2 rounded-full bg-amber-500" />
-                    We'll instantly sync your quiz insights to your new profile.
+                    Continue the remaining style questions. Your saved answers will come with you.
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="mt-1 h-2 w-2 rounded-full bg-amber-500" />
-                    You'll land directly on your personalized style persona dashboard.
+                    Add 10 clothing items with the pieces needed for a complete outfit, then choose how to create your first look.
                   </li>
                 </ul>
               </div>
@@ -116,7 +118,7 @@ export default function FinishProfilePage() {
                   className="w-full sm:w-auto bg-gradient-to-r from-primary to-accent hover:from-primary hover:to-accent/90 text-primary-foreground px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/20 transition-transform hover:scale-[1.02]"
                 >
                   <Link href="/signup?from=quiz">
-                    Finish profile & unlock my persona
+                    Create account & continue
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Link>
                 </Button>
@@ -136,7 +138,7 @@ export default function FinishProfilePage() {
                 className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
-                Want to adjust your answers? Retake the quiz
+                Review your saved answers
               </button>
             </div>
           </div>
@@ -147,5 +149,4 @@ export default function FinishProfilePage() {
     </div>
   );
 }
-
 

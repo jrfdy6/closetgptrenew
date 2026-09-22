@@ -144,6 +144,134 @@ class WardrobeUpdateTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(item['material'], ['Cotton', 'Linen'])
         self.assertEqual(item['metadata'], RICH_ITEM['metadata'])
 
+    async def test_reload_preserves_capsule_hashes_originals_and_failed_attempt_projection(self):
+        public_fields = {
+            'contentHash': 'same-photo-bytes', 'imageHash': 'legacy-hash', 'image_hash': 'older-hash',
+            'originalImageUrl': 'https://images.example/source.jpg',
+            'originalUrl': 'https://images.example/attempt-original.png',
+            'originalStoragePath': 'items/shirt-1/attempts/attempt-1/original.png',
+            'processing_status': 'failed', 'processing_attempt_id': 'attempt-3',
+            'processing_attempt_count': 3, 'processing_retry_count': 3,
+            'processing_error_code': 'worker_timeout', 'processing_retryable': True,
+            'processing_retry_action': 'retry_item', 'processing_next_attempt_at': None,
+            'processing_expires_at': None, 'processing_updated_at': 1234,
+        }
+        docs = [FakeDocument({**RICH_ITEM, **public_fields,
+                              'processing_error': 'Raw exception with private details',
+                              'processing_last_error': 'Raw worker traceback',
+                              'processing_internal_secret': 'not-public',
+                              'attempt_history': [{'worker_id': 'private-worker'}],
+                              'source_fingerprint': 'private-fingerprint'})]
+        # A second saved document containing the same photo must retain the same
+        # hash so the real capsule evaluator can deduplicate after a reload.
+        duplicate = FakeDocument({**RICH_ITEM, 'contentHash': public_fields['contentHash']})
+        duplicate.id = 'shirt-2'
+        docs.append(duplicate)
+        query = SimpleNamespace(stream=lambda: docs)
+        fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args: query))
+        firebase = SimpleNamespace(firebase_initialized=True, db=fake_db)
+        with patch.dict('sys.modules', {'src.config.firebase': firebase}):
+            result = await load_update_route(docs[0], 'get_wardrobe_items_with_slash')(SimpleNamespace(id='owner'))
+        item, repeated_photo = result['items']
+        self.assertEqual({key: item[key] for key in public_fields}, public_fields)
+        self.assertEqual(item['contentHash'], repeated_photo['contentHash'])
+        self.assertEqual(item['processing_error'], 'Photo preparation took too long. Your original photo is still available.')
+        self.assertEqual(item['processing_last_error'], item['processing_error'])
+        for field in ('processing_internal_secret', 'attempt_history', 'source_fingerprint'):
+            self.assertNotIn(field, item)
+        self.assertEqual(docs[0].writes, [])
+
+    async def test_reload_preserves_cleared_retry_state_and_converts_scheduling_timestamps(self):
+        doc = FakeDocument({**RICH_ITEM, 'processing_status': 'pending',
+                            'processing_attempt_id': None, 'processing_attempt_count': 0,
+                            'processing_retry_count': 0, 'processing_retryable': False,
+                            'processing_retry_action': None, 'processing_error_code': None,
+                            'processing_error': None, 'processing_last_error': None,
+                            'processing_next_attempt_at': datetime.fromtimestamp(1234),
+                            'processing_expires_at': '1970-01-01T00:30:00Z',
+                            'processing_updated_at': 1000})
+        query = SimpleNamespace(stream=lambda: [doc])
+        fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args: query))
+        firebase = SimpleNamespace(firebase_initialized=True, db=fake_db)
+        with patch.dict('sys.modules', {'src.config.firebase': firebase}):
+            result = await load_update_route(doc, 'get_wardrobe_items_with_slash')(SimpleNamespace(id='owner'))
+        item = result['items'][0]
+        self.assertIsNone(item['processing_attempt_id'])
+        self.assertEqual(item['processing_attempt_count'], 0)
+        self.assertEqual(item['processing_retry_count'], 0)
+        self.assertFalse(item['processing_retryable'])
+        self.assertIsNone(item['processing_retry_action'])
+        self.assertIsNone(item['processing_error_code'])
+        self.assertIsNone(item['processing_error'])
+        self.assertIsNone(item['processing_last_error'])
+        self.assertEqual(item['processing_next_attempt_at'], 1234)
+        self.assertEqual(item['processing_expires_at'], 1800)
+        self.assertEqual(item['processing_updated_at'], 1000)
+
+    async def test_reload_maps_unknown_legacy_worker_errors_to_safe_message(self):
+        doc = FakeDocument({**RICH_ITEM, 'processing_status': 'failed',
+                            'processing_error_code': 'internal-provider-payload',
+                            'processing_error': 'secret worker exception'})
+        query = SimpleNamespace(stream=lambda: [doc])
+        fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args: query))
+        firebase = SimpleNamespace(firebase_initialized=True, db=fake_db)
+        with patch.dict('sys.modules', {'src.config.firebase': firebase}):
+            result = await load_update_route(doc, 'get_wardrobe_items_with_slash')(SimpleNamespace(id='owner'))
+        item = result['items'][0]
+        self.assertEqual(item['processing_error_code'], 'processing_failed')
+        self.assertEqual(item['processing_error'], "We couldn't finish preparing this photo. Your original photo is still available.")
+        self.assertNotIn('internal-provider-payload', str(result))
+        self.assertNotIn('secret worker exception', str(result))
+
+    async def test_reload_missing_original_never_invents_a_display_photo(self):
+        for source in ({}, {'imageUrl': None}, {'imageUrl': ''}, {'imageUrl': ' ', 'image_url': None},
+                       {'originalUrl': 'https://images.example/derived-original.png'}):
+            with self.subTest(source=source):
+                doc = FakeDocument({**RICH_ITEM, **source})
+                query = SimpleNamespace(stream=lambda: [doc])
+                fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args: query))
+                firebase = SimpleNamespace(firebase_initialized=True, db=fake_db)
+                with patch.dict('sys.modules', {'src.config.firebase': firebase}):
+                    result = await load_update_route(doc, 'get_wardrobe_items_with_slash')(SimpleNamespace(id='owner'))
+                self.assertEqual(result['items'][0]['imageUrl'], '')
+                self.assertNotIn('/placeholder.png', str(result))
+
+    async def test_reload_preserves_real_original_aliases_with_shared_readiness_precedence(self):
+        sources = [
+            ({'image_url': 'https://images.example/legacy.jpg'}, 'https://images.example/legacy.jpg'),
+            ({'originalImageUrl': 'https://images.example/source.jpg'}, 'https://images.example/source.jpg'),
+            ({'imageUrl': ' ', 'image_url': 'https://images.example/legacy.jpg'}, 'https://images.example/legacy.jpg'),
+            ({'imageUrl': 'https://images.example/current.jpg',
+              'image_url': 'https://images.example/legacy.jpg',
+              'originalImageUrl': 'https://images.example/source.jpg'}, 'https://images.example/current.jpg'),
+        ]
+        for source, expected in sources:
+            with self.subTest(source=source):
+                doc = FakeDocument({**RICH_ITEM, **source})
+                query = SimpleNamespace(stream=lambda: [doc])
+                fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args: query))
+                firebase = SimpleNamespace(firebase_initialized=True, db=fake_db)
+                with patch.dict('sys.modules', {'src.config.firebase': firebase}):
+                    result = await load_update_route(doc, 'get_wardrobe_items_with_slash')(SimpleNamespace(id='owner'))
+                item = result['items'][0]
+                self.assertEqual(item['imageUrl'], expected)
+                for alias in ('image_url', 'originalImageUrl'):
+                    if alias in source:
+                        self.assertEqual(item[alias], source[alias])
+
+    async def test_reload_preserves_soft_delete_fields_including_false_and_null(self):
+        for markers in ({'deleted': True}, {'isDeleted': True}, {'deletedAt': '2026-09-22T12:00:00Z'},
+                        {'deleted': False, 'isDeleted': False, 'deletedAt': None}):
+            with self.subTest(markers=markers):
+                doc = FakeDocument({**RICH_ITEM, 'imageUrl': 'https://images.example/photo.jpg', **markers})
+                query = SimpleNamespace(stream=lambda: [doc])
+                fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args: query))
+                firebase = SimpleNamespace(firebase_initialized=True, db=fake_db)
+                with patch.dict('sys.modules', {'src.config.firebase': firebase}):
+                    result = await load_update_route(doc, 'get_wardrobe_items_with_slash')(SimpleNamespace(id='owner'))
+                item = result['items'][0]
+                self.assertEqual({field: item[field] for field in markers}, markers)
+
     async def test_analytics_failure_does_not_turn_successful_save_into_error(self):
         doc = FakeDocument(RICH_ITEM)
 

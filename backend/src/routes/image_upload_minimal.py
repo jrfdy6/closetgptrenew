@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi.responses import JSONResponse
 from firebase_admin import storage
 import uuid
 import logging
@@ -379,18 +380,20 @@ async def upload_image(
                 "size": len(contents)
             }
             
-        except Exception as e:
-            logger.error(f"Firebase Storage upload failed: {e}", exc_info=True)
-            # Temporary fallback for testing - return a mock URL
-            logger.warning("Using fallback mock URL for testing")
-            mock_url = f"https://picsum.photos/200/300?test={uuid.uuid4()}"
-            return {
-                "success": True, 
-                "image_url": mock_url,
-                "filename": file.filename,
-                "size": len(contents),
-                "fallback": True
-            }
+        except Exception:
+            # An upload or visibility failure is not a saved original. Never
+            # return a substitute photo that downstream analysis could count.
+            logger.warning("Photo storage upload could not be confirmed")
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "success": False,
+                    "code": "upload_unavailable",
+                    "error": "Your photo upload could not be confirmed. Please try again.",
+                    "retryable": True,
+                },
+                headers={"Retry-After": "5", "Cache-Control": "private, no-store"},
+            )
             
     except HTTPException:
         raise

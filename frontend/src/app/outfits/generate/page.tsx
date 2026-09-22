@@ -38,6 +38,8 @@ import {
   buildOutfitGenerationUserProfile,
 } from '@/lib/outfitGenerationContract';
 import { randomOutfitConfiguration } from '@/lib/randomOutfitConfiguration';
+import OnboardingProgress from '@/components/onboarding/OnboardingProgress';
+import FirstLookSetup from '@/components/onboarding/FirstLookSetup';
 
 // Import new enhanced components
 import OutfitGenerationBottomSheet from '@/components/outfits/OutfitGenerationBottomSheet';
@@ -114,12 +116,18 @@ interface FlatLayUsage {
 
 export default function OutfitGenerationPage() {
   const router = useRouter();
+  const [firstLookFlow, setFirstLookFlow] = useState(false);
+  useEffect(() => {
+    setFirstLookFlow(new URLSearchParams(window.location.search).get('onboarding') === '1');
+  }, []);
   const { user, loading: authLoading } = useFirebase();
   const { weather, loading: weatherLoading, fetchWeatherByLocation } = useAutoWeather();
   const { toast } = useToast();
   const [baseItem, setBaseItem] = useState<any>(null);
   const [wardrobeItems, setWardrobeItems] = useState<any[]>([]);
   const [wardrobeLoading, setWardrobeLoading] = useState(false);
+  const [wardrobeLoadError, setWardrobeLoadError] = useState<string | null>(null);
+  const [wardrobeLoadAttempt, setWardrobeLoadAttempt] = useState(0);
   const [freshWeatherData, setFreshWeatherData] = useState<WeatherData | null>(null);
   const [flatLayUsage, setFlatLayUsage] = useState<FlatLayUsage | null>(null);
   const [flatLayLoading, setFlatLayLoading] = useState(false);
@@ -177,6 +185,7 @@ export default function OutfitGenerationPage() {
       
       try {
         setWardrobeLoading(true);
+        setWardrobeLoadError(null);
         const wardrobeToken = await user.getIdToken();
         const response = await fetch('/api/wardrobe', {
           headers: {
@@ -188,6 +197,7 @@ export default function OutfitGenerationPage() {
           const data = await response.json();
           // Handle the wardrobe API response structure
           const items = data.items || data;
+          if (!Array.isArray(items)) throw new Error('Invalid wardrobe response');
           setWardrobeItems(items);
           console.log('🔍 Wardrobe items loaded:', items.length);
           
@@ -246,10 +256,11 @@ export default function OutfitGenerationPage() {
             }
           }
         } else {
-          console.error('🔍 Failed to fetch wardrobe items:', response.status);
+          throw new Error('Wardrobe request failed');
         }
       } catch (error) {
         console.error('🔍 Error fetching wardrobe items:', error);
+        setWardrobeLoadError('Your saved wardrobe could not be loaded. Please retry before creating an outfit.');
       } finally {
         setWardrobeLoading(false);
       }
@@ -258,7 +269,7 @@ export default function OutfitGenerationPage() {
     if (user) {
       fetchWardrobeItems();
     }
-  }, [user]);
+  }, [user, wardrobeLoadAttempt]);
   
   // Use Next.js API routes instead of direct backend calls
   const API_BASE = '/api';
@@ -1197,23 +1208,24 @@ export default function OutfitGenerationPage() {
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
       <Navigation />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-24">
+        {firstLookFlow && !generatedOutfit && <OnboardingProgress stage="first-look" />}
         {/* Header */}
         <div className="space-y-4 sm:space-y-0 sm:flex sm:items-center sm:gap-6 mb-8 sm:mb-12">
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => router.push('/outfits')}
+            onClick={() => router.push(firstLookFlow && !generatedOutfit ? '/onboarding' : '/outfits')}
             className="flex items-center gap-2 glass-button-secondary text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-sm sm:text-base font-medium glass-transition hover:scale-105"
           >
             <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-            Back to My Looks
+            {firstLookFlow && !generatedOutfit ? 'Back to my capsule' : 'Back to My Looks'}
           </Button>
           <div className="space-y-2">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold flex items-center gap-3 text-stone-900 dark:text-stone-100">
               <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-stone-600 dark:text-stone-400 flex-shrink-0" />
-              <span>Generate New Outfit</span>
+              <span>{firstLookFlow && !generatedOutfit ? 'Your first look starts here' : 'Generate New Outfit'}</span>
             </h1>
-            <p className="text-stone-600 dark:text-stone-400 font-light text-base sm:text-lg">AI-powered outfit creation based on your preferences</p>
+            <p className="text-stone-600 dark:text-stone-400 font-light text-base sm:text-lg">{firstLookFlow && !generatedOutfit ? 'Make your saved capsule work for your day.' : 'AI-powered outfit creation based on your preferences'}</p>
           </div>
         </div>
 
@@ -1228,11 +1240,25 @@ export default function OutfitGenerationPage() {
         )}
 
         {/* Action Buttons - Modern Mobile-First */}
-        {!generatedOutfit && !generating && (
+        {wardrobeLoadError && <div role="alert" className="mx-auto mb-6 max-w-3xl rounded-2xl border border-red-200 bg-red-50 p-5 text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-100">
+          <p>{wardrobeLoadError}</p><Button variant="outline" className="mt-3" onClick={() => setWardrobeLoadAttempt(value => value + 1)}>Retry wardrobe</Button>
+        </div>}
+        {firstLookFlow && !generatedOutfit && !generating && <div className="mx-auto mb-8 max-w-3xl">
+          <FirstLookSetup
+            onGenerate={handleGenerateFromSheet} onShuffle={() => handleShuffleAndGenerate()}
+            disabled={wardrobeLoading || profileLoading || !!wardrobeLoadError} generating={generating}
+            initialOptions={formData}
+            weather={freshWeatherData || weather} weatherChoice={formData.weather || 'Auto'}
+            onWeatherChange={value => setFormData(previous => ({ ...previous, weather: value }))}
+            occasions={occasions} styles={filteredStyles.length ? filteredStyles : styles} moods={moods}
+            baseItem={baseItem}
+          />
+        </div>}
+        {!firstLookFlow && !generatedOutfit && !generating && (
           <div className="max-w-md mx-auto mb-8 space-y-4">
             <Button
               onClick={() => setSheetOpen(true)}
-              disabled={wardrobeLoading || profileLoading}
+              disabled={wardrobeLoading || profileLoading || !!wardrobeLoadError}
               className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-accent text-primary-foreground hover:shadow-lg hover:shadow-primary/30 transition-all rounded-2xl"
             >
               <Sparkles className="h-5 w-5 mr-2" />
@@ -1245,7 +1271,7 @@ export default function OutfitGenerationPage() {
             >
               <Button 
                 onClick={() => handleShuffleAndGenerate()}
-                disabled={wardrobeLoading || profileLoading}
+                disabled={wardrobeLoading || profileLoading || !!wardrobeLoadError}
                 variant="outline"
                 className="w-full h-12 text-base font-semibold border-2 border-amber-500/50 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all duration-200 relative overflow-hidden group rounded-2xl"
                 size="lg"
@@ -1339,7 +1365,7 @@ export default function OutfitGenerationPage() {
                 {/* Fallback: Old loading component */}
                 {!showRevealAnimation && <OutfitGenerating />}
               </>
-            ) : (
+            ) : !firstLookFlow ? (
               <Card className="border-dashed">
                 <CardContent className="p-6 sm:p-8 lg:p-12 text-center">
                   <Sparkles className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 text-muted-foreground mx-auto mb-3 sm:mb-4" />
@@ -1349,7 +1375,7 @@ export default function OutfitGenerationPage() {
                   </p>
                 </CardContent>
               </Card>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
@@ -1362,6 +1388,9 @@ export default function OutfitGenerationPage() {
         onShuffle={() => handleShuffleAndGenerate()}
         generating={generating}
         weather={freshWeatherData || weather}
+        weatherChoice={formData.weather || 'Auto'}
+        onWeatherChange={value => setFormData(previous => ({ ...previous, weather: value }))}
+        disabled={wardrobeLoading || profileLoading || !!wardrobeLoadError}
         occasions={occasions}
         styles={filteredStyles.length > 0 ? filteredStyles : styles}
         moods={moods}

@@ -2,6 +2,7 @@ import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Dashboard from './page';
+import type { OnboardingState } from '@/lib/onboarding/types';
 
 declare const expect: jest.Expect;
 declare const it: jest.It;
@@ -9,7 +10,12 @@ declare const it: jest.It;
 const mockUser = { uid: 'owner', getIdToken: jest.fn(async () => 'token') };
 const mockDashboard = jest.fn();
 const mockWardrobe = { items: [] as unknown[], loading: false, error: null as string | null, refetch: jest.fn() };
-const mockStage = { state: { stage: 'capsule' } as { stage: string } | null, loading: false, error: null as string | null, refresh: jest.fn() };
+const progress = (stage: OnboardingState['stage'], ready = false): OnboardingState => ({
+  schemaVersion: 1, revision: 0, draft: { answers: [], currentQuestionId: null }, profileComplete: stage !== 'style', stage,
+  capsule: { minimum: 10, savedCount: ready ? 10 : 0, usableCount: ready ? 10 : 0, hasCoverage: ready, missingCategories: ready ? [] : ['tops', 'bottoms', 'shoes'], ready },
+  milestones: { styleCompletedAt: null, capsuleCompletedAt: null, firstOutfitId: null },
+});
+const mockStage = { state: progress('capsule') as OnboardingState | null, loading: false, error: null as string | null, refresh: jest.fn() };
 const mockMount = jest.fn();
 const mockUnmount = jest.fn();
 const mockWeather = { temperature: 72, condition: 'Clear', location: 'Test' };
@@ -45,7 +51,7 @@ beforeEach(() => {
   mockWardrobe.items = [];
   mockWardrobe.error = null;
   mockWardrobe.loading = false;
-  mockStage.state = { stage: 'capsule' };
+  mockStage.state = progress('capsule');
   mockStage.loading = false;
   mockStage.error = null;
   mockMount.mockClear();
@@ -55,11 +61,12 @@ beforeEach(() => {
 it('keeps automatic generation disabled on a new empty dashboard', async () => {
   render(<Dashboard />);
   expect(await screen.findByTestId('daily-look')).toHaveAttribute('data-enabled', 'false');
-  expect(screen.getByRole('dialog', { name: '' })).toHaveTextContent('Add your capsule');
+  expect(screen.getByRole('link', { name: /Continue my capsule/ })).toHaveAttribute('href', '/onboarding');
+  expect(screen.getByText('0 of 10 pieces saved')).toBeVisible();
 });
 
 it('preserves established users after wardrobe deletion instead of forcing capsule onboarding again', async () => {
-  mockStage.state = { stage: 'complete' };
+  mockStage.state = progress('complete');
   render(<Dashboard />);
   expect(await screen.findByTestId('daily-look')).toHaveAttribute('data-enabled', 'false');
   expect(screen.queryByText('Add your capsule')).not.toBeInTheDocument();
@@ -75,7 +82,7 @@ it('never interprets wardrobe or progress fetch failure as an empty new closet',
 });
 
 it('does not unmount the generated result while refreshing dashboard statistics', async () => {
-  mockStage.state = { stage: 'complete' };
+  mockStage.state = progress('complete', true);
   mockWardrobe.items = ['shirt', 'pants', 'shoes', ...Array(7).fill('shirt')].map((type, index) => ({ id: String(index), type, imageUrl: `https://example.test/${index}.jpg` }));
   let resolveRefresh!: (value: unknown) => void;
   mockDashboard.mockResolvedValueOnce(data).mockImplementationOnce(() => new Promise(resolve => { resolveRefresh = resolve; }));
@@ -89,4 +96,12 @@ it('does not unmount the generated result while refreshing dashboard statistics'
   expect(mockUnmount).not.toHaveBeenCalled();
   await act(async () => resolveRefresh(data));
   expect(screen.getByTestId('daily-look')).toBe(widget);
+});
+
+it('asks a newly ready capsule to choose its first look instead of generating on dashboard arrival', async () => {
+  mockStage.state = progress('first-look', true);
+  mockWardrobe.items = ['shirt', 'pants', 'shoes', ...Array(7).fill('shirt')].map((type, index) => ({ id: String(index), type, imageUrl: `https://example.test/${index}.jpg` }));
+  render(<Dashboard />);
+  expect(await screen.findByTestId('daily-look')).toHaveAttribute('data-enabled', 'false');
+  expect(screen.getByRole('link', { name: /Create my first outfit/ })).toHaveAttribute('href', '/outfits/generate?onboarding=1');
 });

@@ -41,7 +41,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import dynamic from 'next/dynamic';
 import { dashboardService, DashboardData, TopItem } from "@/lib/services/dashboardService";
 import { useWardrobe } from '@/lib/hooks/useWardrobe';
-import MissingWardrobeModal from '@/components/MissingWardrobeModal';
+import OnboardingResumeCard from '@/components/onboarding/OnboardingResumeCard';
 import WardrobeInsightsHub from '@/components/ui/wardrobe-insights-hub';
 import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerator";
 import { evaluateCapsule } from "@/lib/onboarding/state";
@@ -167,9 +167,7 @@ export default function Dashboard() {
   // Current inventory controls generation; saved milestones control the onboarding gate.
   const capsule = evaluateCapsule(wardrobeItems);
   const generationEnabled = !wardrobeLoading && !wardrobeError && !onboardingLoading && !onboardingError &&
-    capsule.ready && (onboardingState?.stage === 'first-look' || onboardingState?.stage === 'complete');
-  const shouldShowMissingWardrobeModal = !wardrobeLoading && !wardrobeError && !onboardingLoading &&
-    !onboardingError && onboardingState?.stage === 'capsule';
+    capsule.ready && onboardingState?.stage === 'complete';
 
   // Debug: Log subscription info
   useEffect(() => {
@@ -505,13 +503,13 @@ export default function Dashboard() {
         {onboardingError && <div role="alert" className="mb-4 text-red-600 dark:text-red-400">
           {onboardingError} <Button variant="outline" onClick={() => { void refreshOnboarding(); }}>Retry saved progress</Button>
         </div>}
-        {onboardingState?.stage === 'style' && <p className="mb-4">Finish your style questionnaire to create personalized outfits. <Link href="/onboarding">Continue your style profile</Link></p>}
+        {!onboardingLoading && !onboardingError && onboardingState && <OnboardingResumeCard state={onboardingState} />}
         {/* Keep the generated result mounted while dashboard statistics refresh. */}
         <div id="smart-weather-outfit" className="mb-6 sm:mb-8 lg:mb-12">
           {user && (
             <SmartWeatherOutfitGenerator
               generationEnabled={generationEnabled}
-              readinessMessage={wardrobeError ? "We couldn't load your wardrobe. Refresh to try again." : onboardingError || (wardrobeLoading || onboardingLoading ? 'Loading your saved wardrobe…' : onboardingState?.stage === 'style' ? 'Finish your style questionnaire before creating outfits.' : undefined)}
+              readinessMessage={wardrobeError ? "We couldn't load your wardrobe. Refresh to try again." : onboardingError || (wardrobeLoading || onboardingLoading ? 'Loading your saved wardrobe…' : onboardingState?.stage === 'style' ? 'Finish your style questionnaire before creating outfits.' : onboardingState?.stage === 'first-look' ? 'Choose your settings above to create your first outfit.' : undefined)}
               onOutfitGenerated={(outfit) => {
                 // Refresh dashboard when outfit is generated
                 if (user) {
@@ -1114,17 +1112,6 @@ export default function Dashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* The persisted stage preserves established accounts after wardrobe changes. */}
-      <MissingWardrobeModal
-        userId={user?.uid || ''}
-        isOpen={shouldShowMissingWardrobeModal}
-        onComplete={() => {
-          refetchWardrobe();
-          void refreshOnboarding();
-        }}
-        targetCount={10}
-      />
       
       {/* Client-Only Navigation - No Props to Avoid Serialization */}
       <ClientOnlyNav />
