@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar, Check, ChevronDown, RefreshCw, Shirt, Star, ThumbsDown, ThumbsUp } from 'lucide-react';
 import FlatLayViewer from '../FlatLayViewer';
-import { extractFlatLayState, validStylingScore, type FlatLaySource } from '@/lib/flatLayState';
+import { extractFlatLayState, type FlatLaySource } from '@/lib/flatLayState';
 
 export interface GeneratedOutfit extends FlatLaySource {
   id: string;
@@ -106,17 +106,16 @@ export default function OutfitResultsDisplay({
     return () => clearTimeout(timer);
   }, [outfit.id, flatLay.status]);
 
-  const score = validStylingScore(outfit.confidence_score);
   const reasoning = text(outfit.reasoning);
   const insights = Object.entries(outfit.outfitAnalysis ?? {}).flatMap(([key, value]) => {
     const insight = value && typeof value === 'object' ? text((value as Record<string, unknown>).insight) : null;
     return insight ? [{ key, insight }] : [];
   });
   const itemReasons = outfit.items.filter(item => text(item.reason));
-  const hasNotes = Boolean(reasoning || insights.length || itemReasons.length || score !== null);
+  const hasNotes = Boolean(reasoning || insights.length || itemReasons.length);
   const weather = outfit.weather ?? outfit.metadata?.weather;
   const temperature = weather && typeof weather === 'object' ? (weather as Record<string, unknown>).temperature : null;
-  const weatherEstimated = weather && typeof weather === 'object' && Boolean((weather as Record<string, unknown>).fallback);
+  const weatherEstimated = weather && typeof weather === 'object' && Boolean((weather as Record<string, unknown>).fallback || (weather as Record<string, unknown>).isFallbackWeather || ['estimated', 'fallback'].includes(String((weather as Record<string, unknown>).source)));
 
   return (
     <section aria-label="Your outfit" className="overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-sm">
@@ -195,7 +194,6 @@ export default function OutfitResultsDisplay({
                 {reasoning && <p>{reasoning}</p>}
                 {insights.map(({ key, insight }) => <p key={key}>{insight}</p>)}
                 {itemReasons.map(item => <p key={item.id}><span className="font-medium text-foreground">{item.name}: </span>{item.reason}</p>)}
-                {score !== null && <p className="text-xs">Styling score: {Math.round(score * 100)}/100 · Internal ranking score</p>}
               </div>
             </details>
           )}

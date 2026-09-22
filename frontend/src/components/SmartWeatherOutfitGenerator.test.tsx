@@ -11,6 +11,10 @@ let mockUser = { uid: 'owner', displayName: 'Owner', email: 'owner@example.test'
 const mockWeather = { temperature: 72, condition: 'Clear', location: 'Test City' };
 const mockFetchWeather = jest.fn();
 const mockGenerate = jest.fn();
+const savedProfile = {
+  gender: 'Non-binary', stylePreferences: ['Minimalist'],
+  measurements: { bodyType: 'Round/Apple', skinTone: 'skin_tone_82', height: '5\'8" - 5\'11"', weight: 'Prefer not to specify' },
+};
 jest.mock('@/contexts/AuthContext', () => ({ useAuthContext: () => ({ user: mockUser }) }));
 jest.mock('@/hooks/useWeather', () => ({ useAutoWeather: () => ({ weather: mockWeather, loading: false, fetchWeatherByLocation: mockFetchWeather }) }));
 jest.mock('@/lib/weather', () => ({ formatWeatherForDisplay: () => ({ temperature: '72°F', condition: 'Clear' }) }));
@@ -29,12 +33,57 @@ beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
   mockGenerate.mockReset().mockResolvedValue({ data: { id: 'look', name: 'Saved look', items, confidence: .8 } });
-  global.fetch = jest.fn().mockResolvedValue(response(items));
+  global.fetch = jest.fn(async (url) => response(url === '/api/user/profile' ? savedProfile : items));
   jest.spyOn(console, 'log').mockImplementation(() => undefined);
   jest.spyOn(console, 'error').mockImplementation(() => undefined);
   jest.spyOn(console, 'warn').mockImplementation(() => undefined);
 });
 afterEach(() => jest.restoreAllMocks());
+
+it('uses the saved quiz profile for dashboard generation without inventing age', async () => {
+  render(<SmartWeatherOutfitGenerator generationEnabled />);
+  await waitFor(() => expect(mockGenerate).toHaveBeenCalledTimes(1));
+  expect(fetch).toHaveBeenCalledWith('/api/user/profile', expect.objectContaining({
+    headers: { Authorization: 'Bearer token' }, cache: 'no-store',
+  }));
+  expect(mockGenerate.mock.calls[0][0].user_profile).toMatchObject({
+    id: mockUser.uid, gender: 'Non-binary', bodyType: 'Round/Apple', skinTone: 'skin_tone_82',
+    height: '5\'8" - 5\'11"', weight: 'Prefer not to specify', style_preferences: ['Minimalist'],
+  });
+  expect(mockGenerate.mock.calls[0][0].user_profile.age).toBeUndefined();
+});
+
+it('retains the saved weather context and final style compromise in the dashboard result', async () => {
+  const weather = { temperature: 91, condition: 'Cloudy', rawCondition: 'Partly Cloudy', source: 'estimated', fallback: true };
+  const insight = 'Graphic hoodie has graphic detail, so this is a partial match for Minimalist.';
+  mockGenerate.mockResolvedValue({ data: { id: 'look', name: 'Saved look', items, weather,
+    outfitAnalysis: { styleSynergy: { insight } } } });
+  const onOutfitGenerated = jest.fn();
+  render(<SmartWeatherOutfitGenerator generationEnabled onOutfitGenerated={onOutfitGenerated} />);
+  await waitFor(() => expect(onOutfitGenerated).toHaveBeenCalledWith(expect.objectContaining({
+    weather, reasoning: insight, confidence: null,
+  })));
+});
+
+it('shows a retryable failure when the saved style profile cannot be loaded', async () => {
+  (fetch as jest.Mock).mockImplementation(async (url) => response(url === '/api/user/profile' ? {} : items, url !== '/api/user/profile'));
+  render(<SmartWeatherOutfitGenerator generationEnabled />);
+  expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't load your style profile");
+  expect(mockGenerate).not.toHaveBeenCalled();
+});
+
+it('does not post a profile that finishes loading after an account switch', async () => {
+  let resolveProfile!: (value: Response) => void;
+  (fetch as jest.Mock).mockImplementation((url) => url === '/api/user/profile'
+    ? new Promise<Response>((resolve) => { resolveProfile = resolve; })
+    : Promise.resolve(response(items)));
+  const view = render(<SmartWeatherOutfitGenerator generationEnabled />);
+  await waitFor(() => expect(resolveProfile).toBeDefined());
+  mockUser = { ...mockUser, uid: 'switched-owner' };
+  view.rerender(<SmartWeatherOutfitGenerator generationEnabled={false} />);
+  await act(async () => resolveProfile(response(savedProfile)));
+  expect(mockGenerate).not.toHaveBeenCalled();
+});
 
 it('does not fetch or generate for an empty, loading or failed capsule', async () => {
   const view = render(<SmartWeatherOutfitGenerator generationEnabled={false} readinessMessage="Loading saved wardrobe…" />);

@@ -262,6 +262,8 @@ async def generate_personalized_outfit_from_existing_data(
         except RequiredBaseItemNotFound as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+        from src.utils.recommendation_fidelity import generation_weather, prefer_plain_candidates, fallback_weather_score
+        req.weather = generation_weather(req.weather)
         profile_data = normalize_generation_user_profile(req.user_profile, user_id)
         req.wardrobe = wardrobe_data
         req.user_profile = profile_data
@@ -658,8 +660,14 @@ async def generate_personalized_outfit_from_existing_data(
                 # Sort by diversity score (prefer unused items) + add randomization
                 if category_matches:
                     scored_items = [(item, get_diversity_score(item) + random.uniform(0, 0.3)) for item in category_matches]
-                    scored_items.sort(key=lambda x: x[1], reverse=True)
-                    
+                    scored_items.sort(key=lambda x: (fallback_weather_score(x[0], req.weather), x[1]), reverse=True)
+                    ranked = prefer_plain_candidates([
+                        (item_identifier(item), {'item': item, 'composite_score': score,
+                          'weather_score': fallback_weather_score(item, req.weather)})
+                        for item, score in scored_items
+                    ], req.style)
+                    scored_items = [(score['item'], score['composite_score']) for _, score in ranked]
+
                     # Pick the top-scored item
                     selected_item = scored_items[0][0]
                     item_id = getattr(selected_item, 'id', selected_item.get('id', 'unknown') if isinstance(selected_item, dict) else 'unknown')
@@ -777,6 +785,13 @@ async def generate_personalized_outfit_from_existing_data(
         except InvalidGeneratedOutfit as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+        # Explain the final authoritative items after required-item repair and
+        # personalization, so notes cannot describe a discarded candidate.
+        from src.utils.outfit_analysis import generate_outfit_analysis
+        existing_result['outfitAnalysis'] = await generate_outfit_analysis(
+            existing_result['items'], req, {}, metadata=existing_result.get('metadata', {})
+        )
+
         # Create response with real validation metadata
         outfit_response = {
             "id": (existing_result.get("id", f"personalized_{uuid4().hex}") if existing_result else f"personalized_{uuid4().hex}"),
@@ -850,6 +865,7 @@ async def generate_personalized_outfit_from_existing_data(
                 'occasion': outfit_response['occasion'],
                 'mood': outfit_response['mood'],
                 'weather': outfit_response['weather'],
+                'outfitAnalysis': outfit_response['outfitAnalysis'],
                 'user_id': user_id,
                 'createdAt': int(time.time() * 1000),  # Firestore timestamp in milliseconds
                 'confidence_score': outfit_response['confidence_score'],

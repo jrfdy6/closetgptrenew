@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
+import { buildOutfitGenerationUserProfile } from '@/lib/outfitGenerationContract';
 import { claimDailyOutfitAttempt, dailyOutfitKey, hasCompleteDailyOutfit } from '@/lib/dailyOutfitAttempt';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,9 +56,11 @@ interface GeneratedOutfit {
     temperature: number;
     condition: string;
     location: string;
+    source?: string;
+    fallback?: boolean;
   };
   reasoning: string;
-  confidence: number;
+  confidence?: number | null;
   generatedAt: string;
   isWorn?: boolean;
   userId?: string; // Added for user isolation validation
@@ -278,18 +281,24 @@ export function SmartWeatherOutfitGenerator({
       }
       if (!activeRef.current || currentUserIdRef.current !== requestUserId) return;
 
-      // Prepare request with weather-optimized parameters
+      const profileResponse = await fetch('/api/user/profile', {
+        headers: { 'Authorization': `Bearer ${authToken}` },
+        cache: 'no-store',
+      });
+      if (!profileResponse.ok) {
+        throw new Error("We couldn't load your style profile. Please try again.");
+      }
+      const userProfile = await profileResponse.json();
+      if (!activeRef.current || currentUserIdRef.current !== requestUserId) return;
+
+      // Prepare request with the same saved quiz signals as manual generation
       const requestData = {
         occasion: determineOccasionFromWeather(weather),
         style: determineStyleFromWeather(weather),
         mood: determineMoodFromWeather(weather),
         weather: weather,
         wardrobe: wardrobeItems, // Send actual wardrobe items
-        user_profile: {
-          id: user.uid,
-          name: user.displayName || "User",
-          email: user.email || "",
-        },
+        user_profile: buildOutfitGenerationUserProfile(userProfile, user),
         likedOutfits: [],
         trendingStyles: [],
         preferences: {
@@ -339,15 +348,11 @@ export function SmartWeatherOutfitGenerator({
       const outfit: GeneratedOutfit = {
         id: data.id,
         userId: user.uid,
-        name: data.name || `Today's Perfect Weather Outfit`,
+        name: data.name || `Today's Outfit`,
         items: Array.isArray(data.items) ? data.items : [],
-        weather: {
-          temperature: weather.temperature,
-          condition: weather.condition,
-          location: weather.location
-        },
-        reasoning: data.reasoning || `This weather-optimized outfit is perfect for today's ${weather.temperature}°F ${weather.condition.toLowerCase()} conditions in ${weather.location}. The carefully selected pieces balance comfort and style while ensuring weather appropriateness. Each item works harmoniously to create a cohesive look that matches the current environmental conditions.`,
-        confidence: data.confidence || 0.9,
+        weather: data.weather || { ...convertedData.weather },
+        reasoning: data.outfitAnalysis?.styleSynergy?.insight || data.reasoning || `Selected from your wardrobe for the requested occasion and weather context.`,
+        confidence: typeof data.confidence_score === 'number' ? data.confidence_score : null,
         generatedAt: new Date().toISOString(),
         isWorn: false
       };

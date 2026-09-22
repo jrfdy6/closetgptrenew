@@ -196,7 +196,7 @@ describe('Outfit results presentation and live image updates', () => {
     expect(screen.queryByText(/Weather context|Estimated context/)).not.toBeInTheDocument();
   });
 
-  it('preserves a valid zero score and presents only supplied styling evidence', async () => {
+  it('hides internal scores and presents only supplied styling evidence', async () => {
     render(<OutfitResultsDisplay {...props({ outfit: {
       ...outfit, confidence_score: 0, reasoning: 'The shirt and trousers have a similar visual weight.',
       outfitAnalysis: { color: { insight: 'A neutral palette.' }, weather: { score: 0.8 } },
@@ -206,7 +206,7 @@ describe('Outfit results presentation and live image updates', () => {
     await connected();
     expect(screen.getByText('Estimated context: 72°F')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Styling notes'));
-    expect(screen.getByText('Styling score: 0/100 · Internal ranking score')).toBeVisible();
+    expect(screen.queryByText(/Styling score|Internal ranking/)).not.toBeInTheDocument();
     expect(screen.getByText('The shirt and trousers have a similar visual weight.')).toBeVisible();
     expect(screen.getByText('A neutral palette.')).toBeVisible();
     expect(screen.getByText(/A breathable layer/)).toBeVisible();

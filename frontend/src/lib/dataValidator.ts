@@ -3,6 +3,8 @@
  * Ensures data integrity and security across the application
  */
 
+import { generationWeatherProvenance } from './generationWeather';
+
 export interface ValidationRule {
   required?: boolean;
   type?: 'string' | 'number' | 'boolean' | 'array' | 'object' | 'email' | 'url';
@@ -140,7 +142,7 @@ export class DataValidator {
     const conditionResult = this.validateField(weather.condition, {
       required: true,
       type: 'string',
-      enum: ['Clear', 'Cloudy', 'Rainy', 'Snowy', 'Foggy', 'Windy', 'Stormy', 'Overcast']
+      enum: ['Clear', 'Cloudy', 'Rainy', 'Snowy', 'Foggy', 'Windy', 'Stormy', 'Overcast', 'Unknown']
     });
     if (!conditionResult.isValid) errors.push(...conditionResult.errors);
     else sanitized.condition = conditionResult.sanitizedValue;
@@ -150,6 +152,7 @@ export class DataValidator {
     sanitized.wind_speed = Math.max(0, weather.wind_speed || 0);
     sanitized.location = this.sanitizeString(weather.location || 'Unknown');
     sanitized.precipitation = Math.max(0, weather.precipitation || 0);
+    Object.assign(sanitized, generationWeatherProvenance(weather));
 
     return {
       isValid: errors.length === 0,
@@ -265,9 +268,13 @@ export class DataValidator {
     sanitized.favorite_score = Math.max(0, Math.min(10, item.favorite_score || 0));
     
     // CRITICAL: Preserve metadata field (was being stripped by sanitization!)
-    if (item.metadata && typeof item.metadata === 'object') {
+    if (item.metadata && typeof item.metadata === 'object' && !Array.isArray(item.metadata)) {
       sanitized.metadata = item.metadata;
     }
+    if (item.analysis && typeof item.analysis === 'object' && !Array.isArray(item.analysis)) {
+      sanitized.analysis = item.analysis;
+    }
+    if (typeof item.material === 'string') sanitized.material = item.material;
 
     return {
       isValid: errors.length === 0,
@@ -313,21 +320,20 @@ export class DataValidator {
 
     // Gender
     const normalizedGender = this.sanitizeString(profile.gender).toLowerCase();
-    sanitized.gender = ['male', 'female', 'non-binary', 'other'].includes(normalizedGender)
-      ? normalizedGender
-      : 'male';
+    sanitized.gender = normalizedGender;
 
     // Age
-    sanitized.age = Math.max(13, Math.min(120, Math.floor(profile.age || 25)));
+    sanitized.age = typeof profile.age === 'number' && Number.isFinite(profile.age)
+      && profile.age > 0 && profile.age <= 120 ? profile.age : undefined;
 
     // Height
-    sanitized.height = this.sanitizeString(profile.height) || '';
+    sanitized.height = this.sanitizeHeight(profile.height);
 
     // Weight
     sanitized.weight = this.sanitizeString(profile.weight) || '';
 
     // Body type
-    sanitized.bodyType = this.sanitizeString(profile.bodyType) || 'average';
+    sanitized.bodyType = this.sanitizeString(profile.bodyType);
 
     // Skin tone is stored as a slider token (skin_tone_0..100) and normalized
     // to a depth category at the backend scoring boundary.
@@ -342,7 +348,7 @@ export class DataValidator {
     if (profile.measurements && typeof profile.measurements === 'object') {
       sanitized.measurements = {
         ...profile.measurements,
-        height: this.sanitizeString(profile.measurements.height),
+        height: this.sanitizeHeight(profile.measurements.height),
         weight: this.sanitizeString(profile.measurements.weight),
         bodyType: this.sanitizeString(profile.measurements.bodyType),
         skinTone: this.sanitizeString(profile.measurements.skinTone),
@@ -466,6 +472,13 @@ export class DataValidator {
       default:
         return value;
     }
+  }
+
+  /**
+   * Height is plain JSON data; feet/inches punctuation is part of its meaning.
+   */
+  private sanitizeHeight(value: unknown): string {
+    return typeof value === 'string' ? value.replace(/[<>\u0000-\u001f]/g, '').trim() : '';
   }
 
   /**

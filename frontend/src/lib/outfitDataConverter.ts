@@ -1,7 +1,10 @@
 /**
  * Converts frontend outfit generation data to Pydantic-compatible format
- * for the advanced /api/outfit/generate endpoint
+ * for the active /api/outfits-existing-data/generate-personalized endpoint
  */
+
+import { generationGarmentMetadata } from './garmentMetadata';
+import { generationWeatherProvenance, GenerationWeatherProvenance } from './generationWeather';
 
 export interface FrontendWardrobeItem {
   id: string;
@@ -37,7 +40,7 @@ export interface FrontendUserProfile {
   [key: string]: any;
 }
 
-export interface FrontendWeatherData {
+export interface FrontendWeatherData extends GenerationWeatherProvenance {
   temperature: number;
   condition: string;
   humidity?: number;
@@ -65,20 +68,8 @@ export interface FrontendOutfitRequest {
 function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
   const now = Date.now();
   
-  // DEBUG: Track metadata for collared shirts
-  if ((item.name || '').toLowerCase().includes('george') || 
-      (item.name || '').toLowerCase().includes('tommy') ||
-      (item.name || '').toLowerCase().includes('van heusen') ||
-      (item.name || '').toLowerCase().includes('michael kors')) {
-    console.log(`🔍 FRONTEND CONVERTER INPUT: ${item.name}`, {
-      hasMetadata: !!item.metadata,
-      metadataType: typeof item.metadata,
-      visualAttributes: item.metadata?.visualAttributes || null,
-      neckline: item.metadata?.visualAttributes?.neckline || 'NONE',
-      metadataKeys: item.metadata ? Object.keys(item.metadata) : []
-    });
-  }
-  
+  const metadata = generationGarmentMetadata(item);
+
   const converted = {
     id: item.id,
     name: item.name,
@@ -101,52 +92,17 @@ function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
     colorName: item.colorName || null,
     backgroundRemoved: item.backgroundRemoved || null,
     embedding: item.embedding || null,
-    // Preserve existing metadata if it exists, otherwise create basic structure
-    metadata: item.metadata ? {
-      // Preserve existing metadata fields
-      ...item.metadata,
-      // Ensure critical fields exist
-      analysisTimestamp: item.metadata.analysisTimestamp || now,
-      styleTags: item.metadata.styleTags || normalizeToList(item.style) || [],
-      occasionTags: item.metadata.occasionTags || normalizeToList(item.occasion) || ['casual'],
-    } : {
-      // Create basic metadata if none exists
-      analysisTimestamp: now,
-      originalType: item.type,
-      originalSubType: null,
-      styleTags: normalizeToList(item.style) || [],
-      occasionTags: normalizeToList(item.occasion) || ['casual'],
-      brand: item.brand || null,
-      imageHash: null,
-      colorAnalysis: {
-        dominant: [],
-        matching: []
-      },
-      basicMetadata: null,
-      visualAttributes: null,
-      itemMetadata: null,
-      naturalDescription: null,
-      temperatureCompatibility: null,
-      materialCompatibility: null,
-      bodyTypeCompatibility: null,
-      skinToneCompatibility: null,
-      outfitScoring: null
+    // Preserve raw analysis for provenance and merge its visual facts with
+    // authoritative root edits before downstream sanitization.
+    analysis: item.analysis && typeof item.analysis === 'object' ? item.analysis : null,
+    material: Array.isArray(item.material) ? item.material.join(', ') : item.material || null,
+    metadata: {
+      ...metadata,
+      analysisTimestamp: metadata.analysisTimestamp ?? now,
+      styleTags: normalizeToList(metadata.styleTags) || [],
+      occasionTags: normalizeToList(metadata.occasionTags) || [],
     }
   };
-  
-  // DEBUG: Verify metadata after conversion
-  if ((item.name || '').toLowerCase().includes('george') || 
-      (item.name || '').toLowerCase().includes('tommy') ||
-      (item.name || '').toLowerCase().includes('van heusen') ||
-      (item.name || '').toLowerCase().includes('michael kors')) {
-    console.log(`✅ FRONTEND CONVERTED: ${item.name}`, {
-      hasMetadata: !!converted.metadata,
-      metadataType: typeof converted.metadata,
-      visualAttributes: converted.metadata?.visualAttributes || null,
-      neckline: converted.metadata?.visualAttributes?.neckline || 'NONE',
-      metadataKeys: converted.metadata ? Object.keys(converted.metadata) : []
-    });
-  }
   
   return converted;
 }
@@ -160,11 +116,12 @@ function convertUserProfile(profile: FrontendUserProfile): any {
     id: profile.id,
     name: profile.name || 'User',
     email: profile.email || '',
-    gender: profile.gender || 'male',
-    age: profile.age || 25,
+    gender: profile.gender || '',
+    age: typeof profile.age === 'number' && Number.isFinite(profile.age)
+      && profile.age > 0 && profile.age <= 120 ? profile.age : undefined,
     height: profile.height || '',
     weight: profile.weight || '',
-    bodyType: profile.bodyType || 'average',
+    bodyType: profile.bodyType || '',
     skinTone: profile.skinTone || null,
     stylePreferences: normalizeToList(profile.stylePreferences) || [],
     style_preferences: normalizeToList(profile.style_preferences) || [],
@@ -184,10 +141,16 @@ function normalizeWeatherCondition(condition: string): string {
   const conditionMap: Record<string, string> = {
     // OpenWeatherMap API conditions → Backend enum
     'Clouds': 'Cloudy',
+    'Partly Cloudy': 'Cloudy',
+    'Overcast': 'Overcast',
     'Clear': 'Clear',
     'Rain': 'Rainy',
+    'Light Rain': 'Rainy',
+    'Heavy Rain': 'Rainy',
     'Drizzle': 'Rainy',
     'Snow': 'Snowy',
+    'Light Snow': 'Snowy',
+    'Heavy Snow': 'Snowy',
     'Thunderstorm': 'Stormy',
     'Mist': 'Foggy',
     'Fog': 'Foggy',
@@ -208,13 +171,18 @@ function normalizeWeatherCondition(condition: string): string {
     'Sunny': 'Clear'
   };
   
-  return conditionMap[condition] || 'Clear';
+  // Unknown labels are not evidence of clear skies. Keep the original label
+  // separately while limiting the scorer to supported condition categories.
+  const match = Object.entries(conditionMap).find(([label]) => label.toLowerCase() === condition?.trim().toLowerCase());
+  return match?.[1] || 'Unknown';
 }
 
 function convertWeatherData(weather: FrontendWeatherData): any {
   return {
+    ...generationWeatherProvenance(weather),
     temperature: weather.temperature,
     condition: normalizeWeatherCondition(weather.condition),
+    rawCondition: weather.rawCondition || weather.condition,
     humidity: weather.humidity || 0,
     wind_speed: weather.wind_speed || 0,
     location: weather.location || 'Unknown',
