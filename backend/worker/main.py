@@ -1351,6 +1351,7 @@ def run_worker():
 
     worker_id = uuid4().hex
     pending_cursor = None
+    flatlay_cursor = None
 
     def wardrobe_candidates():
         nonlocal pending_cursor
@@ -1371,9 +1372,18 @@ def run_worker():
         return list(dict.fromkeys([doc.id for doc in due] + [doc.id for doc in rows]))
 
     def flatlay_candidates():
-        rows = (db.collection(REQUESTS_COLLECTION)
-                .where(filter=FieldFilter("queued_at", ">=", 0))
-                .order_by("queued_at").limit(1).stream(timeout=10, retry=None))
+        nonlocal flatlay_cursor
+        # A held/malformed ledger can remain queued after the child declines
+        # its claim. Advance by snapshot rather than launching that same row
+        # forever. Each idle dispatch reads at most one row; exhaustion wraps
+        # the next poll so repaired records and earlier arrivals are revisited.
+        query = (db.collection(REQUESTS_COLLECTION)
+                 .where(filter=FieldFilter("queued_at", ">=", 0))
+                 .order_by("queued_at").limit(1))
+        if flatlay_cursor is not None:
+            query = query.start_after(flatlay_cursor)
+        rows = list(query.stream(timeout=10, retry=None))
+        flatlay_cursor = rows[-1] if rows else None
         return [doc.id for doc in rows]
 
     def reconcile_legacy():

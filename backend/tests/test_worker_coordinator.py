@@ -1,10 +1,31 @@
 """Coordinator regressions without image models, credentials or cloud writes."""
 import ast
+import copy
 from pathlib import Path
+from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
 
 from worker.coordinator import WorkerCoordinator
+
+
+def flatlay_candidates_under_test(db):
+    """Load the production selector closure without worker credentials/models."""
+    path = Path(__file__).resolve().parents[1] / "worker" / "main.py"
+    tree = ast.parse(path.read_text())
+    worker = next(node for node in tree.body
+                  if isinstance(node, ast.FunctionDef) and node.name == "run_worker")
+    selector = next(node for node in worker.body
+                    if isinstance(node, ast.FunctionDef) and node.name == "flatlay_candidates")
+    cursor = next(node for node in worker.body if isinstance(node, ast.Assign)
+                  and any(isinstance(target, ast.Name) and target.id == "flatlay_cursor"
+                          for target in node.targets))
+    factory = ast.parse("def factory():\n    return flatlay_candidates\n")
+    factory.body[0].body[:0] = [cursor, selector]
+    environment = {"db": db, "REQUESTS_COLLECTION": "flat_lay_requests",
+                   "FieldFilter": lambda *args: args}
+    exec(compile(ast.fix_missing_locations(factory), str(path), "exec"), environment)
+    return environment["factory"]()
 
 
 class Process:
@@ -26,6 +47,84 @@ class Process:
 
     def close(self):
         self.closed = True
+
+
+class QueueDatabase:
+    """Small query fake; this suite must run with the standard library only."""
+    def __init__(self, rows):
+        self.rows = rows
+        self.queries = []
+
+    def collection(self, name):
+        if name != "flat_lay_requests":
+            raise AssertionError("Unexpected queue collection")
+        return QueueQuery(self)
+
+
+class QueueQuery:
+    def __init__(self, db):
+        self.db = db
+        self.cursor = None
+
+    def where(self, *, filter):
+        self.filter = filter
+        return self
+
+    def order_by(self, field):
+        self.order = field
+        return self
+
+    def limit(self, maximum):
+        self.maximum = maximum
+        return self
+
+    def start_after(self, snapshot):
+        self.cursor = snapshot
+        return self
+
+    def stream(self, **options):
+        field, operator, minimum = self.filter
+        if operator != ">=":
+            raise AssertionError("Unexpected queue filter")
+        rows = [(key, row) for key, row in self.db.rows.items()
+                if isinstance(row.get(field), (int, float)) and row[field] >= minimum]
+        rows.sort(key=lambda entry: (entry[1][self.order], entry[0]))
+        if self.cursor is not None:
+            position = (self.cursor.to_dict()[self.order], self.cursor.id)
+            rows = [(key, row) for key, row in rows if (row[self.order], key) > position]
+        rows = rows[:self.maximum]
+        self.db.queries.append((self.maximum, options, len(rows)))
+        for key, row in rows:
+            yield SimpleNamespace(id=key, to_dict=lambda row=copy.deepcopy(row): copy.deepcopy(row))
+
+
+class FlatlayQueueProgressTests(unittest.TestCase):
+
+    def test_many_held_rows_advance_with_bounded_reads_then_wrap(self):
+        identifiers = [f"held-{index:02d}" for index in range(30)] + ["valid-last"]
+        db = QueueDatabase({
+            identifier: {"queued_at": 1100, "status": "pending"} for identifier in identifiers
+        })
+        candidates = flatlay_candidates_under_test(db)
+        seen = [candidates() for _ in identifiers]
+        self.assertEqual(seen, [[identifier] for identifier in identifiers])
+        self.assertEqual(candidates(), [])
+        self.assertEqual(candidates(), [identifiers[0]])
+        self.assertEqual(len(db.queries), len(identifiers) + 2)
+        self.assertTrue(all(limit == 1 and count <= 1 for limit, _, count in db.queries))
+        self.assertTrue(all(options == {"timeout": 10, "retry": None} for _, options, _ in db.queries))
+
+    def test_cursor_survives_deleted_or_dequeued_row_and_revisits_earlier_arrival(self):
+        ledger = {identifier: {"queued_at": 1100} for identifier in ("a", "b", "c")}
+        candidates = flatlay_candidates_under_test(QueueDatabase(ledger))
+        self.assertEqual(candidates(), ["a"])
+        del ledger["a"]
+        self.assertEqual(candidates(), ["b"])
+        ledger["b"]["queued_at"] = None
+        ledger["earlier-arrival"] = {"queued_at": 1099}
+        self.assertEqual(candidates(), ["c"])
+        self.assertEqual(candidates(), [])
+        self.assertEqual(candidates(), ["earlier-arrival"])
 
 
 class CoordinatorTests(unittest.TestCase):

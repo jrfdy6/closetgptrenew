@@ -79,21 +79,25 @@ def transactional(fn):
 
 
 class Collection:
-    def __init__(self, db, name, filters=(), order=None, maximum=None):
+    def __init__(self, db, name, filters=(), order=None, maximum=None, cursor=None):
         self.db, self.name = db, name
         self.filters, self.order, self.maximum = filters, order, maximum
+        self.cursor = cursor
 
     def document(self, key):
         return Document(self.db, self.name, key)
 
     def where(self, *, filter):
-        return Collection(self.db, self.name, (*self.filters, filter), self.order, self.maximum)
+        return Collection(self.db, self.name, (*self.filters, filter), self.order, self.maximum, self.cursor)
 
     def order_by(self, field):
-        return Collection(self.db, self.name, self.filters, field, self.maximum)
+        return Collection(self.db, self.name, self.filters, field, self.maximum, self.cursor)
 
     def limit(self, maximum):
-        return Collection(self.db, self.name, self.filters, self.order, maximum)
+        return Collection(self.db, self.name, self.filters, self.order, maximum, self.cursor)
+
+    def start_after(self, snapshot):
+        return Collection(self.db, self.name, self.filters, self.order, self.maximum, snapshot)
 
     def stream(self, **_kwargs):
         rows = sorted(self.db.records.get(self.name, {}).items())
@@ -107,8 +111,11 @@ class Collection:
                          (operator == '<=' and row[field] <= expected))]
         if self.order:
             rows.sort(key=lambda entry: entry[1][self.order])
+        if self.cursor is not None:
+            position = (self.cursor.to_dict()[self.order], self.cursor.id)
+            rows = [(key, row) for key, row in rows if (row[self.order], key) > position]
         for key, row in rows[:self.maximum]:
-            yield SimpleNamespace(id=key, to_dict=lambda row=row: copy.deepcopy(row))
+            yield SimpleNamespace(id=key, to_dict=lambda row=copy.deepcopy(row): copy.deepcopy(row))
 
 
 class Database:
@@ -151,6 +158,44 @@ class FlatlayLifecycleTests(unittest.TestCase):
     def test_worker_and_api_contracts_stay_identical(self):
         self.assertEqual((ROOT / 'worker/flatlay_lifecycle.py').read_bytes(),
                          (ROOT / 'src/services/flatlay_lifecycle.py').read_bytes())
+
+    def test_nonclaimable_oldest_ledger_does_not_starve_next_valid_request(self):
+        from test_worker_coordinator import Process, flatlay_candidates_under_test
+        from worker.coordinator import WorkerCoordinator
+        self.db.records['outfits']['next-look'] = copy.deepcopy(self.db.records['outfits']['look'])
+        worker_lifecycle.reserve_request(self.db, 'look', 'owner', now=1100)
+        worker_lifecycle.reserve_request(self.db, 'next-look', 'owner', now=1101)
+        ledger = self.db.records[worker_lifecycle.REQUESTS_COLLECTION]
+        ledger['look']['outfit_id'] = 'different-outfit'
+        held_before = copy.deepcopy(ledger['look'])
+        outfit_before = copy.deepcopy(self.db.records['outfits']['look'])
+        quota_before = copy.deepcopy(self.db.records['users']['owner']['quotas'])
+        attempts = []
+
+        def start_flatlay(identifier):
+            # The real transaction remains the only authority to claim. A
+            # declined child exits without touching the held record.
+            claim = worker_lifecycle.claim_request(self.db, identifier, now=1110)
+            attempts.append((identifier, claim))
+            process = Process()
+            process.outcome = {'status': 'succeeded'}
+            return process
+
+        coordinator = WorkerCoordinator(
+            expire_flatlays=Mock(), recover_garments=Mock(), garment_candidates=lambda: [],
+            claim_garment=Mock(), start_garment=Mock(), publish_original=Mock(), finish_garment=Mock(),
+            flatlay_candidates=flatlay_candidates_under_test(self.db), start_flatlay=start_flatlay,
+        )
+        self.addCleanup(coordinator.close)
+        coordinator.tick()
+        coordinator.tick()
+        self.assertEqual([identifier for identifier, _ in attempts], ['look', 'next-look'])
+        self.assertIsNone(attempts[0][1])
+        self.assertEqual(attempts[1][1]['outfit_id'], 'next-look')
+        self.assertEqual(ledger['next-look']['status'], 'processing')
+        self.assertEqual(ledger['look'], held_before)
+        self.assertEqual(self.db.records['outfits']['look'], outfit_before)
+        self.assertEqual(self.db.records['users']['owner']['quotas'], quota_before)
 
     def test_projection_reconciliation_cannot_claim_pending_paid_work(self):
         reserved = self.reserve()
@@ -1111,9 +1156,7 @@ class FlatlayWorkerTests(unittest.TestCase):
         self.assertTrue(all(call.kwargs['expired_only'] for call in calls))
 
     def test_pending_queue_selects_oldest_request_not_document_id(self):
-        tree = ast.parse((ROOT / 'worker/main.py').read_text())
-        node = next(node for node in ast.walk(tree)
-                    if isinstance(node, ast.FunctionDef) and node.name == 'flatlay_candidates')
+        from test_worker_coordinator import flatlay_candidates_under_test
         db = Database()
         db.records[lifecycle.REQUESTS_COLLECTION] = {
             'a-newest': {'status': 'pending', 'queued_at': 2000},
@@ -1121,9 +1164,8 @@ class FlatlayWorkerTests(unittest.TestCase):
             'a-active': {'status': 'processing', 'queued_at': None},
             'a-terminal': {'status': 'done', 'queued_at': None},
         }
-        self.env['db'] = db
-        exec(compile(ast.Module(body=[node], type_ignores=[]), 'worker_queue_under_test', 'exec'), self.env)
-        self.assertEqual(self.env['flatlay_candidates'](), ['z-oldest'])
+        candidates = flatlay_candidates_under_test(db)
+        self.assertEqual(candidates(), ['z-oldest'])
 
     def test_null_consent_queue_was_removed(self):
         tree = ast.parse((ROOT / 'worker/main.py').read_text())
