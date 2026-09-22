@@ -38,6 +38,14 @@ from .outfit_generation_contract import (
     resolve_required_base_item,
 )
 
+from ..utils.outfit_admission import (
+    InvalidGeneratedOutfit,
+    classify_garment,
+    load_owned_wardrobe,
+    normalize_stored_garment,
+    validate_generated_items,
+)
+
 # Import auth
 from ..auth.auth_service import get_current_user_id
 
@@ -240,7 +248,14 @@ async def generate_personalized_outfit_from_existing_data(
 
         # Normalize optional inputs once so robust and fallback generation share the
         # same profile signals and required-item contract.
-        wardrobe_data = req.wardrobe or []
+        from src.config.firebase import db
+        try:
+            wardrobe_data = load_owned_wardrobe(db, req.wardrobe, user_id)
+        except InvalidGeneratedOutfit as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except Exception as exc:
+            logger.error("Unable to verify saved wardrobe: %s", exc)
+            raise HTTPException(status_code=503, detail="We couldn't load your wardrobe. Please try again.") from exc
         requested_base_item_id = str(req.baseItemId).strip() if req.baseItemId else ""
         try:
             resolve_required_base_item(wardrobe_data, requested_base_item_id)
@@ -257,7 +272,7 @@ async def generate_personalized_outfit_from_existing_data(
         
         # ALWAYS import the classes (needed for every request, not just first)
         from src.services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
-        from src.custom_types.wardrobe import ClothingItem
+        from src.custom_types.wardrobe import ClothingItem, ClothingType
         
         retry_window_elapsed = (
             time.time() - _last_robust_init_failure_at >= ROBUST_SERVICE_RETRY_COOLDOWN_SECONDS
@@ -294,9 +309,7 @@ async def generate_personalized_outfit_from_existing_data(
                         try:
                             if isinstance(item_data, dict):
                                 # Fix type format: UPPERCASE → lowercase
-                                item_copy = item_data.copy()
-                                if 'type' in item_copy and isinstance(item_copy['type'], str):
-                                    item_copy['type'] = item_copy['type'].lower()
+                                item_copy = normalize_stored_garment(item_data, {kind.value for kind in ClothingType})
                                 
                                 # DEBUG: Log metadata before conversion (ONLY for first 3 items to reduce log spam)
                                 if idx < 3:
@@ -629,21 +642,19 @@ async def generate_personalized_outfit_from_existing_data(
             
             # Select items by category to build a complete outfit
             outfit_items = []
-            categories_needed = ['shoes', 'pants', 'shirt', 'jacket']
+            available_categories = {classify_garment(item) for item in suitable_items}
+            base_item = resolve_required_base_item(wardrobe_data, requested_base_item_id)
+            base_category = classify_garment(base_item) if base_item else None
+            use_one_piece = base_category == 'one-piece' or (
+                base_category not in {'top', 'bottom'}
+                and 'one-piece' in available_categories
+                and not {'top', 'bottom'} <= available_categories
+            )
+            categories_needed = ['shoes', 'one-piece', 'layer'] if use_one_piece else ['shoes', 'bottom', 'top', 'layer']
             
             for category in categories_needed:
-                # Find all matching items for this category
-                category_matches = []
-                for item in suitable_items:
-                    item_type = str(getattr(item, 'type', item.get('type', '') if isinstance(item, dict) else '')).lower()
-                    
-                    # Match category
-                    if (category == 'shoes' and 'shoe' in item_type) or \
-                       (category == 'pants' and ('pant' in item_type or 'jean' in item_type or 'trouser' in item_type)) or \
-                       (category == 'shirt' and ('shirt' in item_type or 'blouse' in item_type)) or \
-                       (category == 'jacket' and ('jacket' in item_type or 'blazer' in item_type)):
-                        category_matches.append(item)
-                
+                category_matches = [item for item in suitable_items if classify_garment(item) == category]
+
                 # Sort by diversity score (prefer unused items) + add randomization
                 if category_matches:
                     scored_items = [(item, get_diversity_score(item) + random.uniform(0, 0.3)) for item in category_matches]
@@ -757,6 +768,15 @@ async def generate_personalized_outfit_from_existing_data(
                 )
             existing_metadata.update(final_base_item_contract)
         
+        # Admission runs after every generator/fallback and personalization branch,
+        # before any persistence. Only authoritative owned items can be saved.
+        try:
+            existing_result["items"] = validate_generated_items(
+                existing_result.get("items", []), wardrobe_data, requested_base_item_id
+            )
+        except InvalidGeneratedOutfit as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
         # Create response with real validation metadata
         outfit_response = {
             "id": (existing_result.get("id", f"personalized_{uuid4().hex}") if existing_result else f"personalized_{uuid4().hex}"),
@@ -829,6 +849,7 @@ async def generate_personalized_outfit_from_existing_data(
                 'style': outfit_response['style'],
                 'occasion': outfit_response['occasion'],
                 'mood': outfit_response['mood'],
+                'weather': outfit_response['weather'],
                 'user_id': user_id,
                 'createdAt': int(time.time() * 1000),  # Firestore timestamp in milliseconds
                 'confidence_score': outfit_response['confidence_score'],
@@ -847,8 +868,8 @@ async def generate_personalized_outfit_from_existing_data(
             logger.warning(f"✅ DIVERSITY: Saved outfit {outfit_response['id']} to Firestore for diversity tracking")
             
         except Exception as save_error:
-            # Don't fail the request if save fails, just log it
-            logger.error(f"⚠️ Failed to save outfit to Firestore: {save_error}")
+            logger.error(f"Failed to save outfit to Firestore: {save_error}")
+            raise HTTPException(status_code=503, detail="Your outfit couldn't be saved. Please try again.") from save_error
         
         return OutfitResponse(**outfit_response)
     

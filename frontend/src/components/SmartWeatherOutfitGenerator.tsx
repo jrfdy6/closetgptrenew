@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
+import { claimDailyOutfitAttempt, dailyOutfitKey, hasCompleteDailyOutfit } from '@/lib/dailyOutfitAttempt';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,8 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface SmartWeatherOutfitGeneratorProps {
   className?: string;
+  generationEnabled?: boolean;
+  readinessMessage?: string;
   onOutfitGenerated?: (outfit: any) => void;
   noCard?: boolean; // If true, render without outer Card wrapper (for embedding in other cards)
 }
@@ -63,7 +66,9 @@ interface GeneratedOutfit {
 export function SmartWeatherOutfitGenerator({ 
   className, 
   onOutfitGenerated,
-  noCard = false
+  noCard = false,
+  generationEnabled = false,
+  readinessMessage = "Finish your capsule with ten saved pieces and the essentials for a complete outfit."
 }: SmartWeatherOutfitGeneratorProps) {
   const { user } = useAuthContext();
   const { weather, loading: weatherLoading, fetchWeatherByLocation, error: weatherError, isStale: weatherIsStale } = useAutoWeather();
@@ -83,7 +88,14 @@ export function SmartWeatherOutfitGenerator({
   const [outfitError, setOutfitError] = useState<string | null>(null);
   const [lastGenerated, setLastGenerated] = useState<Date | null>(null);
   const [todayKey, setTodayKey] = useState<string>('');
-  const hasTriggeredAutoGenerationRef = useRef(false);
+  const generationInFlightRef = useRef(false);
+  const currentUserIdRef = useRef(user?.uid);
+  currentUserIdRef.current = user?.uid;
+  const activeRef = useRef(true);
+  useEffect(() => {
+    activeRef.current = true;
+    return () => { activeRef.current = false; };
+  }, []);
   const [isWeatherExpanded, setIsWeatherExpanded] = useState(false);
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
   const [isOutfitExpanded, setIsOutfitExpanded] = useState(false);
@@ -106,7 +118,9 @@ export function SmartWeatherOutfitGenerator({
   }, []);
 
   useEffect(() => {
-    hasTriggeredAutoGenerationRef.current = false;
+    setGeneratedOutfit(null);
+    setLastGenerated(null);
+    setOutfitError(null);
   }, [todayKey, user?.uid]);
 
   // Auto-detect location and fetch weather on component mount
@@ -135,19 +149,23 @@ export function SmartWeatherOutfitGenerator({
   const getTodaysOutfit = (): GeneratedOutfit | null => {
     if (!todayKey || !user) return null;
     try {
-      const stored = localStorage.getItem(`daily-outfit-${todayKey}`);
+      const cacheKey = dailyOutfitKey(user.uid, todayKey);
+      const currentStored = localStorage.getItem(cacheKey);
+      const stored = currentStored || localStorage.getItem(`daily-outfit-${todayKey}`);
       if (!stored) return null;
       
       const outfit: GeneratedOutfit = JSON.parse(stored);
       
       // SECURITY: Validate that the outfit belongs to the current user
-      if (outfit.userId && outfit.userId !== user.uid) {
+      if (outfit.userId !== user.uid) {
         console.warn('🚨 SECURITY: Outfit belongs to different user, clearing cached data');
         console.log(`Cached outfit user: ${outfit.userId}, Current user: ${user.uid}`);
-        clearTodaysOutfit();
+        localStorage.removeItem(cacheKey);
         return null;
       }
-      
+      if (!currentStored && hasCompleteDailyOutfit(outfit.items)) {
+        try { localStorage.setItem(cacheKey, stored); } catch { /* Cached reads still work when writes are unavailable. */ }
+      }
       return outfit;
     } catch (error) {
       console.error('Error loading today\'s outfit:', error);
@@ -163,7 +181,7 @@ export function SmartWeatherOutfitGenerator({
         ...outfit,
         userId: user.uid
       };
-      localStorage.setItem(`daily-outfit-${todayKey}`, JSON.stringify(outfitWithUser));
+      localStorage.setItem(dailyOutfitKey(user.uid, todayKey), JSON.stringify(outfitWithUser));
       console.log('💾 Saved today\'s outfit to storage with user ID');
     } catch (error) {
       console.error('Error saving today\'s outfit:', error);
@@ -171,9 +189,9 @@ export function SmartWeatherOutfitGenerator({
   };
 
   const clearTodaysOutfit = () => {
-    if (!todayKey) return;
+    if (!todayKey || !user) return;
     try {
-      localStorage.removeItem(`daily-outfit-${todayKey}`);
+      localStorage.removeItem(dailyOutfitKey(user.uid, todayKey));
       console.log('🗑️ Cleared today\'s cached outfit');
       setGeneratedOutfit(null);
       setLastGenerated(null);
@@ -219,6 +237,11 @@ export function SmartWeatherOutfitGenerator({
   };
 
   const generateTodaysOutfit = async () => {
+    if (generationInFlightRef.current) return;
+    if (!generationEnabled) {
+      setOutfitError(readinessMessage);
+      return;
+    }
     if (!user) {
       setOutfitError('Please sign in to generate outfits');
       return;
@@ -229,6 +252,8 @@ export function SmartWeatherOutfitGenerator({
       return;
     }
 
+    generationInFlightRef.current = true;
+    const requestUserId = user.uid;
     setIsGeneratingOutfit(true);
     setOutfitError(null);
 
@@ -240,28 +265,19 @@ export function SmartWeatherOutfitGenerator({
       
       // Fetch wardrobe items first
       console.log('📦 Fetching wardrobe items for outfit generation...');
-      let wardrobeItems: any[] = [];
-      
-      try {
-        const wardrobeResponse = await fetch('/api/wardrobe', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (wardrobeResponse.ok) {
-          const wardrobeData = await wardrobeResponse.json();
-          wardrobeItems = Array.isArray(wardrobeData) ? wardrobeData : (wardrobeData as any)?.items || [];
-          console.log(`✅ Fetched ${wardrobeItems.length} wardrobe items for outfit generation`);
-        } else {
-          console.warn('⚠️ Failed to fetch wardrobe items, using empty array');
-        }
-      } catch (wardrobeError) {
-        console.error('❌ Error fetching wardrobe items:', wardrobeError);
+      const wardrobeResponse = await fetch('/api/wardrobe', {
+        headers: { 'Authorization': `Bearer ${authToken}` },
+      });
+      if (!wardrobeResponse.ok) {
+        throw new Error("We couldn't load your wardrobe. Please try again.");
       }
-      
+      const wardrobeData = await wardrobeResponse.json();
+      const wardrobeItems = Array.isArray(wardrobeData) ? wardrobeData : wardrobeData?.items;
+      if (!hasCompleteDailyOutfit(wardrobeItems)) {
+        throw new Error('Add a top, bottom and shoes, or a one-piece and shoes, before generating an outfit.');
+      }
+      if (!activeRef.current || currentUserIdRef.current !== requestUserId) return;
+
       // Prepare request with weather-optimized parameters
       const requestData = {
         occasion: determineOccasionFromWeather(weather),
@@ -314,9 +330,15 @@ export function SmartWeatherOutfitGenerator({
       console.log('🔍 DEBUG: Items count:', data.items?.length || 0);
       console.log('🔍 DEBUG: Full data structure:', JSON.stringify(data, null, 2));
       
+      if (!activeRef.current || currentUserIdRef.current !== requestUserId) return;
+      if (!data?.id || !hasCompleteDailyOutfit(data.items)) {
+        throw new Error("We couldn't create a complete saved outfit. Please try again.");
+      }
+
       // Transform the response into our format
       const outfit: GeneratedOutfit = {
-        id: data.id || `outfit_${Date.now()}`,
+        id: data.id,
+        userId: user.uid,
         name: data.name || `Today's Perfect Weather Outfit`,
         items: Array.isArray(data.items) ? data.items : [],
         weather: {
@@ -338,75 +360,33 @@ export function SmartWeatherOutfitGenerator({
     } catch (error) {
       console.error('❌ Error generating today\'s weather outfit:', error);
       
-      // Create fallback outfit for any other errors
-      const fallbackOutfit: GeneratedOutfit = {
-        id: `fallback-outfit-${Date.now()}`,
-        name: `Weather-Appropriate ${weather.condition} Look`,
-        items: [],
-        weather: {
-          temperature: weather.temperature,
-          condition: weather.condition,
-          location: weather.location
-        },
-        reasoning: `This outfit recommendation is based on ${weather.temperature}°F ${weather.condition.toLowerCase()} weather. The outfit generation service is temporarily unavailable, but here are weather-appropriate clothing recommendations.`,
-        confidence: 0.5,
-        generatedAt: new Date().toISOString(),
-        isWorn: false
-      };
-
-      setGeneratedOutfit(fallbackOutfit);
-      setLastGenerated(new Date());
-      saveTodaysOutfit(fallbackOutfit);
-      setOutfitError('Service temporarily unavailable - showing weather recommendations instead');
+      if (activeRef.current && currentUserIdRef.current === requestUserId) {
+        setOutfitError(error instanceof Error ? error.message : "Your outfit couldn't be generated. Please try again.");
+      }
     } finally {
-      setIsGeneratingOutfit(false);
+      generationInFlightRef.current = false;
+      if (activeRef.current) setIsGeneratingOutfit(false);
     }
   };
 
   useEffect(() => {
     if (!todayKey || !user) return;
-
     const storedOutfit = getTodaysOutfit();
-    let validOutfit = storedOutfit;
-
-    if (storedOutfit) {
-      // Check if stored outfit is a fallback (low confidence, no items, or fallback name)
-      const isFallback = storedOutfit.confidence <= 0.6 || 
-                        !storedOutfit.items || 
-                        storedOutfit.items.length === 0 || 
-                        storedOutfit.name.includes('Weather-Appropriate');
-      
-      if (isFallback) {
-        console.log('🗑️ Clearing cached fallback outfit');
-        clearTodaysOutfit();
-        validOutfit = null;
-      } else if (!generatedOutfit) {
-        console.log('📅 Loading today\'s outfit from storage:', storedOutfit);
-        console.log('🔍 DEBUG: Loaded outfit items:', storedOutfit.items);
-        console.log('🔍 DEBUG: Loaded items count:', storedOutfit.items?.length || 0);
-        if (!storedOutfit.items || storedOutfit.items.length === 0) {
-          console.warn('⚠️ WARNING: Loaded outfit has no items! Clearing...');
-          clearTodaysOutfit();
-          validOutfit = null;
-        } else {
-          setGeneratedOutfit(storedOutfit);
-          setLastGenerated(new Date(storedOutfit.generatedAt));
-        }
+    if (storedOutfit && hasCompleteDailyOutfit(storedOutfit.items)) {
+      if (generatedOutfit?.id !== storedOutfit.id) {
+        setGeneratedOutfit(storedOutfit);
+        setLastGenerated(new Date(storedOutfit.generatedAt));
       }
+      return;
     }
-
+    if (storedOutfit) clearTodaysOutfit();
     if (
-      !validOutfit &&
-      weather &&
-      !generatedOutfit &&
-      !isGeneratingOutfit &&
-      !hasTriggeredAutoGenerationRef.current
+      generationEnabled && weather && !generatedOutfit && !isGeneratingOutfit &&
+      claimDailyOutfitAttempt(dailyOutfitKey(user.uid, todayKey))
     ) {
-      console.log('⚡ Auto-generating today\'s outfit based on current weather');
-      hasTriggeredAutoGenerationRef.current = true;
-      generateTodaysOutfit();
+      void generateTodaysOutfit();
     }
-  }, [weather, user, todayKey, generatedOutfit, isGeneratingOutfit, generateTodaysOutfit]);
+  }, [weather, user, todayKey, generatedOutfit, isGeneratingOutfit, generationEnabled, generateTodaysOutfit]);
 
   const wearTodaysOutfit = async () => {
     if (!generatedOutfit || !user) return;
@@ -718,6 +698,7 @@ export function SmartWeatherOutfitGenerator({
 
   const content = (
     <div className={`space-y-2 sm:space-y-3 ${noCard ? '' : ''}`}>
+        {generatedOutfit && outfitError && <p role="alert" className="text-red-600 dark:text-red-400">{outfitError}</p>}
         {/* Today's Outfit Section - Collapsible on Mobile */}
         <Collapsible open={isOutfitExpanded} onOpenChange={setIsOutfitExpanded}>
           <div className="space-y-2">
@@ -908,13 +889,10 @@ export function SmartWeatherOutfitGenerator({
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-1.5 sm:gap-2 pt-1.5 sm:pt-3 border-t border-border/60 dark:border-border/60">
                 <div className="flex items-center gap-2">
                   <Button 
-                    onClick={() => {
-                      clearTodaysOutfit();
-                      generateTodaysOutfit();
-                    }}
+                    onClick={() => { void generateTodaysOutfit(); }}
                     variant="outline"
                     size="sm"
-                    disabled={isGeneratingOutfit}
+                    disabled={isGeneratingOutfit || !generationEnabled}
                     className="border-border/70 dark:border-border/80 text-muted-foreground hover:bg-secondary text-xs sm:text-sm h-8 sm:h-9"
                   >
                     <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 ${isGeneratingOutfit ? 'animate-spin' : ''}`} />
@@ -955,7 +933,7 @@ export function SmartWeatherOutfitGenerator({
               {outfitError ? (
                 <div className="space-y-3">
                   <AlertCircle className="h-10 w-10 text-red-500 mx-auto" />
-                  <p className="text-red-600 dark:text-red-400 font-medium">{outfitError}</p>
+                  <p role="alert" className="text-red-600 dark:text-red-400 font-medium">{outfitError}</p>
                 </div>
               ) : isGeneratingOutfit ? (
                 <div className="space-y-4">
@@ -971,12 +949,17 @@ export function SmartWeatherOutfitGenerator({
                     <Shirt className="h-8 w-8 text-[var(--copper-mid)]" />
                   </div>
                   <div>
-                    <p className="text-card-foreground font-medium mb-1">Preparing today&apos;s outfit</p>
-                    <p className="text-sm text-muted-foreground">Auto-generating based on current weather</p>
+                    <p className="text-card-foreground font-medium mb-1">{generationEnabled ? "Today's outfit" : 'Build your capsule'}</p>
+                    <p className="text-sm text-muted-foreground">{generationEnabled ? 'Create a look from your saved wardrobe and today’s weather.' : readinessMessage}</p>
                   </div>
                 </div>
               )}
               
+              {user && generationEnabled && !isGeneratingOutfit && (
+                <Button className="mt-4" disabled={!weather} onClick={() => { void generateTodaysOutfit(); }}>
+                  Generate today's outfit
+                </Button>
+              )}
               {!user && (
                 <p className="text-xs text-muted-foreground mt-4">
                   Sign in to get your daily weather outfit

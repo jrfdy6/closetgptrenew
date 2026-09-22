@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useFirebase } from "@/lib/firebase-context";
+import { persistBatchWardrobeItem } from "@/lib/persistBatchWardrobeItem";
 import { getPublicBackendUrl } from "@/lib/publicBackendUrl";
 
 interface BatchImageUploadProps {
@@ -850,7 +851,8 @@ export default function BatchImageUpload({
               wearCount: 0,
             };
             
-            successfulItems.push(minimalItem);
+            const savedItem = await persistBatchWardrobeItem(minimalItem, user);
+            successfulItems.push(savedItem);
             
             // Update UI
             setUploadItems(prev => prev.map(prevItem => 
@@ -903,27 +905,8 @@ export default function BatchImageUpload({
             const { normalizeItemMetadata } = await import('../../lib/normalization');
             const normalizedPendingItem = normalizeItemMetadata(pendingItem);
 
-            try {
-              console.log(`💾 Saving pending Codex item ${i + 1} to database...`);
-              const saveResponse = await fetch('/api/wardrobe', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${await user.getIdToken()}`,
-                },
-                body: JSON.stringify(normalizedPendingItem),
-              });
-
-              if (!saveResponse.ok) {
-                throw new Error(`Failed to save pending item: ${saveResponse.statusText}`);
-              }
-
-              const savedItem = await saveResponse.json();
-              successfulItems.push(savedItem);
-            } catch (saveError) {
-              console.error(`❌ Failed to save pending Codex item ${i + 1}:`, saveError);
-              successfulItems.push({ ...pendingItem, saveError: saveError.message });
-            }
+            const savedItem = await persistBatchWardrobeItem(normalizedPendingItem, user);
+            successfulItems.push(savedItem);
 
             setUploadItems(prev => prev.map(prevItem =>
               prevItem.id === item.id
@@ -1037,44 +1020,9 @@ export default function BatchImageUpload({
             const { normalizeItemMetadata } = await import('../../lib/normalization');
             const normalizedItem = normalizeItemMetadata(clothingItem);
             
-            // Save to database via the wardrobe API
-            try {
-              console.log(`💾 Saving item ${i + 1} to database...`);
-              console.log('🔍 DEBUG: Clothing item being saved:', normalizedItem);
-              console.log('🔍 DEBUG: About to call /api/wardrobe with:', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${await user.getIdToken()}`,
-                },
-                body: JSON.stringify(normalizedItem)
-              });
-              
-              const saveResponse = await fetch('/api/wardrobe', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${await user.getIdToken()}`,
-                },
-                body: JSON.stringify(normalizedItem),
-              });
-              
-              console.log('🔍 DEBUG: Save response status:', saveResponse.status);
-              console.log('🔍 DEBUG: Save response ok:', saveResponse.ok);
-
-              if (!saveResponse.ok) {
-                throw new Error(`Failed to save item: ${saveResponse.statusText}`);
-              }
-
-              const savedItem = await saveResponse.json();
-              console.log(`✅ Item ${i + 1} saved to database:`, savedItem);
-              
-              successfulItems.push(savedItem);
-            } catch (saveError) {
-              console.error(`❌ Failed to save item ${i + 1} to database:`, saveError);
-              // Still add to successful items but mark as not saved
-              successfulItems.push({ ...clothingItem, saveError: saveError.message });
-            }
+            // A tile becomes successful only after the server acknowledges persistence.
+            const savedItem = await persistBatchWardrobeItem(normalizedItem, user);
+            successfulItems.push(savedItem);
 
             // Update status to success
             setUploadItems(prev => prev.map(prevItem => 
@@ -1370,7 +1318,7 @@ export default function BatchImageUpload({
 
                   {/* Error Message */}
                   {item.status === 'error' && item.error && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-red-500 text-white text-xs p-1 text-center">
+                    <div role="alert" className="absolute bottom-0 left-0 right-0 bg-red-500 text-white text-xs p-1 text-center">
                       {item.error}
                     </div>
                   )}

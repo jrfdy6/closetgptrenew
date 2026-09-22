@@ -566,7 +566,7 @@ export default function StylePersonaPage() {
               We've set your default persona. Retake the quiz to get a personalized style persona.
             </p>
             <button
-              onClick={() => router.push('/onboarding')}
+              onClick={() => router.push('/onboarding?retake=1')}
               className="bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-white px-6 py-3 rounded-full font-semibold"
             >
               Retake Style Quiz
@@ -865,7 +865,7 @@ export default function StylePersonaPage() {
               👤 My Profile
             </button>
             <button 
-              onClick={() => router.push('/onboarding')}
+              onClick={() => router.push('/onboarding?retake=1')}
               className="glass-button-secondary text-stone-900 dark:text-stone-100 px-6 py-3 rounded-full font-medium glass-transition"
             >
               🔄 Retake Quiz

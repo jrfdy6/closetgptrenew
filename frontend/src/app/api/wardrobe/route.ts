@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getFirebaseAdminAuth } from '@/lib/server/firebaseAdmin';
 import { getBackendUrl } from '@/lib/server/backendUrl';
 import { serverDebugLog, serverDebugWarn } from '@/lib/server/debug';
 
@@ -358,160 +359,43 @@ export async function OPTIONS(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const respond = (body: unknown, status = 200) => NextResponse.json(body, {
+    status, headers: { 'Cache-Control': 'private, no-store' },
+  });
+  const failure = (status: number) => respond({ success: false, error: 'Your item was not confirmed saved. Please retry.' }, status);
+  let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
-    serverDebugLog('🔍 DEBUG: Wardrobe POST API route called - CONNECTING TO BACKEND');
-    
-    // Get the authorization header - try multiple variations
-    const authHeader = request.headers.get('authorization') || 
-                      request.headers.get('Authorization') ||
-                      request.headers.get('AUTHORIZATION');
-    serverDebugLog('🔍 DEBUG: Authorization header present:', !!authHeader);
-    serverDebugLog('🔍 DEBUG: Authorization header value:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
-    
-    // Temporarily bypass auth check to test functionality
-    serverDebugLog('🔍 DEBUG: TEMPORARILY BYPASSING AUTH CHECK FOR TESTING');
-    
-    // if (!authHeader) {
-    //   return NextResponse.json(
-    //     { error: 'Authorization header required' },
-    //     { status: 401 }
-    //   );
-    // }
-    
-    // Get the request body
-    let requestBody;
+    const authorization = request.headers.get('authorization') || '';
+    if (!authorization.startsWith('Bearer ') || !authorization.slice(7).trim()) return failure(401);
+    let userId: string;
     try {
-      requestBody = await request.json();
-      serverDebugLog('🔍 DEBUG: Request body:', requestBody);
-    } catch (bodyError) {
-      console.error('🔍 DEBUG: Failed to parse request body:', bodyError);
-      return NextResponse.json(
-        { error: 'Invalid request body', details: 'Request body must be valid JSON' },
-        { 
-          status: 400,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          },
-        }
-      );
-    }
-    
-    // Get backend URL from environment variables
-    const backendUrl = getBackendUrl();
-    serverDebugLog('🔍 DEBUG: Backend URL:', backendUrl);
-    
-    // Call the real backend to add the item - using direct endpoint to bypass router issues
-    serverDebugLog('🔍 DEBUG: About to call backend POST:', `${backendUrl}/api/wardrobe/add-direct`);
-    serverDebugLog('🔍 DEBUG: Request body:', JSON.stringify(requestBody, null, 2));
-    
-    const response = await fetch(`${backendUrl}/api/wardrobe/add-direct`, {
-      method: 'POST',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-    
-    serverDebugLog('🔍 DEBUG: Backend response status:', response.status);
-    serverDebugLog('🔍 DEBUG: Backend response ok:', response.ok);
-    serverDebugLog('🔍 DEBUG: Backend response headers:', Object.fromEntries(response.headers.entries()));
-    
-    // Get the response text first to see what we're actually getting
-    const responseText = await response.text();
-    serverDebugLog('🔍 DEBUG: Backend response text (v2):', responseText);
-    serverDebugLog('🔍 DEBUG: Response text length:', responseText.length);
-    
-    if (!response.ok) {
-      console.error('🔍 DEBUG: Backend response not ok:', response.status, response.statusText);
-      console.error('🔍 DEBUG: Backend error response body:', responseText);
-      console.error('🔍 DEBUG: Request that failed:', {
-        url: `${backendUrl}/api/wardrobe/add`,
-        method: 'POST',
-        headers: {
-          'Authorization': authHeader,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      });
-      // Fallback to mock response if backend is not available
-      return NextResponse.json({
-        success: true,
-        message: 'Item added successfully (mock)',
-        item: {
-          id: `item_${Date.now()}`,
-          ...requestBody,
-          isFavorite: false
-        }
-      }, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-      });
-    }
-    
-    // Parse the response text as JSON
-    let responseData;
+      const verified = await getFirebaseAdminAuth().verifyIdToken(authorization.slice(7).trim(), true);
+      if (!verified.uid) return failure(401);
+      userId = verified.uid;
+    } catch { return failure(401); }
+    let body: Record<string, unknown>;
     try {
-      responseData = JSON.parse(responseText);
-      serverDebugLog('🔍 DEBUG: Backend POST response received:', {
-        success: responseData.success,
-        hasItem: !!responseData.item
-      });
-    } catch (parseError) {
-      console.error('🔍 DEBUG: Failed to parse backend response as JSON:', parseError);
-      console.error('🔍 DEBUG: Response text was:', responseText);
-      // Fallback to mock response if JSON parsing fails
-      return NextResponse.json({
-        success: true,
-        message: 'Item added successfully (mock)',
-        item: {
-          id: `item_${Date.now()}`,
-          ...requestBody,
-          isFavorite: false
-        }
-      }, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-      });
-    }
-    
-    return NextResponse.json(responseData, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
+      body = await request.json();
+      if (!body || typeof body !== 'object' || Array.isArray(body)) return failure(400);
+    } catch { return failure(400); }
+
+    const { user_id: _ignoredOwnerAlias, ...itemBody } = body;
+    const controller = new AbortController();
+    timeout = setTimeout(() => controller.abort(), 45_000);
+    const response = await fetch(`${getBackendUrl()}/api/wardrobe/add-direct`, {
+      method: 'POST', headers: { Authorization: authorization, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...itemBody, userId }), signal: controller.signal,
     });
-    
-  } catch (error) {
-    console.error('🔍 DEBUG: Error in wardrobe POST:', error);
-    
-    // Fallback to mock response on error
-    return NextResponse.json({
-      success: true,
-      message: 'Item added successfully (mock)',
-      item: {
-        id: `item_${Date.now()}`,
-        name: 'Mock Item',
-        type: 'shirt',
-        color: 'blue',
-        isFavorite: false
-      }
-    }, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    });
+    if (!response.ok) return failure(response.status >= 400 && response.status <= 599 ? response.status : 502);
+    let saved: any;
+    try { saved = await response.json(); } catch { return failure(502); }
+    // add-direct may return HTTP 200 with success:false; an HTTP status alone is not a save.
+    if (saved?.success !== true || typeof saved.item?.id !== 'string' || !saved.item.id.trim() || saved.item.userId !== userId || (saved.item.user_id && saved.item.user_id !== userId)) return failure(502);
+    return respond(saved);
+  } catch {
+    return failure(503);
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 }
 

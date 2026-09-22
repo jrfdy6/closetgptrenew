@@ -44,6 +44,8 @@ import { useWardrobe } from '@/lib/hooks/useWardrobe';
 import MissingWardrobeModal from '@/components/MissingWardrobeModal';
 import WardrobeInsightsHub from '@/components/ui/wardrobe-insights-hub';
 import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerator";
+import { evaluateCapsule } from "@/lib/onboarding/state";
+import { useOnboardingState } from "@/lib/hooks/useOnboardingState";
 import { useAutoWeather } from '@/hooks/useWeather';
 import PremiumTeaser from '@/components/PremiumTeaser';
 import { useGamificationStats } from '@/hooks/useGamificationStats';
@@ -144,8 +146,10 @@ export default function Dashboard() {
   const router = useRouter();
   
   // Check wardrobe items for modal
-  const { items: wardrobeItems, loading: wardrobeLoading, refetch: refetchWardrobe } = useWardrobe();
+  const { items: wardrobeItems, loading: wardrobeLoading, error: wardrobeError, refetch: refetchWardrobe } = useWardrobe();
   
+  const { state: onboardingState, loading: onboardingLoading, error: onboardingError, refresh: refreshOnboarding } = useOnboardingState();
+
   // Weather hook for automatic location detection
   const { weather, fetchWeatherByLocation } = useAutoWeather();
   
@@ -160,8 +164,12 @@ export default function Dashboard() {
   // Default to false during loading to prevent premature content display
   const canAccessPro = !planLoading && plan !== SubscriptionPlan.FREE && canAccess(SubscriptionPlan.PRO);
   
-  // Modal should show if user has fewer than 10 items (direct computation, no state needed)
-  const shouldShowMissingWardrobeModal = !wardrobeLoading && wardrobeItems.length < 10;
+  // Current inventory controls generation; saved milestones control the onboarding gate.
+  const capsule = evaluateCapsule(wardrobeItems);
+  const generationEnabled = !wardrobeLoading && !wardrobeError && !onboardingLoading && !onboardingError &&
+    capsule.ready && (onboardingState?.stage === 'first-look' || onboardingState?.stage === 'complete');
+  const shouldShowMissingWardrobeModal = !wardrobeLoading && !wardrobeError && !onboardingLoading &&
+    !onboardingError && onboardingState?.stage === 'capsule';
 
   // Debug: Log subscription info
   useEffect(() => {
@@ -379,7 +387,7 @@ export default function Dashboard() {
 
 
   // Show loading state while authentication is resolving or subscription is loading
-  if (loading || isLoading || planLoading) {
+  if (loading || (isLoading && !dashboardData) || planLoading) {
     return (
       <div className="min-h-screen">
         <Navigation />
@@ -415,7 +423,7 @@ export default function Dashboard() {
   }
 
   // Show error state if data fetching failed
-  if (error) {
+  if (error && !dashboardData) {
     return (
       <div className="min-h-screen">
         <Navigation />
@@ -493,14 +501,22 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Smart Weather Outfit Generator - The original component with all functionality */}
+        {error && <p role="alert" className="mb-4 text-red-600 dark:text-red-400">{error}</p>}
+        {onboardingError && <div role="alert" className="mb-4 text-red-600 dark:text-red-400">
+          {onboardingError} <Button variant="outline" onClick={() => { void refreshOnboarding(); }}>Retry saved progress</Button>
+        </div>}
+        {onboardingState?.stage === 'style' && <p className="mb-4">Finish your style questionnaire to create personalized outfits. <Link href="/onboarding">Continue your style profile</Link></p>}
+        {/* Keep the generated result mounted while dashboard statistics refresh. */}
         <div id="smart-weather-outfit" className="mb-6 sm:mb-8 lg:mb-12">
           {user && (
-            <SmartWeatherOutfitGenerator 
+            <SmartWeatherOutfitGenerator
+              generationEnabled={generationEnabled}
+              readinessMessage={wardrobeError ? "We couldn't load your wardrobe. Refresh to try again." : onboardingError || (wardrobeLoading || onboardingLoading ? 'Loading your saved wardrobe…' : onboardingState?.stage === 'style' ? 'Finish your style questionnaire before creating outfits.' : undefined)}
               onOutfitGenerated={(outfit) => {
                 // Refresh dashboard when outfit is generated
                 if (user) {
                   fetchDashboardData();
+                  void refreshOnboarding();
                 }
               }}
             />
@@ -1099,12 +1115,13 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
       
-      {/* Missing Wardrobe Modal - Block access if < 10 items */}
+      {/* The persisted stage preserves established accounts after wardrobe changes. */}
       <MissingWardrobeModal
         userId={user?.uid || ''}
         isOpen={shouldShowMissingWardrobeModal}
         onComplete={() => {
           refetchWardrobe();
+          void refreshOnboarding();
         }}
         targetCount={10}
       />

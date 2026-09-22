@@ -12,6 +12,8 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import BodyPositiveMessage from "@/components/BodyPositiveMessage";
 import GuidedUploadWizard from "@/components/GuidedUploadWizard";
 import { SkinToneSlider } from "@/components/onboarding/SkinToneSlider";
+import { useOnboardingDraft } from "@/lib/hooks/useOnboardingDraft";
+import { fullQuizQuestions, QUIZ_QUESTIONS } from "@/lib/onboarding/questions";
 import { ensureDefaultSkinToneAnswer, upsertQuizAnswer } from "@/lib/quizAnswerContract";
 
 const ONBOARDING_DEBUG = process.env.NODE_ENV === 'development';
@@ -19,12 +21,6 @@ const ONBOARDING_DEBUG = process.env.NODE_ENV === 'development';
 function debugOnboarding(...args: unknown[]) {
   if (ONBOARDING_DEBUG) {
     globalThis.console.log(...args);
-  }
-}
-
-function debugOnboardingWarn(...args: unknown[]) {
-  if (ONBOARDING_DEBUG) {
-    globalThis.console.warn(...args);
   }
 }
 
@@ -175,408 +171,14 @@ const STYLE_PERSONAS: Record<string, StylePersona> = {
   }
 };
 
-interface QuizQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  category: string;
-  type?: "visual" | "text" | "rgb_slider" | "visual_yesno";
-  images?: string[];
-  gender?: string;
-  style_name?: string;
-  colors?: string[];
-}
-
-// Simple, clean quiz questions
-const QUIZ_QUESTIONS: QuizQuestion[] = [
-  {
-    id: "gender",
-    question: "What is your gender?",
-    options: ["Female", "Male", "Non-binary", "Prefer not to say"],
-    category: "personal"
-  },
-  {
-    id: "body_type_female",
-    question: "Which body shape best describes you? (All bodies are beautiful!)",
-    options: ["Round/Apple", "Athletic", "Hourglass", "Pear", "Rectangle", "Inverted Triangle", "Plus Size", "Petite", "Tall"],
-    category: "measurements",
-    type: "visual",
-    images: [
-      "/images/body-types/apple.png",
-      "/images/body-types/athletic.png",
-      "/images/body-types/hourglass.png",
-      "/images/body-types/pear.png",
-      "/images/body-types/rectangular.png",
-      "/images/body-types/inverted.png",
-      "/images/body-types/curvy.png",
-      "/images/body-types/athletic.png",
-      "/images/body-types/athletic.png"
-    ],
-    gender: "female"
-  },
-  {
-    id: "body_type_male",
-    question: "Which body shape best describes you? (All bodies are beautiful!)",
-    options: ["Round/Apple", "Athletic", "Rectangle", "Inverted Triangle", "Pear", "Oval", "Plus Size", "Slim", "Muscular"],
-    category: "measurements",
-    type: "visual",
-    images: [
-      "/images/body-types/apple.png",
-      "/images/body-types/athletic.png",
-      "/images/body-types/rectangular.png",
-      "/images/body-types/inverted.png",
-      "/images/body-types/pear.png",
-      "/images/body-types/curvy.png",
-      "/images/body-types/curvy.png",
-      "/images/body-types/athletic.png",
-      "/images/body-types/athletic.png"
-    ],
-    gender: "male"
-  },
-  {
-    id: "body_type_nonbinary",
-    question: "Which body shape best describes you? (All bodies are beautiful!)",
-    options: ["Round/Apple", "Athletic", "Rectangle", "Inverted Triangle", "Pear", "Hourglass", "Oval", "Plus Size", "Petite", "Tall", "Slim", "Muscular"],
-    category: "measurements",
-    type: "visual",
-    images: [
-      "/images/body-types/apple.png",
-      "/images/body-types/athletic.png",
-      "/images/body-types/rectangular.png",
-      "/images/body-types/inverted.png",
-      "/images/body-types/pear.png",
-      "/images/body-types/hourglass.png",
-      "/images/body-types/curvy.png",
-      "/images/body-types/curvy.png",
-      "/images/body-types/athletic.png",
-      "/images/body-types/athletic.png",
-      "/images/body-types/athletic.png",
-      "/images/body-types/athletic.png"
-    ],
-    gender: "nonbinary"
-  },
-  {
-    id: "skin_tone",
-    question: "Select your skin tone using the slider below",
-    options: ["skin_tone_slider"],
-    category: "measurements",
-    type: "rgb_slider"
-  },
-  {
-    id: "height",
-    question: "What is your height?",
-    options: ["Under 5'0\"", "5'0\" - 5'3\"", "5'4\" - 5'7\"", "5'8\" - 5'11\"", "6'0\" - 6'3\"", "Over 6'3\""],
-    category: "measurements"
-  },
-  {
-    id: "weight",
-    question: "What is your weight range? (Optional - helps with fit recommendations)",
-    options: ["Under 100 lbs", "100-120 lbs", "121-140 lbs", "141-160 lbs", "161-180 lbs", "181-200 lbs", "201-250 lbs", "251-300 lbs", "Over 300 lbs", "Prefer not to specify"],
-    category: "measurements"
-  },
-  {
-    id: "top_size",
-    question: "What is your top size?",
-    options: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL+", "Prefer not to say"],
-    category: "sizes"
-  },
-  {
-    id: "bottom_size",
-    question: "What is your bottom size?",
-    options: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL+", "Prefer not to say"],
-    category: "sizes"
-  },
-  {
-    id: "cup_size",
-    question: "What is your cup size? (Optional)",
-    options: ["AA", "A", "B", "C", "D", "DD", "DDD+", "Prefer not to say"],
-    category: "sizes"
-  },
-  {
-    id: "shoe_size_female",
-    question: "What is your shoe size?",
-    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12+", "Prefer not to say"],
-    category: "sizes",
-    gender: "female"
-  },
-  {
-    id: "shoe_size_male",
-    question: "What is your shoe size?",
-    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12", "13+", "Prefer not to say"],
-    category: "sizes",
-    gender: "male"
-  },
-  {
-    id: "shoe_size",
-    question: "What is your shoe size?",
-    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12", "13+", "Prefer not to say"],
-    category: "sizes"
-    // No gender filter - shows for Non-binary and Prefer not to say
-  },
-  // Spending questions - after all size questions
-  {
-    id: "category_spend_tops",
-    question: "How much do you typically spend on tops per year?",
-    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
-    category: "measurements"
-  },
-  {
-    id: "category_spend_pants",
-    question: "How much do you typically spend on pants per year?",
-    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
-    category: "measurements"
-  },
-  {
-    id: "category_spend_shoes",
-    question: "How much do you typically spend on shoes per year?",
-    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
-    category: "measurements"
-  },
-  {
-    id: "category_spend_jackets",
-    question: "How much do you typically spend on jackets per year?",
-    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
-    category: "measurements"
-  },
-  {
-    id: "category_spend_dresses",
-    question: "How much do you typically spend on dresses per year?",
-    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
-    category: "measurements",
-    gender: "female" // Show for Female + Non-binary + Prefer not to say (see filter logic)
-  },
-  {
-    id: "category_spend_accessories",
-    question: "How much do you typically spend on accessories per year?",
-    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
-    category: "measurements"
-  },
-  {
-    id: "category_spend_undergarments",
-    question: "How much do you typically spend on undergarments per year?",
-    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
-    category: "measurements"
-  },
-  {
-    id: "category_spend_swimwear",
-    question: "How much do you typically spend on swimwear per year?",
-    options: ["$0-$100", "$100-$250", "$250-$500", "$500-$1,000", "$1,000+"],
-    category: "measurements"
-  },
-  // Female style questions - using different numbered images for color variety
-  {
-    id: "style_item_f_1",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-ST4.png"],
-    style_name: "Street Style",
-    colors: ["black", "red", "white", "gray"],
-    gender: "female"
-  },
-  {
-    id: "style_item_f_2",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-CB5.png"],
-    style_name: "Cottagecore",
-    colors: ["pink", "cream", "brown", "green"],
-    gender: "female"
-  },
-  {
-    id: "style_item_f_3",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-MIN6.png"],
-    style_name: "Minimalist",
-    colors: ["white", "beige", "gray", "navy"],
-    gender: "female"
-  },
-  {
-    id: "style_item_f_4",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-OM7.png"],
-    style_name: "Old Money",
-    colors: ["burgundy", "camel", "cream", "navy"],
-    gender: "female"
-  },
-  {
-    id: "style_item_f_5",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-ST8.png"],
-    style_name: "Urban Street",
-    colors: ["black", "blue", "white", "gray"],
-    gender: "female"
-  },
-  {
-    id: "style_item_f_6",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-CB9.png"],
-    style_name: "Natural Boho",
-    colors: ["brown", "terracotta", "cream", "green"],
-    gender: "female"
-  },
-  {
-    id: "style_item_f_7",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-MIN10.png"],
-    style_name: "Clean Minimal",
-    colors: ["white", "gray", "black", "beige"],
-    gender: "female"
-  },
-  {
-    id: "style_item_f_8",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-OM3.png"],
-    style_name: "Classic Elegant",
-    colors: ["navy", "burgundy", "camel", "cream"],
-    gender: "female"
-  },
-  // Male style questions - using different numbered images for color variety
-  {
-    id: "style_item_m_1",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-ST3.png"],
-    style_name: "Street Style",
-    colors: ["black", "red", "gray", "white"],
-    gender: "male"
-  },
-  {
-    id: "style_item_m_2",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-CB4.png"],
-    style_name: "Cottagecore",
-    colors: ["brown", "green", "cream", "olive"],
-    gender: "male"
-  },
-  {
-    id: "style_item_m_3",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-MIN5.png"],
-    style_name: "Minimalist",
-    colors: ["white", "beige", "gray", "navy"],
-    gender: "male"
-  },
-  {
-    id: "style_item_m_4",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-OM6.png"],
-    style_name: "Old Money",
-    colors: ["burgundy", "camel", "cream", "navy"],
-    gender: "male"
-  },
-  {
-    id: "style_item_m_5",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-ST7.png"],
-    style_name: "Urban Street",
-    colors: ["black", "blue", "white", "gray"],
-    gender: "male"
-  },
-  {
-    id: "style_item_m_6",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-CB8.png"],
-    style_name: "Natural Boho",
-    colors: ["brown", "terracotta", "cream", "green"],
-    gender: "male"
-  },
-  {
-    id: "style_item_m_7",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-MIN9.png"],
-    style_name: "Clean Minimal",
-    colors: ["white", "gray", "black", "beige"],
-    gender: "male"
-  },
-  {
-    id: "style_item_m_8",
-    question: "Do you like this style?",
-    options: ["Yes", "No"],
-    category: "aesthetic",
-    type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-OM10.png"],
-    style_name: "Classic Elegant",
-    colors: ["navy", "burgundy", "camel", "cream"],
-    gender: "male"
-  },
-  {
-    id: "daily_activities",
-    question: "What best describes your daily activities?",
-    options: ["Office work and meetings", "Creative work and casual meetings", "Active lifestyle and sports", "Mix of everything"],
-    category: "lifestyle"
-  },
-  {
-    id: "style_elements",
-    question: "Which style elements do you gravitate towards?",
-    options: ["Clean lines and minimal details", "Rich textures and patterns", "Classic and timeless pieces", "Bold and statement pieces"],
-    category: "style"
-  }
-];
-
-// Keep the pre-auth preview focused on the inputs needed to demonstrate
-// personalization. Signed-in users can complete the deeper sizing and spend
-// profile without turning the first product experience into a long intake form.
-const GUEST_DEEP_PROFILE_QUESTION_IDS = new Set([
-  'height',
-  'weight',
-  'top_size',
-  'bottom_size',
-  'cup_size',
-  'shoe_size_female',
-  'shoe_size_male',
-  'shoe_size',
-]);
-
 function OnboardingContent() {
   const router = useRouter();
   const [flowMode, setFlowMode] = useState<string | null>(null);
   const [modeResolved, setModeResolved] = useState(false);
   const isGuestFlow = flowMode === 'guest' || flowMode === 'preauth';
-  const [answers, setAnswers] = useState<QuizAnswer[]>([]);
+
   const [isLoading, setIsLoading] = useState(false);
-  const [userGender, setUserGender] = useState<string | null>(null);
+  const [retake, setRetake] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [uploadPhase, setUploadPhase] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
@@ -598,7 +200,7 @@ function OnboardingContent() {
     }
   }, [quizResults]);
   const [error, setError] = useState<string | null>(null);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
   const autoAdvanceTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelAutoAdvance = React.useCallback(() => {
     if (autoAdvanceTimer.current !== null) {
@@ -608,8 +210,29 @@ function OnboardingContent() {
   }, []);
   useEffect(() => cancelAutoAdvance, [cancelAutoAdvance]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submissionSaved = React.useRef(false);
 
-  const { user, loading: authLoading, getIdToken } = useAuthContext();
+  const { user, loading: authLoading } = useAuthContext();
+  const flowIdentity = React.useRef<string | null>(null);
+  flowIdentity.current = isGuestFlow ? 'guest' : user?.uid || null;
+  const onboarding = useOnboardingDraft({ user, enabled: modeResolved && !authLoading, guest: isGuestFlow, allowProfileEdit: retake });
+  useEffect(() => {
+    cancelAutoAdvance();
+    submissionSaved.current = false;
+    setIsSubmitting(false);
+    setIsLoading(false);
+    setQuizCompleted(false);
+    setQuizResults(null);
+    setUploadPhase(false);
+    setUploadComplete(false);
+    setError(null);
+  }, [user?.uid, isGuestFlow, cancelAutoAdvance]);
+  const answers = onboarding.draft.answers;
+  const userGender = answers.find(answer => answer.question_id === 'gender')?.selected_option || null;
+  const setAnswers = React.useCallback((update: (previous: QuizAnswer[]) => QuizAnswer[]) => onboarding.updateDraft(previous => ({
+    ...previous, answers: update(previous.answers),
+  })), [onboarding.updateDraft]);
+
 
 
   // Use searchParams only on client side to avoid SSR issues
@@ -627,6 +250,7 @@ function OnboardingContent() {
       const params = new URLSearchParams(window.location.search);
       const mode = params.get('mode') || params.get('flow');
       setFlowMode(mode);
+      setRetake(params.get('retake') === '1');
       setModeResolved(true);
     }
   }, [mounted]);
@@ -637,112 +261,28 @@ function OnboardingContent() {
     }
   }, [user, authLoading, isGuestFlow, modeResolved, router]);
 
-  // NOTE: Removed auto-redirect for completed users
-  // Users should be able to retake the style quiz anytime
-  // Upload phase will be skipped if they already have items
 
-  // Filter questions based on gender
-  const getFilteredQuestions = (genderOverride?: string): QuizQuestion[] => {
-    const currentGender = genderOverride || userGender;
-    
-    const filtered = QUIZ_QUESTIONS.filter(question => {
-      if (
-        isGuestFlow &&
-        (GUEST_DEEP_PROFILE_QUESTION_IDS.has(question.id) || question.id.startsWith('category_spend_'))
-      ) {
-        return false;
-      }
-
-      // GENERIC GENDER FILTER: Check question.gender attribute first
-      // Special handling for style questions - non-binary users should see BOTH male and female style questions
-      const isStyleQuestion = question.id.startsWith('style_item_f_') || question.id.startsWith('style_item_m_');
-      const isNonBinaryUser = currentGender === 'Non-binary' || currentGender === 'Prefer not to say';
-      const isDressesSpendQuestion = question.id === 'category_spend_dresses';
-      
-      // For female-specific questions: show to Female users, and also to Non-binary users if it's a style question
-      if (question.gender === 'female' && currentGender && currentGender !== 'Female') {
-        // Exception: dresses spend question should also show for Non-binary / Prefer not to say (but not Male)
-        if (!((isStyleQuestion && isNonBinaryUser) || (isDressesSpendQuestion && isNonBinaryUser))) {
-          return false;
-        }
-      }
-      // For male-specific questions: show to Male users, and also to Non-binary users if it's a style question
-      if (question.gender === 'male' && currentGender && currentGender !== 'Male') {
-        if (!(isStyleQuestion && isNonBinaryUser)) {
-          return false;
-        }
-      }
-      // For nonbinary-specific questions: only show to Non-binary and Prefer not to say users
-      if (question.gender === 'nonbinary' && currentGender && 
-          currentGender !== 'Non-binary' && 
-          currentGender !== 'Prefer not to say') {
-        return false;
-      }
-      
-      // Show cup size for females, non-binary, and prefer not to say users
-      if (question.id === 'cup_size' && currentGender && 
-          currentGender !== 'Female' && 
-          currentGender !== 'Non-binary' && 
-          currentGender !== 'Prefer not to say') {
-        return false;
-      }
-      
-      // Show gender-specific body type questions
-      if (question.id === 'body_type_female' && currentGender && currentGender !== 'Female') {
-        return false;
-      }
-      if (question.id === 'body_type_male' && currentGender && currentGender !== 'Male') {
-        return false;
-      }
-      if (question.id === 'body_type_nonbinary' && currentGender && (currentGender === 'Female' || currentGender === 'Male')) {
-        return false;
-      }
-      
-      // Show gender-specific shoe size questions
-      if (question.id === 'shoe_size_female' && currentGender && currentGender !== 'Female') {
-        return false;
-      }
-      if (question.id === 'shoe_size_male' && currentGender && currentGender !== 'Male') {
-        return false;
-      }
-      // Generic shoe_size (for non-binary / prefer not to say)
-      if (question.id === 'shoe_size' && currentGender && (currentGender === 'Male' || currentGender === 'Female')) {
-        return false;
-      }
-      
-      // Style questions are already handled by the generic gender filter above
-      // which allows non-binary users to see both male and female style questions
-      
-      return true;
+  const getFilteredQuestions = (genderOverride?: string) => fullQuizQuestions(genderOverride || userGender, isGuestFlow);
+  const questions = React.useMemo(() => fullQuizQuestions(userGender, isGuestFlow), [userGender, isGuestFlow]);
+  const currentQuestionIndex = Math.max(0, questions.findIndex(question => question.id === onboarding.draft.currentQuestionId));
+  const setCurrentQuestionIndex = (update: (previous: number) => number) => {
+    onboarding.updateDraft(previous => {
+      const activeQuestions = fullQuizQuestions(previous.answers.find(answer => answer.question_id === 'gender')?.selected_option || null, isGuestFlow);
+      const index = Math.max(0, activeQuestions.findIndex(question => question.id === previous.currentQuestionId));
+      return { ...previous, currentQuestionId: activeQuestions[update(index)]?.id || activeQuestions[0]?.id || null };
     });
-    
-    return filtered;
   };
-
-  const [questions, setQuestions] = React.useState<QuizQuestion[]>(() => getFilteredQuestions());
-
-  React.useEffect(() => {
-    debugOnboarding('🔄 [useEffect] Recalculating questions with gender:', userGender);
-    debugOnboarding('🔄 [useEffect] userGender type:', typeof userGender, 'value:', userGender);
-    const newQuestions = getFilteredQuestions(userGender);
-    debugOnboarding('🔄 [useEffect] Result:', {
-      totalQuestions: newQuestions.length,
-      visualYesNoCount: newQuestions.filter(q => q.type === 'visual_yesno').length,
-      questionIds: newQuestions.map(q => q.id)
-    });
-    setQuestions(newQuestions);
-  }, [userGender, isGuestFlow, modeResolved]);
 
   // The slider's visible midpoint is a real answer. Commit it when the question
   // first becomes active so Next is enabled even when 50 is already correct.
   React.useEffect(() => {
     const activeQuestion = questions[currentQuestionIndex];
-    if (activeQuestion?.type !== 'rgb_slider') return;
+    if (!onboarding.ready || activeQuestion?.type !== 'rgb_slider') return;
 
     setAnswers(previousAnswers =>
       ensureDefaultSkinToneAnswer(previousAnswers, activeQuestion.id)
     );
-  }, [currentQuestionIndex, questions]);
+  }, [currentQuestionIndex, questions, onboarding.ready, setAnswers]);
 
   // Debug: Log when userGender changes
   React.useEffect(() => {
@@ -1295,6 +835,7 @@ function OnboardingContent() {
   };
 
   const submitQuiz = async () => {
+    const submittingIdentity = flowIdentity.current;
     const startTime = Date.now();
     debugOnboarding('🚀 [submitQuiz] Function called at:', new Date().toISOString());
     debugOnboarding('🚀 [submitQuiz] User:', !!user);
@@ -1308,209 +849,112 @@ function OnboardingContent() {
     const { stylePreferences, colorPreferences } = deriveQuizPreferences();
     debugOnboarding('⏱️ [submitQuiz] Preference derivation took:', Date.now() - startTime, 'ms');
     
-    if (!user) {
-      if (isGuestFlow) {
-        debugOnboarding('✨ [submitQuiz] Guest flow detected, storing quiz results for later signup');
-        try {
-          if (typeof window !== 'undefined') {
-            const persona = determineStylePersona();
-            const pendingSubmission = {
-              answers,
-              colorAnalysis,
-              stylePreferences,
-              colorPreferences,
-              persona,
-              createdAt: Date.now()
-            };
-            sessionStorage.setItem('pendingQuizSubmission', JSON.stringify(pendingSubmission));
-            debugOnboarding('💾 [submitQuiz] Stored pending quiz submission in sessionStorage');
-          }
-        } catch (storageError) {
-          console.error('❌ [submitQuiz] Failed to store pending quiz submission:', storageError);
-        }
-
+    // Guest mode remains local even when the browser already has an account session.
+    if (isGuestFlow) {
+      try {
+        sessionStorage.setItem('pendingQuizSubmission', JSON.stringify({
+          answers, colorAnalysis, stylePreferences, colorPreferences,
+          persona: determineStylePersona(), createdAt: Date.now(),
+        }));
         router.replace('/finish-profile?from=quiz');
-        return;
+      } catch {
+        setError('Your browser could not save your answers. Keep this tab open and try again.');
       }
-
-      debugOnboarding('❌ [submitQuiz] No user in authenticated flow, setting error');
+      return;
+    }
+    if (!user) {
       setError('Please sign in to complete the quiz');
       return;
     }
+    if (!submissionSaved.current && !await onboarding.flush()) {
+      if (submittingIdentity === flowIdentity.current) setError('Your latest answers have not saved yet. Retry saving before completing the quiz.');
+      return;
+    }
 
+    if (submittingIdentity !== flowIdentity.current) return;
     debugOnboarding('🚀 [submitQuiz] Starting submission...');
     setIsLoading(true);
     setError(null);
 
     try {
-      debugOnboarding('⏱️ [submitQuiz] Getting ID token...');
-      const tokenStart = Date.now();
-      const token = await user.getIdToken();
-      debugOnboarding('⏱️ [submitQuiz] Got ID token in:', Date.now() - tokenStart, 'ms');
+      let data: Record<string, unknown> = {};
+      if (!submissionSaved.current) {
+        debugOnboarding('⏱️ [submitQuiz] Getting ID token...');
+        const tokenStart = Date.now();
+        const token = await user.getIdToken();
+        if (submittingIdentity !== flowIdentity.current) return;
+        debugOnboarding('⏱️ [submitQuiz] Got ID token in:', Date.now() - tokenStart, 'ms');
       
-      // Extract spending ranges from answers (8 categories)
-      const spending_ranges = {
-        tops: answers.find(a => a.question_id === "category_spend_tops")?.selected_option || "unknown",
-        pants: answers.find(a => a.question_id === "category_spend_pants")?.selected_option || "unknown",
-        shoes: answers.find(a => a.question_id === "category_spend_shoes")?.selected_option || "unknown",
-        jackets: answers.find(a => a.question_id === "category_spend_jackets")?.selected_option || "unknown",
-        dresses: answers.find(a => a.question_id === "category_spend_dresses")?.selected_option || "unknown",
-        accessories: answers.find(a => a.question_id === "category_spend_accessories")?.selected_option || "unknown",
-        undergarments: answers.find(a => a.question_id === "category_spend_undergarments")?.selected_option || "unknown",
-        swimwear: answers.find(a => a.question_id === "category_spend_swimwear")?.selected_option || "unknown"
-      };
+        // Extract spending ranges from answers (8 categories)
+        const spending_ranges = {
+          tops: answers.find(a => a.question_id === "category_spend_tops")?.selected_option || "unknown",
+          pants: answers.find(a => a.question_id === "category_spend_pants")?.selected_option || "unknown",
+          shoes: answers.find(a => a.question_id === "category_spend_shoes")?.selected_option || "unknown",
+          jackets: answers.find(a => a.question_id === "category_spend_jackets")?.selected_option || "unknown",
+          dresses: answers.find(a => a.question_id === "category_spend_dresses")?.selected_option || "unknown",
+          accessories: answers.find(a => a.question_id === "category_spend_accessories")?.selected_option || "unknown",
+          undergarments: answers.find(a => a.question_id === "category_spend_undergarments")?.selected_option || "unknown",
+          swimwear: answers.find(a => a.question_id === "category_spend_swimwear")?.selected_option || "unknown"
+        };
 
-      // Spending ranges are sent via /api/style-quiz/submit (server-side), to avoid adding
-      // extra concurrent backend calls during onboarding.
+        // Spending ranges are sent via /api/style-quiz/submit (server-side), to avoid adding
+        // extra concurrent backend calls during onboarding.
       
-      const submissionData = {
+        const submissionData = {
+            userId: user.uid,
+            token: token,
+            answers: answers,
+            colorAnalysis: colorAnalysis,
+            stylePreferences: stylePreferences,
+            colorPreferences: colorPreferences,
+            spending_ranges: spending_ranges,
+            ...(retake ? { retake: true } : {})
+        };
+
+        debugOnboarding('🔍 [Quiz Frontend] Submitting quiz data:', {
           userId: user.uid,
-          token: token,
-          answers: answers,
-          colorAnalysis: colorAnalysis,
+          answersCount: answers.length,
           stylePreferences: stylePreferences,
           colorPreferences: colorPreferences,
-          spending_ranges: spending_ranges
-      };
+          hasColorAnalysis: !!colorAnalysis
+        });
 
-      debugOnboarding('🔍 [Quiz Frontend] Submitting quiz data:', {
-        userId: user.uid,
-        answersCount: answers.length,
-        stylePreferences: stylePreferences,
-        colorPreferences: colorPreferences,
-        hasColorAnalysis: !!colorAnalysis
-      });
-
-      debugOnboarding('🌐 [Quiz Frontend] Making API call to /api/style-quiz/submit at:', Date.now() - startTime, 'ms');
-      const apiStart = Date.now();
-      const response = await fetch('/api/style-quiz/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(submissionData)
-      });
+        debugOnboarding('🌐 [Quiz Frontend] Making API call to /api/style-quiz/submit at:', Date.now() - startTime, 'ms');
+        const apiStart = Date.now();
+        const response = await fetch('/api/style-quiz/submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(submissionData)
+        });
       
-      debugOnboarding('🌐 [Quiz Frontend] API response received in:', Date.now() - apiStart, 'ms');
-      debugOnboarding('🌐 [Quiz Frontend] API response status:', response.status);
-      debugOnboarding('⏱️ [submitQuiz] Total time so far:', Date.now() - startTime, 'ms');
+        debugOnboarding('🌐 [Quiz Frontend] API response received in:', Date.now() - apiStart, 'ms');
+        debugOnboarding('🌐 [Quiz Frontend] API response status:', response.status);
+        debugOnboarding('⏱️ [submitQuiz] Total time so far:', Date.now() - startTime, 'ms');
 
-      if (response.ok) {
-        const data = await response.json();
-        setQuizCompleted(true);
-        setQuizResults({
-          ...data,
-          hybridStyleName: determineStylePersona().name, // Use persona name
-          colorAnalysis: colorAnalysis,
-          userAnswers: answers.reduce((acc, answer) => {
-            acc[answer.question_id] = answer.selected_option;
-            return acc;
-          }, {} as Record<string, string>)
-        });
-        
-        // Check if backend already told us about wardrobe status (most efficient!)
-        // Use nullish coalescing so a legitimate 0 doesn't get overwritten.
-        let wardrobeCount = data.wardrobeCount ?? 0;
-        let hasExistingWardrobe = (data.hasExistingWardrobe ?? (wardrobeCount >= 10));
-        
-        // Surface server-side API version/debug info in the browser console
-        if (data?.debug) {
-          debugOnboarding('🧩 [Quiz] Quiz API debug:', data.debug);
-        }
-        
-        debugOnboarding('📦 [Quiz] Wardrobe status from quiz API:', {
-          count: wardrobeCount,
-          hasExisting: hasExistingWardrobe,
-          backendSupportsCount: data.wardrobeCount !== undefined,
-          backendReturnedZero: data.wardrobeCount === 0,
-          apiVersion: data?.debug?.apiVersion,
-          wardrobeCountSource: data?.debug?.wardrobeCountSource
-        });
-        
-        // Always do a real check to verify (backend fallback may have failed/timed out).
-        // IMPORTANT: use `/api/user/profile` (reliable proxy) to read cached `wardrobeItemCount`
-        // instead of scanning the wardrobe collection.
-        if (!hasExistingWardrobe) {
-          debugOnboarding('⚠️ [Quiz] Wardrobe not confirmed (count < 10). Checking cached profile wardrobe count...');
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
-            
-            const profileCheckStart = Date.now();
-            const profileResponse = await fetch('/api/user/profile', {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              },
-              signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (profileResponse.ok) {
-              const profileData = await profileResponse.json();
-              const cachedCount =
-                profileData?.wardrobeItemCount ??
-                profileData?.wardrobeCount ??
-                profileData?.wardrobe_count ??
-                null;
-
-              wardrobeCount = (typeof cachedCount === 'number') ? cachedCount : 0;
-              hasExistingWardrobe = wardrobeCount >= 10;
-              debugOnboarding(`📦 [Quiz] Profile cached count check found ${wardrobeCount} items (took ${Date.now() - profileCheckStart}ms)`, {
-                _cached: profileData?._cached,
-                _duration: profileData?._duration
-              });
-            }
-          } catch (error) {
-            debugOnboardingWarn('⚠️ [Quiz] Quick wardrobe check failed:', error);
-          }
-        }
-        
-        if (hasExistingWardrobe) {
-          debugOnboarding(`✅ User has ${wardrobeCount} items, skipping upload - going to persona page`);
-          debugOnboarding('⏱️ [submitQuiz] TOTAL TIME:', Date.now() - startTime, 'ms');
-          // Skip upload and go directly to style persona page
-          router.push('/style-persona?from=quiz');
-          return;
-        }
-        
-        // Start upload phase for new users or users with < 10 items
-        debugOnboarding('🎯 [Quiz] Starting upload phase (user has', wardrobeCount, 'items)');
-        debugOnboarding('⏱️ [submitQuiz] TOTAL TIME BEFORE UPLOAD:', Date.now() - startTime, 'ms');
-        setUploadPhase(true);
-      } else {
-        throw new Error('Failed to submit quiz');
+        data = await response.json();
+        if (submittingIdentity !== flowIdentity.current) return;
+        if (!response.ok || data.success !== true) throw new Error(typeof data.error === 'string' ? data.error : 'Failed to save your style profile. Please try again.');
+        submissionSaved.current = true;
       }
-    } catch (error) {
-      console.error('Error submitting quiz:', error);
-      setError('Failed to submit quiz. Please try again.');
-      // Use actual user answers as fallback instead of mock data
-      const fallbackColorAnalysis = analyzeColors();
-      const userAnswers = answers.reduce((acc, answer) => {
-        acc[answer.question_id] = answer.selected_option;
-        return acc;
-      }, {} as Record<string, string>);
-      
+      // Read the shared resolver after persistence; cached profile item counts are not authoritative.
+      const savedState = await onboarding.refresh();
+      if (submittingIdentity !== flowIdentity.current) return;
+      if (!savedState?.profileComplete) throw new Error('Your style profile saved, but we could not load your next step. Retry to continue.');
       setQuizCompleted(true);
-      setQuizResults({
-        hybridStyleName: determineStylePersona().name, // Use persona name
-        quizResults: {
-          aesthetic_scores: { "classic": 0.6, "sophisticated": 0.4 },
-          color_season: userAnswers.skin_tone || "warm_spring",
-          body_type: userAnswers.body_type_female || userAnswers.body_type_male || userAnswers.body_type_nonbinary || "rectangle",
-          style_preferences: { "classic": 0.7, "minimalist": 0.3 }
-        },
-        colorAnalysis: fallbackColorAnalysis,
-        userAnswers: userAnswers
-      });
-      
-      // Go directly to upload phase on error fallback
-      debugOnboarding('🎯 [Quiz] Using fallback, going to upload phase');
-      setUploadPhase(true);
+      setQuizResults({ ...data, colorAnalysis });
+      if (savedState.capsule.ready || savedState.stage === 'complete') {
+        router.push('/style-persona?from=quiz');
+      } else {
+        setUploadPhase(true);
+      }
+    } catch (cause) {
+      if (submittingIdentity === flowIdentity.current) setError(cause instanceof Error ? cause.message : 'Failed to save your style profile. Please try again.');
+      // Keep the actual answers on screen. A failed request is never quiz completion.
     } finally {
-      setIsLoading(false);
+      if (submittingIdentity === flowIdentity.current) setIsLoading(false);
     }
   };
 
@@ -1709,6 +1153,26 @@ function OnboardingContent() {
   }
 
 
+  if (!onboarding.ready) {
+    return <div className="min-h-screen flex items-center justify-center p-4"><div className="text-center space-y-4">
+      <p role={onboarding.error ? 'alert' : 'status'}>{onboarding.error || 'Loading your saved progress...'}</p>
+      {onboarding.error && <Button onClick={() => void onboarding.retry()}>Retry loading progress</Button>}
+    </div></div>;
+  }
+
+  if (onboarding.state?.profileComplete && !retake && !uploadPhase) {
+    return <div className="min-h-screen flex items-center justify-center p-4"><div className="max-w-md space-y-4">
+      <h1 className="text-2xl font-serif">Your style profile is saved</h1>
+      <p>{onboarding.state.capsule.usableCount} of 10 capsule pieces saved.</p>
+      <Button onClick={() => {
+        if (onboarding.state?.stage === 'complete') router.push('/outfits');
+        else if (onboarding.state?.capsule.ready) router.push('/style-persona');
+        else setUploadPhase(true);
+      }}>Continue your journey</Button>
+      <Button variant="outline" onClick={() => { setRetake(true); router.replace('/onboarding?retake=1'); }}>Retake my style quiz</Button>
+    </div></div>;
+  }
+
   // Show upload phase after quiz completion
   if (uploadPhase && !uploadComplete) {
     return (
@@ -1719,6 +1183,7 @@ function OnboardingContent() {
         gender={userGender || 'Male'}
         onComplete={(itemCount) => {
           debugOnboarding(`✅ Upload complete with ${itemCount} items`);
+          void onboarding.refresh();
           setUploadComplete(true);
           // Redirect to persona page after upload
           setTimeout(() => {
@@ -1983,7 +1448,6 @@ function OnboardingContent() {
     // Set user gender when gender question is answered
     if (questionId === 'gender') {
       debugOnboarding('👤 [Gender] About to set user gender from:', userGender, 'to:', answer);
-      setUserGender(answer);
       debugOnboarding('👤 [Gender] Set user gender:', answer);
       
       // Debug: Show what questions will be available after gender selection
@@ -1995,9 +1459,6 @@ function OnboardingContent() {
         maleStyleQuestions: newFiltered.filter(q => q.id.startsWith('style_item_m_')).map(q => q.id)
       });
       
-      // Force update questions immediately
-      debugOnboarding('🔄 [Gender] Force updating questions immediately');
-      setQuestions(newFiltered);
     }
     
     setAnswers(prev => {
@@ -2123,6 +1584,13 @@ function OnboardingContent() {
               </span>
             </div>
 
+            <div aria-live="polite" className="text-sm text-muted-foreground">
+              <p role="status">{onboarding.status === 'saving' ? 'Saving your progress...' : onboarding.status === 'saved' ? (isGuestFlow ? 'Saved in this browser' : 'Progress saved') : 'Progress needs attention'}</p>
+              {onboarding.error && <p role="alert">{onboarding.error}</p>}
+              {onboarding.status === 'error' && <Button variant="outline" onClick={() => void onboarding.retry()}>Retry saving</Button>}
+              {onboarding.conflict && <Button variant="outline" onClick={() => { cancelAutoAdvance(); onboarding.reloadLatest(); }}>Load newer draft</Button>}
+            </div>
+            {error && <p role="alert" className="text-red-700 dark:text-red-300">{error}</p>}
             {questionContent}
           </div>
 
@@ -2140,7 +1608,7 @@ function OnboardingContent() {
               {isLastQuestion ? (
                 <button
                   onClick={handleSubmit}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isLoading || !!onboarding.conflict}
                   className="flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-2xl font-semibold text-button gradient-primary text-white shadow-lg shadow-[#FFB84C]/20 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
                 >
                   {isSubmitting ? (

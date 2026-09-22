@@ -1521,57 +1521,26 @@ async def check_wardrobe_item(item_name: str, current_user_id: str = Depends(get
 
 @app.post("/api/wardrobe/add-direct")
 async def add_wardrobe_item_direct(item_data: dict, current_user_id: str = Depends(get_current_user_id)):
-    """Direct inline endpoint to add wardrobe items - bypasses router issues"""
+    """Create an owned garment, or acknowledge an already-persisted owned retry."""
+    from src.config.firebase import db
+    from src.services.wardrobe_persistence import create_owned_wardrobe_item, WardrobeOwnershipConflict
+
+    if db is None:
+        raise HTTPException(status_code=503, detail="Wardrobe storage is unavailable")
     try:
-        from src.config.firebase import db
-        import uuid
-        from datetime import datetime
-        
-        if not db:
-            return {"success": False, "error": "Database not available"}
-        
-        # Validate required fields
-        required_fields = ['name', 'type', 'color']
-        for field in required_fields:
-            if field not in item_data:
-                return {"success": False, "error": f"Missing required field: {field}"}
-        
-        # Create item ID - use provided ID if available
-        item_id = item_data.get('id') or str(uuid.uuid4())
-        
-        # Prepare simplified item data (store exactly what we receive, plus userId)
-        wardrobe_item = {
-            **item_data,  # Include all fields from item_data
-            "id": item_id,
-            "userId": current_user_id,
-            "createdAt": item_data.get('createdAt') or datetime.now().isoformat(),
-            "updatedAt": datetime.now().isoformat(),
-            "backgroundRemovedUrl": None,  # Will be filled by worker in background
-            "processing_status": "pending",  # Triggers background processing worker
-        }
-        
-        print(f"💾 Saving wardrobe item directly: {item_id} for user {current_user_id}")
-        print(f"💾 Item name: {wardrobe_item.get('name')}")
-        print(f"💾 Item type: {wardrobe_item.get('type')}")
-        
-        # Save to Firestore
-        doc_ref = db.collection('wardrobe').document(item_id)
-        doc_ref.set(wardrobe_item)
-        
-        print(f"✅ Successfully saved item {item_id} to Firestore")
-        
+        wardrobe_item = create_owned_wardrobe_item(db, current_user_id, item_data)
         return {
             "success": True,
-            "message": "Item added successfully",
-            "item_id": item_id,
-            "item": wardrobe_item
+            "message": "Item saved",
+            "item_id": wardrobe_item["id"],
+            "item": wardrobe_item,
         }
-        
-    except Exception as e:
-        print(f"❌ Error adding wardrobe item: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return {"success": False, "error": str(e)}
+    except WardrobeOwnershipConflict:
+        raise HTTPException(status_code=409, detail="This item ID is already in use")
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error))
+    except Exception:
+        raise HTTPException(status_code=503, detail="Your item was not confirmed saved. Please retry.")
 
 @app.post("/api/wardrobe/backfill-processing-status")
 async def backfill_processing_status(current_user_id: str = Depends(get_current_user_id)):

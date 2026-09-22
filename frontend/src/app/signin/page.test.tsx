@@ -1,0 +1,30 @@
+declare const beforeEach: jest.Lifecycle;
+declare const expect: jest.Expect;
+declare const it: jest.It;
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import SignIn from './page';
+import { signIn, signInWithGoogle } from '@/lib/auth';
+const mockPush = jest.fn();
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }));
+jest.mock('@/lib/auth', () => ({ signIn: jest.fn(), signInWithGoogle: jest.fn() }));
+jest.mock('@/components/PasswordLinkPrompt', () => ({ __esModule: true, default: () => null }));
+jest.mock('@/components/PasswordLinkBanner', () => ({ __esModule: true, default: () => null }));
+const user = { uid: 'existing-account', email: 'alex@example.test' };
+beforeEach(() => { jest.clearAllMocks(); window.history.replaceState({}, '', '/signin?from=quiz'); sessionStorage.setItem('pendingQuizSubmission', 'guest-answers'); global.fetch = jest.fn(); });
+it('signs in without submitting or clearing guest quiz answers', async () => {
+  (signIn as jest.Mock).mockResolvedValue({ success: true, user });
+  render(<SignIn />);
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'alex@example.test' } });
+  fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'test-password' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+  await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/onboarding'));
+  expect(fetch).not.toHaveBeenCalled();
+  expect(sessionStorage.getItem('pendingQuizSubmission')).toBe('guest-answers');
+});
+it('Google sign-in cannot auto-submit guest answers either', async () => {
+  (signInWithGoogle as jest.Mock).mockResolvedValue({ success: true, user, needsPasswordLinking: false });
+  render(<SignIn />); fireEvent.click(screen.getByRole('button', { name: 'Sign in with Google' }));
+  await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/onboarding'));
+  expect(fetch).not.toHaveBeenCalled();
+  expect(sessionStorage.getItem('pendingQuizSubmission')).toBe('guest-answers');
+});

@@ -1,5 +1,5 @@
-import { 
-  signInWithEmailAndPassword, 
+import {
+  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
@@ -10,7 +10,9 @@ import {
   linkWithCredential,
   fetchSignInMethodsForEmail,
   EmailAuthProvider,
-  reauthenticateWithCredential
+  reauthenticateWithCredential,
+  updateProfile,
+  getAdditionalUserInfo
 } from 'firebase/auth';
 import { auth } from './firebase/config';
 
@@ -18,14 +20,14 @@ import { auth } from './firebase/config';
 // This prevents data leakage between users
 const clearOutfitCache = () => {
   if (typeof window === 'undefined') return;
-  
+
   try {
     // Find and remove all outfit-related localStorage keys
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && (
-        key.includes('daily-outfit') || 
+        key.includes('daily-outfit') ||
         key.includes('outfit-cache') ||
         key.includes('weather-outfit') ||
         key.includes('generated-outfit')
@@ -33,10 +35,10 @@ const clearOutfitCache = () => {
         keysToRemove.push(key);
       }
     }
-    
+
     // Remove all found keys
     keysToRemove.forEach(key => localStorage.removeItem(key));
-    
+
     console.log(`🧹 Cleared ${keysToRemove.length} cached outfit items from localStorage`);
   } catch (error) {
     console.error('Error clearing outfit cache:', error);
@@ -48,7 +50,7 @@ export const signIn = async (email: string, password: string) => {
   try {
     // Clear any cached outfit data from previous user sessions
     clearOutfitCache();
-    
+
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return { success: true, user: userCredential.user };
   } catch (error: any) {
@@ -57,7 +59,7 @@ export const signIn = async (email: string, password: string) => {
     const errorCode = error.code || "unknown";
     const firebaseErrorMessage = error.message || "No message provided";
     console.log(`[signIn] Firebase error code: ${errorCode}, message: ${firebaseErrorMessage}`);
-    
+
     // DEBUG: Fetch and log sign-in methods
     let methodsResult;
     try {
@@ -71,10 +73,10 @@ export const signIn = async (email: string, password: string) => {
     } catch (fetchError) {
       console.log("[signIn] Error fetching sign-in methods:", fetchError);
     }
-    
+
     // Convert Firebase error codes to user-friendly messages
     let errorMessage = 'Sign in failed';
-    
+
     // Enhanced error handling based on available sign-in methods
     if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
       // Ensure we have methods result
@@ -85,23 +87,23 @@ export const signIn = async (email: string, password: string) => {
           console.log("[signIn] Error fetching sign-in methods in error handler:", checkError);
         }
       }
-      
+
       const methods: string[] = methodsResult?.success ? (methodsResult.methods || []) : [];
       console.log("[signIn] Available sign-in methods for error handling:", methods);
-      
+
       // Check if user is currently signed in with Google (for linking scenario)
       const currentUser = auth.currentUser;
-      const isSignedInWithGoogle = currentUser && 
-                                   currentUser.email === email && 
+      const isSignedInWithGoogle = currentUser &&
+                                   currentUser.email === email &&
                                    currentUser.providerData.some(p => p.providerId === 'google.com');
-      
+
       if (isSignedInWithGoogle) {
         // User is signed in with Google - try to link the password
         try {
           const linkResult = await linkEmailPassword(email, password);
           if (linkResult.success) {
-            return { 
-              success: true, 
+            return {
+              success: true,
               user: currentUser,
               message: 'Password successfully linked to your account!'
             };
@@ -133,26 +135,50 @@ export const signIn = async (email: string, password: string) => {
     } else if (error.message) {
       errorMessage = error.message;
     }
-    
-    return { 
-      success: false, 
+
+    return {
+      success: false,
       error: errorMessage
     };
   }
 };
 
 // Sign up with email and password
-export const signUp = async (email: string, password: string) => {
+export const saveSignUpName = async (user: User, fullName: string) => {
+  const displayName = fullName.trim().replace(/\s+/g, ' ');
+  if (!displayName) return;
+  await updateProfile(user, { displayName });
+  // The profile seed reads the verified token's name, so refresh its claims first.
+  const token = await user.getIdToken(true);
+  const response = await fetch('/api/user/profile', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: displayName }),
+  });
+  if (!response.ok) throw new Error('Your name could not be saved. Please retry.');
+  const saved = await response.json();
+  if (saved.userId !== user.uid || saved.name !== displayName) {
+    throw new Error('Your name has not been confirmed as saved. Please retry.');
+  }
+};
+
+export const signUp = async (email: string, password: string, fullName?: string) => {
   try {
     // Clear any cached outfit data before creating new account
     clearOutfitCache();
-    
+
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    return { success: true, user: userCredential.user };
+    try {
+      if (fullName) await saveSignUpName(userCredential.user, fullName);
+      return { success: true, user: userCredential.user };
+    } catch {
+      // Creation has already succeeded. Keep the account available for a name-save retry.
+      return { success: true, user: userCredential.user, profileError: 'Your account was created, but your name could not be saved. Please retry.' };
+    }
   } catch (error: any) {
-    return { 
-      success: false, 
-      error: error.message || 'Sign up failed' 
+    return {
+      success: false,
+      error: error.message || 'Sign up failed'
     };
   }
 };
@@ -162,19 +188,19 @@ export const signInWithGoogle = async () => {
   try {
     // Clear any cached outfit data from previous user sessions
     clearOutfitCache();
-    
+
     const provider = new GoogleAuthProvider();
     // Request additional scopes if needed
     provider.addScope('profile');
     provider.addScope('email');
-    
+
     const userCredential = await signInWithPopup(auth, provider);
-    
+
     // DEBUG: Check what providers are actually linked to this account
     const linkedProviders = userCredential.user.providerData.map(p => p.providerId);
     console.log('[signInWithGoogle] Linked providers after sign-in:', linkedProviders);
     console.log('[signInWithGoogle] User email:', userCredential.user.email);
-    
+
     // Check if password provider is missing and if password account exists
     let needsPasswordLinking = false;
     if (!linkedProviders.includes('password')) {
@@ -183,7 +209,7 @@ export const signInWithGoogle = async () => {
       try {
         const methodsResult = await getSignInMethods(userCredential.user.email || '');
         console.log('[signInWithGoogle] Available sign-in methods:', methodsResult);
-        
+
         // If password method exists but isn't linked, we need to link it
         if (methodsResult.success && methodsResult.methods && methodsResult.methods.includes('password')) {
           needsPasswordLinking = true;
@@ -193,17 +219,18 @@ export const signInWithGoogle = async () => {
         console.log('[signInWithGoogle] Error checking sign-in methods:', methodsError);
       }
     }
-    
+
     // Firebase automatically links accounts with the same email
     // If linking was needed, it happens automatically
-    return { 
-      success: true, 
+    return {
+      success: true,
       user: userCredential.user,
-      needsPasswordLinking 
+      isNewUser: getAdditionalUserInfo(userCredential)?.isNewUser === true,
+      needsPasswordLinking
     };
   } catch (error: any) {
     console.error('Google sign in error:', error);
-    
+
     // Handle account linking errors
     if (error.code === 'auth/account-exists-with-different-credential') {
       return {
@@ -212,9 +239,9 @@ export const signInWithGoogle = async () => {
         needsPasswordLinking: false
       };
     }
-    
-    return { 
-      success: false, 
+
+    return {
+      success: false,
       error: error.message || 'Google sign in failed',
       needsPasswordLinking: false
     };
@@ -226,13 +253,13 @@ export const signOutUser = async () => {
   try {
     // Clear cached outfit data when signing out
     clearOutfitCache();
-    
+
     await signOut(auth);
     return { success: true };
   } catch (error: any) {
-    return { 
-      success: false, 
-      error: error.message || 'Sign out failed' 
+    return {
+      success: false,
+      error: error.message || 'Sign out failed'
     };
   }
 };
@@ -243,9 +270,9 @@ export const resetPassword = async (email: string) => {
     await sendPasswordResetEmail(auth, email);
     return { success: true };
   } catch (error: any) {
-    return { 
-      success: false, 
-      error: error.message || 'Password reset failed' 
+    return {
+      success: false,
+      error: error.message || 'Password reset failed'
     };
   }
 };
@@ -277,22 +304,22 @@ export const linkEmailPassword = async (email: string, password: string) => {
   try {
     const currentUser = auth.currentUser;
     if (!currentUser) {
-      return { 
-        success: false, 
-        error: 'You must be signed in to link an email/password' 
+      return {
+        success: false,
+        error: 'You must be signed in to link an email/password'
       };
     }
 
     // Create email credential
     const credential = EmailAuthProvider.credential(email, password);
-    
+
     // Link the credential to the current user
     await linkWithCredential(currentUser, credential);
-    
+
     return { success: true };
   } catch (error: any) {
     console.error('Link email/password error:', error);
-    
+
     if (error.code === 'auth/credential-already-in-use') {
       return {
         success: false,
@@ -309,10 +336,10 @@ export const linkEmailPassword = async (email: string, password: string) => {
         error: 'Invalid email or password. Please check your credentials.'
       };
     }
-    
-    return { 
-      success: false, 
-      error: error.message || 'Failed to link email/password' 
+
+    return {
+      success: false,
+      error: error.message || 'Failed to link email/password'
     };
   }
 };
@@ -323,9 +350,9 @@ export const getSignInMethods = async (email: string) => {
     const methods = await fetchSignInMethodsForEmail(auth, email);
     return { success: true, methods };
   } catch (error: any) {
-    return { 
-      success: false, 
-      error: error.message || 'Failed to check sign-in methods' 
+    return {
+      success: false,
+      error: error.message || 'Failed to check sign-in methods'
     };
   }
 };
@@ -334,7 +361,7 @@ export const getSignInMethods = async (email: string) => {
 export const getLinkedProviders = (): string[] => {
   const user = auth.currentUser;
   if (!user) return [];
-  
+
   return user.providerData.map(provider => provider.providerId);
 };
 
