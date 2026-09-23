@@ -357,24 +357,27 @@ def firebase_uploader(bucket_name: str):
 def infer(mode: str, source_path: str, output_path: str, *, progress_path=None) -> None:
     # The only rembg import in this module. The caller always bounds this child.
     os.environ.setdefault('OMP_NUM_THREADS', '1')
-    def load_remove():
-        from rembg import remove
-        return remove
+    def load_rembg():
+        from rembg import new_session, remove
+        return new_session, remove
     if progress_path is not None:
         _inference_manifest(progress_path, {'stage': f'{mode}_import'})
-    remove = _stage(f'{mode}_import', load_remove)
+    new_session, remove = _stage(f'{mode}_import', load_rembg)
     if progress_path is not None:
         _inference_manifest(progress_path, {'stage': f'{mode}_input'})
     source = _stage(f'{mode}_input', lambda: Path(source_path).read_bytes())
     if len(source) >= MAX_REFERENCE_IMAGE_BYTES:
         raise GarmentJobError('inference_input_too_large', diagnostics=[
             {'stage': f'{mode}_input', 'category': 'validation_failed'}])
+    if progress_path is not None:
+        _inference_manifest(progress_path, {'stage': f'{mode}_session'})
+    session = _stage(f'{mode}_session', lambda: new_session('u2net'))
     kwargs = ({'alpha_matting': True, 'alpha_matting_foreground_threshold': 240,
                'alpha_matting_background_threshold': 10, 'alpha_matting_erode_size': 10}
               if mode == 'alpha' else {})
     if progress_path is not None:
         _inference_manifest(progress_path, {'stage': f'{mode}_removal'})
-    output = _stage(f'{mode}_removal', lambda: remove(source, **kwargs))
+    output = _stage(f'{mode}_removal', lambda: remove(source, session=session, **kwargs))
     if progress_path is not None:
         _inference_manifest(progress_path, {'stage': f'{mode}_output'})
     if not isinstance(output, bytes) or len(output) >= MAX_REFERENCE_IMAGE_BYTES:

@@ -212,6 +212,8 @@ class GarmentFailureProjectionTests(unittest.TestCase):
                 f'    raise HTTPError({secret!r}, 503, {secret!r}, None, None)\n')
             (root / 'rembg.py').write_text(
                 'from pooch.core import retrieve\n'
+                'def new_session(model):\n'
+                '    return object()\n'
                 'def remove(source, **kwargs):\n'
                 '    return retrieve()\n')
             _, envelope, log = self.actual_failure('nested_inference', import_path=root)
@@ -229,6 +231,41 @@ class GarmentFailureProjectionTests(unittest.TestCase):
             self.assertNotIn('items/shirt', output)
             self.assertNotIn('Traceback', output)
         self.assertEqual(set(self.report.call_args.args[1]), {'status', 'accepted', 'attempt', 'diagnostics'})
+
+    def test_real_session_download_failure_preserves_original_without_publishing_cutout(self):
+        secret = 'https://private.invalid/model?token=synthetic-secret'
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'pooch').mkdir()
+            (root / 'pooch' / '__init__.py').write_text('')
+            (root / 'pooch' / 'core.py').write_text(
+                'from urllib.error import HTTPError\n'
+                'def retrieve():\n'
+                f'    raise HTTPError({secret!r}, 503, {secret!r}, None, None)\n')
+            (root / 'rembg.py').write_text(
+                'from pooch.core import retrieve\n'
+                'def new_session(model):\n'
+                '    assert model == "u2net"\n'
+                '    return retrieve()\n'
+                'def remove(source, **kwargs):\n'
+                '    raise AssertionError("session failed before removal")\n')
+            _, envelope, log = self.actual_failure('nested_inference', import_path=root)
+        self.assertEqual(envelope['error_code'], 'processing_failed')
+        self.assertEqual(envelope['diagnostics'], [
+            {'stage': 'alpha_model_download', 'category': 'http_error', 'http_status': 503},
+            {'stage': 'fallback_model_download', 'category': 'http_error', 'http_status': 503},
+        ])
+        self.assertIn('originalUrl', self.item)
+        self.assertEqual(self.item['imageUrl'], self.photo)
+        self.assertEqual(self.item['processing_status'], 'pending')
+        self.assertEqual(self.item['processing_attempt_count'], 1)
+        self.assertIsNotNone(self.item['processing_next_attempt_at'])
+        self.assertNotIn('result', self.job)
+        for key in ('transparentUrl', 'processedUrl', 'thumbnailUrl'):
+            self.assertNotIn(key, self.item)
+        for output in (log, str(envelope), str(self.report.call_args_list)):
+            self.assertNotIn(secret, output)
+            self.assertNotIn('Traceback', output)
 
     def test_coordinator_reprojects_forged_diagnostics_without_changing_lifecycle(self):
         claim = lifecycle.claim_garment(self.db, 'shirt', 'worker', now=100)
@@ -254,6 +291,8 @@ class GarmentFailureProjectionTests(unittest.TestCase):
             root = Path(directory)
             (root / 'rembg.py').write_text(
                 'import os, signal\n'
+                'def new_session(model):\n'
+                '    return object()\n'
                 'def remove(source, **kwargs):\n'
                 '    os.kill(os.getpid(), signal.SIGKILL)\n')
             _, envelope, log = self.actual_failure('nested_inference', import_path=root)
@@ -265,6 +304,29 @@ class GarmentFailureProjectionTests(unittest.TestCase):
         self.assertEqual(self.item['processing_status'], 'pending')
         self.assertIn('originalUrl', self.item)
         self.assertEqual(self.item['processing_attempt_count'], 1)
+        self.assertNotIn('returncode', str(envelope))
+        self.assertNotIn('Traceback', log)
+
+    def test_real_killed_session_keeps_mode_marker_and_cannot_publish_result(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'rembg.py').write_text(
+                'import os, signal\n'
+                'def new_session(model):\n'
+                '    assert model == "u2net"\n'
+                '    os.kill(os.getpid(), signal.SIGKILL)\n'
+                'def remove(source, **kwargs):\n'
+                '    raise AssertionError("session did not finish")\n')
+            _, envelope, log = self.actual_failure('nested_inference', import_path=root)
+        self.assertEqual(envelope['diagnostics'], [
+            {'stage': 'alpha_session', 'category': 'process_sigkill'},
+            {'stage': 'fallback_session', 'category': 'process_sigkill'},
+        ])
+        self.assertEqual(envelope['error_code'], 'processing_failed')
+        self.assertEqual(self.item['processing_status'], 'pending')
+        self.assertIn('originalUrl', self.item)
+        self.assertEqual(self.item['imageUrl'], self.photo)
+        self.assertNotIn('result', self.job)
         self.assertNotIn('returncode', str(envelope))
         self.assertNotIn('Traceback', log)
 

@@ -143,3 +143,16 @@ signed-in profile compatibility checks passed. Full authenticated frontend,
 provider-image and physical-device gates remain pending. See the Goal 6 handoff
 for accepted source, exact deployed artifact IDs, later diagnostic checks and worker
 containment evidence.
+
+Worker diagnostic source `763220d8` ran once and was stopped after both removal
+modes exited by SIGKILL with overlapping container OOM-kill counter increments.
+The local compatibility candidate explicitly restores U2NET, the historical
+rembg 2.0.50/2.0.67 default, while pinning the inspected rembg 2.0.85 library.
+Each existing isolated inference child constructs and passes its own session;
+no model/session is initialized in the coordinator. This replaces 2.0.85's
+implicit BRIA selection without changing the hosted flatlay provider/model or
+readiness, retry and credit contracts. Image-quality and capacity acceptance
+remain separate gates; see the Goal 6 handoff for evidence and platform limits.
+All ten approved public fixtures completed locally with originals preserved;
+visual review still found internal background remnants and thin-lace loss.
+Those cutouts must not be represented as the final polished outfit image.

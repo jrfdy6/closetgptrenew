@@ -1,7 +1,7 @@
 firebase-admin>=6.2.0
 google-cloud-firestore>=2.21.0
 google-cloud-storage>=2.10.0
-rembg>=2.0.67
+rembg==2.0.85
 onnxruntime>=1.22.0
 Pillow>=10.0.1
 requests>=2.32.5

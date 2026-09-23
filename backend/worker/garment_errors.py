@@ -44,7 +44,7 @@ DIAGNOSTIC_STAGES = frozenset({
     'original_prepare', 'original_upload', 'background_removal', 'cutout_validation',
     'cutout_upload', 'processed_upload', 'thumbnail_upload', 'job',
     *[f'{mode}_{stage}' for mode in ('alpha', 'fallback')
-      for stage in ('import', 'input', 'removal', 'model_download', 'output', 'process')],
+      for stage in ('import', 'input', 'session', 'removal', 'model_download', 'output', 'process')],
 })
 DIAGNOSTIC_CATEGORIES = frozenset({
     'dependency_missing', 'import_error', 'network_timeout', 'connection_error',
@@ -130,7 +130,7 @@ def inference_progress_stage(mode, progress) -> str:
     fallback = f'{mode}_process' if mode in ('alpha', 'fallback') else 'job'
     try:
         stage = progress.get('stage') if isinstance(progress, dict) else None
-        allowed = tuple(f'{mode}_{part}' for part in ('import', 'input', 'removal', 'output'))
+        allowed = tuple(f'{mode}_{part}' for part in ('import', 'input', 'session', 'removal', 'output'))
         return stage if isinstance(stage, str) and stage in allowed else fallback
     except Exception:
         return fallback
@@ -183,8 +183,8 @@ def _exception_diagnostic(stage: str, error: Exception) -> dict:
                 model_download = True
             traceback = traceback.tb_next
         error = error.__cause__ or error.__context__
-    if model_download and stage in ('alpha_removal', 'fallback_removal'):
-        stage = stage.replace('_removal', '_model_download')
+    if model_download and stage in ('alpha_session', 'fallback_session', 'alpha_removal', 'fallback_removal'):
+        stage = f'{stage.split("_", 1)[0]}_model_download'
     values = {'stage': stage, 'category': category}
     if http_status is not None:
         values['http_status'] = http_status

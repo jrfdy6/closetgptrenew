@@ -90,6 +90,25 @@ were verified. See [the Goal 6 handoff](ONBOARDING_RELEASE_GOAL6_HANDOFF.md) for
 release artifacts, subsequent worker diagnostic candidates and checks, the remaining
 gates and recovery restrictions.
 
+The bounded `763220d8` worker diagnostic run identified SIGKILL during both
+removal modes, each overlapping a container `oom_kill` increment. The worker
+was stopped again; this is OOM-associated evidence, not exact-process attribution
+or proof that the configured 8 GB limit was reached. The build resolved rembg
+2.0.85, whose sessionless default changed to BRIA. Historical repository intent
+was U2NET under rembg 2.0.50/2.0.67. The local compatibility candidate pins only
+worker rembg to 2.0.85 and explicitly selects U2NET inside each disposable
+inference child. This changes the observed model back to historical intent;
+it does not establish which model every older deployment ran. Preserve the
+existing hosted flatlay provider/model, image bounds, alpha parameters, deadlines,
+thread setting, attempt budgets and readiness definition. Keep dispatch stopped
+and admission paused until source, public-photo quality and runtime evidence
+are accepted separately. Full details and outstanding checks are in the handoff.
+The local public-photo run completed all ten garments and preserved every
+protected original. It still shows retained background inside some garment gaps
+and loss of thin lace details. Treat this as functional compatibility evidence,
+not premium cutout or hosted-flatlay quality acceptance. Local Mac timing/RSS
+cannot establish production Linux capacity.
+
 ## Canonical Surfaces
 
 - Product repo: `/Users/neo/Desktop/closetgptrenew`

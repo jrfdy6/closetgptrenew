@@ -249,8 +249,14 @@ class CoordinatorTests(unittest.TestCase):
         for code in (None, True, False, '74', -9.0, [], {}, 0, 256, -999999):
             self.assertEqual(process_exit_category(code), 'process_exit_unknown')
         self.assertEqual(inference_progress_stage('alpha', {'stage': 'alpha_removal'}), 'alpha_removal')
+        for mode in ('alpha', 'fallback'):
+            stage = f'{mode}_session'
+            self.assertEqual(inference_progress_stage(mode, {'stage': stage}), stage)
+            self.assertEqual(safe_diagnostics([{'stage': stage, 'category': 'runtime_error', 'private': 'token'}]),
+                             [{'stage': stage, 'category': 'runtime_error'}])
         for progress in (None, [], 'private', {'stage': 'fallback_removal'},
-                         {'stage': 'alpha_model_download'}, {'stage': ['private']}, {'stage': 'private'}):
+                         {'stage': 'fallback_session'}, {'stage': 'alpha_model_download'},
+                         {'stage': ['private']}, {'stage': 'private'}):
             self.assertEqual(inference_progress_stage('alpha', progress), 'alpha_process')
 
     def test_container_counter_deltas_are_bounded_and_never_change_category(self):

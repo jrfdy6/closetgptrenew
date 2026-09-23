@@ -126,7 +126,8 @@ class GarmentJobTests(unittest.TestCase):
             with patch.dict(sys.modules, {'rembg': None}), self.assertRaises(GarmentJobError) as caught:
                 infer('alpha', str(source), str(output))
             self.assertEqual(caught.exception.diagnostics, [{'stage': 'alpha_import', 'category': 'dependency_missing'}])
-            rembg = SimpleNamespace(remove=Mock(side_effect=RuntimeError(secret)))
+            rembg = SimpleNamespace(new_session=Mock(return_value=object()),
+                                    remove=Mock(side_effect=RuntimeError(secret)))
             with patch.dict(sys.modules, {'rembg': rembg}), self.assertRaises(GarmentJobError) as caught:
                 infer('fallback', str(source), str(output))
             self.assertEqual(caught.exception.diagnostics, [{'stage': 'fallback_removal', 'category': 'runtime_error'}])
@@ -135,6 +136,100 @@ class GarmentJobTests(unittest.TestCase):
                 infer('alpha', str(source), str(output))
             self.assertEqual(caught.exception.diagnostics, [{'stage': 'alpha_output', 'category': 'permission_denied'}])
             self.assertNotIn(secret, str(caught.exception.diagnostics))
+
+    def test_each_inference_creates_explicit_u2net_session_for_both_modes(self):
+        sessions, removals = [], []
+
+        def new_session(model='library-default-model'):
+            self.assertEqual(model, 'u2net')
+            session = object()
+            sessions.append(session)
+            return session
+
+        def remove(source, session=None, **kwargs):
+            self.assertIs(session, sessions[-1])
+            self.assertEqual(source, self.original_bytes)
+            removals.append((session, kwargs))
+            return self.original_bytes
+
+        rembg = SimpleNamespace(new_session=Mock(side_effect=new_session), remove=Mock(side_effect=remove))
+        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules, {'rembg': rembg}):
+            source, output = Path(directory) / 'source.png', Path(directory) / 'output.png'
+            source.write_bytes(self.original_bytes)
+            for mode in ('alpha', 'fallback', 'alpha'):
+                infer(mode, str(source), str(output))
+                self.assertEqual(output.read_bytes(), self.original_bytes)
+
+        self.assertEqual(len(sessions), 3)
+        self.assertEqual(len({id(session) for session in sessions}), 3)
+        self.assertEqual([call.args for call in rembg.new_session.call_args_list], [('u2net',)] * 3)
+        alpha_kwargs = {'alpha_matting': True, 'alpha_matting_foreground_threshold': 240,
+                        'alpha_matting_background_threshold': 10, 'alpha_matting_erode_size': 10}
+        self.assertEqual([kwargs for _, kwargs in removals], [alpha_kwargs, {}, alpha_kwargs])
+
+    def test_invalid_input_never_initializes_session(self):
+        rembg = SimpleNamespace(new_session=Mock(), remove=Mock())
+        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules, {'rembg': rembg}):
+            source, output = Path(directory) / 'source.png', Path(directory) / 'output.png'
+            with self.assertRaises(GarmentJobError):
+                infer('alpha', str(source), str(output))
+            source.write_bytes(self.original_bytes)
+            with patch.object(garment_job, 'MAX_REFERENCE_IMAGE_BYTES', len(self.original_bytes)), \
+                    self.assertRaisesRegex(GarmentJobError, 'inference_input_too_large'):
+                infer('fallback', str(source), str(output))
+            self.assertFalse(output.exists())
+        rembg.new_session.assert_not_called()
+        rembg.remove.assert_not_called()
+
+    def test_session_failure_never_removes_or_publishes_output_and_keeps_safe_stage(self):
+        secret = 'https://private.invalid/model?token=secret'
+        with tempfile.TemporaryDirectory() as directory:
+            source, output, progress = (Path(directory) / name for name in ('source.png', 'output.png', 'progress'))
+            source.write_bytes(self.original_bytes)
+            for mode in ('alpha', 'fallback'):
+                rembg = SimpleNamespace(new_session=Mock(side_effect=RuntimeError(secret)), remove=Mock())
+                with self.subTest(mode=mode), patch.dict(sys.modules, {'rembg': rembg}), \
+                        self.assertRaises(GarmentJobError) as caught:
+                    infer(mode, str(source), str(output), progress_path=str(progress))
+                rembg.new_session.assert_called_once_with('u2net')
+                rembg.remove.assert_not_called()
+                self.assertFalse(output.exists())
+                self.assertEqual(json.loads(progress.read_text()), {'stage': f'{mode}_session'})
+                self.assertEqual(str(caught.exception), 'processing_failed')
+                self.assertEqual(caught.exception.diagnostics, [{'stage': f'{mode}_session', 'category': 'runtime_error'}])
+                self.assertNotIn(secret, str(caught.exception.diagnostics))
+
+    def test_real_session_hang_keeps_existing_stage_deadline_and_safe_marker(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'rembg.py').write_text(
+                'import time\n'
+                'def new_session(model):\n'
+                '    assert model == "u2net"\n'
+                '    time.sleep(30)\n'
+                'def remove(source, **kwargs):\n'
+                '    raise AssertionError("session did not finish")\n')
+            source = root / 'source.png'
+            source.write_bytes(self.original_bytes)
+            children = []
+
+            def factory(payload, **options):
+                self.assertEqual(options['timeout_seconds'], 240 if options['command'][3] == 'alpha' else 60)
+                options['env']['PYTHONPATH'] = str(root)
+                # Only the test process gets a short wall-clock budget.
+                options['timeout_seconds'] = 2
+                child = JobProcess(payload, **options)
+                children.append(child)
+                return child
+
+            for mode, budget in (('alpha', ALPHA_TIMEOUT_SECONDS), ('fallback', FALLBACK_TIMEOUT_SECONDS)):
+                with self.subTest(mode=mode), self.assertRaises(GarmentJobError) as caught:
+                    _run_inference(mode, source, root / 'output.png', budget, job_factory=factory)
+                self.assertEqual(caught.exception.diagnostics,
+                                 [{'stage': f'{mode}_session', 'category': 'process_timeout'}])
+                self.assertFalse((root / 'output.png').exists())
+                self.assertIsNotNone(children[-1].process.returncode)
+                self.assertFalse(children[-1].workdir.exists())
 
     def test_inference_supervisor_failures_are_classified_without_child_logs(self):
         cases = (({'status': 'timed_out', 'returncode': -9}, 'process_timeout'),
@@ -188,12 +283,13 @@ class GarmentJobTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             source, output = Path(directory) / 'in', Path(directory) / 'out'
             source.write_bytes(self.original_bytes)
-            rembg = SimpleNamespace(remove=Mock(return_value=self.original_bytes))
+            rembg = SimpleNamespace(new_session=Mock(return_value=object()),
+                                    remove=Mock(return_value=self.original_bytes))
             with patch.dict(sys.modules, {'rembg': rembg}), patch.object(garment_job, 'atomic_json', side_effect=OSError(secret)) as write:
                 infer('alpha', str(source), str(output), progress_path='progress')
             self.assertEqual(output.read_bytes(), self.original_bytes)
             self.assertEqual([call.args[1] for call in write.call_args_list], [
-                {'stage': 'alpha_import'}, {'stage': 'alpha_input'},
+                {'stage': 'alpha_import'}, {'stage': 'alpha_input'}, {'stage': 'alpha_session'},
                 {'stage': 'alpha_removal'}, {'stage': 'alpha_output'}])
             rembg.remove = Mock(side_effect=RuntimeError(secret))
             with patch.dict(sys.modules, {'rembg': rembg}), patch.object(garment_job, 'atomic_json', side_effect=OSError(secret)), self.assertRaises(GarmentJobError) as caught:

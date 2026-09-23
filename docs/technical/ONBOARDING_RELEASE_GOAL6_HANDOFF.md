@@ -214,7 +214,7 @@ describe container-level events during inference, not proof that this child was
 killed by OOM. Any further worker run requires a fresh source/test review; keep
 API admission paused.
 
-## Exit/stage/cgroup diagnostic extension — not yet deployed
+## Exit/stage/cgroup diagnostic run
 
 The follow-up candidate changes only worker diagnostic extraction and its tests.
 It classifies the supervisor's retained return code into finite signal/nonzero
@@ -232,8 +232,131 @@ checks ran 33: 32 passed and one expected macOS skip. Full backend checks ran 55
 the real missing-registration-barrier exit 74, native exits through the production
 `--infer` path, malformed codes, optional marker-write failures and bounded cgroup
 read/reset/overflow behavior. Generic tests isolate host cgroup availability.
-No further worker deployment is authorized by these local checks alone; record
-the frozen commit, exact CI and parent review before any bounded next run.
+The reviewed full commit is `763220d87aabb3db6f5601f4dd2241f28bcaf010`.
+Both Linux CI runs `35803352368` and
+`35803349677` passed before independent acceptance of one bounded worker run.
+
+Deployment `1991b798-cb02-46cc-9acd-45f4028de4df`, instance
+`c5870f80-3a46-4b82-a342-d0b0c87eac3b`, started a naturally eligible third
+garment attempt at `00:47:34 UTC`. The attempt failed at `00:50:25 UTC` with
+both `alpha_removal` and `fallback_removal` classified `process_sigkill`.
+Each interval recorded `container_oom_delta: 0` and
+`container_oom_kill_delta: 1`. This is strong OOM-associated removal evidence;
+cgroup-wide counters do not identify the exact killed PID or prove the configured
+8 GB memory limit was reached. Official 60-second samples peaked at 4.740 GB;
+they are sparse samples, not an observed peak-RSS measurement.
+
+The coordinator started another naturally eligible third attempt in the same
+tick as the first outcome. No terminal outcome was observed for that second
+start before shutdown; preserve its existing lease for normal recovery.
+`Worker stopped` was logged at `00:50:33.438 UTC`, the platform stop marker at
+`00:50:34.479 UTC`, and official stop completion at `00:50:35 UTC` returned zero
+with no active instances. No manual retry, credit reset or provider call was
+used to create evidence. API admission remains paused. Another worker deployment
+requires a separately reviewed repair candidate and explicit runtime gate.
+
+## Explicit historical model compatibility repair — local candidate
+
+Commit `0751cbbc19ff79d56350ea876edc9c26ffd913cc` changed worker rembg from
+`2.0.50` to `>=2.0.67` for Python 3.12 compatibility. Both inspected historical
+versions selected U2NET for a sessionless `remove` call. The actual diagnostic
+build resolved rembg 2.0.85, which now selects BRIA for that same call. This is
+dependency-default drift relative to source intent; no claim is made that every
+historic production deployment's package/model was measured.
+
+Official PyPI wheel SHA-256 values were verified independently:
+
+- rembg 2.0.67: `365236b7521a1a0ffc86315de80ab7005cd9705cd02feebfaaec39fb21feb45a`.
+- rembg 2.0.85: `9642672c3e879d576d0270ccfeada3d1c75585b9c78a7970d53a5c6874c0c1f2`.
+
+The candidate pins only worker `rembg==2.0.85`, calls `new_session('u2net')`
+inside each existing inference child and passes that exact session to `remove`
+in both modes. Initialization stays within the existing process deadline and
+failure/fallback contract. Finite session-stage diagnostics distinguish loading
+from removal without serializing exception messages or model URLs. The U2NET
+prediction and normalization functions are identical across the inspected
+2.0.67 and 2.0.85 source artifacts, using 320×320 model input and the same
+canonical weight URL/checksum. This restores model selection without downgrading
+unrelated library behavior. It does not claim a measured memory improvement yet.
+
+Keep input/reference bounds, alpha settings, `OMP_NUM_THREADS` behavior,
+240/60/360-second deadlines, independent child processes, attempt budgets,
+credits, original publication and usable-garment readiness unchanged. A garment
+remains usable with its saved original and recognized/corrected category;
+background removal must not become an onboarding requirement. No hosted flatlay
+provider/model or cloud resources are changed by this repair.
+
+Local validation uses only the ten approved public `upload-batch` photographs.
+Their copies in the temporary capsule folder were verified byte-identical.
+The Mac uses Python 3.12 on x86_64; official PyPI has no compatible wheel for
+the deployed ONNX Runtime 1.30.0. The isolated local environment uses ONNX
+1.23.2 and NumPy 2.3.5 with Numba 0.62.1 because compatible Mac Numba requires
+NumPy below 2.4. Production dependency declarations are not downgraded. Other
+recorded image-library versions match the diagnostic build. These local checks
+cannot prove the Linux production memory limit or OOM behavior.
+
+The canonical U2NET download is 175,997,641 bytes and matches upstream MD5
+`60024c5c889badc19c04ad937298a77b`; its recorded SHA-256 is
+`8d10d2f3bb75ae3b6d527c77944fc5e7dcd94b29809d47a739a7a728a912b491`.
+Focused job/projection/coordinator tests passed 53/53; standard-library process
+checks passed 32 with one expected platform skip. The full backend ran 557 tests:
+556 passed and one expected macOS skip. Independent code review found no blocking
+finding. Frozen-source Linux CI and production runtime acceptance remain pending.
+
+The actual `process_garment` → isolated subprocess → production `--infer`
+pipeline completed all ten approved public photographs using U2NET and the
+existing alpha settings. Storage was substituted with local PNG publication;
+no cloud documents, owner photos, credits or paid image requests were touched.
+The existing 360-second outer supervisor bounded each run. Model weights were
+downloaded and integrity-checked before the batch, so batch timings exclude
+cold model download. All ten runs completed in alpha mode without fallback,
+published original first and preserved the expected normalized-original pixels.
+
+| Public fixture | Processing seconds | Sampled maximum process-tree RSS, GB |
+| --- | ---: | ---: |
+| White T-shirt on carpet | 12.88 | 1.567 |
+| Blue jeans | 5.04 | 0.882 |
+| Nike sneakers on box | 15.14 | 1.471 |
+| Black hoodie | 4.78 | 0.849 |
+| Cardigan | 15.52 | 1.482 |
+| Denim jacket | 18.76 | 1.593 |
+| Brown dress shoes | 14.99 | 1.303 |
+| White sweatshirt | 5.18 | 0.775 |
+| Chinos | 7.31 | 1.280 |
+| Cargo shorts | 6.06 | 1.006 |
+
+RSS was sampled every 100 ms across each job's process tree on the compatible
+Mac runtime. These maxima can miss transient peaks and exclude the production
+coordinator and platform overhead; they are not Linux cgroup or capacity proof.
+The harness also records macOS `ru_maxrss`, complete package versions, source
+photo hashes, asset publication order and output dimensions in its evidence JSON.
+
+Visual review used untouched RGBA cutouts composited over defined light/dark
+backgrounds; hidden RGB under zero alpha was not mistaken for retained clutter.
+It found no major garment-body loss but did find real quality limits:
+
+- The white tee, blue jeans and black hoodie retain silhouette, graphics and
+  seams with mild edge softness. The white sweatshirt retains logos, zipper,
+  cuffs and hood, with soft edges most noticeable against dark backgrounds.
+- Sneaker bodies and logos remain, and the box is removed, but long dangling
+  lace ends are truncated.
+- The cardigan retains carpet inside one sleeve/body opening; the denim jacket
+  retains table inside underarm openings and between its front panels.
+- Dress shoes retain floor in some lace loops and a thin loose lace fades.
+  Chinos retain a small sheet patch inside the folded crotch opening.
+- Cargo shorts preserve the silhouette, pockets and drawstrings, with mild fringe.
+
+Ten successful jobs therefore establish local processing compatibility, not
+premium cutout quality or final hosted-flatlay fidelity. Original photographs
+remain the protected source of truth. Do not alter readiness or credits to hide
+these defects, and do not present the compositor/cutout as the polished final
+outfit image. Separate provider-image and production worker gates remain open.
+
+Local review artifacts are under `/private/tmp/easyoutfit-u2net-qa-output/`:
+`evidence.json`, `review.html`, and per-fixture original, cutout and explicitly
+labeled QA-only light/dark composites. Model integrity and full dependency
+freeze are recorded in adjacent temporary QA artifacts. Preserve those artifacts
+with the release evidence; they are not production assets.
 
 ## Original production state
 
