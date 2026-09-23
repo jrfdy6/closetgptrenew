@@ -11,10 +11,20 @@ live end-to-end validation remain Goal 6.
 The full signed-in questionnaire is unchanged. Its question catalog is
 byte-identical to the accepted base, including all gender variants. Section
 labels explain the purpose of each group, distinguish spending from measurements,
-and retain units, optional questions and privacy guidance. Selecting an answer
-does not advance automatically. Next moves focus to the next question heading;
-saved progress remains visible. Repeated introductory copy is reduced after the
-first question on mobile.
+and retain units, optional questions and privacy guidance. Explicit single-choice
+selection now advances after a 400 ms confirmation pause. A visible instruction
+before the options explains this behavior. Next remains available to continue
+immediately, and Previous lets people review retained answers. Both automatic
+and manual advancement focus the next question heading; saved progress remains
+visible. Sliders require Next, and the final answer requires an explicit Save
+and continue. Restored answers and slider defaults never trigger advancement.
+Repeated introductory copy is reduced after the first question on mobile.
+
+One cancellable timer is replaced by rapid reselection and invalidated by manual
+navigation, submission, draft conflict/reload, account changes and unmount. The
+destination comes from the latest draft and active gender variant, retaining
+next-unanswered guest continuation without overwriting newer answers. Returning
+to the same question or account cannot revive an earlier selection timer.
 
 Guest signup continues at the first unanswered question in the full variant.
 Guest answers are not promoted to a completed profile. A confirmed new account
@@ -73,6 +83,19 @@ storage failure instead of claiming success with a random placeholder URL;
 the client also rejects fallback upload responses before analysis/save.
 
 ## Verification
+
+September 23 Goal 6 auto-advance follow-up: the page, draft-hook and skin-tone
+slider suites passed **56 tests in three suites**. They cover the 400 ms delay,
+rapid reselection, manual navigation cancellation (including leaving/returning),
+all gender variants, fresh null and stale question cursors, restored drafts,
+slider persistence, conflicts/reload, account changes, unmount, retained guest
+continuation and explicit final submission. Targeted lint has no errors and
+retains the existing hook-dependency/test-mock warnings. The frontend production
+build passed using non-secret placeholder Firebase client settings and network
+access for existing Google Fonts; no environment/configuration file changed.
+The repository build still skips its type/lint gates. These local checks do
+not replace independent preview browser acceptance or the remaining phone
+capsule journey. The earlier Goal 3 validation below records its original scope.
 
 - Frontend: `npm test -- --runInBand` — **546 tests in 44 suites passed**.
 - Backend: `python -m unittest discover -s tests -p 'test_*.py'` — **323 tests:

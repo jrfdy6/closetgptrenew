@@ -25,6 +25,7 @@ let mockFetch: jest.Mock;
 let submitSuccess: boolean;
 beforeEach(() => {
   jest.useFakeTimers(); window.history.replaceState({}, '', '/onboarding'); sessionStorage.clear();
+  mockUser.uid = 'qa-user';
   mockRouter.push.mockClear(); mockRouter.replace.mockClear();
   originalFetch = globalThis.fetch; submitSuccess = true; mockPendingTransfer.mockReturnValue(false);
   mockWardrobe.mockReset(); mockWardrobe.mockResolvedValue(Array.from({ length: 10 }, (_, index) => ({ id: `item-${index}`, userId: mockUser.uid, type: index === 0 ? 'shoes' : index === 1 ? 'pants' : 'shirt', name: `My garment ${index}`, imageUrl: `/image-${index}.jpg` })));
@@ -40,7 +41,7 @@ beforeEach(() => {
   }); globalThis.fetch = mockFetch;
 });
 afterEach(() => { jest.clearAllTimers(); jest.useRealTimers(); globalThis.fetch = originalFetch; });
-const renderPage = async () => { await act(async () => { render(<Onboarding />); }); };
+const renderPage = async () => { let view!: ReturnType<typeof render>; await act(async () => { view = render(<Onboarding />); }); return view; };
 const advanceTimer = async (ms = 300) => act(async () => { jest.advanceTimersByTime(ms); });
 const choose = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
 const completeQuiz = async (count = 25) => {
@@ -51,32 +52,120 @@ const completeQuiz = async (count = 25) => {
     if (question < count) choose('Next');
   }
 };
-it('keeps selection until explicit Next, then focuses the requested question', async () => {
-  await renderPage(); choose('Male');
+it('shows the selection before automatically advancing and focusing the next question', async () => {
+  await renderPage();
+  expect(screen.getByText('Choose an answer to move forward automatically. Use Previous to review an answer.')).toBeVisible();
+  expect(screen.getByRole('group')).toHaveAccessibleDescription(/move forward automatically/);
+  choose('Male');
   expect(screen.getByRole('button', { name: 'Male' })).toHaveAttribute('aria-pressed', 'true');
-  await advanceTimer(1000); expect(screen.getByText('Getting started')).toBeVisible();
-  choose('Next'); expect(screen.getByText('Question 2 of 25')).toBeVisible();
+  await advanceTimer(399); expect(screen.getByText('Getting started')).toBeVisible();
+  await advanceTimer(1); expect(screen.getByText('Question 2 of 25')).toBeVisible();
   expect(screen.getByRole('heading', { name: /Which body shape/ })).toHaveFocus();
-  choose('Rectangle'); choose('Next'); await advanceTimer(1000);
+  choose('Rectangle'); await advanceTimer(400);
   expect(screen.getByText('Question 3 of 25')).toBeVisible();
   expect(screen.getByRole('slider', { name: 'Skin tone depth' })).toBeVisible();
 });
-it('changing a choice exposes the current selection without skipping a question', async () => {
+it('restarts the delay on rapid reselection and preserves the latest answer', async () => {
   await renderPage(); choose('Male'); choose('Next');
-  choose('Rectangle'); choose('Oval'); await advanceTimer(1000);
+  choose('Rectangle'); await advanceTimer(300); choose('Oval'); await advanceTimer(399);
   expect(screen.getByText('Question 2 of 25')).toBeVisible();
   expect(screen.getByRole('button', { name: 'Oval' })).toHaveAttribute('aria-pressed', 'true');
   expect(screen.getByRole('button', { name: 'Rectangle' })).toHaveAttribute('aria-pressed', 'false');
-  choose('Previous'); await advanceTimer(1000); expect(screen.getByText('Getting started')).toBeVisible();
+  await advanceTimer(1);
+  expect(screen.getByText('Question 3 of 25')).toBeVisible();
+  const saved = JSON.parse(sessionStorage.getItem('easyoutfit:onboarding:qa-user:v1')!);
+  expect(saved.draft.answers).toEqual(expect.arrayContaining([{ question_id: 'body_type_male', selected_option: 'Oval' }]));
+});
+it.each([null, 'removed-question', 'body_type_female'])('advances a displayed first question when the saved cursor is %s', async (cursor) => {
+  state.draft = { answers: [{ question_id: 'gender', selected_option: 'Male' }], currentQuestionId: cursor };
+  await renderPage(); choose('Male'); await advanceTimer(400);
+  expect(screen.getByText('Question 2 of 25')).toBeVisible();
+});
+it('allows both auto advancement and manual Next from a fresh account with a null cursor', async () => {
+  state.draft = { answers: [], currentQuestionId: null };
+  const view = await renderPage(); choose('Male'); await advanceTimer(400);
+  expect(screen.getByText('Question 2 of 25')).toBeVisible();
+  view.unmount(); sessionStorage.clear();
+  state.draft = { answers: [], currentQuestionId: null };
+  await renderPage(); choose('Female'); choose('Next'); await advanceTimer(1000);
+  expect(screen.getByText('Question 2 of 27')).toBeVisible();
+});
+it('cancels delayed advancement on manual Next and Previous, even after returning to the same question', async () => {
+  await renderPage(); choose('Male'); choose('Next');
+  await advanceTimer(1000);
+  expect(screen.getByText('Question 2 of 25')).toBeVisible();
+  choose('Rectangle'); choose('Previous'); choose('Next'); choose('Previous');
+  expect(screen.getByText('Question 2 of 25')).toBeVisible();
+  await advanceTimer(1000);
+  expect(screen.getByText('Question 2 of 25')).toBeVisible();
+});
+it.each([['Male', 25], ['Female', 27], ['Non-binary', 35], ['Prefer not to say', 35]])('auto advances within the latest %s variant', async (gender, count) => {
+  await renderPage();
+  choose('Male'); await advanceTimer(200); choose(String(gender)); await advanceTimer(400);
+  expect(screen.getByText(`Question 2 of ${count}`)).toBeVisible();
+  expect(screen.getByRole('heading', { name: fullQuizQuestions(String(gender))[1].question })).toHaveFocus();
+});
+it('does not advance a default or adjusted slider until Next', async () => {
+  state.draft = { answers: [{ question_id: 'gender', selected_option: 'Male' }], currentQuestionId: 'skin_tone' };
+  await renderPage(); await advanceTimer(1000);
+  const slider = screen.getByRole('slider', { name: 'Skin tone depth' });
+  expect(screen.getByText('Question 3 of 25')).toBeVisible();
+  fireEvent.input(slider, { target: { value: '70' } }); await advanceTimer(1000);
+  expect(screen.getByText('Question 3 of 25')).toBeVisible();
+  expect(slider).toHaveValue('70');
+  expect(state.draft.answers).toEqual(expect.arrayContaining([{ question_id: 'skin_tone', selected_option: 'skin_tone_70' }]));
+  choose('Next'); expect(screen.getByText('Question 4 of 25')).toBeVisible();
 });
 it('restores the saved question and answer', async () => {
   state.draft = { answers: [{ question_id: 'gender', selected_option: 'Male' }, { question_id: 'body_type_male', selected_option: 'Oval' }], currentQuestionId: 'body_type_male' };
-  await renderPage(); expect(screen.getByText('Question 2 of 25')).toBeVisible();
+  await renderPage(); await advanceTimer(1000); expect(screen.getByText('Question 2 of 25')).toBeVisible();
   expect(screen.getByRole('button', { name: 'Oval' })).toHaveAttribute('aria-pressed', 'true');
   expect(mockFetch).toHaveBeenCalledTimes(1);
 });
+it('cancels advancement on a save conflict and keeps the explicitly loaded draft in place', async () => {
+  await renderPage();
+  const newer = { ...state, revision: 2, draft: { answers: [{ question_id: 'gender', selected_option: 'Female' }], currentQuestionId: 'gender' } };
+  mockFetch.mockResolvedValueOnce({ ok: false, status: 409, json: async () => ({ state: newer }) });
+  choose('Male'); await advanceTimer(150);
+  expect(screen.getByRole('alert')).toHaveTextContent('newer draft');
+  expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+  await advanceTimer(250); expect(screen.getByText('Getting started')).toBeVisible();
+  choose('Load newer draft'); await advanceTimer(1000);
+  expect(screen.getByText('Getting started')).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Female' })).toHaveAttribute('aria-pressed', 'true');
+});
+it('invalidates pending advancement across account changes and a return to the original account', async () => {
+  const firstAccount = state;
+  const view = await renderPage(); choose('Male');
+  mockUser.uid = 'other-account';
+  state = { ...firstAccount, draft: { answers: [{ question_id: 'gender', selected_option: 'Female' }], currentQuestionId: 'gender' } };
+  await act(async () => { view.rerender(<Onboarding />); });
+  expect(screen.getByRole('button', { name: 'Female' })).toHaveAttribute('aria-pressed', 'true');
+  mockUser.uid = 'qa-user'; state = firstAccount;
+  await act(async () => { view.rerender(<Onboarding />); });
+  await advanceTimer(1000);
+  expect(screen.getByText('Getting started')).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Male' })).toHaveAttribute('aria-pressed', 'true');
+});
+it('cancels advancement on unmount and restores the selected answer without restarting the timer', async () => {
+  window.history.replaceState({}, '', '/onboarding?mode=guest');
+  const view = await renderPage(); choose('Male'); view.unmount();
+  await advanceTimer(1000);
+  expect(JSON.parse(sessionStorage.getItem('easyoutfit:onboarding:guest:v1')!).draft.currentQuestionId).toBe('gender');
+  await renderPage(); await advanceTimer(1000);
+  expect(screen.getByText('Getting started')).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Male' })).toHaveAttribute('aria-pressed', 'true');
+  choose('Female'); await advanceTimer(400);
+  expect(screen.getByText(`Question 2 of ${fullQuizQuestions('Female', true).length}`)).toBeVisible();
+  expect(mockFetch).not.toHaveBeenCalled();
+});
 it('starts the ten-item capsule only after persistence and authoritative readiness', async () => {
   await renderPage(); await completeQuiz();
+  await advanceTimer(1000);
+  expect(screen.getByText('Question 25 of 25')).toBeVisible();
+  expect(screen.getByText('Choose your answer, then save to continue.')).toBeVisible();
+  expect(mockFetch.mock.calls.some(([url]) => url === '/api/style-quiz/submit')).toBe(false);
+  expect(screen.queryByTestId('capsule-target')).not.toBeInTheDocument();
   await act(async () => { choose('Save my style & continue'); });
   const call = mockFetch.mock.calls.find(([url]) => url === '/api/style-quiz/submit');
   expect(JSON.parse(call![1].body).answers).toHaveLength(25);
@@ -100,6 +189,10 @@ it('never reads or writes the signed-in account during an explicit guest quiz', 
   await renderPage();
   expect(screen.getByText(/finish the remaining fit and wardrobe questions/)).toBeVisible();
   await completeQuiz(13);
+  await advanceTimer(1000);
+  expect(screen.getByText('Question 13 of 13')).toBeVisible();
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(sessionStorage.getItem('pendingQuizSubmission')).toBeNull();
   await act(async () => { choose('Save my start & continue'); });
   expect(mockFetch).not.toHaveBeenCalled();
   expect(JSON.parse(sessionStorage.getItem('pendingQuizSubmission')!).answers).toHaveLength(13);
@@ -186,7 +279,7 @@ it('continues to completion when later guest questions are already answered', as
   await renderPage();
   expect(screen.getByRole('heading', { name: 'Your wardrobe habits' })).toBeVisible();
   expect(screen.getByText(/Amounts are in dollars per year/)).toBeVisible();
-  choose('$0-$100'); choose('Next');
+  choose('$0-$100'); await advanceTimer(400);
   expect(screen.getByText('Question 25 of 25')).toBeVisible();
   expect(screen.getByRole('button', { name: 'Save my style & continue' })).toBeEnabled();
   choose('Previous'); expect(screen.getByText('Question 24 of 25')).toBeVisible();
