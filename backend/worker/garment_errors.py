@@ -4,6 +4,9 @@ Worker exceptions and provider/network messages never cross this boundary.
 Values are existing lifecycle codes; a missing envelope is handled separately
 as worker_crashed, while an unrecognized supplied code is processing_failed.
 """
+import signal
+
+
 SAFE_FAILURE_CODES = frozenset({
     'processing_failed', 'worker_timeout', 'worker_crashed', 'invalid_image',
     'invalid_identifier', 'invalid_result', 'source_changed', 'item_changed',
@@ -49,6 +52,8 @@ DIAGNOSTIC_CATEGORIES = frozenset({
     'permission_denied', 'filesystem_error', 'runtime_error', 'model_runtime_error',
     'validation_failed', 'unknown', 'process_timeout', 'process_crashed',
     'process_no_result', 'process_failed', 'output_missing',
+    'process_sigkill', 'process_sigsegv', 'process_sigabrt', 'process_sigill',
+    'process_other_signal', 'process_exit_nonzero', 'process_exit_74', 'process_exit_unknown',
 })
 _EXCEPTION_CATEGORIES = {
     'ModuleNotFoundError': 'dependency_missing', 'ImportError': 'import_error',
@@ -89,6 +94,11 @@ def _project_diagnostics(value) -> list[dict]:
         status = entry.get('http_status')
         if type(status) is int and 400 <= status <= 599:
             safe['http_status'] = status
+        # Container-level temporal correlation only, never child OOM attribution.
+        for key in ('container_oom_delta', 'container_oom_kill_delta'):
+            delta = entry.get(key)
+            if type(delta) is int and 0 <= delta <= 2**31 - 1:
+                safe[key] = delta
         result.append(safe)
     return result
 
@@ -98,6 +108,32 @@ def safe_diagnostics(value) -> list[dict]:
         return _project_diagnostics(value)
     except Exception:
         return []
+
+
+def process_exit_category(code) -> str:
+    """Classify Popen's code without exporting the number or guessing its cause."""
+    if type(code) is not int:
+        return 'process_exit_unknown'
+    signals = {-int(signal.SIGKILL): 'process_sigkill', -int(signal.SIGSEGV): 'process_sigsegv',
+               -int(signal.SIGABRT): 'process_sigabrt', -int(signal.SIGILL): 'process_sigill'}
+    if code in signals:
+        return signals[code]
+    if code < 0 and -code in signal.valid_signals():
+        return 'process_other_signal'
+    if code == 74:
+        return 'process_exit_74'
+    return 'process_exit_nonzero' if 0 < code <= 255 else 'process_exit_unknown'
+
+
+def inference_progress_stage(mode, progress) -> str:
+    """Only a marker for this exact inference mode may refine its process stage."""
+    fallback = f'{mode}_process' if mode in ('alpha', 'fallback') else 'job'
+    try:
+        stage = progress.get('stage') if isinstance(progress, dict) else None
+        allowed = tuple(f'{mode}_{part}' for part in ('import', 'input', 'removal', 'output'))
+        return stage if isinstance(stage, str) and stage in allowed else fallback
+    except Exception:
+        return fallback
 
 
 def _optional_attribute(value, name):

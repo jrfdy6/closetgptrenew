@@ -130,7 +130,7 @@ repair that retains the Railway Admin boundary, protected rules, versioned
 readers and private receipts/ledgers. Do not restore old Vercel Admin keys, old
 writers or permissive rules as a shortcut.
 
-Local verification records frontend 720 tests/57 suites passed, backend 533
+Base `801b6679` verification records frontend 720 tests/57 suites passed, backend 533
 passed/one macOS skip out of 534, rules 263 passed, and a production frontend
 build with public client configuration only and no Firebase Admin credentials.
 All 134 compiled server-route traces exclude Admin. Typecheck retains 115
@@ -141,4 +141,5 @@ The parent's frozen-source local service-emulator checks passed 25/25, and both
 Linux CI runs on accepted `801b6679` passed. The live API health/auth-denial and
 signed-in profile compatibility checks passed. Full authenticated frontend,
 provider-image and physical-device gates remain pending. See the Goal 6 handoff
-for accepted source, exact deployed artifact IDs and worker containment evidence.
+for accepted source, exact deployed artifact IDs, later diagnostic checks and worker
+containment evidence.

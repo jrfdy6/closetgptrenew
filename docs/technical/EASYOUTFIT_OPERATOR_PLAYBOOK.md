@@ -72,7 +72,7 @@ the accepted candidate, use `--skip-deploys`, then explicitly deploy the reviewe
 commit. A normal variable update can rebuild the older linked `main`; do not
 regress the new API while restoring admission.
 
-Current local evidence: frontend 720 tests in 57 suites passed; backend 534 tests
+Accepted base `801b6679` verification: frontend 720 tests in 57 suites passed; backend 534 tests
 ran with 533 passed and one macOS skip; Firestore rules 263 checks passed against
 SHA-256 `eafa27b3270d6906835309c68a10b13b71822852d8a35f8b501e36da9f9811ca`.
 The production frontend build passed with the existing public Firebase client
@@ -87,7 +87,8 @@ accepted source passed. Live API health/auth-denial checks and a signed-in
 profile save/reload passed; full authenticated frontend/provider-image and
 physical-device checks remain pending. The three canonical backend URL values
 were verified. See [the Goal 6 handoff](ONBOARDING_RELEASE_GOAL6_HANDOFF.md) for
-release artifacts, the remaining gates and recovery restrictions.
+release artifacts, subsequent worker diagnostic candidates and checks, the remaining
+gates and recovery restrictions.
 
 ## Canonical Surfaces
 

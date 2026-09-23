@@ -27,9 +27,11 @@ from PIL import Image, ImageOps
 try:
     from .process_supervisor import JobProcess, atomic_json
     from .garment_errors import garment_failure_code, safe_diagnostics, exception_diagnostic, exception_diagnostics
+    from .garment_errors import process_exit_category, inference_progress_stage
 except ImportError:
     from process_supervisor import JobProcess, atomic_json
     from garment_errors import garment_failure_code, safe_diagnostics, exception_diagnostic, exception_diagnostics
+    from garment_errors import process_exit_category, inference_progress_stage
 
 ALPHA_TIMEOUT_SECONDS = 240
 FALLBACK_TIMEOUT_SECONDS = 60
@@ -68,6 +70,47 @@ def _inference_manifest(path, value):
         atomic_json(path, value)
     except Exception:
         pass
+
+
+def _memory_events():
+    """Best-effort fixed cgroup-v2 counters; never expose file contents or paths."""
+    try:
+        with open('/sys/fs/cgroup/memory.events', 'rb') as stream:
+            raw = stream.read(4097)
+        if len(raw) > 4096:
+            return None
+        counters = {}
+        for line in raw.splitlines():
+            fields = line.split()
+            if not fields or fields[0] not in (b'oom', b'oom_kill'):
+                continue
+            if (len(fields) != 2 or fields[0] in counters or len(fields[1]) > 19 or
+                    not fields[1].isdigit() or int(fields[1]) > 2**63 - 1):
+                return None
+            counters[fields[0]] = int(fields[1])
+        return counters if set(counters) == {b'oom', b'oom_kill'} else None
+    except Exception:
+        return None
+
+
+def _memory_event_deltas(before, after):
+    # These counters belong to the container. A delta overlaps the inference
+    # interval but does not prove this child caused or suffered an OOM event.
+    try:
+        if not isinstance(before, dict) or not isinstance(after, dict):
+            return {}
+        result = {}
+        for key, field in ((b'oom', 'container_oom_delta'), (b'oom_kill', 'container_oom_kill_delta')):
+            first, last = before.get(key), after.get(key)
+            if any(type(value) is not int or not 0 <= value <= 2**63 - 1 for value in (first, last)):
+                return {}
+            delta = last - first
+            if not 0 <= delta <= 2**31 - 1:
+                return {}
+            result[field] = delta
+        return result
+    except Exception:
+        return {}
 
 
 def resize_image(image: Image.Image, max_width: int, max_height: int) -> Image.Image:
@@ -179,24 +222,28 @@ def _run_inference(mode: str, source_path: Path, output_path: Path, timeout: flo
                    *, job_factory=JobProcess) -> bytes:
     child_env = dict(os.environ)
     child_env.pop('OPENAI_API_KEY', None)
+    memory_before = _memory_events()
     job = job_factory({}, command=[sys.executable, str(Path(__file__).resolve()),
-                                  '--infer', mode, str(source_path), str(output_path), '{result}'],
+                                  '--infer', mode, str(source_path), str(output_path), '{result}', '{progress}'],
                       timeout_seconds=timeout, env=child_env)
     try:
         while True:
             summary = job.poll()
             if summary is not None:
+                memory_deltas = _memory_event_deltas(memory_before, _memory_events())
                 if summary['status'] != 'succeeded' or not output_path.exists():
                     result = summary.get('result')
                     result = result if isinstance(result, dict) else {}
                     diagnostics = safe_diagnostics(result.get('diagnostics'))
                     code = summary.get('returncode')
                     category = ('process_timeout' if summary['status'] == 'timed_out' else
-                                'process_crashed' if type(code) is int and code != 0 else
+                                process_exit_category(code) if type(code) is not int or code != 0 else
                                 'process_no_result' if not result else
                                 'output_missing' if summary['status'] == 'succeeded' else 'process_failed')
-                    raise GarmentJobError(f'{mode}_inference_failed', diagnostics=diagnostics or [
-                        {'stage': f'{mode}_process', 'category': category}])
+                    diagnostics = diagnostics or [
+                        {'stage': inference_progress_stage(mode, summary.get('progress')), 'category': category}]
+                    diagnostics[-1] = {**diagnostics[-1], **memory_deltas}
+                    raise GarmentJobError(f'{mode}_inference_failed', diagnostics=diagnostics)
                 if output_path.stat().st_size >= MAX_REFERENCE_IMAGE_BYTES:
                     raise GarmentJobError(f'{mode}_inference_output_too_large', diagnostics=[
                         {'stage': f'{mode}_output', 'category': 'validation_failed'}])
@@ -307,13 +354,17 @@ def firebase_uploader(bucket_name: str):
     return upload
 
 
-def infer(mode: str, source_path: str, output_path: str) -> None:
+def infer(mode: str, source_path: str, output_path: str, *, progress_path=None) -> None:
     # The only rembg import in this module. The caller always bounds this child.
     os.environ.setdefault('OMP_NUM_THREADS', '1')
     def load_remove():
         from rembg import remove
         return remove
+    if progress_path is not None:
+        _inference_manifest(progress_path, {'stage': f'{mode}_import'})
     remove = _stage(f'{mode}_import', load_remove)
+    if progress_path is not None:
+        _inference_manifest(progress_path, {'stage': f'{mode}_input'})
     source = _stage(f'{mode}_input', lambda: Path(source_path).read_bytes())
     if len(source) >= MAX_REFERENCE_IMAGE_BYTES:
         raise GarmentJobError('inference_input_too_large', diagnostics=[
@@ -321,7 +372,11 @@ def infer(mode: str, source_path: str, output_path: str) -> None:
     kwargs = ({'alpha_matting': True, 'alpha_matting_foreground_threshold': 240,
                'alpha_matting_background_threshold': 10, 'alpha_matting_erode_size': 10}
               if mode == 'alpha' else {})
+    if progress_path is not None:
+        _inference_manifest(progress_path, {'stage': f'{mode}_removal'})
     output = _stage(f'{mode}_removal', lambda: remove(source, **kwargs))
+    if progress_path is not None:
+        _inference_manifest(progress_path, {'stage': f'{mode}_output'})
     if not isinstance(output, bytes) or len(output) >= MAX_REFERENCE_IMAGE_BYTES:
         raise GarmentJobError('inference_output_invalid', diagnostics=[
             {'stage': f'{mode}_output', 'category': 'validation_failed'}])
@@ -329,14 +384,14 @@ def infer(mode: str, source_path: str, output_path: str) -> None:
 
 
 def main() -> int:
-    if len(sys.argv) in (5, 6) and sys.argv[1] == '--infer' and sys.argv[2] in ('alpha', 'fallback'):
+    if len(sys.argv) in (5, 6, 7) and sys.argv[1] == '--infer' and sys.argv[2] in ('alpha', 'fallback'):
         try:
-            infer(sys.argv[2], sys.argv[3], sys.argv[4])
-            if len(sys.argv) == 6:
+            infer(sys.argv[2], sys.argv[3], sys.argv[4], progress_path=sys.argv[6] if len(sys.argv) == 7 else None)
+            if len(sys.argv) >= 6:
                 _inference_manifest(sys.argv[5], {'status': 'succeeded'})
             return 0
         except Exception as exc:
-            if len(sys.argv) == 6:
+            if len(sys.argv) >= 6:
                 diagnostics = exception_diagnostics(exc) or [
                     exception_diagnostic(f'{sys.argv[2]}_process', exc)]
                 _inference_manifest(sys.argv[5], {'status': 'failed', 'diagnostics': diagnostics})

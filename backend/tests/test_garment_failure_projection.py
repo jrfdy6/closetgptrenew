@@ -23,6 +23,7 @@ BACKEND = Path(__file__).resolve().parents[1]
 CHILD = '''
 import sys
 from worker import garment_job as job
+job._memory_events = lambda: None
 manifest, result, progress, mode, supplied_code = sys.argv[1:]
 def fail(*args, **kwargs):
     raise job.GarmentJobError(supplied_code)
@@ -247,6 +248,25 @@ class GarmentFailureProjectionTests(unittest.TestCase):
         self.assertEqual(self.item['processing_error_code'], 'processing_failed')
         self.assertNotIn('diagnostics', self.item)
         self.assertNotIn('diagnostics', self.job)
+
+    def test_real_killed_inference_forwards_signal_and_actual_last_stage_for_both_attempts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'rembg.py').write_text(
+                'import os, signal\n'
+                'def remove(source, **kwargs):\n'
+                '    os.kill(os.getpid(), signal.SIGKILL)\n')
+            _, envelope, log = self.actual_failure('nested_inference', import_path=root)
+        self.assertEqual(envelope['diagnostics'], [
+            {'stage': 'alpha_removal', 'category': 'process_sigkill'},
+            {'stage': 'fallback_removal', 'category': 'process_sigkill'},
+        ])
+        self.assertEqual(envelope['error_code'], 'processing_failed')
+        self.assertEqual(self.item['processing_status'], 'pending')
+        self.assertIn('originalUrl', self.item)
+        self.assertEqual(self.item['processing_attempt_count'], 1)
+        self.assertNotIn('returncode', str(envelope))
+        self.assertNotIn('Traceback', log)
 
 
 if __name__ == '__main__':

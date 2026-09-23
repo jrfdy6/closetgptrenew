@@ -5,13 +5,14 @@ from io import BytesIO
 from io import StringIO
 import json
 import os
+import signal
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, mock_open, patch
 
 from PIL import Image
 from worker import garment_job
@@ -30,6 +31,9 @@ class GarmentJobTests(unittest.TestCase):
         self.payload = {'item_id': 'tee', 'attempt_id': 'attempt-id', 'image_url': 'https://assets.invalid/tee.jpg'}
         self.uploads = []
         self.progress = []
+        memory = patch.object(garment_job, '_memory_events', return_value=None)
+        memory.start()
+        self.addCleanup(memory.stop)
 
     def upload(self, image, path):
         self.uploads.append((path, image.copy()))
@@ -134,10 +138,12 @@ class GarmentJobTests(unittest.TestCase):
 
     def test_inference_supervisor_failures_are_classified_without_child_logs(self):
         cases = (({'status': 'timed_out', 'returncode': -9}, 'process_timeout'),
-                 ({'status': 'failed', 'returncode': -9}, 'process_crashed'),
+                 ({'status': 'failed', 'returncode': -9}, 'process_sigkill'),
                  ({'status': 'failed', 'returncode': 0}, 'process_no_result'),
                  ({'status': 'failed', 'returncode': 0, 'result': {'status': 'failed'}}, 'process_failed'),
-                 ({'status': 'succeeded', 'result': {'status': 'succeeded'}}, 'output_missing'))
+                 ({'status': 'succeeded', 'returncode': 0, 'result': {'status': 'succeeded'}}, 'output_missing'),
+                 ({'status': 'failed', 'returncode': 'private'}, 'process_exit_unknown'),
+                 ({'status': 'failed', 'returncode': True}, 'process_exit_unknown'))
         with tempfile.TemporaryDirectory() as directory:
             for summary, category in cases:
                 with self.subTest(category=category):
@@ -150,6 +156,73 @@ class GarmentJobTests(unittest.TestCase):
                     self.assertEqual(caught.exception.diagnostics,
                                      [{'stage': 'fallback_process', 'category': category}])
                     child.close.assert_called_once()
+
+    def test_real_signal_and_nonzero_exits_keep_finite_category_and_last_safe_stage(self):
+        cases = ((f'os.kill(os.getpid(), {int(signal.SIGKILL)})', 'process_sigkill', 'alpha_removal'),
+                 ('os._exit(1)', 'process_exit_nonzero', 'alpha_removal'),
+                 (None, 'process_exit_74', 'alpha_process'))
+        with tempfile.TemporaryDirectory() as directory:
+            for termination, category, stage in cases:
+                with self.subTest(category=category):
+                    children = []
+                    def factory(payload, **options):
+                        command = ([sys.executable, str(Path(garment_job.__file__).with_name('process_supervisor.py')),
+                                    '--launch', str(Path(directory) / 'never-registered'), sys.executable, '-c', 'pass']
+                                   if termination is None else [sys.executable, '-c',
+                                    'import os,sys; from worker.process_supervisor import atomic_json; '
+                                    'atomic_json(sys.argv[1], {"stage":"alpha_removal", "secret":"private-token"}); '
+                                    + termination, '{progress}'])
+                        child = JobProcess({}, command=command, timeout_seconds=4, env=options['env'])
+                        children.append(child)
+                        return child
+                    with self.assertRaises(GarmentJobError) as caught:
+                        _run_inference('alpha', Path(directory) / 'in', Path(directory) / 'out',
+                                       240, job_factory=factory)
+                    self.assertEqual(str(caught.exception), 'alpha_inference_failed')
+                    self.assertEqual(caught.exception.diagnostics, [{'stage': stage, 'category': category}])
+                    self.assertFalse(children[0].workdir.exists())
+                    self.assertIsNotNone(children[0].process.returncode)
+
+    def test_inference_progress_markers_are_best_effort_and_leave_results_unchanged(self):
+        secret = 'https://private.invalid/model?token=secret'
+        with tempfile.TemporaryDirectory() as directory:
+            source, output = Path(directory) / 'in', Path(directory) / 'out'
+            source.write_bytes(self.original_bytes)
+            rembg = SimpleNamespace(remove=Mock(return_value=self.original_bytes))
+            with patch.dict(sys.modules, {'rembg': rembg}), patch.object(garment_job, 'atomic_json', side_effect=OSError(secret)) as write:
+                infer('alpha', str(source), str(output), progress_path='progress')
+            self.assertEqual(output.read_bytes(), self.original_bytes)
+            self.assertEqual([call.args[1] for call in write.call_args_list], [
+                {'stage': 'alpha_import'}, {'stage': 'alpha_input'},
+                {'stage': 'alpha_removal'}, {'stage': 'alpha_output'}])
+            rembg.remove = Mock(side_effect=RuntimeError(secret))
+            with patch.dict(sys.modules, {'rembg': rembg}), patch.object(garment_job, 'atomic_json', side_effect=OSError(secret)), self.assertRaises(GarmentJobError) as caught:
+                infer('fallback', str(source), str(output), progress_path='progress')
+            self.assertEqual(str(caught.exception), 'processing_failed')
+            self.assertEqual(caught.exception.diagnostics, [{'stage': 'fallback_removal', 'category': 'runtime_error'}])
+            self.assertNotIn(secret, str(caught.exception.diagnostics))
+
+    def test_cgroup_deltas_omit_missing_reset_overflow_and_malformed_snapshots(self):
+        from worker.garment_job import _memory_event_deltas
+        values = {b'oom': 4, b'oom_kill': 2}
+        self.assertEqual(_memory_event_deltas(values, {b'oom': 6, b'oom_kill': 3}),
+                         {'container_oom_delta': 2, 'container_oom_kill_delta': 1})
+        for after in (None, {}, {b'oom': 3, b'oom_kill': 2}, {b'oom': True, b'oom_kill': 2},
+                      {b'oom': 2**63, b'oom_kill': 2}, {b'oom': 2**31 + 4, b'oom_kill': 2}):
+            self.assertEqual(_memory_event_deltas(values, after), {})
+
+    def test_counter_deltas_are_optional_correlation_without_changing_exit_classification(self):
+        child = Mock()
+        child.poll.return_value = {'status': 'failed', 'returncode': -int(signal.SIGKILL),
+                                   'progress': {'stage': 'fallback_removal'}}
+        snapshots = [{b'oom': 4, b'oom_kill': 2}, {b'oom': 5, b'oom_kill': 3}]
+        with tempfile.TemporaryDirectory() as directory, patch.object(garment_job, '_memory_events', side_effect=snapshots):
+            with self.assertRaises(GarmentJobError) as caught:
+                _run_inference('fallback', Path(directory) / 'in', Path(directory) / 'out',
+                               60, job_factory=Mock(return_value=child))
+        self.assertEqual(caught.exception.diagnostics, [{'stage': 'fallback_removal', 'category': 'process_sigkill',
+                         'container_oom_delta': 1, 'container_oom_kill_delta': 1}])
+        self.assertEqual(str(caught.exception), 'fallback_inference_failed')
 
     def test_raising_exception_accessors_cannot_replace_safe_job_failure_envelope(self):
         secret = 'https://private.invalid/model?token=secret'
@@ -252,6 +325,24 @@ class GarmentJobTests(unittest.TestCase):
         self.assertEqual(blob.upload_from_string.call_args.kwargs,
                          {'content_type': 'image/png', 'if_generation_match': 0, 'timeout': 20, 'retry': None})
         blob.make_public.assert_called_once_with(timeout=20, retry=None)
+
+
+class CgroupDiagnosticTests(unittest.TestCase):
+    def test_fixed_counter_read_is_bounded_and_ignores_unrelated_contents(self):
+        with patch('builtins.open', mock_open(read_data=b'low 9\noom 4\noom_kill 2\nprivate token\n')) as opened:
+            self.assertEqual(garment_job._memory_events(), {b'oom': 4, b'oom_kill': 2})
+        opened.assert_called_once_with('/sys/fs/cgroup/memory.events', 'rb')
+        opened().read.assert_called_once_with(4097)
+
+    def test_counter_read_omits_missing_malformed_duplicate_and_oversized_values(self):
+        for raw in (b'', b'oom 1\n', b'oom -1\noom_kill 0\n', b'oom 1 extra\noom_kill 0\n',
+                    b'oom 1\noom 2\noom_kill 0\n', b'oom nope\noom_kill 0\n',
+                    b'oom 9223372036854775808\noom_kill 0\n', b'x' * 4097):
+            with self.subTest(raw=raw[:30]), patch('builtins.open', mock_open(read_data=raw)):
+                self.assertIsNone(garment_job._memory_events())
+        for error in (FileNotFoundError('private'), PermissionError('private'), OSError('private')):
+            with patch('builtins.open', side_effect=error):
+                self.assertIsNone(garment_job._memory_events())
 
 
 if __name__ == '__main__':

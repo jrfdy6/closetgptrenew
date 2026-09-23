@@ -1,6 +1,7 @@
 """Coordinator regressions without image models, credentials or cloud writes."""
 import ast
 import copy
+import signal
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -233,6 +234,34 @@ class CoordinatorTests(unittest.TestCase):
         for value in (True, '503', 399, 600, ['private-token']):
             self.assertEqual(safe_diagnostics([{'stage': 'job', 'category': 'unknown', 'http_status': value}]),
                              [{'stage': 'job', 'category': 'unknown'}])
+
+    def test_process_exit_categories_and_stage_markers_are_finite(self):
+        from worker.garment_errors import process_exit_category, inference_progress_stage, safe_diagnostics
+        cases = ((-int(signal.SIGKILL), 'process_sigkill'), (-int(signal.SIGSEGV), 'process_sigsegv'),
+                 (-int(signal.SIGABRT), 'process_sigabrt'), (-int(signal.SIGILL), 'process_sigill'),
+                 (-int(signal.SIGTERM), 'process_other_signal'), (1, 'process_exit_nonzero'),
+                 (74, 'process_exit_74'), (137, 'process_exit_nonzero'))
+        for code, category in cases:
+            self.assertEqual(process_exit_category(code), category)
+            self.assertEqual(safe_diagnostics([{'stage': 'alpha_removal', 'category': category,
+                                               'returncode': code, 'message': 'private'}]),
+                             [{'stage': 'alpha_removal', 'category': category}])
+        for code in (None, True, False, '74', -9.0, [], {}, 0, 256, -999999):
+            self.assertEqual(process_exit_category(code), 'process_exit_unknown')
+        self.assertEqual(inference_progress_stage('alpha', {'stage': 'alpha_removal'}), 'alpha_removal')
+        for progress in (None, [], 'private', {'stage': 'fallback_removal'},
+                         {'stage': 'alpha_model_download'}, {'stage': ['private']}, {'stage': 'private'}):
+            self.assertEqual(inference_progress_stage('alpha', progress), 'alpha_process')
+
+    def test_container_counter_deltas_are_bounded_and_never_change_category(self):
+        from worker.garment_errors import safe_diagnostics
+        base = {'stage': 'alpha_removal', 'category': 'process_sigkill'}
+        self.assertEqual(safe_diagnostics([{**base, 'container_oom_delta': 1, 'container_oom_kill_delta': 0,
+                                           'memory.events': 'private', 'returncode': -9}]),
+                         [{**base, 'container_oom_delta': 1, 'container_oom_kill_delta': 0}])
+        for value in (True, -1, 2**31, '1', [], {'secret': 'private'}):
+            self.assertEqual(safe_diagnostics([{**base, 'container_oom_delta': value,
+                                               'container_oom_kill_delta': value}]), [base])
 
     def test_stale_original_stops_child_without_publishing_result(self):
         self.coordinator.tick()

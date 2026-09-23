@@ -157,7 +157,12 @@ its monorepo archive omitted required files. The official `serviceInstanceDeploy
 API with explicit `commitSha` and `latestCommit: false` successfully deployed the
 accepted Git source. Use this controlled path rather than unverified archives.
 
-## Worker diagnostic candidate — not yet deployed
+## Worker diagnostic run and remaining evidence gap
+
+Accepted diagnostic source `4581d43cae2b9cff726cd1219dd8b681bf1b36ff` was deployed
+for one bounded worker-only run after independent review and two successful Linux
+CI runs (`35801948799`, `35801945634`). API source, rules and admission pause were
+unchanged.
 
 The contained failure needs more precise evidence than the public
 `processing_failed` code. The narrow candidate forwards at most two finite
@@ -181,8 +186,54 @@ Independent review resolved the diagnostic-accessor fault and found no remaining
 blocking issue. Real nested subprocess tests verify both inference causes cross
 the manifest boundaries while original preservation and retry behavior remain
 unchanged. Frontend, rules and API source are unchanged from accepted `801b6679`.
-Freeze the exact diagnostic commit, verify Linux CI and obtain parent acceptance
-before a bounded worker-only diagnostic run; keep API admission paused.
+Deployment `00ccfc8d-2ac4-42c3-84a3-df69d5b8b810` ran one instance
+`c04fd293-198e-45e4-9c09-6d5b84f5874a`. A naturally eligible second attempt began
+at `00:29:20 UTC` and failed at `00:30:41 UTC` with both `alpha_process` and
+`fallback_process` classified `process_crashed`. No Python failure manifest was
+returned. That category included any nonzero integer exit and did not establish
+a signal, native failure or OOM cause.
+
+The coordinator started the next naturally eligible garment in the same tick
+before the observer stopped the service. `Worker stopped` was recorded at
+`00:30:50 UTC`; the stop command exited zero and no active instances remained.
+The second job had no terminal event before shutdown; its existing durable lease
+was retained for normal recovery. No manual garment or paid-request retry occurred.
+
+Official 60-second metrics for this run sampled 0.306–1.861 GB memory against an
+8 GB limit, and CPU up to 1.117 against an 8 limit. Sparse samples are not peak
+measurements or OOM counters; they do not justify changing resources, models or
+deadlines. The exact diagnostic build resolved rembg 2.0.85, onnxruntime 1.30.0,
+NumPy 2.5.3, PyMatting 1.1.16, Pillow 12.3.0, SciPy 1.18.1 and scikit-image 0.26.0.
+The selected native wheels target CPython 3.12 on Linux x86_64; this records the
+active Nixpacks build, not the inactive worker Dockerfile or API dependency pins.
+Next evidence is finite exit/signal classification from the supervisor,
+best-effort last-stage markers, and optional bounded cgroup-v2 `oom`/`oom_kill`
+counter deltas. Only a fixed, capped file read and two nonnegative integer deltas
+are permitted; unavailable/malformed/reset counters are omitted. The deltas
+describe container-level events during inference, not proof that this child was
+killed by OOM. Any further worker run requires a fresh source/test review; keep
+API admission paused.
+
+## Exit/stage/cgroup diagnostic extension — not yet deployed
+
+The follow-up candidate changes only worker diagnostic extraction and its tests.
+It classifies the supervisor's retained return code into finite signal/nonzero
+exit categories; exit 74 is a neutral category, not proof the registration barrier
+caused the production failure. Best-effort progress markers identify the last
+inference import/input/removal/output stage. The outer supervisor, coordinator,
+lifecycle, model/provider settings, resources, retry budgets and deadlines remain
+unchanged. Missing marker or counter evidence stays unknown rather than being
+invented. Counter evidence is projected through the same finite schema before
+operational logging and never enters user/job records.
+
+Focused checks ran 64 tests: 63 passed and one expected macOS skip. Standard-library
+checks ran 33: 32 passed and one expected macOS skip. Full backend checks ran 551:
+550 passed and one expected macOS skip. Regressions include actual SIGKILL, exit 1,
+the real missing-registration-barrier exit 74, native exits through the production
+`--infer` path, malformed codes, optional marker-write failures and bounded cgroup
+read/reset/overflow behavior. Generic tests isolate host cgroup availability.
+No further worker deployment is authorized by these local checks alone; record
+the frozen commit, exact CI and parent review before any bounded next run.
 
 ## Original production state
 
