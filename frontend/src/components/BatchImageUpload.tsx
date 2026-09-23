@@ -39,6 +39,7 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
   const { user } = useFirebase();
   const [items, setItems] = useState<UploadItem[]>([]);
   const [busy, setBusy] = useState(false);
+  const [preparingCount, setPreparingCount] = useState(0);
   const [queueOwner, setQueueOwner] = useState(userId);
   const mounted = useRef(true);
   const [selectionError, setSelectionError] = useState<string | null>(null);
@@ -46,39 +47,53 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
   const activeOwner = useRef(userId);
   const currentUser = useRef(user);
   const running = useRef(false);
+  const preparingSelections = useRef(new Set<symbol>());
+  const pendingCallback = useRef(onPendingChange);
   const unreportedSaves = useRef(new Map<string, SavedItem>());
   const visibleItems = queueOwner === userId && user?.uid === userId ? items : [];
   itemsRef.current = visibleItems;
   currentUser.current = user;
   activeOwner.current = userId;
+  pendingCallback.current = onPendingChange;
 
   useEffect(() => {
     mounted.current = true;
-    return () => { mounted.current = false; };
+    const selections = preparingSelections.current;
+    return () => {
+      mounted.current = false;
+      selections.clear();
+      pendingCallback.current?.(false);
+    };
   }, []);
 
   useEffect(() => {
+    const selections = preparingSelections.current;
     setItems([]);
     itemsRef.current = [];
     unreportedSaves.current.clear();
     setQueueOwner(userId);
     setBusy(false);
     running.current = false;
+    selections.clear();
+    setPreparingCount(0);
     setSelectionError(null);
-    return () => { itemsRef.current.forEach(item => URL.revokeObjectURL(item.preview)); };
-  }, [userId]);
+    return () => {
+      selections.clear();
+      itemsRef.current.forEach(item => URL.revokeObjectURL(item.preview));
+    };
+  }, [userId, user?.uid]);
 
   const update = (id: string, values: Partial<UploadItem>) => {
     const next = itemsRef.current.map(item => item.id === id ? { ...item, ...values } : item);
     itemsRef.current = next;
     setItems(next);
   };
-  const isCurrent = (uid: string) => mounted.current && activeOwner.current === uid && currentUser.current?.uid === uid;
+  const isCurrent = useCallback((uid: string) => mounted.current && activeOwner.current === uid && currentUser.current?.uid === uid, []);
 
-  const finishResolvedBatch = async (owner: string) => {
+  const finishResolvedBatch = useCallback(async (owner: string) => {
     // Existing dashboard/wardrobe callers close their dialog here. An earlier
     // successful sibling must never hide a later pending or failed selection.
-    if (!isCurrent(owner) || running.current || !unreportedSaves.current.size ||
+    if (!isCurrent(owner) || running.current || preparingSelections.current.size || !unreportedSaves.current.size ||
       itemsRef.current.some(item => item.status !== 'success' && item.status !== 'duplicate')) return;
     const saved = Array.from(unreportedSaves.current.values());
     unreportedSaves.current.clear();
@@ -86,7 +101,7 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
     catch {
       if (isCurrent(owner)) setSelectionError('Your items are saved, but the wardrobe view could not be refreshed. Please refresh it.');
     }
-  };
+  }, [isCurrent, onUploadComplete]);
   const removeItem = (item: UploadItem) => {
     URL.revokeObjectURL(item.preview);
     const next = itemsRef.current.filter(entry => entry.id !== item.id);
@@ -96,12 +111,21 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
   };
 
   const onDrop = useCallback(async (files: File[]) => {
-    if (!user || user.uid !== userId || running.current) return;
+    if (!user || user.uid !== userId || running.current || !files.length) return;
     const owner = userId;
+    const selection = Symbol('photo-selection');
+    preparingSelections.current.add(selection);
+    setPreparingCount(preparingSelections.current.size);
+    const selectionIsCurrent = () => isCurrent(owner) && preparingSelections.current.has(selection);
+    const selected: UploadItem[] = [];
+    let staged = false;
     setSelectionError(null);
     try {
-      const response = await fetch('/api/wardrobe', { headers: { Authorization: `Bearer ${await user.getIdToken()}` }, cache: 'no-store' });
+      const token = await user.getIdToken();
+      if (!selectionIsCurrent()) return;
+      const response = await fetch('/api/wardrobe', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
       const payload = await response.json();
+      if (!selectionIsCurrent()) return;
       if (!response.ok || payload.success !== true || !Array.isArray(payload.items)) {
         throw new Error('We could not check your saved photos. Please try selecting them again.');
       }
@@ -109,24 +133,38 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
         ...payload.items.flatMap((item: SavedItem) => [item.contentHash, item.imageHash].filter(Boolean)),
         ...itemsRef.current.map(item => item.hash).filter((value): value is string => Boolean(value)),
       ]);
-      const selected: UploadItem[] = [];
       for (const file of files) {
         const hash = await photoHash(file);
+        if (!selectionIsCurrent()) return;
         const duplicate = knownHashes.has(hash);
         knownHashes.add(hash);
         let preparedFile: File | undefined;
         let error: string | undefined;
         try { preparedFile = await prepareCapsulePhoto(file); } catch (failure) { error = failure instanceof Error ? failure.message : 'This photo could not be read.'; }
+        if (!selectionIsCurrent()) return;
         selected.push({ id: `item-${crypto.randomUUID()}`, file, hash, preparedFile, error, preview: URL.createObjectURL(preparedFile || file), status: duplicate ? 'duplicate' : error ? 'error' : 'pending' });
       }
-      if (!isCurrent(owner)) { selected.forEach(item => URL.revokeObjectURL(item.preview)); return; }
+      // A concurrent selection may have staged the same hash during preparation.
+      const stagedHashes = new Set(itemsRef.current.map(item => item.hash).filter(Boolean));
+      selected.forEach(item => {
+        if (item.hash && stagedHashes.has(item.hash)) item.status = 'duplicate';
+      });
       const next = [...itemsRef.current, ...selected];
       itemsRef.current = next;
       setItems(next);
+      staged = true;
     } catch (error) {
-      if (isCurrent(owner)) setSelectionError(error instanceof Error ? error.message : 'These photos could not be selected. Please try again.');
+      if (selectionIsCurrent()) setSelectionError(error instanceof Error ? error.message : 'These photos could not be selected. Please try again.');
+    } finally {
+      if (!staged) selected.forEach(item => URL.revokeObjectURL(item.preview));
+      const wasCurrent = selectionIsCurrent();
+      preparingSelections.current.delete(selection);
+      if (wasCurrent) {
+        setPreparingCount(preparingSelections.current.size);
+        if (staged) await finishResolvedBatch(owner);
+      }
     }
-  }, [user, userId]);
+  }, [user, userId, isCurrent, finishResolvedBatch]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop, disabled: busy,
@@ -218,7 +256,8 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
   };
 
   const pendingCount = visibleItems.filter(item => item.status === 'pending' || item.status === 'error').length;
-  const hasUnsaved = pendingCount > 0 || busy;
+  const preparing = queueOwner === userId && user?.uid === userId && preparingCount > 0;
+  const hasUnsaved = pendingCount > 0 || busy || preparing;
   useEffect(() => { onPendingChange?.(hasUnsaved); }, [hasUnsaved, onPendingChange]);
   useEffect(() => {
     if (!hasUnsaved) return;
@@ -235,6 +274,7 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
       <p className="mt-1 text-sm text-muted-foreground">Choose photos or drop them here. Save one item or several at a time.</p>
       <p className="mt-3 text-xs text-muted-foreground">JPEG, PNG, WebP or HEIC · up to 10 MB each</p>
     </div>
+    {preparing && <p role="status" className="text-sm text-muted-foreground">Preparing your photos…</p>}
     {selectionError && <p role="alert" className="text-sm text-destructive">{selectionError}</p>}
     {visibleItems.length > 0 && <>
       <div className="flex flex-wrap items-center justify-between gap-3">

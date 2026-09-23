@@ -6,19 +6,24 @@ import React, { useState } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import BatchImageUpload from './BatchImageUpload';
 import { persistBatchWardrobeItem } from '@/lib/persistBatchWardrobeItem';
+import { prepareCapsulePhoto, photoHash } from '@/lib/onboarding/capsulePhoto';
 let mockOnDrop: (files: File[]) => Promise<void>;
 let mockReject: () => void;
-const mockUser = { uid: 'test-owner', getIdToken: async () => 'upload-test-token' };
+const mockUser = { uid: 'test-owner', getIdToken: jest.fn() };
 jest.mock('react-dropzone', () => ({ useDropzone: ({ onDrop, onDropRejected }: any) => { mockOnDrop = onDrop; mockReject = onDropRejected; return { getRootProps: () => ({}), getInputProps: () => ({}), isDragActive: false }; } }));
 jest.mock('@/lib/firebase-context', () => ({ useFirebase: () => ({ user: mockUser }) }));
 jest.mock('@/lib/publicBackendUrl', () => ({ getPublicBackendUrl: () => 'https://api.example.test' }));
 jest.mock('@/lib/persistBatchWardrobeItem', () => ({ persistBatchWardrobeItem: jest.fn() }));
-jest.mock('@/lib/onboarding/capsulePhoto', () => ({ prepareCapsulePhoto: async (file: File) => file, photoHash: async (file: File) => `sha256:${file.name}` }));
+jest.mock('@/lib/onboarding/capsulePhoto', () => ({ prepareCapsulePhoto: jest.fn(), photoHash: jest.fn() }));
 let originalFetch: typeof fetch;
 let mockFetch: jest.Mock;
 let analysisPending = false;
 let wardrobeItems: any[] = [];
 beforeEach(() => {
+  mockUser.uid = 'test-owner';
+  mockUser.getIdToken.mockReset().mockResolvedValue('upload-test-token');
+  (prepareCapsulePhoto as jest.Mock).mockReset().mockImplementation(async (file: File) => file);
+  (photoHash as jest.Mock).mockReset().mockImplementation(async (file: File) => `sha256:${file.name}`);
   originalFetch = global.fetch;
   URL.createObjectURL = jest.fn(() => 'blob:test'); URL.revokeObjectURL = jest.fn();
   let sequence = 0;
@@ -184,4 +189,239 @@ it('does not start another upload or callback after an in-flight save settles fo
   expect(persistBatchWardrobeItem).toHaveBeenCalledTimes(1);
   expect(mockFetch.mock.calls.filter(([url]) => url.endsWith('/api/image/upload'))).toHaveLength(1);
   expect(complete).not.toHaveBeenCalled(); expect(itemSaved).not.toHaveBeenCalled();
+});
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
+  return { promise, resolve, reject };
+}
+const photo = (name: string) => new File([name], name, { type: 'image/jpeg' });
+
+it.each(['token', 'wardrobe', 'hash', 'photo'])('protects selected photos while %s preparation is still pending', async stage => {
+  const gate = deferred<unknown>();
+  const file = photo('shirt.jpg');
+  if (stage === 'token') mockUser.getIdToken.mockReturnValueOnce(gate.promise);
+  if (stage === 'wardrobe') mockFetch.mockReturnValueOnce(gate.promise);
+  if (stage === 'hash') (photoHash as jest.Mock).mockReturnValueOnce(gate.promise);
+  if (stage === 'photo') (prepareCapsulePhoto as jest.Mock).mockReturnValueOnce(gate.promise);
+  const pending = jest.fn();
+  render(<BatchImageUpload userId="test-owner" onPendingChange={pending} />);
+  let selecting!: Promise<void>;
+  await act(async () => { selecting = mockOnDrop([file]); });
+
+  expect(pending).toHaveBeenLastCalledWith(true);
+  expect(screen.getByText('Preparing your photos…')).toBeVisible();
+  expect(screen.queryByText('Ready to upload')).not.toBeInTheDocument();
+  const warning = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(warning);
+  expect(warning.defaultPrevented).toBe(true);
+  pending.mockClear();
+
+  await act(async () => {
+    gate.resolve(stage === 'token' ? 'upload-test-token' : stage === 'wardrobe'
+      ? { ok: true, json: async () => ({ success: true, items: [] }) }
+      : stage === 'hash' ? 'sha256:shirt.jpg' : file);
+    await selecting;
+  });
+  expect(screen.getByText('Ready to upload')).toBeVisible();
+  expect(pending).not.toHaveBeenCalledWith(false);
+  fireEvent.click(screen.getByRole('button', { name: 'Remove shirt.jpg from this selection' }));
+  expect(pending).toHaveBeenLastCalledWith(false);
+});
+
+it.each(['wardrobe', 'hash'])('clears preparation on %s failure and retains its error', async stage => {
+  const gate = deferred<unknown>();
+  if (stage === 'wardrobe') mockFetch.mockReturnValueOnce(gate.promise);
+  else (photoHash as jest.Mock).mockReturnValueOnce(gate.promise);
+  const pending = jest.fn();
+  const complete = jest.fn();
+  render(<BatchImageUpload userId="test-owner" onPendingChange={pending} onUploadComplete={complete} />);
+  let selecting!: Promise<void>;
+  await act(async () => { selecting = mockOnDrop([photo('shirt.jpg')]); });
+  expect(pending).toHaveBeenLastCalledWith(true);
+
+  await act(async () => { gate.reject(new Error('Photo check unavailable')); await selecting; });
+  expect(screen.getByRole('alert')).toHaveTextContent('Photo check unavailable');
+  expect(pending).toHaveBeenLastCalledWith(false);
+  expect(screen.queryByText('Preparing your photos…')).not.toBeInTheDocument();
+  expect(complete).not.toHaveBeenCalled();
+});
+
+it('keeps a photo preparation error pending until the failed selection is removed', async () => {
+  (prepareCapsulePhoto as jest.Mock).mockRejectedValue(new Error('This HEIC photo could not be read'));
+  const pending = jest.fn();
+  render(<BatchImageUpload userId="test-owner" onPendingChange={pending} />);
+  await choose('shirt.heic');
+
+  expect(screen.getByRole('alert')).toHaveTextContent('HEIC photo could not be read');
+  expect(screen.getByText('Not saved yet')).toBeVisible();
+  expect(pending).toHaveBeenLastCalledWith(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Remove shirt.heic from this selection' }));
+  expect(pending).toHaveBeenLastCalledWith(false);
+});
+
+it('keeps pending true until every overlapping preparation resolves', async () => {
+  const first = deferred<File>();
+  const second = deferred<File>();
+  wardrobeItems = [{ contentHash: 'sha256:first.jpg' }, { contentHash: 'sha256:second.jpg' }];
+  (prepareCapsulePhoto as jest.Mock).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+  const pending = jest.fn();
+  render(<BatchImageUpload userId="test-owner" onPendingChange={pending} />);
+  let firstSelection!: Promise<void>;
+  let secondSelection!: Promise<void>;
+  await act(async () => { firstSelection = mockOnDrop([photo('first.jpg')]); });
+  await act(async () => { secondSelection = mockOnDrop([photo('second.jpg')]); });
+  pending.mockClear();
+
+  await act(async () => { first.resolve(photo('first.jpg')); await firstSelection; });
+  expect(screen.getByText('Already added')).toBeVisible();
+  expect(screen.getByText('Preparing your photos…')).toBeVisible();
+  expect(pending).not.toHaveBeenCalledWith(false);
+
+  await act(async () => { second.resolve(photo('second.jpg')); await secondSelection; });
+  expect(screen.getAllByText('Already added')).toHaveLength(2);
+  expect(pending).toHaveBeenLastCalledWith(false);
+});
+
+it.each(['new', 'duplicate'])('does not complete an earlier save while a newer %s selection is preparing', async kind => {
+  (persistBatchWardrobeItem as jest.Mock).mockImplementation(async item => item);
+  const complete = jest.fn();
+  render(<BatchImageUpload userId="test-owner" onUploadComplete={complete} />);
+  await choose('first.jpg');
+  const laterPhoto = deferred<File>();
+  (prepareCapsulePhoto as jest.Mock).mockReturnValueOnce(laterPhoto.promise);
+  if (kind === 'duplicate') wardrobeItems = [{ contentHash: 'sha256:second.jpg' }];
+  let laterSelection!: Promise<void>;
+  await act(async () => { laterSelection = mockOnDrop([photo('second.jpg')]); });
+  start();
+  await screen.findByText('Saved to your wardrobe');
+  expect(complete).not.toHaveBeenCalled();
+
+  await act(async () => { laterPhoto.resolve(photo('second.jpg')); await laterSelection; });
+  if (kind === 'new') {
+    expect(complete).not.toHaveBeenCalled();
+    start();
+  }
+  await waitFor(() => expect(complete).toHaveBeenCalledTimes(1));
+  expect(complete.mock.calls[0][0]).toHaveLength(kind === 'new' ? 2 : 1);
+});
+
+it('does not let old-owner preparation settle or append into a new-owner selection', async () => {
+  const oldPhoto = deferred<File>();
+  const newPhoto = deferred<File>();
+  (prepareCapsulePhoto as jest.Mock).mockReturnValueOnce(oldPhoto.promise).mockReturnValueOnce(newPhoto.promise);
+  const pending = jest.fn();
+  const view = render(<BatchImageUpload userId="test-owner" onPendingChange={pending} />);
+  let oldSelection!: Promise<void>;
+  let newSelection!: Promise<void>;
+  await act(async () => { oldSelection = mockOnDrop([photo('old.jpg')]); });
+  mockUser.uid = 'new-owner';
+  view.rerender(<BatchImageUpload userId="new-owner" onPendingChange={pending} />);
+  expect(pending).toHaveBeenLastCalledWith(false);
+  await act(async () => { newSelection = mockOnDrop([photo('new.jpg')]); });
+  expect(pending).toHaveBeenLastCalledWith(true);
+  pending.mockClear();
+
+  await act(async () => { oldPhoto.resolve(photo('old.jpg')); await oldSelection; });
+  expect(screen.queryByText('old.jpg')).not.toBeInTheDocument();
+  expect(screen.getByText('Preparing your photos…')).toBeVisible();
+  expect(pending).not.toHaveBeenCalledWith(false);
+  await act(async () => { newPhoto.resolve(photo('new.jpg')); await newSelection; });
+  expect(screen.getByText('new.jpg')).toBeVisible();
+  expect(pending).not.toHaveBeenCalledWith(false);
+});
+
+it('invalidates an old preparation even when the same owner signs back in', async () => {
+  const gate = deferred<File>();
+  (prepareCapsulePhoto as jest.Mock).mockReturnValueOnce(gate.promise);
+  const view = render(<BatchImageUpload userId="test-owner" />);
+  let selecting!: Promise<void>;
+  await act(async () => { selecting = mockOnDrop([photo('old.jpg')]); });
+  mockUser.uid = 'other-owner';
+  view.rerender(<BatchImageUpload userId="other-owner" />);
+  mockUser.uid = 'test-owner';
+  view.rerender(<BatchImageUpload userId="test-owner" />);
+
+  await act(async () => { gate.resolve(photo('old.jpg')); await selecting; });
+  expect(screen.queryByText('old.jpg')).not.toBeInTheDocument();
+  expect(screen.queryByText('Preparing your photos…')).not.toBeInTheDocument();
+});
+
+it.each(['during switch', 'after return'])('invalidates fixed-owner preparation when authentication changes and resolves %s', async when => {
+  const gate = deferred<File>();
+  (prepareCapsulePhoto as jest.Mock).mockReturnValueOnce(gate.promise);
+  const pending = jest.fn();
+  const view = render(<BatchImageUpload userId="test-owner" onPendingChange={pending} />);
+  let selecting!: Promise<void>;
+  await act(async () => { selecting = mockOnDrop([photo('old.jpg')]); });
+  expect(pending).toHaveBeenLastCalledWith(true);
+
+  mockUser.uid = 'other-owner';
+  view.rerender(<BatchImageUpload userId="test-owner" onPendingChange={pending} />);
+  if (when === 'during switch') {
+    await act(async () => { gate.resolve(photo('old.jpg')); await selecting; });
+  }
+  mockUser.uid = 'test-owner';
+  view.rerender(<BatchImageUpload userId="test-owner" onPendingChange={pending} />);
+  if (when === 'after return') {
+    await act(async () => { gate.resolve(photo('old.jpg')); await selecting; });
+  }
+
+  expect(screen.queryByText('old.jpg')).not.toBeInTheDocument();
+  expect(screen.queryByText('Preparing your photos…')).not.toBeInTheDocument();
+  expect(pending).toHaveBeenLastCalledWith(false);
+  await choose('current.jpg');
+  expect(screen.getByText('current.jpg')).toBeVisible();
+  expect(pending).toHaveBeenLastCalledWith(true);
+});
+
+it('stages and saves only one copy when the same photo finishes two overlapping preparations', async () => {
+  const first = deferred<File>();
+  const second = deferred<File>();
+  const file = photo('same.jpg');
+  (prepareCapsulePhoto as jest.Mock).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+  (persistBatchWardrobeItem as jest.Mock).mockImplementation(async item => item);
+  const complete = jest.fn();
+  render(<BatchImageUpload userId="test-owner" onUploadComplete={complete} />);
+  let firstSelection!: Promise<void>;
+  let secondSelection!: Promise<void>;
+  await act(async () => { firstSelection = mockOnDrop([file]); });
+  await act(async () => { secondSelection = mockOnDrop([file]); });
+  expect(photoHash).toHaveBeenCalledTimes(2);
+
+  await act(async () => { first.resolve(file); await firstSelection; });
+  await act(async () => { second.resolve(file); await secondSelection; });
+  expect(screen.getAllByText('Ready to upload')).toHaveLength(1);
+  expect(screen.getByText('Already added')).toBeVisible();
+  start();
+  await waitFor(() => expect(complete).toHaveBeenCalledTimes(1));
+  expect(persistBatchWardrobeItem).toHaveBeenCalledTimes(1);
+  expect(mockFetch.mock.calls.filter(([url]) => url.endsWith('/api/image/upload'))).toHaveLength(1);
+  expect(complete.mock.calls[0][0]).toHaveLength(1);
+});
+
+it('releases partial previews and pending state after unmount without callbacks from stale preparation', async () => {
+  const gate = deferred<string>();
+  (photoHash as jest.Mock).mockResolvedValueOnce('sha256:first.jpg').mockReturnValueOnce(gate.promise);
+  const pending = jest.fn();
+  const complete = jest.fn();
+  const view = render(<BatchImageUpload userId="test-owner" onPendingChange={pending} onUploadComplete={complete} />);
+  let selecting!: Promise<void>;
+  await act(async () => { selecting = mockOnDrop([photo('first.jpg'), photo('second.jpg')]); });
+  expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+  expect(pending).toHaveBeenLastCalledWith(true);
+  view.unmount();
+  expect(pending).toHaveBeenLastCalledWith(false);
+  pending.mockClear();
+
+  await act(async () => { gate.resolve('sha256:second.jpg'); await selecting; });
+  expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test');
+  expect(pending).not.toHaveBeenCalled();
+  expect(complete).not.toHaveBeenCalled();
+  const warning = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(warning);
+  expect(warning.defaultPrevented).toBe(false);
 });

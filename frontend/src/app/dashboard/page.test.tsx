@@ -1,8 +1,10 @@
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import Dashboard from './page';
 import type { OnboardingState } from '@/lib/onboarding/types';
+import { persistBatchWardrobeItem } from '@/lib/persistBatchWardrobeItem';
 
 declare const expect: jest.Expect;
 declare const it: jest.It;
@@ -10,6 +12,11 @@ declare const it: jest.It;
 const mockUser = { uid: 'owner', getIdToken: jest.fn(async () => 'token') };
 const mockAuth = { user: mockUser, loading: false };
 const mockDashboard = jest.fn();
+let mockDropPhotos: (files: File[]) => Promise<void>;
+const mockPhotoHash = jest.fn(async (file: File) => `hash:${file.name}`);
+const mockPreparePhoto = jest.fn(async (file: File) => file);
+const originalFetch = global.fetch;
+const mockFetch = jest.fn();
 const mockWardrobe = { items: [] as unknown[], loading: false, error: null as string | null, refetch: jest.fn() };
 const progress = (stage: OnboardingState['stage'], ready = false): OnboardingState => ({
   schemaVersion: 1, revision: 0, draft: { answers: [], currentQuestionId: null }, profileComplete: stage !== 'style', stage,
@@ -37,7 +44,20 @@ jest.mock('@/components/ui/wardrobe-insights-hub', () => () => null);
 jest.mock('@/components/MissingWardrobeModal', () => function MissingWardrobeModal({ isOpen }: { isOpen: boolean }) {
   return isOpen ? <div role="dialog">Add your capsule</div> : null;
 });
-jest.mock('next/dynamic', () => () => function DynamicPlaceholder() { return null; });
+jest.mock('next/dynamic', () => (loader: () => Promise<unknown>) => loader.toString().includes('BatchImageUpload')
+  ? jest.requireActual('@/components/BatchImageUpload').default
+  : function DynamicPlaceholder() { return null; });
+jest.mock('react-dropzone', () => ({ useDropzone: ({ onDrop }: { onDrop: typeof mockDropPhotos }) => {
+  mockDropPhotos = onDrop;
+  return { getRootProps: () => ({ tabIndex: 0 }), getInputProps: () => ({}), isDragActive: false };
+} }));
+jest.mock('@/lib/firebase-context', () => ({ useFirebase: () => ({ user: mockAuth.user }) }));
+jest.mock('@/lib/publicBackendUrl', () => ({ getPublicBackendUrl: () => 'https://api.example.test' }));
+jest.mock('@/lib/persistBatchWardrobeItem', () => ({ persistBatchWardrobeItem: jest.fn() }));
+jest.mock('@/lib/onboarding/capsulePhoto', () => ({
+  photoHash: (file: File) => mockPhotoHash(file),
+  prepareCapsulePhoto: (file: File) => mockPreparePhoto(file),
+}));
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }));
 jest.mock('@/components/SmartWeatherOutfitGenerator', () => function Widget({ generationEnabled, onOutfitGenerated }: { generationEnabled: boolean; onOutfitGenerated: (value: unknown) => void }) {
   React.useEffect(() => {
@@ -65,6 +85,113 @@ beforeEach(() => {
   mockGamification.stats = null;
   mockGamification.loading = false;
   mockGamification.error = null;
+  mockPhotoHash.mockReset().mockImplementation(async file => `hash:${file.name}`);
+  mockPreparePhoto.mockReset().mockImplementation(async file => file);
+  mockFetch.mockReset().mockImplementation(async (url: string) => ({ ok: true, json: async () => url === '/api/wardrobe'
+    ? { success: true, items: [] }
+    : url.endsWith('/api/image/upload')
+      ? { success: true, image_url: 'https://example.test/shirt.jpg' }
+      : { analysis: { name: 'Test shirt', type: 'shirt', color: 'white' } } }));
+  global.fetch = mockFetch;
+  URL.createObjectURL = jest.fn(() => 'blob:upload-test');
+  URL.revokeObjectURL = jest.fn();
+  Object.defineProperty(global.crypto, 'randomUUID', { configurable: true, value: () => 'upload-test-id' });
+  (persistBatchWardrobeItem as jest.Mock).mockReset();
+});
+
+afterEach(() => { global.fetch = originalFetch; });
+
+async function openUpload() {
+  const keyboard = userEvent.setup();
+  render(<Dashboard />);
+  const trigger = await screen.findByRole('button', { name: 'Add items with AI' });
+  await keyboard.click(trigger);
+  const dialog = await screen.findByRole('dialog', { name: 'Add Items with AI' });
+  return { keyboard, trigger, dialog };
+}
+
+const selectedPhoto = () => new File(['shirt'], 'test-shirt.jpg', { type: 'image/jpeg' });
+const dismissUpload = async (method: string, keyboard: ReturnType<typeof userEvent.setup>, dialog: HTMLElement) => {
+  if (method === 'Escape') await keyboard.keyboard('{Escape}');
+  else if (method === 'close button') await keyboard.click(within(dialog).getByRole('button', { name: 'Close' }));
+  else fireEvent.pointerDown(document.body, { button: 0, pointerType: 'mouse' });
+};
+
+it('names the upload dialog, contains keyboard focus, and restores the opener after Escape', async () => {
+  const { keyboard, trigger, dialog } = await openUpload();
+  expect(dialog).toHaveAccessibleDescription('Choose clothing photos, then save them to your wardrobe.');
+  expect(within(dialog).getByRole('heading', { name: 'Add Items with AI' })).toHaveFocus();
+  const close = within(dialog).getByRole('button', { name: 'Close' });
+  close.focus();
+  await keyboard.tab();
+  expect(dialog).toContainElement(document.activeElement as HTMLElement);
+  expect(close).not.toHaveFocus();
+  await keyboard.tab({ shift: true });
+  expect(close).toHaveFocus();
+  await keyboard.keyboard('{Escape}');
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  expect(trigger).toHaveFocus();
+});
+
+it.each(['close button', 'backdrop'])('allows %s dismissal when no photos are pending', async method => {
+  const { keyboard, trigger, dialog } = await openUpload();
+  await dismissUpload(method, keyboard, dialog);
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  expect(trigger).toHaveFocus();
+});
+
+it.each(['Escape', 'close button', 'backdrop'])('preserves selected photos on %s until they are saved or removed', async method => {
+  const { keyboard, dialog } = await openUpload();
+  await act(async () => { await mockDropPhotos([selectedPhoto()]); });
+  await dismissUpload(method, keyboard, dialog);
+  expect(screen.getByRole('dialog')).toBe(dialog);
+  expect(screen.getByText('test-shirt.jpg')).toBeVisible();
+  expect(within(dialog).getByRole('alert')).toHaveTextContent('Save or remove unsaved selections');
+  await keyboard.click(screen.getByRole('button', { name: 'Remove test-shirt.jpg from this selection' }));
+  await keyboard.keyboard('{Escape}');
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+});
+
+it.each(['wardrobe', 'hash', 'photo preparation'])('keeps the dialog open during %s work before a selected photo is queued', async phase => {
+  const { keyboard, dialog } = await openUpload();
+  let finish!: () => void;
+  const wait = new Promise<void>(resolve => { finish = resolve; });
+  if (phase === 'wardrobe') mockFetch.mockImplementationOnce(async () => { await wait; return { ok: true, json: async () => ({ success: true, items: [] }) }; });
+  if (phase === 'hash') mockPhotoHash.mockImplementationOnce(async () => { await wait; return 'test-hash'; });
+  if (phase === 'photo preparation') mockPreparePhoto.mockImplementationOnce(async file => { await wait; return file; });
+  let selection!: Promise<void>;
+  await act(async () => { selection = mockDropPhotos([selectedPhoto()]); });
+  await keyboard.keyboard('{Escape}');
+  expect(screen.getByRole('dialog')).toBe(dialog);
+  expect(within(dialog).getByRole('alert')).toHaveTextContent('photos are still here');
+  await act(async () => { finish(); await selection; });
+  expect(await screen.findByText('test-shirt.jpg')).toBeVisible();
+  expect(persistBatchWardrobeItem).not.toHaveBeenCalled();
+});
+
+it('allows closing after preparation fails before a selection can be queued', async () => {
+  const { keyboard } = await openUpload();
+  mockFetch.mockRejectedValueOnce(new Error('Connection unavailable'));
+  await act(async () => { await mockDropPhotos([selectedPhoto()]); });
+  expect(screen.getByRole('alert')).toHaveTextContent('Connection unavailable');
+  await keyboard.keyboard('{Escape}');
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+});
+
+it('retains an active save, then closes and refreshes only after save acknowledgment', async () => {
+  const { keyboard, trigger, dialog } = await openUpload();
+  let finishSave!: (value: unknown) => void;
+  (persistBatchWardrobeItem as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { finishSave = resolve; }));
+  await act(async () => { await mockDropPhotos([selectedPhoto()]); });
+  await keyboard.click(screen.getByRole('button', { name: 'Save 1 item' }));
+  await waitFor(() => expect(persistBatchWardrobeItem).toHaveBeenCalledTimes(1));
+  await keyboard.keyboard('{Escape}');
+  expect(screen.getByRole('dialog')).toBe(dialog);
+  expect(mockDashboard).toHaveBeenCalledTimes(1);
+  await act(async () => { finishSave({ id: 'saved-item', userId: 'owner' }); });
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  expect(mockDashboard).toHaveBeenCalledTimes(2);
+  expect(trigger).toHaveFocus();
 });
 
 it.each([

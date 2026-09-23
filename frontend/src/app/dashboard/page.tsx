@@ -32,7 +32,6 @@ import {
   Info,
   RefreshCw,
   Upload,
-  X,
   ChevronDown
 } from "lucide-react";
 import Link from "next/link";
@@ -138,6 +137,10 @@ export default function Dashboard() {
   const dashboardRequestId = useRef(0);
   const [markingAsWorn, setMarkingAsWorn] = useState(false);
   const [showBatchUpload, setShowBatchUpload] = useState(false);
+  const [batchUploadPending, setBatchUploadPending] = useState(false);
+  const [uploadCloseBlocked, setUploadCloseBlocked] = useState(false);
+  const uploadTriggerRef = useRef<HTMLButtonElement>(null);
+  const uploadTitleRef = useRef<HTMLHeadingElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [windowWidth, setWindowWidth] = useState<number>(0);
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -481,7 +484,13 @@ export default function Dashboard() {
               Generate today&apos;s fit
             </Button>
             <Button
-                onClick={() => setShowBatchUpload(true)}
+                ref={uploadTriggerRef}
+                aria-haspopup="dialog"
+                aria-expanded={showBatchUpload}
+                onClick={() => {
+                  setUploadCloseBlocked(false);
+                  setShowBatchUpload(true);
+                }}
                 variant="outline"
                 className="component-button-outline px-6 py-3 dark:hover:bg-white/10 dark:!text-white"
               >
@@ -863,33 +872,47 @@ export default function Dashboard() {
         </Accordion>
 
         {/* Batch Upload Modal */}
-        {showBatchUpload && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="glass-modal rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-2xl font-serif text-gray-900 dark:text-white">Add Items with AI</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowBatchUpload(false)}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  <X className="w-5 h-5" />
-                </Button>
-              </div>
-              <div className="p-6">
-                <BatchImageUpload 
-                  userId={user?.uid || ''}
-                  onUploadComplete={() => {
-                    setShowBatchUpload(false);
-                    // Refresh dashboard data to show new items
-                    fetchDashboardData();
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+        <Dialog open={showBatchUpload} onOpenChange={open => {
+          if (!open && batchUploadPending) {
+            setUploadCloseBlocked(true);
+            return;
+          }
+          setUploadCloseBlocked(false);
+          setShowBatchUpload(open);
+        }}>
+          <DialogContent
+            className="glass-modal w-[calc(100%-2rem)] max-w-4xl max-h-[90dvh] overflow-y-auto rounded-2xl"
+            onOpenAutoFocus={event => {
+              event.preventDefault();
+              uploadTitleRef.current?.focus();
+            }}
+            onCloseAutoFocus={event => {
+              event.preventDefault();
+              uploadTriggerRef.current?.focus();
+            }}
+          >
+            <DialogHeader className="pr-6 text-left">
+              <DialogTitle ref={uploadTitleRef} tabIndex={-1} className="text-2xl font-serif">Add Items with AI</DialogTitle>
+              <DialogDescription>Choose clothing photos, then save them to your wardrobe.</DialogDescription>
+            </DialogHeader>
+            {uploadCloseBlocked && batchUploadPending && (
+              <p role="alert" className="text-sm text-destructive">
+                Your photos are still here. Save or remove unsaved selections before closing. If photos are being prepared or saved, wait for them to finish.
+              </p>
+            )}
+            <BatchImageUpload
+              userId={user?.uid || ''}
+              onPendingChange={setBatchUploadPending}
+              onUploadComplete={() => {
+                setBatchUploadPending(false);
+                setUploadCloseBlocked(false);
+                setShowBatchUpload(false);
+                // Completion is acknowledged by the uploader before closing.
+                fetchDashboardData();
+              }}
+            />
+          </DialogContent>
+        </Dialog>
 
       </main>
       
