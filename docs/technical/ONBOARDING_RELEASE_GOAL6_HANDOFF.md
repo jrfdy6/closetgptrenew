@@ -1,14 +1,17 @@
 # Goal 6 — integrated onboarding release
 
-Status: controlled rollout of accepted source
+Status: controlled rollout of accepted integrated base
 `801b6679062e0ad1df6c0f5e085ddeac5c4d8724` is **partially live**. Protected
-Firestore rules and the matching Railway API are deployed and verified. Worker
+Firestore rules are deployed; the paused Railway API now runs accepted bounded
+recommendation repair `9c17e694`. Worker
 repair `f371ff43` has **passed bounded production compatibility**: three natural
 garment jobs completed with valid persisted original/derived contracts, then
 the worker was stopped as agreed. Authenticated paused flatlay admission returned
-503 with no new reservation and unchanged credit. Frontend production, configured
-recommendation fidelity, full signed-in workflows, provider-image/settlement and
-physical-device gates remain open.
+503 with no new reservation and unchanged credit. One live configured outfit
+supports the bounded recommendation repair. Paid admission awaits review and
+deployment of a local strict POST identity correction. Frontend production,
+full signed-in workflows, provider-image/settlement and physical-device gates
+remain open.
 
 ## Candidate and scope
 
@@ -418,7 +421,7 @@ Decoded persisted originals did not exactly match the pre-browser local fixture
 pixels; the cause is unproven. That mismatch is recorded separately from the
 verified production record/path identity and visual garment identity.
 
-## Local configured recommendation fidelity candidate
+## Accepted configured recommendation fidelity repair
 
 The canonical browser check created a Casual / Minimalist / Subtle outfit with
 a red cardigan, khaki cargo shorts and navy/white shoes. The color alone does not
@@ -455,9 +458,58 @@ the actual composer with anonymized saved facts, adverse novelty/strategy
 adjustments and final swaps; they also cover required pieces, scarce/unknown
 closets, practical-score constraints, the fallback route, correction parity and
 notes. The 51 focused checks pass. The full backend ran 581 tests: 580 passed
-with one expected macOS skip. Independent review found no remaining blocker;
-the candidate may be frozen and pushed to PR 10 for exact-source Linux CI.
-API deployment, worker restart and admission changes remain separately gated.
+with one expected macOS skip. Independent review found no remaining blocker.
+Accepted commit `9c17e694d933df43d850b4ba76a2c6f4f0a73218` passed exact-source
+Linux process/coordinator CI runs `35818350742` and `35818347815`; those CI jobs
+do not run the full recommendation suite. API-only deployment
+`26d5eb67-0b9d-44f7-b479-8bd63fcbaf96` is healthy with sole running instance
+`35b13191-ccaa-4c43-af18-dbc882e0af8b`. Sixteen health/auth-denial/hidden-route
+checks passed, the existing pause flag remained true and worker dispatch stayed
+stopped. No runtime configuration, frontend or main-branch change accompanied it.
+
+The authenticated canonical Neo session then generated Casual / Minimalist /
+Subtle at 72°F without a required piece: white T-shirt, khaki cargo shorts and
+navy sneakers. Notes describe the plain pieces and neutral palette as supporting
+the restrained direction. The parent accepted this as a sensible bounded result,
+not a controlled statistical comparison: wear/recent history changed between
+the earlier and later generations. The old frontend still displays its internal
+95/100 score; the new frontend release remains a separate gate.
+
+## Local paid flatlay POST identity correction
+
+Source inspection before the proposed single-provider test found that the active
+`POST /api/outfits/{outfit_id}/flat-lay-request` still used legacy
+`get_current_user_id`. Its literal `Bearer test` shortcut supplies a fixed test
+UID, and ordinary verification does not check revocation. The fixed UID cannot
+impersonate Neo, and the live paused handler stops before ownership/ledger/quota
+access, but that dependency is inappropriate for reopening paid admission.
+
+The local correction changes only this POST's dependency to the existing
+`verified_user_id`, retaining the `current_user_id` parameter and unchanged
+`reserve_request` call. It reuses the strict contract already used by saved-detail
+GET and wear recording: Firebase verification checks revocation; missing,
+malformed, expired, revoked, disabled and deleted-user credentials fail closed;
+anonymous accounts are rejected; verification outages return 503. No global auth
+refactor, new identity mechanism, ownership/ledger/idempotency/credit/provider
+change or worker change is included. Valid ordinary Firebase users retain their
+verified UID. The public request path and body remain unchanged. Missing bearer
+now follows the existing strict dependency's 401 response instead of legacy
+HTTPBearer's 403; anonymous accounts receive 403 and valid paused requests 503.
+
+The new actual exported-router tests execute the strict dependency without an
+authentication override and wrap the real reservation transaction. Eleven cases
+cover denied credentials before storage, verification outages, paused admission,
+ordinary non-UUID Firebase owners, nonauthoritative caller UID hints, conflicting
+stored owner aliases and exact duplicate responses with only one debit. All 153
+focused auth/flatlay/saved-result/wear checks pass. Required standard-library
+process/coordinator checks pass 32 with one expected macOS skip. Independent
+review found no blocker; broad recommendation/frontend suites were not repeated
+for this one-route change. Parent review accepted the exact local code and test
+delta for freeze/push, required exact-source CI and a subsequent paused API-only deployment.
+This change requires a new accepted API commit/deployment before admission can reopen;
+`9c17e694` is the currently running source and still has the legacy POST dependency.
+The previously accepted worker remains `f371ff43`. Do not unpause, start dispatch,
+retry, reset credits or make a provider request from this local-only result.
 
 ## Original production state
 

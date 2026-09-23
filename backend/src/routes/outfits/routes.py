@@ -589,7 +589,7 @@ async def create_custom_outfit(
 @router.post("/{outfit_id}/flat-lay-request", response_model=dict)
 async def request_outfit_flat_lay(
     outfit_id: str,
-    current_user_id: str = Depends(get_current_user_id),
+    current_user_id: str = Depends(verified_user_id),
 ):
     """Atomically record explicit consent and reserve one credit for this outfit."""
     if not current_user_id:

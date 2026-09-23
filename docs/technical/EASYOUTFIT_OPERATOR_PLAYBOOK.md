@@ -14,13 +14,18 @@ If OpenClaw workspace docs and the product repo disagree, this file wins for Eas
 
 ## Goal 6 Boundary — Controlled Rollout in Progress
 
-The accepted integrated source is `801b6679062e0ad1df6c0f5e085ddeac5c4d8724`.
-Protected Firestore rules and the Railway API are live; the frontend remains on
+The accepted integrated base is `801b6679062e0ad1df6c0f5e085ddeac5c4d8724`;
+the paused Railway API now runs accepted recommendation repair `9c17e694`.
+Protected Firestore rules are live; the frontend remains on
 its earlier production build. Worker repair `f371ff43` passed a bounded production
 run with three persisted garment completions and was then stopped as agreed.
 Flatlay admission remains paused; its authenticated 503/no-reservation behavior
-is verified. Keep dispatch and frontend release held for the remaining gates,
-including configured recommendation fidelity. See the Goal 6 handoff for actual
+is verified. One live Casual / Minimalist / Subtle result supports the bounded
+recommendation repair; it is not statistical quality proof. Keep dispatch and
+frontend release held. Before reopening paid flatlay admission, review and deploy
+the narrow POST change to the existing strict verified-user dependency. It is
+local only; the live API still uses the legacy dependency on that POST. See the
+Goal 6 handoff for actual
 artifact IDs and evidence; local cutouts are not premium flatlay quality proof.
 
 - Vercel runs the frontend and thin API proxies. The candidate has no Firebase

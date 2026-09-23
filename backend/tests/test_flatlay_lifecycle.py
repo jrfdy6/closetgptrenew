@@ -1178,10 +1178,10 @@ class FlatlayRequestHttpTests(unittest.TestCase):
     def setUpClass(cls):
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
-        from src.routes.outfits.routes import get_current_user_id, router
+        from src.routes.outfits.routes import verified_user_id, router
         cls.app = FastAPI()
         cls.app.include_router(router, prefix='/api/outfits')
-        cls.auth_dependency = staticmethod(get_current_user_id)
+        cls.auth_dependency = staticmethod(verified_user_id)
         cls.client = TestClient(cls.app)
 
     def setUp(self):

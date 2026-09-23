@@ -14,11 +14,14 @@ Canonical operator playbook:
 
 ## Goal 6 Privileged Boundary — Rollout in Progress
 
-The accepted source is `801b6679062e0ad1df6c0f5e085ddeac5c4d8724`. Protected
-Firestore rules and the Railway API are live. Worker repair `f371ff43` completed
+The accepted integrated base is `801b6679062e0ad1df6c0f5e085ddeac5c4d8724`.
+Protected Firestore rules are live; the paused Railway API runs accepted
+recommendation repair `9c17e694`. Worker repair `f371ff43` completed
 three natural garment jobs with persisted original/derived contracts in a bounded
 production run, then stopped. Admission remains paused and its authenticated
-503/no-reservation contract is verified. Frontend and configured recommendation
+503/no-reservation contract is verified. A live configured outfit supported the
+bounded recommendation change. Paid admission remains held for review/deployment
+of a local POST-only strict identity correction; frontend and hosted-provider
 gates remain open. The operator playbook remains the authority for sequencing;
 the Goal 6 handoff records actual deployment IDs and remaining gates.
 
