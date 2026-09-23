@@ -113,8 +113,6 @@ export function useGamificationStats() {
       setError(null);
       
       const token = await user.getIdToken();
-      // Call backend directly to avoid Vercel API route timeout (10s limit)
-      const backendUrl = getPublicBackendUrl();
       const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
       const timeout = isMobile ? 60000 : 30000; // 60s on mobile (matching wardrobe), 30s on desktop
       
@@ -125,7 +123,8 @@ export function useGamificationStats() {
       }, timeout);
       
       try {
-        const response = await fetch(`${backendUrl}/api/gamification/stats`, {
+        const response = await fetch('/api/gamification/stats', {
+          cache: 'no-store',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

@@ -158,7 +158,9 @@ export default function Dashboard() {
   const { weather, fetchWeatherByLocation } = useAutoWeather();
   
   // Gamification stats for Level and AI Fit Score
-  const { stats: gamificationStats } = useGamificationStats();
+  const { stats: gamificationStats, loading: gamificationLoading, error: gamificationError } = useGamificationStats();
+  const progressLevel = gamificationStats?.level?.level;
+  const progressAvailable = !gamificationLoading && !gamificationError && progressLevel != null;
   
   // Subscription plan for gating premium features
   const { plan, canAccess, loading: planLoading, subscription } = useSubscriptionPlan();
@@ -547,8 +549,10 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">Your Progress</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-copper-text component-text-primary">
-                  Level {gamificationStats?.level?.level || 1}
+                <p aria-live="polite" className={progressAvailable
+                  ? 'text-2xl sm:text-3xl lg:text-4xl font-bold gradient-copper-text component-text-primary'
+                  : 'text-sm sm:text-base component-text-secondary'}>
+                  {gamificationLoading ? 'Loading…' : progressAvailable ? `Level ${progressLevel}` : 'Unavailable'}
                 </p>
               </div>
             </div>

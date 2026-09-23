@@ -20,13 +20,14 @@ const mockStage = { state: progress('capsule') as OnboardingState | null, loadin
 const mockMount = jest.fn();
 const mockUnmount = jest.fn();
 const mockWeather = { temperature: 72, condition: 'Clear', location: 'Test' };
+const mockGamification = { stats: null as { level: { level: number } } | null, loading: false, error: null as string | null };
 const data = { totalItems: 10, favorites: 0, outfitsThisWeek: 0, topItems: [], styleCollections: [], totalStyleGoals: 0 };
 jest.mock('@/contexts/AuthContext', () => ({ useAuthContext: () => mockAuth }));
 jest.mock('@/lib/hooks/useWardrobe', () => ({ useWardrobe: () => mockWardrobe }));
 jest.mock('@/lib/hooks/useOnboardingState', () => ({ useOnboardingState: () => mockStage }));
 jest.mock('@/lib/services/dashboardService', () => ({ dashboardService: { getDashboardData: (...args: unknown[]) => mockDashboard(...args) } }));
 jest.mock('@/hooks/useWeather', () => ({ useAutoWeather: () => ({ weather: mockWeather, fetchWeatherByLocation: jest.fn() }) }));
-jest.mock('@/hooks/useGamificationStats', () => ({ useGamificationStats: () => ({ stats: null }) }));
+jest.mock('@/hooks/useGamificationStats', () => ({ useGamificationStats: () => mockGamification }));
 jest.mock('@/hooks/useSubscriptionPlan', () => ({ useSubscriptionPlan: () => ({ plan: 'free', loading: false, canAccess: () => false }) }));
 jest.mock('@/components/providers/withSubscriptionGate', () => ({ withSubscriptionGate: (value: unknown) => value }));
 jest.mock('@/components/Navigation', () => () => null);
@@ -61,6 +62,27 @@ beforeEach(() => {
   mockStage.error = null;
   mockMount.mockClear();
   mockUnmount.mockClear();
+  mockGamification.stats = null;
+  mockGamification.loading = false;
+  mockGamification.error = null;
+});
+
+it.each([
+  { loading: true, error: null, stats: null, label: 'Loading…' },
+  { loading: false, error: null, stats: null, label: 'Unavailable' },
+  { loading: false, error: 'Stats unavailable', stats: { level: { level: 3 } }, label: 'Unavailable' },
+])('does not invent a progress level when stats show $label', async ({ loading, error, stats, label }) => {
+  Object.assign(mockGamification, { loading, error, stats });
+  render(<Dashboard />);
+  const card = (await screen.findByText('Your Progress')).parentElement;
+  expect(card).toHaveTextContent(label);
+  expect(card).not.toHaveTextContent(/Level \d/);
+});
+
+it('shows the actual progress level after a successful stats read', async () => {
+  mockGamification.stats = { level: { level: 3 } };
+  render(<Dashboard />);
+  expect((await screen.findByText('Your Progress')).parentElement).toHaveTextContent('Level 3');
 });
 
 it('keeps automatic generation disabled on a new empty dashboard', async () => {
