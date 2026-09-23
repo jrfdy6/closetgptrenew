@@ -23,7 +23,7 @@ from enum import Enum
 # Robust import strategy to handle different execution contexts
 from ..config.feature_flags import is_semantic_match_enabled, is_debug_output_enabled, is_force_traditional_enabled
 from ..utils.semantic_normalization import normalize_item_metadata
-from ..utils.recommendation_fidelity import prefer_plain_candidates, pattern_kind
+from ..utils.recommendation_fidelity import prefer_plain_candidates, pattern_kind, minimalist_subtle_cues
 from ..utils.outfit_admission import classify_garment
 from ..utils.profile_normalization import normalize_profile_signals
 from ..utils.semantic_compatibility import style_matches, mood_matches, occasion_matches
@@ -6880,7 +6880,7 @@ class RobustOutfitGenerationService:
         style_candidates = exploration_mixed + [entry for entry in sorted_items if entry[0] not in mixed_ids]
         sorted_items = prefer_plain_candidates(
             style_candidates if str(context.style).lower() == 'minimalist' else exploration_mixed,
-            context.style, category=self._get_item_category,
+            context.style, mood=context.mood, category=self._get_item_category,
             eligible=lambda item: self._hard_filter(item, context.occasion, context.style),
         )
         
@@ -7150,7 +7150,7 @@ class RobustOutfitGenerationService:
                     )
                     
                     category_candidates = prefer_plain_candidates(
-                        category_candidates, context.style, category=self._get_item_category,
+                        category_candidates, context.style, mood=context.mood, category=self._get_item_category,
                         eligible=lambda item: self._hard_filter(item, context.occasion, context.style),
                     )
                     # Try to find an item with score > -2.0 (more lenient than Phase 1's -1.0)
@@ -7782,6 +7782,23 @@ class RobustOutfitGenerationService:
                                 and pattern_kind(item_to_replace) == 'plain'
                                 and pattern_kind(alternative) == 'graphic'):
                             continue
+                        current_id = self.safe_get_item_attr(item_to_replace, 'id', '')
+                        if (str(context.style).lower() == 'minimalist'
+                                and str(context.mood).lower() == 'subtle'):
+                            if (current_id not in item_scores or alt_id not in item_scores):
+                                # An unscored suggestion cannot establish a practical
+                                # reason to discard the selected, evidenced cue.
+                                if (minimalist_subtle_cues(item_to_replace)['supported']
+                                        and not minimalist_subtle_cues(alternative)['supported']):
+                                    continue
+                            else:
+                                preferred = prefer_plain_candidates(
+                                    [(alt_id, item_scores[alt_id]), (current_id, item_scores[current_id])],
+                                    context.style, mood=context.mood, category=self._get_item_category,
+                                    eligible=lambda item: self._hard_filter(item, context.occasion, context.style),
+                                )
+                                if preferred[0][0] == current_id:
+                                    continue
                         # Replace in selected items
                         selected_items = [alternative if self.safe_get_item_attr(item, "id", "") == item_to_replace.id else item 
                                         for item in selected_items]

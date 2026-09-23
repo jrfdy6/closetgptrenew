@@ -16,10 +16,12 @@ If OpenClaw workspace docs and the product repo disagree, this file wins for Eas
 
 The accepted integrated source is `801b6679062e0ad1df6c0f5e085ddeac5c4d8724`.
 Protected Firestore rules and the Railway API are live; the frontend remains on
-its earlier production build. Worker compatibility has not passed: garment
-attempts preserve originals but fail during later image preparation. Keep
-flatlay admission paused and the frontend release held while diagnosing this
-release blocker. See the Goal 6 handoff for actual artifact IDs and evidence.
+its earlier production build. Worker repair `f371ff43` passed a bounded production
+run with three persisted garment completions and was then stopped as agreed.
+Flatlay admission remains paused; its authenticated 503/no-reservation behavior
+is verified. Keep dispatch and frontend release held for the remaining gates,
+including configured recommendation fidelity. See the Goal 6 handoff for actual
+artifact IDs and evidence; local cutouts are not premium flatlay quality proof.
 
 - Vercel runs the frontend and thin API proxies. The candidate has no Firebase
   Admin runtime/package and needs no Firebase Admin credentials in Vercel. Do not

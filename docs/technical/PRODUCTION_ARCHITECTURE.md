@@ -15,9 +15,11 @@ Canonical operator playbook:
 ## Goal 6 Privileged Boundary — Rollout in Progress
 
 The accepted source is `801b6679062e0ad1df6c0f5e085ddeac5c4d8724`. Protected
-Firestore rules and the Railway API are live. Worker acceptance is held because
-garment preparation fails after originals are preserved; the frontend production
-release is also held. The operator playbook remains the authority for sequencing;
+Firestore rules and the Railway API are live. Worker repair `f371ff43` completed
+three natural garment jobs with persisted original/derived contracts in a bounded
+production run, then stopped. Admission remains paused and its authenticated
+503/no-reservation contract is verified. Frontend and configured recommendation
+gates remain open. The operator playbook remains the authority for sequencing;
 the Goal 6 handoff records actual deployment IDs and remaining gates.
 
 | Surface | Candidate responsibility |

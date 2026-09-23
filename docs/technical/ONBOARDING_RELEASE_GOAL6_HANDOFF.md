@@ -3,10 +3,12 @@
 Status: controlled rollout of accepted source
 `801b6679062e0ad1df6c0f5e085ddeac5c4d8724` is **partially live**. Protected
 Firestore rules and the matching Railway API are deployed and verified. Worker
-compatibility is **not accepted**: garment jobs preserve originals but fail during
-later preparation. The worker was stopped to preserve remaining automatic
-attempts; flatlay admission remains paused. Frontend production, full signed-in
-workflows, provider-image/settlement and physical-device gates remain open.
+repair `f371ff43` has **passed bounded production compatibility**: three natural
+garment jobs completed with valid persisted original/derived contracts, then
+the worker was stopped as agreed. Authenticated paused flatlay admission returned
+503 with no new reservation and unchanged credit. Frontend production, configured
+recommendation fidelity, full signed-in workflows, provider-image/settlement and
+physical-device gates remain open.
 
 ## Candidate and scope
 
@@ -150,7 +152,8 @@ only at the deliberate readiness gate. Before `main` is integrated, use
 `--skip-deploys` for the variable change, followed by explicit reviewed-commit
 deployment: a normal variable update can automatically rebuild the older linked
 `main`. Runtime SSH flag inspection was unavailable because no SSH keys were
-configured; none were created. Authenticated paused-handler proof remains open.
+configured; none were created. Authenticated paused-handler proof is recorded
+below under the completed U2NET runtime check.
 
 The failed initial CLI-upload API candidate did not replace the running API:
 its monorepo archive omitted required files. The official `serviceInstanceDeploy`
@@ -301,7 +304,8 @@ The canonical U2NET download is 175,997,641 bytes and matches upstream MD5
 Focused job/projection/coordinator tests passed 53/53; standard-library process
 checks passed 32 with one expected platform skip. The full backend ran 557 tests:
 556 passed and one expected macOS skip. Independent code review found no blocking
-finding. Frozen-source Linux CI and production runtime acceptance remain pending.
+finding. Exact-source Linux CI and the bounded production result are recorded
+below; further dispatch and the overall release remain separately gated.
 
 The actual `process_garment` → isolated subprocess → production `--infer`
 pipeline completed all ten approved public photographs using U2NET and the
@@ -357,6 +361,103 @@ Local review artifacts are under `/private/tmp/easyoutfit-u2net-qa-output/`:
 labeled QA-only light/dark composites. Model integrity and full dependency
 freeze are recorded in adjacent temporary QA artifacts. Preserve those artifacts
 with the release evidence; they are not production assets.
+
+## Accepted U2NET bounded production run and paused admission
+
+Exact repair `f371ff435e31c57dbd7d9371751ea487b07858d1` passed Linux CI runs
+`35815385682` and `35815383219` and independent source/limited visual review.
+Preflight found five naturally eligible Neo garments and no global flatlay queue
+candidates; API source remained `801b6679` with admission paused. No exhausted
+attempt budget was reset or manually retried.
+
+Worker deployment `bad70802-4e46-4d19-ad0c-afee3b4734f2` ran the exact commit,
+completing three naturally claimed first attempts at `03:52:21`, `03:52:41`
+and `03:53:06 UTC`. Each completion was accepted and persisted as public/private
+`done`, with matching attempt-scoped protected original and derived references.
+All used alpha; recorded processing times were 78.36, 17.19 and 9.66 seconds.
+The first run includes cold runtime preparation; it is not a controlled isolated
+model-download benchmark. No flatlay-child activity or failure diagnostic appeared.
+
+The observer stopped at the three-success bound. Stop completed at `03:53:22 UTC`
+with no active instances; platform stop and graceful `Worker stopped` markers
+were recorded at `03:53:19.528` and `03:53:25.684 UTC`. A fourth job started in
+the same tick as the third completion; its ordinary lease was preserved. At the
+post-run readback, the ten garments were five previously exhausted failures,
+three done, one processing and one pending. No manual retry or credit reset
+occurred. This bounded success does not authorize continuous dispatch or imply
+that the old exhausted jobs were repaired automatically.
+
+Official build logs confirm rembg 2.0.85, ONNX Runtime 1.30.0, NumPy 2.5.3, Pillow
+12.3.0, PyMatting 1.1.16, scikit-image 0.26.0, SciPy 1.18.1, Numba 0.67.0 and
+llvmlite 0.49.0 on CPython 3.12/Linux x86_64. Thus the local Numba 0.62.1 and
+llvmlite 0.45.1 are additional recorded Mac differences. Sparse 60-second service
+memory samples reached 1.054 GB against the existing 8 GB limit. They are not
+peak RSS, a general capacity guarantee or proof that every possible OOM event
+was absent. No resource settings were changed.
+
+After the worker stopped, one authenticated Neo Create flatlay action returned
+HTTP 503 at `03:55:15.804901403 UTC`, corroborating the UI pause/no-credit-used
+message. Readback found credit still one and refill timestamp unchanged, only
+the historical failed/refunded ledger, no new reservation/provider-start fields,
+an empty global queue, and the latest outfit still `awaiting_consent` with no
+private ledger. There was no immediate pre-click ledger snapshot; this is
+corroborated status/persistent-state evidence, not a cryptographic before/after
+comparison. The authenticated paused-admission gate is accepted. Keep admission
+paused and worker stopped until the next explicit readiness gate.
+
+The three persisted production cutouts were separately exported read-only with
+verified ownership, attempt, protected-original/derived path bindings, Storage
+generation and checksums. Original and cutout PNG bytes were retained unchanged;
+light/dark composites are QA-only. Visual review identified the approved public
+denim jacket, brown dress shoes and white logo hoodie. The main garment bodies,
+colors, seams and logos survive relative to their persisted originals, but table
+patches remain in jacket gaps, floor remains inside shoe-lace loops, a thin lace
+tail fades and the hoodie has soft/jagged edge fringe. These are usable
+compatibility cutouts, not premium flatlay or hosted-generator fidelity proof.
+Decoded persisted originals did not exactly match the pre-browser local fixture
+pixels; the cause is unproven. That mismatch is recorded separately from the
+verified production record/path identity and visual garment identity.
+
+## Local configured recommendation fidelity candidate
+
+The canonical browser check created a Casual / Minimalist / Subtle outfit with
+a red cardigan, khaki cargo shorts and navy/white shoes. The color alone does not
+prove that outfit wrong. Source review did establish a narrower defect: ordinary
+semantic filtering computes the requested mood without requiring it, the soft
+scorer does not use mood, and novelty/strategy adjustments can dominate the small
+style score. The existing plain-over-graphic preference did not distinguish a
+plain neutral alternative from a plain accent. The displayed ranking score is
+not evidence of complete requested-style or mood fidelity.
+
+The local repair extends the existing bounded preference only for Minimalist /
+Subtle. After novelty and strategy ordering, an eligible same-category candidate
+with known plain pattern and neutral palette can move ahead of less-supported
+visual cues only when weather, compatibility and occasion scores are no worse.
+The final diversity swap preserves that decision unless there is comparable
+practical evidence. Required garments, complete combinations and limited-closet
+fallbacks remain available; no color is banned. Other moods retain the existing
+Minimalist plain-over-graphic behavior.
+
+Saved nonempty root color strings are the only palette evidence. Missing, empty,
+malformed list/object and explicitly unknown colors remain unknown across the raw
+record, admission normalization and typed wardrobe model. Populated mood correction precedence is
+root `mood`, root `moodTags`, root metadata, then analysis metadata. Explicit
+unknown corrections cannot revive an older prediction. Numeric statement levels
+must be finite and within 0–10; the historical synthesized zero supplies no
+positive Subtle evidence. A named non-neutral color is an accent, not evidence
+of brightness, saturation or incompatibility. Partial plain/neutral support is
+never described as proof of complete Subtle fit.
+
+Factual notes name graphic, statement or accent compromises, acknowledge an
+affected required piece and disclose incomplete color/pattern evidence. They
+do not endorse the request from the diversity-inclusive score. Tests exercise
+the actual composer with anonymized saved facts, adverse novelty/strategy
+adjustments and final swaps; they also cover required pieces, scarce/unknown
+closets, practical-score constraints, the fallback route, correction parity and
+notes. The 51 focused checks pass. The full backend ran 581 tests: 580 passed
+with one expected macOS skip. Independent review found no remaining blocker;
+the candidate may be frozen and pushed to PR 10 for exact-source Linux CI.
+API deployment, worker restart and admission changes remain separately gated.
 
 ## Original production state
 

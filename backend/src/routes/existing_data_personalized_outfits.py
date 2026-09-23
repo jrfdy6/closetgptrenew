@@ -665,7 +665,7 @@ async def generate_personalized_outfit_from_existing_data(
                         (item_identifier(item), {'item': item, 'composite_score': score,
                           'weather_score': fallback_weather_score(item, req.weather)})
                         for item, score in scored_items
-                    ], req.style)
+                    ], req.style, mood=req.mood)
                     scored_items = [(score['item'], score['composite_score']) for _, score in ranked]
 
                     # Pick the top-scored item

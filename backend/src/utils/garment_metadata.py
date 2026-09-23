@@ -66,6 +66,7 @@ def normalize_garment_metadata(item):
     if visual:
         metadata['visualAttributes'] = visual
     for source, target in (('style', 'styleTags'), ('occasion', 'occasionTags'),
+                           ('moodTags', 'moodTags'), ('mood', 'moodTags'),
                            ('brand', 'brand'), ('description', 'naturalDescription')):
         if _populated(item.get(source)):
             metadata[target] = deepcopy(item[source])
