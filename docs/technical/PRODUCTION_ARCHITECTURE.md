@@ -12,11 +12,13 @@ Canonical operator playbook:
 - **Background worker:** Railway service `background-processor`
 - **OpenAI SDK gateway:** Railway service `closetgptrenewopenaisdk`
 
-## Goal 6 Candidate Privileged Boundary
+## Goal 6 Privileged Boundary — Rollout in Progress
 
-This boundary is implemented in the release candidate and is **not yet live**.
-No cloud configuration, rules or deployment changes are claimed. The operator
-playbook was updated first and remains the authority for release sequencing.
+The accepted source is `801b6679062e0ad1df6c0f5e085ddeac5c4d8724`. Protected
+Firestore rules and the Railway API are live. Worker acceptance is held because
+garment preparation fails after originals are preserved; the frontend production
+release is also held. The operator playbook remains the authority for sequencing;
+the Goal 6 handoff records actual deployment IDs and remaining gates.
 
 | Surface | Candidate responsibility |
 | --- | --- |
@@ -77,11 +79,12 @@ client configuration is a separate concern.
 - The live backend service is `closetgptrenew`.
 - The separate Railway service `closetgptrenew-backend` is currently stopped and should not be treated as production.
 - The separate Railway service `closetgpt-backend` is also legacy/non-production for EasyOutfit.
-- The canonical backend deploy command is:
-
-```bash
-railway up --project 97ed14e7-f7a6-4f86-b919-94f133ed478e --environment production --service closetgptrenew
-```
+- For this controlled rollout, deploy the accepted Git commit through the official
+  `serviceInstanceDeploy` API with explicit `commitSha`, canonical service/environment
+  IDs and `latestCommit: false`. The linked branch remains `main` until integration.
+- Do not use an unverified CLI archive: the first `railway up` attempt omitted
+  required files because of monorepo context and ignore rules; it failed before
+  replacing the running API. Explicit Git-source deployment resolved that failure.
 
 ## Backend Safety Defaults
 
@@ -100,7 +103,9 @@ railway up --project 97ed14e7-f7a6-4f86-b919-94f133ed478e --environment producti
 - Vercel production currently deploys from `main`.
 - Under the current root-link policy, repo root and `backend/` should both link to Railway service `closetgptrenew`.
 - `backend/worker/` should link to Railway service `background-processor`.
-- Use `backend/deploy_backend.sh` or the explicit `railway up ... --service closetgptrenew` command for backend deploys.
+- During the controlled rollout, use explicit accepted-commit deployment. If changing
+  admission variables before `main` is integrated, use `--skip-deploys` and then
+  deploy that accepted commit; automatic variable deployment can restore older code.
 - If any local Railway link points at `aiclone-backend`, `closetgpt-backend`, or `closetgptrenew-backend`, treat that as deploy drift.
 
 ## Candidate Release and Recovery Gates
@@ -132,7 +137,8 @@ All 134 compiled server-route traces exclude Admin. Typecheck retains 115
 existing diagnostics (124 at the previous candidate), with no new diagnostic
 positions or changed-file diagnostics; the existing build skips type/lint gates.
 Quiz and onboarding oracles match 189 and 241 executed TypeScript cases.
-The parent's 23/23 local service-emulator snapshot still needs final-candidate
-acceptance. Live authenticated, provider-image and physical-device gates remain
-pending. Final source SHA/CI and actual deployment IDs must be recorded after
-freeze and independent acceptance; none is claimed by this preparation.
+The parent's frozen-source local service-emulator checks passed 25/25, and both
+Linux CI runs on accepted `801b6679` passed. The live API health/auth-denial and
+signed-in profile compatibility checks passed. Full authenticated frontend,
+provider-image and physical-device gates remain pending. See the Goal 6 handoff
+for accepted source, exact deployed artifact IDs and worker containment evidence.

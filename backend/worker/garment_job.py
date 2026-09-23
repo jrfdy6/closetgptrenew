@@ -26,10 +26,10 @@ from PIL import Image, ImageOps
 
 try:
     from .process_supervisor import JobProcess, atomic_json
-    from .garment_errors import garment_failure_code
+    from .garment_errors import garment_failure_code, safe_diagnostics, exception_diagnostic, exception_diagnostics
 except ImportError:
     from process_supervisor import JobProcess, atomic_json
-    from garment_errors import garment_failure_code
+    from garment_errors import garment_failure_code, safe_diagnostics, exception_diagnostic, exception_diagnostics
 
 ALPHA_TIMEOUT_SECONDS = 240
 FALLBACK_TIMEOUT_SECONDS = 60
@@ -46,6 +46,28 @@ _SAFE_ID = re.compile(r'[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}\Z')
 
 class GarmentJobError(Exception):
     """Stable safe error code; never includes private URLs, credentials or pixels."""
+
+    def __init__(self, code, *, diagnostics=()):
+        super().__init__(code)
+        self.diagnostics = safe_diagnostics(diagnostics)
+
+
+def _stage(stage, action):
+    try:
+        return action()
+    except Exception as exc:
+        existing = exception_diagnostics(exc)
+        code = str(exc) if isinstance(exc, GarmentJobError) else 'processing_failed'
+        raise GarmentJobError(code, diagnostics=existing or [exception_diagnostic(stage, exc)]) from exc
+
+
+def _inference_manifest(path, value):
+    # Diagnostics are best effort: a manifest I/O error must neither change a
+    # successful cutout nor print a traceback containing a prior private cause.
+    try:
+        atomic_json(path, value)
+    except Exception:
+        pass
 
 
 def resize_image(image: Image.Image, max_width: int, max_height: int) -> Image.Image:
@@ -158,16 +180,26 @@ def _run_inference(mode: str, source_path: Path, output_path: Path, timeout: flo
     child_env = dict(os.environ)
     child_env.pop('OPENAI_API_KEY', None)
     job = job_factory({}, command=[sys.executable, str(Path(__file__).resolve()),
-                                  '--infer', mode, str(source_path), str(output_path)],
+                                  '--infer', mode, str(source_path), str(output_path), '{result}'],
                       timeout_seconds=timeout, env=child_env)
     try:
         while True:
             summary = job.poll()
             if summary is not None:
                 if summary['status'] != 'succeeded' or not output_path.exists():
-                    raise GarmentJobError(f'{mode}_inference_failed')
+                    result = summary.get('result')
+                    result = result if isinstance(result, dict) else {}
+                    diagnostics = safe_diagnostics(result.get('diagnostics'))
+                    code = summary.get('returncode')
+                    category = ('process_timeout' if summary['status'] == 'timed_out' else
+                                'process_crashed' if type(code) is int and code != 0 else
+                                'process_no_result' if not result else
+                                'output_missing' if summary['status'] == 'succeeded' else 'process_failed')
+                    raise GarmentJobError(f'{mode}_inference_failed', diagnostics=diagnostics or [
+                        {'stage': f'{mode}_process', 'category': category}])
                 if output_path.stat().st_size >= MAX_REFERENCE_IMAGE_BYTES:
-                    raise GarmentJobError(f'{mode}_inference_output_too_large')
+                    raise GarmentJobError(f'{mode}_inference_output_too_large', diagnostics=[
+                        {'stage': f'{mode}_output', 'category': 'validation_failed'}])
                 return output_path.read_bytes()
             time.sleep(.05)
     finally:
@@ -183,11 +215,16 @@ def isolated_remove(source: bytes, *, run_inference=_run_inference) -> tuple[byt
             output = run_inference('alpha', source_path, output_path, ALPHA_TIMEOUT_SECONDS)
             _validate_cutout(output)
             return output, 'alpha'
-        except GarmentJobError:
+        except GarmentJobError as alpha_error:
             output_path.unlink(missing_ok=True)
-            output = run_inference('fallback', source_path, output_path, FALLBACK_TIMEOUT_SECONDS)
-            _validate_cutout(output)
-            return output, 'fast'
+            try:
+                output = run_inference('fallback', source_path, output_path, FALLBACK_TIMEOUT_SECONDS)
+                _stage('fallback_output', lambda: _validate_cutout(output))
+                return output, 'fast'
+            except GarmentJobError as fallback_error:
+                alpha = exception_diagnostics(alpha_error) or [exception_diagnostic('alpha_output', alpha_error)]
+                fallback = exception_diagnostics(fallback_error) or [exception_diagnostic('fallback_output', fallback_error)]
+                raise GarmentJobError(str(fallback_error), diagnostics=[alpha[-1], fallback[-1]]) from fallback_error
 
 
 def process_garment(payload: dict, *, upload, progress=lambda value: None,
@@ -202,13 +239,13 @@ def process_garment(payload: dict, *, upload, progress=lambda value: None,
     source_url = payload.get('image_url')
     if not isinstance(source_url, str) or not source_url:
         raise GarmentJobError('source_missing')
-    source_bytes = download(source_url)
-    image = normalize_source(source_bytes)
+    source_bytes = _stage('source_download', lambda: download(source_url))
+    image = _stage('source_normalization', lambda: normalize_source(source_bytes))
     original_size = image.size
-    original = constrain_original_reference_image(image)
+    original = _stage('original_prepare', lambda: constrain_original_reference_image(image))
     prefix = f'items/{item_id}/attempts/{attempt_id}'
     original_path = f'{prefix}/original.png'
-    original_url = upload(original, original_path)
+    original_url = _stage('original_upload', lambda: upload(original, original_path))
     original_fields = {'originalStoragePath': original_path, 'originalUrl': original_url}
     progress(original_fields)
     working = original
@@ -219,16 +256,16 @@ def process_garment(payload: dict, *, upload, progress=lambda value: None,
         if clean.getchannel('A').getbbox() is None:
             raise GarmentJobError('background_removal_invalid')
     else:
-        output, mode = remove_background(png_bytes(working))
-        clean = _validate_cutout(output)
+        output, mode = _stage('background_removal', lambda: remove_background(png_bytes(working)))
+        clean = _stage('cutout_validation', lambda: _validate_cutout(output))
     # Canonical clean evidence receives no crop, shadow, RGB whitening or alpha
     # amplification. processed.png is only the smaller compatibility asset.
     clean_path = f'{prefix}/nobg.png'
-    clean_url = upload(clean, clean_path)
+    clean_url = _stage('cutout_upload', lambda: upload(clean, clean_path))
     processed = resize_image(clean, 1024, 1024)
     processed_path, thumbnail_path = f'{prefix}/processed.png', f'{prefix}/thumbnail.png'
-    processed_url = upload(processed, processed_path)
-    thumbnail_url = upload(generate_thumbnail(processed), thumbnail_path)
+    processed_url = _stage('processed_upload', lambda: upload(processed, processed_path))
+    thumbnail_url = _stage('thumbnail_upload', lambda: upload(generate_thumbnail(processed), thumbnail_path))
     return {**original_fields, 'backgroundRemovedStoragePath': clean_path,
             'backgroundRemovedUrl': clean_url, 'processedStoragePath': processed_path,
             'processedUrl': processed_url, 'thumbnailStoragePath': thumbnail_path,
@@ -273,25 +310,36 @@ def firebase_uploader(bucket_name: str):
 def infer(mode: str, source_path: str, output_path: str) -> None:
     # The only rembg import in this module. The caller always bounds this child.
     os.environ.setdefault('OMP_NUM_THREADS', '1')
-    from rembg import remove
-    source = Path(source_path).read_bytes()
+    def load_remove():
+        from rembg import remove
+        return remove
+    remove = _stage(f'{mode}_import', load_remove)
+    source = _stage(f'{mode}_input', lambda: Path(source_path).read_bytes())
     if len(source) >= MAX_REFERENCE_IMAGE_BYTES:
-        raise GarmentJobError('inference_input_too_large')
+        raise GarmentJobError('inference_input_too_large', diagnostics=[
+            {'stage': f'{mode}_input', 'category': 'validation_failed'}])
     kwargs = ({'alpha_matting': True, 'alpha_matting_foreground_threshold': 240,
                'alpha_matting_background_threshold': 10, 'alpha_matting_erode_size': 10}
               if mode == 'alpha' else {})
-    output = remove(source, **kwargs)
+    output = _stage(f'{mode}_removal', lambda: remove(source, **kwargs))
     if not isinstance(output, bytes) or len(output) >= MAX_REFERENCE_IMAGE_BYTES:
-        raise GarmentJobError('inference_output_invalid')
-    Path(output_path).write_bytes(output)
+        raise GarmentJobError('inference_output_invalid', diagnostics=[
+            {'stage': f'{mode}_output', 'category': 'validation_failed'}])
+    _stage(f'{mode}_output', lambda: Path(output_path).write_bytes(output))
 
 
 def main() -> int:
-    if len(sys.argv) == 5 and sys.argv[1] == '--infer' and sys.argv[2] in ('alpha', 'fallback'):
+    if len(sys.argv) in (5, 6) and sys.argv[1] == '--infer' and sys.argv[2] in ('alpha', 'fallback'):
         try:
             infer(sys.argv[2], sys.argv[3], sys.argv[4])
+            if len(sys.argv) == 6:
+                _inference_manifest(sys.argv[5], {'status': 'succeeded'})
             return 0
-        except Exception:
+        except Exception as exc:
+            if len(sys.argv) == 6:
+                diagnostics = exception_diagnostics(exc) or [
+                    exception_diagnostic(f'{sys.argv[2]}_process', exc)]
+                _inference_manifest(sys.argv[5], {'status': 'failed', 'diagnostics': diagnostics})
             print('garment_inference_failed', file=sys.stderr)
             return 1
     parser = argparse.ArgumentParser()
@@ -306,13 +354,15 @@ def main() -> int:
         payload = json.loads(path.read_text())
         if not isinstance(payload, dict):
             raise GarmentJobError('manifest_invalid')
-        result = process_garment(payload, upload=firebase_uploader(payload.get('bucket_name') or DEFAULT_BUCKET_NAME),
+        uploader = _stage('storage_setup', lambda: firebase_uploader(payload.get('bucket_name') or DEFAULT_BUCKET_NAME))
+        result = process_garment(payload, upload=uploader,
                                  progress=lambda value: atomic_json(args.progress, value))
         atomic_json(args.result, result)
         return 0
     except Exception as exc:
         error = garment_failure_code(str(exc) if isinstance(exc, GarmentJobError) else None)
-        atomic_json(args.result, {'status': 'failed', 'error_code': error})
+        diagnostics = exception_diagnostics(exc) or [exception_diagnostic('job', exc)]
+        atomic_json(args.result, {'status': 'failed', 'error_code': error, 'diagnostics': diagnostics})
         print(error, file=sys.stderr)
         return 1
 

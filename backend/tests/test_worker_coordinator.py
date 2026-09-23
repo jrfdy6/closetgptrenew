@@ -199,6 +199,41 @@ class CoordinatorTests(unittest.TestCase):
         self.assertEqual(self.publish.call_count, 1)
         self.finish.assert_called_once()
 
+    def test_failure_diagnostics_are_reprojected_before_operational_reporting(self):
+        report = Mock()
+        self.coordinator.report = report
+        self.coordinator.tick()
+        job = self.garments[0][1]
+        job.outcome = {'status': 'failed', 'progress': {}, 'result': {
+            'error_code': 'processing_failed', 'diagnostics': [
+                {'stage': 'alpha_model_download', 'category': 'http_error', 'http_status': 503,
+                 'message': 'private-token', 'url': 'https://private.invalid', 'item_id': 'private-id'},
+                {'stage': 'fallback_removal', 'category': 'runtime_error', 'http_status': True},
+                {'stage': 'job', 'category': 'unknown'},
+            ]}}
+        self.coordinator.tick()
+        fields = [call.args[1] for call in report.call_args_list if call.args[0] == 'garment_finished'][0]
+        self.assertEqual(fields['diagnostics'], [
+            {'stage': 'alpha_model_download', 'category': 'http_error', 'http_status': 503},
+            {'stage': 'fallback_removal', 'category': 'runtime_error'},
+        ])
+        self.assertNotIn('private', str(fields))
+        self.finish.assert_called_once_with('white-tee', 'attempt-1', result=None,
+                                            error_code='processing_failed')
+        self.assertTrue(job.closed)
+
+    def test_malformed_diagnostic_fields_never_escape_receiving_boundary(self):
+        from worker.garment_errors import safe_diagnostics
+        for value in (None, 'https://private.invalid', {'stage': 'job'},
+                      [{'stage': ['private'], 'category': 'unknown'}],
+                      [{'stage': 'job', 'category': 'private-token'}],
+                      [{'stage': 'private-id', 'category': 'unknown'}]):
+            with self.subTest(value=value):
+                self.assertEqual(safe_diagnostics(value), [])
+        for value in (True, '503', 399, 600, ['private-token']):
+            self.assertEqual(safe_diagnostics([{'stage': 'job', 'category': 'unknown', 'http_status': value}]),
+                             [{'stage': 'job', 'category': 'unknown'}])
+
     def test_stale_original_stops_child_without_publishing_result(self):
         self.coordinator.tick()
         job = self.garments[0][1]

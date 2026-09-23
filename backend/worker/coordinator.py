@@ -8,9 +8,9 @@ its ambiguous outcome.
 from dataclasses import dataclass
 
 try:
-    from .garment_errors import garment_failure_code
+    from .garment_errors import garment_failure_code, safe_diagnostics
 except ImportError:
-    from garment_errors import garment_failure_code
+    from garment_errors import garment_failure_code, safe_diagnostics
 
 
 @dataclass
@@ -97,8 +97,11 @@ class WorkerCoordinator:
         accepted = self.finish_garment(run.claim["garment_id"], run.claim["attempt_id"],
                                        result=result if valid_result else None,
                                        error_code=error_code)
-        self.report("garment_finished", {"status": outcome["status"], "accepted": bool(accepted),
-                                         "attempt": run.claim["attempt_count"]})
+        fields = {"status": outcome["status"], "accepted": bool(accepted),
+                  "attempt": run.claim["attempt_count"]}
+        if not valid_result:
+            fields["diagnostics"] = safe_diagnostics(result.get("diagnostics"))
+        self.report("garment_finished", fields)
         run.process.close()
         self.garment = None
 

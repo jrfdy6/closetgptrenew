@@ -7,13 +7,14 @@ import base64
 from pathlib import Path
 import os
 import sys
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
 from PIL import Image
 from worker import garment_lifecycle as lifecycle
 from worker.coordinator import GarmentRun, WorkerCoordinator
-from worker.garment_errors import SAFE_FAILURE_CODES, garment_failure_code
+from worker.garment_errors import SAFE_FAILURE_CODES, garment_failure_code, safe_diagnostics
 from worker.garment_job import png_bytes
 from worker.process_supervisor import JobProcess, read_json
 from tests.test_garment_lifecycle import Database, transactional
@@ -51,6 +52,7 @@ class GarmentFailureProjectionTests(unittest.TestCase):
         self.photo = 'data:image/png;base64,' + base64.b64encode(
             png_bytes(Image.new('RGBA', (10, 8), (30, 60, 90, 255)))).decode()
         self.item['imageUrl'] = self.photo
+        self.report = Mock()
         self.decorator = patch.object(lifecycle.firestore, 'transactional', transactional)
         self.decorator.start()
         self.addCleanup(self.decorator.stop)
@@ -72,29 +74,36 @@ class GarmentFailureProjectionTests(unittest.TestCase):
             finish_garment=lambda item, attempt, **kwargs: lifecycle.finish_garment(
                 self.db, item, attempt, now=now, **kwargs),
             flatlay_candidates=lambda: [], start_flatlay=Mock(),
+            report=self.report,
         )
         coordinator.garment = GarmentRun(claim, process)
         return coordinator
 
-    def actual_failure(self, mode='image', supplied_code='', now=100):
+    def actual_failure(self, mode='image', supplied_code='', now=100, import_path=None):
         claim = lifecycle.claim_garment(self.db, 'shirt', 'worker', now=now)
         self.assertIsNotNone(claim)
         process = JobProcess({'item_id': 'shirt', 'attempt_id': claim['attempt_id'],
                               'image_url': self.item['imageUrl']},
                              command=[sys.executable, '-c', CHILD, '{manifest}', '{result}', '{progress}',
                                       mode, supplied_code], timeout_seconds=5,
-                             env={'PATH': os.environ.get('PATH', ''), 'PYTHONPATH': str(BACKEND)})
+                             env={'PATH': os.environ.get('PATH', ''),
+                                  'PYTHONPATH': os.pathsep.join(str(path) for path in (import_path, BACKEND) if path)})
         try:
             process.process.wait(timeout=5)
             envelope = read_json(process.result_path)
             log = process.log_path.read_text()
             self.assertEqual(process.process.returncode, 1)
-            self.assertEqual(set(envelope), {'status', 'error_code'})
+            self.assertEqual(set(envelope), {'status', 'error_code', 'diagnostics'})
             self.assertIn(envelope['error_code'], SAFE_FAILURE_CODES)
+            self.assertEqual(envelope['diagnostics'], safe_diagnostics(envelope['diagnostics']))
             coordinator = self.coordinator(claim, process, now + 1)
             coordinator.tick()
             self.assertIsNone(coordinator.garment)
             self.assertEqual(self.item['processing_error_code'], envelope['error_code'])
+            self.assertNotIn('diagnostics', self.item)
+            self.assertNotIn('diagnostics', self.job)
+            finished = [call.args[1] for call in self.report.call_args_list if call.args[0] == 'garment_finished'][-1]
+            self.assertEqual(finished['diagnostics'], envelope['diagnostics'])
             return claim, envelope, log
         finally:
             process.close()
@@ -189,6 +198,55 @@ class GarmentFailureProjectionTests(unittest.TestCase):
         self.assertLessEqual(SAFE_FAILURE_CODES, lifecycle.ERRORS.keys())
         self.assertEqual(garment_failure_code(None), 'processing_failed')
         self.assertEqual(garment_failure_code('invalid_item_id'), 'invalid_identifier')
+
+    def test_real_nested_inference_forwards_both_download_causes_without_private_text(self):
+        secret = 'https://private.invalid/model?token=synthetic-secret'
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'pooch').mkdir()
+            (root / 'pooch' / '__init__.py').write_text('')
+            (root / 'pooch' / 'core.py').write_text(
+                'from urllib.error import HTTPError\n'
+                'def retrieve():\n'
+                f'    raise HTTPError({secret!r}, 503, {secret!r}, None, None)\n')
+            (root / 'rembg.py').write_text(
+                'from pooch.core import retrieve\n'
+                'def remove(source, **kwargs):\n'
+                '    return retrieve()\n')
+            _, envelope, log = self.actual_failure('nested_inference', import_path=root)
+        self.assertEqual(envelope['error_code'], 'processing_failed')
+        self.assertEqual(envelope['diagnostics'], [
+            {'stage': 'alpha_model_download', 'category': 'http_error', 'http_status': 503},
+            {'stage': 'fallback_model_download', 'category': 'http_error', 'http_status': 503},
+        ])
+        self.assertIn('originalUrl', self.item)
+        self.assertEqual(self.item['processing_status'], 'pending')
+        self.assertEqual(self.item['processing_attempt_count'], 1)
+        self.assertIsNotNone(self.item['processing_next_attempt_at'])
+        for output in (log, str(envelope), str(self.report.call_args_list)):
+            self.assertNotIn(secret, output)
+            self.assertNotIn('items/shirt', output)
+            self.assertNotIn('Traceback', output)
+        self.assertEqual(set(self.report.call_args.args[1]), {'status', 'accepted', 'attempt', 'diagnostics'})
+
+    def test_coordinator_reprojects_forged_diagnostics_without_changing_lifecycle(self):
+        claim = lifecycle.claim_garment(self.db, 'shirt', 'worker', now=100)
+        process = Mock()
+        process.poll.return_value = {'status': 'failed', 'progress': {}, 'result': {
+            'error_code': 'processing_failed', 'diagnostics': [
+                {'stage': 'fallback_removal', 'category': 'runtime_error', 'message': 'private-token',
+                 'url': 'https://private.invalid', 'http_status': True},
+                {'stage': 'private-token', 'category': 'http_error', 'http_status': 503},
+                {'stage': 'alpha_import', 'category': 'dependency_missing'},
+            ]}}
+        process.read_progress.return_value = {}
+        self.coordinator(claim, process, 101).tick()
+        fields = self.report.call_args.args[1]
+        self.assertEqual(fields['diagnostics'], [{'stage': 'fallback_removal', 'category': 'runtime_error'}])
+        self.assertNotIn('private', str(fields))
+        self.assertEqual(self.item['processing_error_code'], 'processing_failed')
+        self.assertNotIn('diagnostics', self.item)
+        self.assertNotIn('diagnostics', self.job)
 
 
 if __name__ == '__main__':

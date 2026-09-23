@@ -12,11 +12,14 @@ Use it for:
 
 If OpenClaw workspace docs and the product repo disagree, this file wins for EasyOutfit runtime and deployment truth.
 
-## Goal 6 Candidate Boundary — Not Yet Live
+## Goal 6 Boundary — Controlled Rollout in Progress
 
-The integrated Goal 6 candidate changes where privileged work runs. This section
-describes the candidate contract, not an observed production rollout. No cloud
-configuration, rules or deployment has been changed as part of this preparation.
+The accepted integrated source is `801b6679062e0ad1df6c0f5e085ddeac5c4d8724`.
+Protected Firestore rules and the Railway API are live; the frontend remains on
+its earlier production build. Worker compatibility has not passed: garment
+attempts preserve originals but fail during later image preparation. Keep
+flatlay admission paused and the frontend release held while diagnosing this
+release blocker. See the Goal 6 handoff for actual artifact IDs and evidence.
 
 - Vercel runs the frontend and thin API proxies. The candidate has no Firebase
   Admin runtime/package and needs no Firebase Admin credentials in Vercel. Do not
@@ -64,7 +67,10 @@ retain Railway Admin ownership, protected rules, versioned asset readers, privat
 ledgers and receipts. `EASYOUTFIT_FLATLAY_REQUESTS_PAUSED=true` stops API admission
 only; stop the worker deployment to stop dispatch. Do not blindly restore old
 source, old rules or Vercel Admin keys. A rebuilt recovery candidate needs its own
-review and verification.
+review and verification. When changing the admission flag before `main` contains
+the accepted candidate, use `--skip-deploys`, then explicitly deploy the reviewed
+commit. A normal variable update can rebuild the older linked `main`; do not
+regress the new API while restoring admission.
 
 Current local evidence: frontend 720 tests in 57 suites passed; backend 534 tests
 ran with 533 passed and one macOS skip; Firestore rules 263 checks passed against
@@ -75,13 +81,13 @@ traces exclude Firebase Admin. Typecheck still reports 115 existing diagnostics,
 compared with 124 at the preceding candidate, with no new diagnostic positions
 or diagnostics in changed files. Build configuration still skips type/lint gates;
 a successful build is not a clean repository-wide typecheck. Frozen TypeScript
-oracles verify 189 quiz cases and 241 onboarding cases. The parent's earlier
-real local Firestore service checks passed 23/23 and require final-candidate
-acceptance. Live authenticated/provider-image and physical-device checks remain
-pending. The three canonical backend URL variables were verified read-only;
-that does not constitute deployment. See
-[the Goal 6 handoff](ONBOARDING_RELEASE_GOAL6_HANDOFF.md) for release gates and the
-inventory to refresh. No final source SHA or CI pass is asserted here.
+oracles verify 189 quiz cases and 241 onboarding cases. The parent's frozen-source
+real local Firestore service checks passed 25/25. Both Linux CI runs on the
+accepted source passed. Live API health/auth-denial checks and a signed-in
+profile save/reload passed; full authenticated frontend/provider-image and
+physical-device checks remain pending. The three canonical backend URL values
+were verified. See [the Goal 6 handoff](ONBOARDING_RELEASE_GOAL6_HANDOFF.md) for
+release artifacts, the remaining gates and recovery restrictions.
 
 ## Canonical Surfaces
 

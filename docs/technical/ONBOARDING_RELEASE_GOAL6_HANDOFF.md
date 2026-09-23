@@ -1,10 +1,12 @@
 # Goal 6 — integrated onboarding release
 
-Status: candidate preparation and verification in progress; the new privileged
-boundary is **not yet live**. No cloud configuration, rules or deployment changes
-have occurred during this preparation. No final candidate SHA, CI pass or
-successful live-account/provider/device checks are asserted. Independent parent
-review must accept the complete candidate before production actions.
+Status: controlled rollout of accepted source
+`801b6679062e0ad1df6c0f5e085ddeac5c4d8724` is **partially live**. Protected
+Firestore rules and the matching Railway API are deployed and verified. Worker
+compatibility is **not accepted**: garment jobs preserve originals but fail during
+later preparation. The worker was stopped to preserve remaining automatic
+attempts; flatlay admission remains paused. Frontend production, full signed-in
+workflows, provider-image/settlement and physical-device gates remain open.
 
 ## Candidate and scope
 
@@ -87,10 +89,10 @@ and Linux CI remain distinct release gates.
 | Executed TypeScript parity oracles | 189 quiz cases and 241 onboarding cases match | Frozen-source mapping, submission hashes, state, classification and timestamp behavior |
 | Coordinator/process standard-library-only run | 29 tests: 28 passed, one macOS-specific skip | Linux CI on the final candidate remains required |
 | Firestore rules emulator | 263 checks passed against the exact source hash below | Recheck if rules change |
-| Parent independent real local Firestore emulator service checks | 23/23 passed, including concurrent drafts | Refresh acceptance against the final candidate |
+| Parent independent real local Firestore emulator service checks | Frozen-source 25/25 passed, including completion guards and concurrent drafts | Transaction contention can return retryable exhaustion; retries converge without a dual winner |
 | Production build | Passed with public Firebase client configuration and no server Firebase credentials | All 134 compiled server-route traces exclude Firebase Admin |
 | Typecheck | 115 existing diagnostics; baseline 124 at `3ed2ecc4`; zero new diagnostic positions or changed-file errors | Repository-wide typecheck remains failing; the existing build skips type/lint gates |
-| Final source SHA and CI | **Pending** | Record frozen commit and actual CI result |
+| Accepted source and CI | `801b6679062e0ad1df6c0f5e085ddeac5c4d8724`; Linux runs `35798351924` and `35798348416` passed | A subsequent diagnostic candidate needs separate acceptance |
 | Authenticated deployed/provider-image/physical-device checks | **Pending** | Local and viewport tests do not replace these gates |
 
 The parent independently verified all 14 canonical public-health/private-debug
@@ -100,12 +102,87 @@ Rules release and source succeeded. Synthetic `projects.test` was denied to the
 current service account (HTTP 403); no IAM change, alternate credential, rules
 deployment or app-document operation was used to bypass it. Current signed-in
 operator Firebase-console sign-in has since been verified read-only; actual
-publication and deployed-rule proof remain release gates.
+publication and source-hash proof are now recorded below. Full deployed client
+workflow evidence remains a release gate.
 
 The rules emulator checks cover owner/foreign/anonymous policy, server-owned
 profile authority, private job/receipt collections, managed wear immutability
 and legacy behavior. They are local evidence, distinct from the independent
 service-level emulator checks and from authenticated deployed-rule evidence.
+
+## Observed controlled rollout — September 22–23, 2026
+
+- Rules: `projects/closetgptrenew/rulesets/7bcef845-f06e-4825-af58-b248f21164a3`,
+  published `2026-09-22T23:48:31.140678Z`. Official REST source SHA matches the
+  accepted `eafa27b…f9811ca` exactly. Five console rules simulations passed;
+  these are synthetic checks, not actual app-document writes.
+- API: deployment `12c21fda-3559-48f3-a07c-102089bff6e3`, accepted source `801b6679`,
+  one running instance `2798efdd-46dc-439b-94ad-eb0ae8e29501`. All 16 health and
+  missing-bearer/private-route checks passed. A signed-in profile name save and
+  reload passed, and the original name was restored. This tested the live
+  compatibility path, not the new preview proxy. Two same-day bodyless Wear UI
+  submissions left the exact outfit and all three garments at wear count one;
+  readback found one matching managed history, one day receipt and one retry-key
+  receipt (12/12 checks). This closes the API-first legacy wear compatibility gate,
+  not the new-preview proxy or provider-image gates.
+- Worker: deployment `777045cd-8f01-4f64-ab2f-bf2a18e75362`, same accepted source,
+  one instance `09cf0f47-3e0f-465c-bb43-232c959b27ca`, started its coordinator at
+  `00:03:32 UTC`. Claims and finite automatic retries progressed, but no successful
+  garment completion was observed. Eight observed failed attempts took 48–91
+  seconds and recorded `processing_failed`; all four inspected jobs had protected
+  originals. No model/network/inference root cause is inferred from that coarse
+  code. Official `railway down` exited successfully; by `00:14:21 UTC` the worker
+  had no active instances, and its exact deployment was `REMOVED`. Logs recorded
+  the container stop signal at `00:14:11 UTC` and `Worker stopped` at `00:14:14 UTC`.
+  OS-level child reaping is not independently proven by these observations.
+- The historical expired Neo flatlay request settled through normal worker
+  expiry as `legacy_request_needs_review`; its reserved credit was refunded once
+  (remaining credits 0 to 1, unchanged refill period). No manual credit write,
+  request retry or provider image call was performed. No provider-start field
+  was present; that does not prove historical provider billing.
+- Vercel preview `dpl_2gsS5zGiCygBJWY1wvjwWHYQndy2` is ready at accepted `801b6679`.
+  Authenticated preview checks remain pending. Production still uses
+  `dpl_6jcTmawjEhem86s3ZtaKbMmNsLYn`; no frontend promotion has occurred.
+
+The API admission variable was originally present with value `false` and is now
+configured `true` on the running accepted API. Restore that exact prior state
+only at the deliberate readiness gate. Before `main` is integrated, use
+`--skip-deploys` for the variable change, followed by explicit reviewed-commit
+deployment: a normal variable update can automatically rebuild the older linked
+`main`. Runtime SSH flag inspection was unavailable because no SSH keys were
+configured; none were created. Authenticated paused-handler proof remains open.
+
+The failed initial CLI-upload API candidate did not replace the running API:
+its monorepo archive omitted required files. The official `serviceInstanceDeploy`
+API with explicit `commitSha` and `latestCommit: false` successfully deployed the
+accepted Git source. Use this controlled path rather than unverified archives.
+
+## Worker diagnostic candidate — not yet deployed
+
+The contained failure needs more precise evidence than the public
+`processing_failed` code. The narrow candidate forwards at most two finite
+stage/category entries from the alpha and fallback inference processes through
+the existing result manifests to coordinator operational logs. An optional HTTP
+error status is constrained to integer 400–599. Every receiving boundary reapplies
+the allowlist. No exception messages, URLs, object IDs, credentials, traceback
+contents or frame locals are serialized. Diagnostics do not enter garment/job
+lifecycle records or user-facing errors.
+
+Diagnostic extraction and inference sidecar persistence are best effort. A broken
+exception property or optional diagnostic file cannot turn successful inference
+into a failure or obscure the original safe failure envelope. Existing models,
+providers, leases, deadlines, automatic attempt budgets and public statuses are
+unchanged. This candidate diagnoses the blocker; it does not claim to fix the
+underlying image-preparation failure.
+
+The focused diagnostic/process suites ran 55 tests: 54 passed and one expected
+macOS skip. The full backend ran 542 tests: 541 passed and one expected macOS skip.
+Independent review resolved the diagnostic-accessor fault and found no remaining
+blocking issue. Real nested subprocess tests verify both inference causes cross
+the manifest boundaries while original preservation and retry behavior remain
+unchanged. Frontend, rules and API source are unchanged from accepted `801b6679`.
+Freeze the exact diagnostic commit, verify Linux CI and obtain parent acceptance
+before a bounded worker-only diagnostic run; keep API admission paused.
 
 ## Original production state
 
@@ -153,7 +230,7 @@ or restore old Admin handlers as a release or recovery step.
 1. Freeze the tested clean cumulative source and obtain independent parent
    acceptance of source, tests,
    final rules drift/hash, recovery plan and remaining live gates. Record the
-   actual SHA and CI results; no final SHA or CI pass is recorded yet. Do not
+   actual SHA and CI results; the accepted base is recorded above. Do not
    merge stacked PRs one by one or allow Git triggers to publish intermediate
    runtime combinations.
 2. Refresh the original production inventory and canonical environment bindings.
