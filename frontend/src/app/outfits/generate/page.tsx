@@ -731,13 +731,18 @@ export default function OutfitGenerationPage() {
         </div>}
         {!firstLookFlow && !generatedOutfit && !generating && (
           <div className="max-w-md mx-auto mb-8 space-y-4">
+            {baseItem?.name && (
+              <p className="text-sm text-center text-stone-700 dark:text-stone-300">
+                Building around <strong>{baseItem.name}</strong>
+              </p>
+            )}
             <Button
               onClick={() => setSheetOpen(true)}
               disabled={wardrobeLoading || profileLoading || !!wardrobeLoadError}
               className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-accent text-primary-foreground hover:shadow-lg hover:shadow-primary/30 transition-all rounded-2xl"
             >
               <Sparkles className="h-5 w-5 mr-2" />
-              Generate Outfit
+              Choose outfit settings
             </Button>
 
             <motion.div
@@ -809,7 +814,7 @@ export default function OutfitGenerationPage() {
                   <Sparkles className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 text-muted-foreground mx-auto mb-3 sm:mb-4" />
                   <h3 className="text-base sm:text-lg font-semibold mb-2">Ready to Generate</h3>
                   <p className="text-sm sm:text-base text-muted-foreground">
-                    Fill out the form and click "Generate Outfit" to create your AI-powered style combination
+                    Choose your occasion, style and mood to create an outfit.
                   </p>
                 </CardContent>
               </Card>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Navigation from "@/components/Navigation";
 import ClientOnlyNav from "@/components/ClientOnlyNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,9 +131,11 @@ const BatchImageUpload = dynamic(() => import('@/components/BatchImageUpload'), 
 
 
 export default function Dashboard() {
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [dashboardSnapshot, setDashboardSnapshot] = useState<{ userId: string; data: DashboardData } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [dashboardRequestOwner, setDashboardRequestOwner] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
+  const dashboardRequestId = useRef(0);
   const [markingAsWorn, setMarkingAsWorn] = useState(false);
   const [showBatchUpload, setShowBatchUpload] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -143,6 +145,8 @@ export default function Dashboard() {
   const [showOutfitDetails, setShowOutfitDetails] = useState(false);
   const { toast } = useToast();
   const { user, loading } = useAuthContext();
+  const currentDashboardUserId = useRef(user?.uid);
+  const dashboardData = dashboardSnapshot?.userId === user?.uid ? dashboardSnapshot?.data : null;
   const router = useRouter();
   
   // Check wardrobe items for modal
@@ -263,81 +267,71 @@ export default function Dashboard() {
 
   // Fetch real dashboard data
   useEffect(() => {
+    currentDashboardUserId.current = user?.uid;
     if (!loading) {
       fetchDashboardData();
     }
+    return () => {
+      dashboardRequestId.current += 1;
+      currentDashboardUserId.current = undefined;
+    };
   }, [user, loading]);
 
   // Listen for outfit marked as worn events to refresh dashboard
   useEffect(() => {
+    const pendingRefreshes = new Set<ReturnType<typeof setTimeout>>();
     const handleOutfitMarkedAsWorn = (event: CustomEvent) => {
       debugDashboard('🔄 Dashboard: Outfit marked as worn, refreshing data...', event.detail);
       // Add a small delay to allow Firestore write to propagate
       // This ensures the query picks up the newly created outfit_history entry
-      setTimeout(() => {
+      const timer = setTimeout(() => {
+        pendingRefreshes.delete(timer);
         debugDashboard('🔄 Dashboard: Fetching fresh data from server...');
         if (user) {
           fetchDashboardDataFresh();
         }
       }, 2000); // 2 second delay for Firestore consistency
+      pendingRefreshes.add(timer);
     };
 
     window.addEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
     
     return () => {
       window.removeEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
+      pendingRefreshes.forEach(clearTimeout);
     };
   }, [user]); // Only depend on user, not fetchDashboardData
 
-  const fetchDashboardData = async () => {
+  const loadDashboardData = async (forceFresh: boolean) => {
+    const requestUserId = user?.uid;
+    if (currentDashboardUserId.current !== requestUserId) return;
+    const requestId = ++dashboardRequestId.current;
     try {
+      setDashboardRequestOwner(requestUserId);
       setIsLoading(true);
       setError(null);
-      debugDashboard('🔍 DEBUG: Dashboard: Starting to fetch real data...');
-      
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      const data = await dashboardService.getDashboardData(user);
-      debugDashboard('🔍 DEBUG: Dashboard: Real data received:', data);
-      debugDashboard('🔍 DEBUG: Dashboard: Data type:', typeof data);
-      debugDashboard('🔍 DEBUG: Dashboard: Data keys:', Object.keys(data || {}));
-      debugDashboard('🔍 DEBUG: Dashboard: Total items value:', data?.totalItems);
-      
-      setDashboardData(data);
-      debugDashboard('🔍 DEBUG: Dashboard: State update called with:', data);
-    } catch (err) {
-      console.error('🔍 DEBUG: Dashboard: Error fetching data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
+      const data = forceFresh
+        ? await dashboardService.getDashboardData(user, true)
+        : await dashboardService.getDashboardData(user);
+      if (dashboardRequestId.current === requestId && currentDashboardUserId.current === requestUserId) {
+        setDashboardSnapshot({ userId: user.uid, data });
+      }
+    } catch {
+      if (dashboardRequestId.current === requestId && currentDashboardUserId.current === requestUserId) {
+        setError("We couldn't load your dashboard. Please try again.");
+      }
     } finally {
-      setIsLoading(false);
+      if (dashboardRequestId.current === requestId && currentDashboardUserId.current === requestUserId) {
+        setIsLoading(false);
+      }
     }
   };
 
-  const fetchDashboardDataFresh = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      debugDashboard('🔍 DEBUG: Dashboard: Starting to fetch FRESH data (bypassing cache)...');
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-      
-      const data = await dashboardService.getDashboardData(user, true); // Force fresh
-      debugDashboard('🔍 DEBUG: Dashboard: FRESH data received:', data);
-      debugDashboard('🔍 DEBUG: Dashboard: FRESH outfitsThisWeek:', data?.outfitsThisWeek);
-      
-      setDashboardData(data);
-      debugDashboard('🔍 DEBUG: Dashboard: State update called with FRESH data:', data);
-    } catch (err) {
-      console.error('🔍 DEBUG: Dashboard: Error fetching FRESH data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const fetchDashboardData = () => loadDashboardData(false);
+  const fetchDashboardDataFresh = () => loadDashboardData(true);
 
   const handleMarkAsWorn = async () => {
     if (!user || !dashboardData?.todaysOutfit) return;
@@ -385,13 +379,13 @@ export default function Dashboard() {
 
 
   // Show loading state while authentication is resolving or subscription is loading
-  if (loading || (isLoading && !dashboardData) || planLoading) {
+  if (loading || ((isLoading || dashboardRequestOwner !== user?.uid) && !dashboardData) || planLoading) {
     return (
       <div className="min-h-screen">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-600 mx-auto"></div>
+          <div className="text-center" role="status">
+            <div aria-hidden="true" className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-600 mx-auto"></div>
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">Loading your dashboard...</p>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-500">
               Fetching real-time data from your wardrobe...
@@ -426,14 +420,14 @@ export default function Dashboard() {
       <div className="min-h-screen">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Dashboard Error</h1>
+          <div className="text-center" role="alert">
+            <AlertCircle aria-hidden="true" className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Your dashboard couldn&apos;t load</h1>
             <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button onClick={handleRetry}>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Retry
+                Retry dashboard
               </Button>
               <Link href="/wardrobe">
                 <Button variant="outline">Go to Wardrobe</Button>
@@ -442,9 +436,6 @@ export default function Dashboard() {
                 <Button variant="outline">Go to Profile</Button>
               </Link>
             </div>
-            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-              If you continue to see this error, please check the browser console (F12) for detailed debug information.
-            </p>
           </div>
         </div>
       </div>
@@ -499,7 +490,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {error && <p role="alert" className="mb-4 text-red-600 dark:text-red-400">{error}</p>}
+        {error && <div role="alert" className="mb-4 space-y-2 text-red-600 dark:text-red-400">
+          <p>{error} Your last loaded dashboard is still shown.</p>
+          <Button variant="outline" onClick={handleRetry} disabled={isLoading}>Retry dashboard</Button>
+        </div>}
+        {isLoading && <p role="status" className="mb-4 component-text-secondary">Updating your dashboard…</p>}
         {onboardingError && <div role="alert" className="mb-4 text-red-600 dark:text-red-400">
           {onboardingError} <Button variant="outline" onClick={() => { void refreshOnboarding(); }}>Retry saved progress</Button>
         </div>}
@@ -568,7 +563,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">Total items</p>
                 <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#D4A574] to-[#C9956F] bg-clip-text text-transparent">
-                  {dashboardData?.totalItems || 0}
+                  {dashboardData?.totalItems ?? '—'}
                 </p>
               </div>
             </div>

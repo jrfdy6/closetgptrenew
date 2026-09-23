@@ -187,7 +187,7 @@ export default function WardrobeGrid({
         >
           {/* Image Container */}
           <div className="relative aspect-square overflow-hidden rounded-t-2xl border-b border-border/60 dark:border-border/70">
-            <div className="relative w-full h-full bg-secondary dark:bg-card flex items-center justify-center">
+            <div className="absolute inset-0 bg-secondary dark:bg-card flex items-center justify-center">
               <Image
                 src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl}
                 alt={item.name || "Wardrobe item"}
@@ -290,4 +290,4 @@ export default function WardrobeGrid({
       </AlertDialog>
     </div>
   );
-} 
+}

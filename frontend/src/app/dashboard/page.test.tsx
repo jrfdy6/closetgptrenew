@@ -8,6 +8,7 @@ declare const expect: jest.Expect;
 declare const it: jest.It;
 
 const mockUser = { uid: 'owner', getIdToken: jest.fn(async () => 'token') };
+const mockAuth = { user: mockUser, loading: false };
 const mockDashboard = jest.fn();
 const mockWardrobe = { items: [] as unknown[], loading: false, error: null as string | null, refetch: jest.fn() };
 const progress = (stage: OnboardingState['stage'], ready = false): OnboardingState => ({
@@ -20,7 +21,7 @@ const mockMount = jest.fn();
 const mockUnmount = jest.fn();
 const mockWeather = { temperature: 72, condition: 'Clear', location: 'Test' };
 const data = { totalItems: 10, favorites: 0, outfitsThisWeek: 0, topItems: [], styleCollections: [], totalStyleGoals: 0 };
-jest.mock('@/contexts/AuthContext', () => ({ useAuthContext: () => ({ user: mockUser, loading: false }) }));
+jest.mock('@/contexts/AuthContext', () => ({ useAuthContext: () => mockAuth }));
 jest.mock('@/lib/hooks/useWardrobe', () => ({ useWardrobe: () => mockWardrobe }));
 jest.mock('@/lib/hooks/useOnboardingState', () => ({ useOnboardingState: () => mockStage }));
 jest.mock('@/lib/services/dashboardService', () => ({ dashboardService: { getDashboardData: (...args: unknown[]) => mockDashboard(...args) } }));
@@ -32,8 +33,10 @@ jest.mock('@/components/Navigation', () => () => null);
 jest.mock('@/components/ClientOnlyNav', () => () => null);
 jest.mock('@/components/PremiumTeaser', () => () => null);
 jest.mock('@/components/ui/wardrobe-insights-hub', () => () => null);
-jest.mock('@/components/MissingWardrobeModal', () => ({ isOpen }: { isOpen: boolean }) => isOpen ? <div role="dialog">Add your capsule</div> : null);
-jest.mock('next/dynamic', () => () => () => null);
+jest.mock('@/components/MissingWardrobeModal', () => function MissingWardrobeModal({ isOpen }: { isOpen: boolean }) {
+  return isOpen ? <div role="dialog">Add your capsule</div> : null;
+});
+jest.mock('next/dynamic', () => () => function DynamicPlaceholder() { return null; });
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }));
 jest.mock('@/components/SmartWeatherOutfitGenerator', () => function Widget({ generationEnabled, onOutfitGenerated }: { generationEnabled: boolean; onOutfitGenerated: (value: unknown) => void }) {
   React.useEffect(() => {
@@ -48,6 +51,8 @@ jest.mock('@/components/SmartWeatherOutfitGenerator', () => function Widget({ ge
 beforeEach(() => {
   sessionStorage.setItem('has-asked-for-location', 'true');
   mockDashboard.mockReset().mockResolvedValue(data);
+  mockAuth.user = mockUser;
+  mockAuth.loading = false;
   mockWardrobe.items = [];
   mockWardrobe.error = null;
   mockWardrobe.loading = false;
@@ -94,8 +99,93 @@ it('does not unmount the generated result while refreshing dashboard statistics'
   expect(screen.getByTestId('daily-look')).toBe(widget);
   expect(mockMount).toHaveBeenCalledTimes(1);
   expect(mockUnmount).not.toHaveBeenCalled();
+  expect(screen.getByRole('status')).toHaveTextContent('Updating your dashboard');
+  expect(screen.getByText('Total items').parentElement).toHaveTextContent('10');
   await act(async () => resolveRefresh(data));
   expect(screen.getByTestId('daily-look')).toBe(widget);
+});
+
+it('shows a retryable load error instead of a zero-item wardrobe', async () => {
+  mockDashboard.mockRejectedValueOnce(new Error('Failed to fetch: private server details'));
+  render(<Dashboard />);
+  expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't load your dashboard");
+  expect(screen.queryByText('Total items')).not.toBeInTheDocument();
+  expect(screen.queryByText(/private server details/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Retry dashboard' }));
+  expect(await screen.findByText('Total items')).toBeVisible();
+  expect(screen.getByText('Total items').parentElement).toHaveTextContent('10');
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+it('keeps the last loaded count and generated result after a failed refresh, then recovers', async () => {
+  mockDashboard.mockResolvedValueOnce(data).mockRejectedValueOnce(new Error('Network unavailable'))
+    .mockResolvedValueOnce({ ...data, totalItems: 11 });
+  render(<Dashboard />);
+  const widget = await screen.findByTestId('daily-look');
+  fireEvent.click(screen.getByRole('button', { name: 'Complete test generation' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Your last loaded dashboard is still shown');
+  expect(screen.getByText('Total items').parentElement).toHaveTextContent('10');
+  expect(screen.getByTestId('daily-look')).toBe(widget);
+  expect(mockUnmount).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Retry dashboard' }));
+  await waitFor(() => expect(screen.getByText('Total items').parentElement).toHaveTextContent('11'));
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(screen.getByTestId('daily-look')).toBe(widget);
+});
+
+it('shows zero only when the dashboard successfully loads an empty wardrobe', async () => {
+  mockDashboard.mockResolvedValue({ ...data, totalItems: 0 });
+  render(<Dashboard />);
+  expect(await screen.findByText('Total items')).toBeVisible();
+  expect(screen.getByText('Total items').parentElement).toHaveTextContent('0');
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+it('does not let an older refresh overwrite the latest wardrobe count', async () => {
+  let resolveOlder!: (value: unknown) => void;
+  mockDashboard.mockResolvedValueOnce(data)
+    .mockImplementationOnce(() => new Promise(resolve => { resolveOlder = resolve; }))
+    .mockResolvedValueOnce({ ...data, totalItems: 12 });
+  render(<Dashboard />);
+  await screen.findByTestId('daily-look');
+  fireEvent.click(screen.getByRole('button', { name: 'Complete test generation' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Complete test generation' }));
+  await waitFor(() => expect(screen.getByText('Total items').parentElement).toHaveTextContent('12'));
+  await act(async () => resolveOlder({ ...data, totalItems: 0 }));
+  expect(screen.getByText('Total items').parentElement).toHaveTextContent('12');
+});
+
+it('does not retain another account’s dashboard when the new account fails to load', async () => {
+  mockDashboard.mockResolvedValueOnce(data).mockRejectedValueOnce(new Error('New account unavailable'));
+  const { rerender } = render(<Dashboard />);
+  await screen.findByText('Total items');
+  mockAuth.user = { ...mockUser, uid: 'other-owner' };
+  rerender(<Dashboard />);
+  expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't load your dashboard");
+  expect(screen.queryByText('Total items')).not.toBeInTheDocument();
+  expect(screen.queryByText(/last loaded dashboard/)).not.toBeInTheDocument();
+});
+
+it('cancels a delayed wear refresh when the signed-in account changes', async () => {
+  jest.useFakeTimers();
+  try {
+    mockDashboard.mockResolvedValueOnce(data).mockResolvedValueOnce({ ...data, totalItems: 12 });
+    const { rerender, unmount } = render(<Dashboard />);
+    await screen.findByText('Total items');
+    act(() => window.dispatchEvent(new CustomEvent('outfitMarkedAsWorn')));
+    mockAuth.user = { ...mockUser, uid: 'other-owner' };
+    rerender(<Dashboard />);
+    await waitFor(() => expect(screen.getByText('Total items').parentElement).toHaveTextContent('12'));
+    await act(async () => { jest.advanceTimersByTime(2500); });
+    expect(mockDashboard).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('Total items').parentElement).toHaveTextContent('12');
+    act(() => window.dispatchEvent(new CustomEvent('outfitMarkedAsWorn')));
+    unmount();
+    await act(async () => { jest.advanceTimersByTime(2500); });
+    expect(mockDashboard).toHaveBeenCalledTimes(2);
+  } finally {
+    jest.useRealTimers();
+  }
 });
 
 it('asks a newly ready capsule to choose its first look instead of generating on dashboard arrival', async () => {

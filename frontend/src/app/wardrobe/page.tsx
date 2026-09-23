@@ -376,7 +376,7 @@ export default function WardrobePage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto [&>button]:shrink-0">
             <TabsTrigger value="all">All Items</TabsTrigger>
             <TabsTrigger value="favorites">
               <Heart className="w-4 h-4 mr-2" />

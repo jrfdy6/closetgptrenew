@@ -16,6 +16,12 @@ module.exports = {
   		}
   	},
   	extend: {
+      // Keep native utilities available alongside the legacy aspect-ratio plugin.
+      aspectRatio: {
+        auto: 'auto',
+        square: '1 / 1',
+        video: '16 / 9',
+      },
   		colors: {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
@@ -93,4 +99,4 @@ module.exports = {
     require("@tailwindcss/typography"),
     require("@tailwindcss/aspect-ratio"),
   ],
-} 
+}

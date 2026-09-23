@@ -4,7 +4,7 @@ declare const beforeEach: jest.Lifecycle;
 declare const expect: jest.Expect;
 declare const it: jest.It;
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import OutfitGenerationPage from './page';
 
 const mockPush = jest.fn();
@@ -55,10 +55,11 @@ afterEach(() => { jest.restoreAllMocks(); });
 
 async function openConfiguredPage() {
   const view = render(<OutfitGenerationPage />);
-  const open = screen.getByRole('button', { name: 'Generate Outfit' });
+  const open = screen.getByRole('button', { name: 'Choose outfit settings' });
   await waitFor(() => expect(open).toBeEnabled());
   expect(mockGenerate).not.toHaveBeenCalled();
   fireEvent.click(open);
+  expect(mockGenerate).not.toHaveBeenCalled();
   fireEvent.click(await screen.findByRole('button', { name: 'Casual' }));
   fireEvent.click(screen.getByRole('button', { name: 'Minimalist' }));
   fireEvent.click(screen.getByRole('button', { name: 'Serene' }));
@@ -70,6 +71,24 @@ function expectNoAdditionalWrites() {
   expect(mockRequestFlatLay).not.toHaveBeenCalled();
   expect((fetch as jest.Mock).mock.calls.every(([, options]) => !options?.method || options.method === 'GET')).toBe(true);
 }
+
+it('shows the required garment before opening settings and waits for an explicit create request', async () => {
+  window.history.replaceState({}, '', '/outfits/generate?baseItemId=shirt');
+  render(<OutfitGenerationPage />);
+  const open = screen.getByRole('button', { name: 'Choose outfit settings' });
+  await waitFor(() => expect(open).toBeEnabled());
+  expect(screen.getByText('Plain shirt')).toBeVisible();
+  expect(screen.getByText('Choose your occasion, style and mood to create an outfit.')).toBeVisible();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(mockGenerate).not.toHaveBeenCalled();
+
+  fireEvent.click(open);
+  const settings = await screen.findByRole('dialog', { name: 'Create your outfit' });
+  expect(within(settings).getByText('Plain shirt')).toBeVisible();
+  expect(within(settings).getByRole('button', { name: 'Create outfit' })).toBeDisabled();
+  expect(mockGenerate).not.toHaveBeenCalled();
+  expectNoAdditionalWrites();
+});
 
 it('opens the encoded persisted ID after one configured generation without another save or flatlay request', async () => {
   mockGenerate.mockResolvedValue(savedResponse('saved look?#'));

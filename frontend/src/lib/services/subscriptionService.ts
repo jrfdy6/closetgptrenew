@@ -90,7 +90,8 @@ class SubscriptionService {
   async getCurrentSubscription(user: User | null): Promise<Subscription> {
     const token = await this.getAuthToken(user);
     
-    const response = await fetch(buildPublicBackendUrl('/api/payments/subscription/current'), {
+    const response = await fetch('/api/payments/subscription/current', {
+      cache: 'no-store',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
