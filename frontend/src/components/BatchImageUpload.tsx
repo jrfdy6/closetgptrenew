@@ -258,6 +258,8 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
   const pendingCount = visibleItems.filter(item => item.status === 'pending' || item.status === 'error').length;
   const preparing = queueOwner === userId && user?.uid === userId && preparingCount > 0;
   const hasUnsaved = pendingCount > 0 || busy || preparing;
+  const selectionResolved = visibleItems.length > 0 && visibleItems.every(item => item.status === 'success' || item.status === 'duplicate');
+  const allItemsSaved = selectionResolved && visibleItems.every(item => item.status === 'success');
   useEffect(() => { onPendingChange?.(hasUnsaved); }, [hasUnsaved, onPendingChange]);
   useEffect(() => {
     if (!hasUnsaved) return;
@@ -278,10 +280,11 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
     {selectionError && <p role="alert" className="text-sm text-destructive">{selectionError}</p>}
     {visibleItems.length > 0 && <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{busy ? 'Keep this page open while your items save.' : pendingCount ? 'Leaving before confirmation discards unsaved selections. Save your items before you go.' : 'Your saved items are in the capsule below.'}</p>
-        <Button onClick={() => void startUpload()} disabled={busy || !pendingCount}>
+        <p className="text-sm text-muted-foreground">{busy ? 'Keep this page open while your items save.' : preparing ? 'Keep this page open while your photos are prepared.' : pendingCount ? 'Leaving before confirmation discards unsaved selections. Save your items before you go.' : selectionError ? 'Review the message above before adding more photos.' : allItemsSaved ? 'Your items are saved to your wardrobe.' : selectionResolved ? 'Choose different photos to add more items.' : 'Review each photo’s status below.'}</p>
+        {(busy || pendingCount > 0) && <Button onClick={() => void startUpload()} disabled={busy || !pendingCount}>
           {busy ? <><Loader2 aria-hidden="true" className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" />Saving items…</> : `Save ${pendingCount} ${pendingCount === 1 ? 'item' : 'items'}`}
-        </Button>
+        </Button>}
+        {!hasUnsaved && !selectionError && selectionResolved && <p role="status" className="flex items-center gap-2 text-sm font-medium"><Check aria-hidden="true" className="h-4 w-4" />{allItemsSaved ? 'All items saved' : 'No new items to save'}</p>}
       </div>
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {visibleItems.map(item => <li key={item.id} className="overflow-hidden rounded-xl border bg-card">
