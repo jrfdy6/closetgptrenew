@@ -262,7 +262,7 @@
  
     /* Primary: Amber Gradient Base */
     --primary: 38 92% 50%;              /* #FFB84C - Signature amber */
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 24 10% 10%;  /* Dark ink keeps amber actions readable. */
  
     /* Secondary: Light Amber */
     --secondary: 38 30% 96%;            /* #F5F0E8 - Cream */
@@ -273,7 +273,7 @@
  
     /* Accent: Orange */
     --accent: 33 100% 50%;              /* #FF9400 - Orange gradient end */
-    --accent-foreground: 0 0% 100%;
+    --accent-foreground: 24 10% 10%;
  
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
@@ -1717,4 +1717,4 @@
     background-image: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-  } 
+  }

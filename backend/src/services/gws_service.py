@@ -6,7 +6,9 @@ Calculates composite score from utilization, TVE Progress, AI Fit Score, and rev
 import logging
 from typing import Dict, Optional, Any, List
 from datetime import datetime, timedelta
+from firebase_admin import firestore
 from ..config.firebase import db
+from .app_data_privacy import require_app_data_writable
 from .utilization_service import utilization_service
 from .tve_service import tve_service
 from .ai_fit_score_service import ai_fit_score_service
@@ -20,7 +22,7 @@ class GWSService:
     def __init__(self):
         self.db = db
     
-    async def calculate_gws(self, user_id: str) -> float:
+    async def calculate_gws(self, user_id: str, *, expected_epoch=None) -> float:
         """
         Calculate Global Wardrobe Score (0-100)
         
@@ -35,15 +37,18 @@ class GWSService:
             GWS score (0-100)
         """
         try:
+            epoch = require_app_data_writable(self.db, user_id, expected_epoch)
             # Component 1: Utilization (40 points max)
             utilization_data = await utilization_service.calculate_utilization_percentage(
                 user_id, days=30
             )
+            if utilization_data.get('error'):
+                raise RuntimeError('Unable to calculate wardrobe utilization')
             utilization_pct = utilization_data.get('utilization_percentage', 0)
             utilization_component = (utilization_pct / 100) * 40
             
             # Component 2: TVE Progress (30 points max)
-            tve_stats = await tve_service.calculate_wardrobe_tve(user_id)
+            tve_stats = await tve_service.calculate_wardrobe_tve(user_id, expected_epoch=epoch)
             total_tve = tve_stats.get('total_tve', 0)
             total_wardrobe_cost = tve_stats.get('total_wardrobe_cost', 0)
             
@@ -55,11 +60,11 @@ class GWSService:
                 tve_component = 0
             
             # Component 3: AI Fit Score normalized (20 points max)
-            ai_fit_score = await ai_fit_score_service.calculate_ai_fit_score(user_id)
+            ai_fit_score = await ai_fit_score_service.calculate_ai_fit_score(user_id, expected_epoch=epoch)
             ai_fit_component = (ai_fit_score / 100) * 20
             
             # Component 4: Revived Items Score (10 points max)
-            revived_score = await self._calculate_revived_items_score(user_id)
+            revived_score = await self._calculate_revived_items_score(user_id, expected_epoch=epoch)
             revived_component = revived_score * 10
             
             # Calculate total GWS
@@ -68,10 +73,14 @@ class GWSService:
             
             # Update user profile with GWS
             user_ref = self.db.collection('users').document(user_id)
-            user_ref.update({
-                'gws': gws,
-                'gws_last_calculated': datetime.now().isoformat()
-            })
+            @firestore.transactional
+            def update(transaction):
+                require_app_data_writable(self.db, user_id, epoch, transaction)
+                transaction.update(user_ref, {
+                    'gws': gws,
+                    'gws_last_calculated': datetime.now().isoformat()
+                })
+            update(self.db.transaction())
             
             logger.info(f"GWS for user {user_id}: {gws} "
                        f"(util: {utilization_component:.1f}, "
@@ -83,6 +92,8 @@ class GWSService:
             
         except Exception as e:
             logger.error(f"Error calculating GWS: {e}", exc_info=True)
+            if expected_epoch is not None:
+                raise
             return 0.0
     
     async def get_gws_breakdown(self, user_id: str) -> Dict[str, Any]:
@@ -165,7 +176,7 @@ class GWSService:
                 "insights": []
             }
     
-    async def _calculate_revived_items_score(self, user_id: str) -> float:
+    async def _calculate_revived_items_score(self, user_id: str, *, expected_epoch=None) -> float:
         """
         Calculate score based on how many dormant items have been revived (0-1)
         
@@ -207,6 +218,8 @@ class GWSService:
             
         except Exception as e:
             logger.error(f"Error calculating revived items score: {e}", exc_info=True)
+            if expected_epoch is not None:
+                raise
             return 0.5
     
     def _generate_gws_insights(self, gws: float, components: Dict[str, Any]) -> List[str]:
@@ -245,4 +258,3 @@ gws_service = GWSService()
 
 # Export
 __all__ = ['GWSService', 'gws_service']
-

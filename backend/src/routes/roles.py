@@ -62,17 +62,21 @@ async def get_user_status(
                 "title": "Curator",
                 "icon": "🎨",
                 "color": "indigo",
-                "perks_desc": ["1.5x Token Earnings", "+8% Gacha Luck", "Priority AI"]
+                "perks_desc": ["1.5x Token Earnings", "+8% Gacha Luck"]
             },
             "master": {
                 "title": "Master",
                 "icon": "👑",
                 "color": "gold",
-                "perks_desc": ["1.75x Token Earnings", "+12% Gacha Luck", "Exclusive Gacha Pool", "Priority AI"]
+                "perks_desc": ["1.75x Token Earnings", "+12% Gacha Luck"]
             }
         }
         
         promotion_check = await addiction_service.check_for_promotion(user_id)
+        updated = user_ref.get().to_dict() or {}
+        role_data = updated.get('role') or {}
+        try: current_role = UserRole(role_data.get('current_role', 'starter'))
+        except ValueError: current_role = UserRole.STARTER
         
         return {
             "current_role": {

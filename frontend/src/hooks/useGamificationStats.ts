@@ -76,6 +76,8 @@ export interface Challenge {
   started_at?: string;
   expires_at?: string;
   featured?: boolean;
+  instance_id?: string;
+  completed_at?: string;
 }
 
 export interface GamificationStats {
@@ -151,7 +153,14 @@ export function useGamificationStats() {
       if (!current()) return;
       
         if (data.success) {
-          setStats(data.data);
+          const value = data.data;
+          if (!value || !Number.isFinite(value.xp) || value.xp < 0 ||
+              !Number.isInteger(value.level?.level) || value.level.level < 1 ||
+              !Number.isFinite(value.level?.xp_for_next_level) || !Number.isFinite(value.level?.progress_percentage) ||
+              !Array.isArray(value.badges) || !Number.isInteger(value.active_challenges_count) || value.active_challenges_count < 0) {
+            throw new Error('Your progress could not be loaded. Please try again.');
+          }
+          setStats(value);
         } else {
           throw new Error(data.error || 'Failed to fetch stats');
         }
@@ -180,19 +189,15 @@ export function useGamificationStats() {
     fetchStats();
   }, [fetchStats]);
 
-  // Listen for outfit rated events to refresh stats
+  // Badge evaluation may commit an unlock during its read; avoid listening to
+  // both legacy rating and canonical activity events for the same action.
   useEffect(() => {
-    const handleOutfitRated = () => {
-      console.log('🔄 Gamification stats: Outfit rated, refreshing stats...');
-      fetchStats();
+    const handleBadgesUpdated = (event: Event) => {
+      if ((event as CustomEvent).detail?.uid === user?.uid) void fetchStats();
     };
-
-    window.addEventListener('outfitRated', handleOutfitRated);
-    
-    return () => {
-      window.removeEventListener('outfitRated', handleOutfitRated);
-    };
-  }, [fetchStats]);
+    window.addEventListener('badgesUpdated', handleBadgesUpdated);
+    return () => window.removeEventListener('badgesUpdated', handleBadgesUpdated);
+  }, [fetchStats, user?.uid]);
 
   useWardrobeActivityRefresh(user?.uid, fetchStats);
 
@@ -223,13 +228,18 @@ export function useBadges() {
       return;
     }
 
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     try {
       setLoading(true);
       setError(null);
       
       const token = await user.getIdToken();
       if (!current()) return;
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 30000);
       const response = await fetch('/api/gamification/badges', {
+        signal: controller.signal,
+        cache: 'no-store',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -244,7 +254,11 @@ export function useBadges() {
       if (!current()) return;
       
       if (data.success) {
-        setBadges(data.data.badges || []);
+        if (!Array.isArray(data.data?.badges)) throw new Error('Your badges could not be loaded.');
+        setBadges(data.data.badges);
+        // Badge evaluation can commit rewards during this read. Refresh summary readers,
+        // without recursively re-reading the badge endpoint.
+        if (data.data.newly_unlocked?.length) window.dispatchEvent(new CustomEvent('badgesUpdated', { detail: { uid: user.uid } }));
       } else {
         throw new Error(data.error || 'Failed to fetch badges');
       }
@@ -253,6 +267,7 @@ export function useBadges() {
       console.error('Error fetching badges:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
+      clearTimeout(timeoutId);
       if (current()) setLoading(false);
     }
   }, [user]);
@@ -279,6 +294,8 @@ export function useChallenges() {
   if (owner.current !== user?.uid) { owner.current = user?.uid; sequence.current++; }
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
   const [availableChallenges, setAvailableChallenges] = useState<Challenge[]>([]);
+  const [completedChallenges, setCompletedChallenges] = useState<Challenge[]>([]);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -287,7 +304,10 @@ export function useChallenges() {
     const current = () => owner.current === user?.uid && sequence.current === requestId;
     if (!user) {
       setActiveChallenges([]);
+      setAvailableChallenges([]);
+      setCompletedChallenges([]);
       setError(null);
+      setHistoryError(null);
       setLoading(false);
       return;
     }
@@ -295,68 +315,47 @@ export function useChallenges() {
     try {
       setLoading(true);
       setError(null);
-      
+      setHistoryError(null);
       const token = await user.getIdToken();
       if (!current()) return;
-      
-      // Call backend directly to avoid Vercel API route timeout
       const backendUrl = getPublicBackendUrl();
-      const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const timeout = isMobile ? 60000 : 30000; // 60s on mobile (matching wardrobe), 30s on desktop
-      
-      // Fetch active and available challenges in parallel
-      const [activeResponse, availableResponse] = await Promise.all([
-        (async () => {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), timeout);
-          try {
-            const res = await fetch(`${backendUrl}/api/challenges/active`, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              },
-              signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-            return res;
-          } catch (err) {
-            clearTimeout(timeoutId);
-            throw err;
+      const timeout = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent) ? 60000 : 30000;
+      const readChallenges = async (path: string): Promise<Challenge[]> => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        try {
+          const response = await fetch(`${backendUrl}/api/challenges/${path}`, {
+            cache: 'no-store',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            signal: controller.signal,
+          });
+          if (!response.ok) throw new Error('Your challenges could not be loaded. Please try again.');
+          const data = await response.json();
+          if (data.success === false || !Array.isArray(data.data?.challenges)) {
+            throw new Error('Your challenges could not be loaded. Please try again.');
           }
-        })(),
-        (async () => {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), timeout);
-          try {
-            const res = await fetch(`${backendUrl}/api/challenges/available`, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              },
-              signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-            return res;
-          } catch (err) {
-            clearTimeout(timeoutId);
-            throw err;
-          }
-        })()
+          return data.data.challenges;
+        } finally { clearTimeout(timeoutId); }
+      };
+      const [active, available, history] = await Promise.allSettled([
+        readChallenges('active'), readChallenges('available'), readChallenges('history'),
       ]);
-
-      if (!activeResponse.ok || !availableResponse.ok) throw new Error('Your challenges could not be loaded. Please try again.');
-      if (activeResponse.ok && availableResponse.ok) {
-        const activeData = await activeResponse.json();
-        const availableData = await availableResponse.json();
-        if (!current()) return;
-        
-        setActiveChallenges(activeData.data?.challenges || []);
-        setAvailableChallenges(availableData.data?.challenges || []);
+      if (!current()) return;
+      if (active.status === 'fulfilled' && available.status === 'fulfilled') {
+        setActiveChallenges(active.value);
+        setAvailableChallenges(available.value);
+      } else {
+        setError('Your challenges could not be loaded. Please try again.');
+      }
+      if (history.status === 'fulfilled') {
+        setCompletedChallenges(history.value.filter(challenge => challenge.status === 'completed'));
+      } else {
+        setHistoryError('Your completed challenges could not be loaded. Please try again.');
       }
     } catch (err) {
       if (!current()) return;
-      console.error('Error fetching challenges:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError('Your challenges could not be loaded. Please try again.');
+      setHistoryError('Your completed challenges could not be loaded. Please try again.');
     } finally {
       if (current()) setLoading(false);
     }
@@ -365,17 +364,23 @@ export function useChallenges() {
   const startChallenge = useCallback(async (challengeId: string) => {
     if (!user) return;
 
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     try {
       const token = await user.getIdToken();
+      if (owner.current !== user.uid) return false;
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 30000);
       const response = await fetch(`${getPublicBackendUrl()}/api/challenges/${encodeURIComponent(challengeId)}/start`, {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
-      if (response.ok) {
+      const result = await response.json();
+      if (response.ok && result.success === true) {
         if (owner.current !== user.uid) return false;
         // Refresh both the challenge list and the summary from committed state.
         window.dispatchEvent(new CustomEvent(GAMIFICATION_ACTIVITY_EVENT, { detail: { uid: user.uid } }));
@@ -385,12 +390,15 @@ export function useChallenges() {
     } catch (err) {
       console.error('Error starting challenge:', err);
       return false;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }, [user, fetchChallenges]);
 
   useEffect(() => {
     setActiveChallenges([]);
     setAvailableChallenges([]);
+    setCompletedChallenges([]);
     fetchChallenges();
   }, [fetchChallenges]);
 
@@ -399,6 +407,8 @@ export function useChallenges() {
   return {
     activeChallenges,
     availableChallenges,
+    completedChallenges,
+    historyError,
     loading,
     error,
     refetch: fetchChallenges,

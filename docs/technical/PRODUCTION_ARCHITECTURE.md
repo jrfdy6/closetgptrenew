@@ -9,21 +9,20 @@ Canonical operator playbook:
 - **Repo:** `closetgptrenew` (EasyOutfit) is separate from `aiclone`
 - **Frontend:** Vercel project `closetgpt-frontend`
 - **Backend API:** Railway service `closetgptrenew`
-- **Background worker:** Railway service `background-processor`
+- **Image worker:** Railway service `background-processor`
+- **Rewards/privacy worker:** Railway service `gamification-worker`
 - **OpenAI SDK gateway:** Railway service `closetgptrenewopenaisdk`
 
-## Goal 6 Privileged Boundary — Rollout in Progress
+## Privileged boundary — released September 24, 2026
 
-The accepted integrated base is `801b6679062e0ad1df6c0f5e085ddeac5c4d8724`.
-Protected Firestore rules are live; the paused Railway API runs accepted
-recommendation repair `9c17e694`. Worker repair `f371ff43` completed
-three natural garment jobs with persisted original/derived contracts in a bounded
-production run, then stopped. Admission remains paused and its authenticated
-503/no-reservation contract is verified. A live configured outfit supported the
-bounded recommendation change. Paid admission remains held for review/deployment
-of a local POST-only strict identity correction; frontend and hosted-provider
-gates remain open. The operator playbook remains the authority for sequencing;
-the Goal 6 handoff records actual deployment IDs and remaining gates.
+The current released `main` is `cfe6cdd425e93eee624d3ac7c9b4c4e3236aa8b3`.
+Vercel and the Railway API use this source. The image worker is active on a
+byte-identical worker subtree; flatlay admission is open and ordinary credit
+guards remain enforced. A separate private rewards/privacy worker processes
+wear projections, account-data deletion and daily/weekly maintenance. It uses
+existing Firebase references and has no provider/payment credentials or public domain.
+The operator playbook records exact artifacts. The deeper gamification polish
+candidate requires its own frozen-source and runtime acceptance before release.
 
 | Surface | Candidate responsibility |
 | --- | --- |

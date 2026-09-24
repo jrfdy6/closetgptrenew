@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -25,7 +26,7 @@ import {
   Archive,
   Gem
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useBadges } from '@/hooks/useGamificationStats';
 
 // Map badge IDs to Lucide icons
@@ -59,9 +60,10 @@ interface BadgeDisplayProps {
 }
 
 export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
-  const { badges, loading, error } = useBadges();
+  const { badges, loading, error, refetch } = useBadges();
+  const reduceMotion = useReducedMotion();
 
-  if (loading) {
+  if (loading && badges.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -71,7 +73,7 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-2">
+          <div role="status" aria-label="Loading badges" className="grid grid-cols-3 gap-2">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
             ))}
@@ -82,7 +84,15 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
   }
 
   if (error) {
-    return null;
+    return (
+      <Card>
+        <CardHeader><CardTitle>Badges</CardTitle></CardHeader>
+        <CardContent>
+          <p role="status" className="text-sm text-muted-foreground">Your badges could not be loaded.</p>
+          <Button variant="outline" className="mt-4 min-h-11" onClick={() => void refetch()}>Try again</Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (compact) {
@@ -94,16 +104,17 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
           return (
             <motion.div
               key={badge.id}
-              initial={{ scale: 0, rotate: -180 }}
+              initial={reduceMotion ? false : { scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ 
-                delay: index * 0.1,
+                delay: reduceMotion ? 0 : index * 0.1,
+                duration: reduceMotion ? 0 : undefined,
                 type: "spring",
                 stiffness: 200
               }}
             >
               <Badge className="bg-card dark:bg-card border border-border/60 dark:border-border/70 text-card-foreground hover:border-[var(--copper-mid)]">
-                <IconComponent className="w-3 h-3 mr-1 text-[var(--copper-dark)]" />
+                <IconComponent className="w-3 h-3 mr-1 text-[#80502F] dark:text-[#E8C8A0]" />
                 {badge.name}
               </Badge>
             </motion.div>
@@ -120,14 +131,15 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
 
   // Full view with modal details
   return (
-    <Card>
+    <Card aria-busy={loading}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Award className="w-5 h-5 text-amber-500" />
+          <Award className="w-5 h-5 text-[#80502F] dark:text-[#E8C8A0]" />
           Your Badges ({badges.length})
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {loading && <p role="status" className="mb-3 text-xs text-muted-foreground">Refreshing badges…</p>}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {badges.map((badge, index) => {
             const IconComponent = BadgeIconMap[badge.id] || Award;
@@ -136,26 +148,29 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
               <Dialog key={badge.id}>
                 <DialogTrigger asChild>
                   <motion.button
-                    initial={{ scale: 0, rotate: -5 }}
+                    type="button"
+                    aria-label={`View ${badge.name} badge`}
+                    initial={reduceMotion ? false : { scale: 0, rotate: -5 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ 
-                      delay: index * 0.05,
+                      delay: reduceMotion ? 0 : index * 0.05,
+                      duration: reduceMotion ? 0 : undefined,
                       type: "spring",
                       stiffness: 200,
                       damping: 15
                     }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`w-16 h-16 bg-card dark:bg-card border ${
+                    whileHover={reduceMotion ? undefined : { scale: 1.03 }}
+                    whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+                    className={`w-full min-h-28 p-3 bg-card dark:bg-card border ${
                       badge.rarity === 'legendary' 
-                        ? 'border-[var(--copper-light)] animate-shimmer' 
+                        ? 'border-[var(--copper-light)] motion-safe:animate-shimmer'
                         : 'border-border/60 dark:border-border/70'
                     } rounded-2xl
                       flex flex-col items-center justify-center gap-2 transition-all
-                      hover:border-[var(--copper-mid)] cursor-pointer`}
+                      hover:border-[var(--copper-mid)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
                   >
-                    <IconComponent className="w-6 h-6 text-[var(--copper-dark)]" />
-                    <span className="text-xs font-medium text-center text-card-foreground">
+                    <IconComponent className="w-6 h-6 text-[#80502F] dark:text-[#E8C8A0]" />
+                    <span className="text-xs font-medium text-center text-card-foreground break-words w-full">
                       {badge.name}
                     </span>
                   </motion.button>
@@ -164,11 +179,12 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-3">
                       <div className={`p-3 rounded-lg bg-card dark:bg-card border ${RarityBorderColors[badge.rarity]}`}>
-                        <IconComponent className="w-6 h-6 text-[var(--copper-dark)]" />
+                        <IconComponent className="w-6 h-6 text-[#80502F] dark:text-[#E8C8A0]" />
                       </div>
                       {badge.name}
                     </DialogTitle>
-                    <DialogDescription className="space-y-2">
+                    <DialogDescription asChild>
+                      <div className="space-y-2">
                       <p className="text-muted-foreground">{badge.description}</p>
                       <div className="flex items-center gap-2 pt-2">
                         <Badge className="bg-card dark:bg-card border border-border/60 dark:border-border/70 text-card-foreground">
@@ -178,36 +194,20 @@ export default function BadgeDisplay({ compact = false }: BadgeDisplayProps) {
                           {badge.unlock_condition}
                         </span>
                       </div>
+                      </div>
                     </DialogDescription>
                   </DialogHeader>
                 </DialogContent>
               </Dialog>
             );
           })}
-          
-          {/* Locked badge placeholders */}
-          {badges.length < 4 && (
-            Array.from({ length: Math.min(4 - badges.length, 3) }).map((_, i) => (
-              <div
-                key={`locked-${i}`}
-                className="p-4 rounded-lg bg-gray-100 dark:bg-gray-800 
-                  border-2 border-dashed border-gray-300 dark:border-gray-600
-                  flex flex-col items-center gap-2 opacity-50"
-              >
-                <Lock className="w-8 h-8 text-gray-400" />
-                <span className="text-xs font-medium text-gray-500">
-                  Locked
-                </span>
-              </div>
-            ))
-          )}
         </div>
 
         {badges.length === 0 && (
           <div className="text-center p-8">
             <Lock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Complete challenges to earn your first badge!
+              Add clothes, log outfits, and complete challenges to earn badges.
             </p>
           </div>
         )}

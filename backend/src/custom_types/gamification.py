@@ -124,7 +124,7 @@ class UserChallenge(BaseModel):
 
 class Badge(BaseModel):
     """Badge metadata"""
-    id: BadgeType
+    id: str
     name: str
     description: str
     icon: str  # Lucide icon name
@@ -274,7 +274,7 @@ CHALLENGE_CATALOG = {
         id="cold_start_quest",
         type=ChallengeType.COLD_START,
         title="Closet Cataloger",
-        description="Upload your first 50 items to your wardrobe",
+        description="Upload 50 items: earn 50 XP at 10, 100 XP at 25, and 200 XP plus 200 base tokens at 50",
         rules={
             "items_required": 50
         },
@@ -728,7 +728,7 @@ CHALLENGE_CATALOG = {
         id="seasonal_stylist",
         type=ChallengeType.THEMED_EVENT,
         title="Seasonal Stylist",
-        description="Log 5 outfits appropriate for current season",
+        description="Log 5 outfits with items tagged for the season of the wear date (Northern Hemisphere if location is unavailable)",
         rules={"outfits_required": 5, "seasonal": True},
         rewards={"xp": 150, "tokens": 150, "badge": "seasonal_stylist"},
         cadence="monthly",
@@ -739,7 +739,7 @@ CHALLENGE_CATALOG = {
         id="holiday_special",
         type=ChallengeType.THEMED_EVENT,
         title="Holiday Special",
-        description="Create 3 outfits for a holiday/event",
+        description="Log 3 outfits for a holiday, party, wedding, or festival",
         rules={"outfits_required": 3, "themed": True},
         rewards={"xp": 180, "tokens": 180, "badge": "holiday_special"},
         cadence="monthly",
@@ -996,17 +996,17 @@ BADGE_DEFINITIONS = {
     BadgeType.STYLE_CONTRIBUTOR: Badge(
         id=BadgeType.STYLE_CONTRIBUTOR,
         name="Style Contributor",
-        description="Provided 25 outfit ratings",
+        description="Completed an outfit feedback milestone",
         icon="Star",
-        unlock_condition="Rate 25 outfits",
+        unlock_condition="Earned through outfit feedback",
         rarity="common"
     ),
     BadgeType.AI_TRAINER: Badge(
         id=BadgeType.AI_TRAINER,
         name="AI Trainer",
-        description="Provided 100 outfit ratings",
+        description="Completed an advanced outfit feedback milestone",
         icon="Brain",
-        unlock_condition="Rate 100 outfits",
+        unlock_condition="Earned through outfit feedback",
         rarity="epic"
     ),
 }
@@ -1076,3 +1076,21 @@ __all__ = [
     'get_xp_for_level',
 ]
 
+
+
+def badge_details(badge_id: str) -> Dict[str, Any]:
+    """Resolve every persisted reward badge, including annual cycle identities."""
+    import re
+    known = BADGE_DEFINITIONS.get(badge_id)
+    if known:
+        return known.model_dump()
+    annual = re.fullmatch(r"annual_master_cycle_([1-9][0-9]*)", badge_id)
+    if annual:
+        return {"id": badge_id, "name": f"Annual Wardrobe Master · Cycle {annual.group(1)}", "description": "Completed a full annual wardrobe challenge.", "icon": "Trophy", "unlock_condition": "Complete 52 qualifying weeks in this cycle", "rarity": "legendary"}
+    for challenge in CHALLENGE_CATALOG.values():
+        if challenge.rewards.get("badge") == badge_id:
+            return {"id": badge_id, "name": challenge.title, "description": challenge.description, "icon": challenge.icon or "Award", "unlock_condition": challenge.description, "rarity": "common"}
+    if badge_id == "gacha_legendary":
+        return {"id": badge_id, "name": "Legendary Pull", "description": "Earned a legendary Style Token reward.", "icon": "Trophy", "unlock_condition": "Receive a legendary pull", "rarity": "legendary"}
+    # Preserve earned legacy awards instead of silently hiding them.
+    return {"id": badge_id, "name": badge_id.replace("_", " ").title(), "description": "Previously earned achievement.", "icon": "Award", "unlock_condition": "Previously earned", "rarity": "common"}

@@ -6,7 +6,9 @@ Calculates and tracks cost per wear for wardrobe items
 import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
+from firebase_admin import firestore
 from ..config.firebase import db
+from .app_data_privacy import AppDataDeletionError, OWNER_KEYS, require_app_data_writable
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +83,11 @@ CATEGORY_TO_SPENDING_KEY = {
     "watch": "accessories",
     "accessory": "accessories",
 }
+
+
+def _owned_item(item, user_id):
+    owners = [item[key] for key in OWNER_KEYS if item.get(key) is not None]
+    return bool(owners) and all(owner == user_id for owner in owners) and item.get('deleted_at') is None
 
 
 class CPWService:
@@ -173,7 +180,9 @@ class CPWService:
     async def calculate_item_cpw(
         self,
         user_id: str,
-        item_id: str
+        item_id: str,
+        *,
+        expected_epoch=None
     ) -> Optional[float]:
         """
         Calculate CPW for a specific item
@@ -182,48 +191,40 @@ class CPWService:
             CPW value or None if item not found
         """
         try:
-            # Get user's spending ranges
+            epoch = require_app_data_writable(self.db, user_id, expected_epoch)
             user_ref = self.db.collection('users').document(user_id)
-            user_doc = user_ref.get()
-            
-            if not user_doc.exists:
-                logger.error(f"User {user_id} not found")
-                return None
-            
-            user_data = user_doc.to_dict()
-            spending_ranges = user_data.get('spending_ranges', {})
-            
-            # Get item
             item_ref = self.db.collection('wardrobe').document(item_id)
-            item_doc = item_ref.get()
-            
-            if not item_doc.exists:
-                logger.error(f"Item {item_id} not found")
-                return None
-            
-            item_data = item_doc.to_dict()
-            item_type = item_data.get('type', 'other')
-            wear_count = item_data.get('wearCount', 0)
-            
-            # Estimate cost
-            estimated_cost = self.estimate_item_cost(item_type, spending_ranges)
-            
-            # Calculate CPW
-            cpw = self.calculate_cpw(estimated_cost, wear_count)
-            
-            # Update item with CPW
-            item_ref.update({'cpw': cpw})
-            
-            return cpw
+
+            @firestore.transactional
+            def update(transaction):
+                # Recompute from the transaction's user and item snapshots. A
+                # retry keeps the captured epoch and cannot adopt cleared data.
+                require_app_data_writable(self.db, user_id, epoch, transaction)
+                user_data = user_ref.get(transaction=transaction).to_dict() or {}
+                item_doc = item_ref.get(transaction=transaction)
+                item_data = (item_doc.to_dict() or {}) if item_doc.exists else {}
+                if not item_doc.exists or not _owned_item(item_data, user_id):
+                    raise AppDataDeletionError(404, 'Wardrobe item not found')
+                estimated_cost = self.estimate_item_cost(
+                    item_data.get('type', 'other'), user_data.get('spending_ranges', {}))
+                cpw = self.calculate_cpw(estimated_cost, item_data.get('wearCount', 0))
+                transaction.update(item_ref, {'cpw': cpw})
+                return cpw
+
+            return update(self.db.transaction())
             
         except Exception as e:
             logger.error(f"Error calculating CPW for item {item_id}: {e}", exc_info=True)
+            if expected_epoch is not None:
+                raise
             return None
     
     async def recalculate_items_cpw(
         self,
         user_id: str,
-        item_ids: List[str]
+        item_ids: List[str],
+        *,
+        expected_epoch=None
     ) -> Dict[str, float]:
         """
         Recalculate CPW for multiple items
@@ -232,15 +233,22 @@ class CPWService:
             Dict mapping item_id to cpw
         """
         results = {}
-        for item_id in item_ids:
-            cpw = await self.calculate_item_cpw(user_id, item_id)
-            if cpw is not None:
-                results[item_id] = cpw
+        try:
+            epoch = require_app_data_writable(self.db, user_id, expected_epoch)
+            for item_id in item_ids:
+                cpw = await self.calculate_item_cpw(user_id, item_id, expected_epoch=epoch)
+                if cpw is not None:
+                    results[item_id] = cpw
+        except Exception:
+            if expected_epoch is not None:
+                raise
         return results
     
     async def calculate_wardrobe_average_cpw(
         self,
-        user_id: str
+        user_id: str,
+        *,
+        expected_epoch=None
     ) -> Optional[float]:
         """
         Calculate average CPW across all items in user's wardrobe
@@ -249,6 +257,7 @@ class CPWService:
             Average CPW or None if no items
         """
         try:
+            epoch = require_app_data_writable(self.db, user_id, expected_epoch)
             wardrobe_ref = self.db.collection('wardrobe').where('userId', '==', user_id)
             items = list(wardrobe_ref.stream())
             
@@ -260,11 +269,13 @@ class CPWService:
             
             for doc in items:
                 item_data = doc.to_dict()
+                if not _owned_item(item_data, user_id):
+                    continue
                 cpw = item_data.get('cpw')
                 
                 # If CPW not calculated, calculate it now
                 if cpw is None:
-                    cpw = await self.calculate_item_cpw(user_id, doc.id)
+                    cpw = await self.calculate_item_cpw(user_id, doc.id, expected_epoch=epoch)
                 
                 if cpw is not None:
                     total_cpw += cpw
@@ -274,10 +285,13 @@ class CPWService:
                 return None
             
             avg_cpw = total_cpw / count
+            require_app_data_writable(self.db, user_id, epoch)
             return round(avg_cpw, 2)
             
         except Exception as e:
             logger.error(f"Error calculating average CPW for user {user_id}: {e}", exc_info=True)
+            if expected_epoch is not None:
+                raise
             return None
     
     async def calculate_cpw_trend(
@@ -366,7 +380,9 @@ class CPWService:
     
     async def recalculate_all_cpw_for_user(
         self,
-        user_id: str
+        user_id: str,
+        *,
+        expected_epoch=None
     ) -> int:
         """
         Batch recalculate CPW for all items in user's wardrobe
@@ -375,12 +391,13 @@ class CPWService:
             Number of items updated
         """
         try:
+            epoch = require_app_data_writable(self.db, user_id, expected_epoch)
             wardrobe_ref = self.db.collection('wardrobe').where('userId', '==', user_id)
             items = list(wardrobe_ref.stream())
             
             count = 0
             for doc in items:
-                cpw = await self.calculate_item_cpw(user_id, doc.id)
+                cpw = await self.calculate_item_cpw(user_id, doc.id, expected_epoch=epoch)
                 if cpw is not None:
                     count += 1
             
@@ -389,6 +406,8 @@ class CPWService:
             
         except Exception as e:
             logger.error(f"Error batch recalculating CPW for user {user_id}: {e}", exc_info=True)
+            if expected_epoch is not None:
+                raise
             return 0
 
 
@@ -398,4 +417,3 @@ cpw_service = CPWService()
 
 # Export
 __all__ = ['CPWService', 'cpw_service']
-

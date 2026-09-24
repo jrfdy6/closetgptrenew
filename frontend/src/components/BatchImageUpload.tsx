@@ -6,6 +6,7 @@ import { Check, ImagePlus, Loader2, RotateCcw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/lib/firebase-context';
 import { persistBatchWardrobeItem } from '@/lib/persistBatchWardrobeItem';
+import { publishWardrobeSaved } from '@/lib/wardrobeActivity';
 import { getPublicBackendUrl } from '@/lib/publicBackendUrl';
 import { prepareCapsulePhoto, photoHash } from '@/lib/onboarding/capsulePhoto';
 import { normalizeItemMetadata } from '../../lib/normalization';
@@ -239,6 +240,7 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
           if (!isCurrent(owner)) break;
           update(item.id, { status: 'success', error: undefined });
           unreportedSaves.current.set(saved.id, saved);
+          publishWardrobeSaved(owner, saved.id);
           // Onboarding refreshes each persisted item without closing the uploader.
           try { await onItemSaved?.(saved); } catch { /* Parent owns reconciliation feedback. */ }
         } catch (error) {

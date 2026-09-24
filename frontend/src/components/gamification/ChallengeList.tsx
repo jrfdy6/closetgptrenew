@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useChallenges } from '@/hooks/useGamificationStats';
 import ChallengeCard from './ChallengeCard';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -12,11 +13,14 @@ interface ChallengeListProps {
 }
 
 export default function ChallengeList({ featured = false }: ChallengeListProps) {
-  const { activeChallenges, availableChallenges, loading, error, startChallenge } = useChallenges();
+  const { activeChallenges, availableChallenges, completedChallenges, historyError, loading, error, startChallenge, refetch } = useChallenges();
   const [startingChallenge, setStartingChallenge] = useState<string | null>(null);
   const { toast } = useToast();
+  const startInFlight = useRef(false);
 
   const handleStartChallenge = async (challengeId: string) => {
+    if (startInFlight.current) return;
+    startInFlight.current = true;
     setStartingChallenge(challengeId);
     try {
       const success = await startChallenge(challengeId);
@@ -27,8 +31,8 @@ export default function ChallengeList({ featured = false }: ChallengeListProps) 
         });
       } else {
         toast({
-          title: "Failed to start challenge",
-          description: "Please try again later.",
+          title: "Could not confirm challenge start",
+          description: "Try again to check the same challenge.",
           variant: "destructive"
         });
       }
@@ -39,13 +43,14 @@ export default function ChallengeList({ featured = false }: ChallengeListProps) 
         variant: "destructive"
       });
     } finally {
+      startInFlight.current = false;
       setStartingChallenge(null);
     }
   };
 
-  if (loading) {
+  if (loading && activeChallenges.length === 0 && availableChallenges.length === 0 && completedChallenges.length === 0) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div role="status" aria-label="Loading challenges" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-64 w-full" />
         ))}
@@ -57,8 +62,9 @@ export default function ChallengeList({ featured = false }: ChallengeListProps) 
     return (
       <div className="text-center p-8">
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Unable to load challenges. Please try again later.
+          Unable to load challenges. Please try again.
         </p>
+        <Button variant="outline" className="mt-4 min-h-11" onClick={() => void refetch()}>Try again</Button>
       </div>
     );
   }
@@ -71,7 +77,7 @@ export default function ChallengeList({ featured = false }: ChallengeListProps) 
       return (
         <div className="text-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            No challenges available right now. Check back next week!
+            No challenges available right now.
           </p>
         </div>
       );
@@ -95,6 +101,8 @@ export default function ChallengeList({ featured = false }: ChallengeListProps) 
             challenge={challenge}
             variant="available"
             onStart={handleStartChallenge}
+            starting={startingChallenge === challenge.challenge_id}
+            startDisabled={startingChallenge !== null || loading}
           />
         ))}
       </div>
@@ -103,16 +111,17 @@ export default function ChallengeList({ featured = false }: ChallengeListProps) 
 
   // Full view with tabs
   return (
-    <Tabs defaultValue="active" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="active">
+    <Tabs defaultValue="active" className="w-full" aria-busy={loading}>
+      {loading && <p role="status" className="mb-3 text-xs text-muted-foreground">Refreshing challenges…</p>}
+      <TabsList className="grid h-auto min-h-11 w-full grid-cols-3">
+        <TabsTrigger className="min-h-11 px-1 text-xs sm:text-sm" value="active">
           Active ({activeChallenges.length})
         </TabsTrigger>
-        <TabsTrigger value="available">
+        <TabsTrigger className="min-h-11 px-1 text-xs sm:text-sm" value="available">
           Available ({availableChallenges.length})
         </TabsTrigger>
-        <TabsTrigger value="completed">
-          Completed
+        <TabsTrigger className="min-h-11 px-1 text-xs sm:text-sm" value="completed">
+          Completed{historyError ? '' : ` (${completedChallenges.length})`}
         </TabsTrigger>
       </TabsList>
 
@@ -140,7 +149,7 @@ export default function ChallengeList({ featured = false }: ChallengeListProps) 
         {availableChallenges.length === 0 ? (
           <div className="text-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              All challenges are currently active or completed. Great job!
+              No challenges are available to start right now.
             </p>
           </div>
         ) : (
@@ -151,6 +160,8 @@ export default function ChallengeList({ featured = false }: ChallengeListProps) 
                 challenge={challenge}
                 variant="available"
                 onStart={handleStartChallenge}
+                starting={startingChallenge === challenge.challenge_id}
+                startDisabled={startingChallenge !== null || loading}
               />
             ))}
           </div>
@@ -158,11 +169,22 @@ export default function ChallengeList({ featured = false }: ChallengeListProps) 
       </TabsContent>
 
       <TabsContent value="completed" className="mt-6">
-        <div className="text-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Completed challenges will appear here. Keep going!
-          </p>
-        </div>
+        {historyError ? (
+          <div className="text-center p-8 rounded-lg bg-secondary">
+            <p role="status" className="text-sm text-muted-foreground">{historyError}</p>
+            <Button variant="outline" className="mt-4 min-h-11" onClick={() => void refetch()}>Try again</Button>
+          </div>
+        ) : completedChallenges.length === 0 ? (
+          <div className="text-center p-8 rounded-lg bg-secondary">
+            <p className="text-sm text-muted-foreground">No completed challenges yet. Your finished challenges will appear here.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {completedChallenges.map((challenge, index) => (
+              <ChallengeCard key={`${challenge.instance_id || challenge.challenge_id}:${challenge.completed_at || index}`} challenge={challenge} variant="completed" />
+            ))}
+          </div>
+        )}
       </TabsContent>
     </Tabs>
   );

@@ -126,10 +126,19 @@ async def get_challenge_history(
         history = []
         for doc in completed_ref.stream():
             challenge_data = doc.to_dict()
+            if challenge_data.get('status') != 'completed':
+                continue
+            from ..custom_types.gamification import CHALLENGE_CATALOG
+            definition = CHALLENGE_CATALOG.get(challenge_data.get('challenge_id'))
+            if definition:
+                challenge_data.update(title=definition.title, description=definition.description,
+                                      rewards=definition.rewards, icon=definition.icon)
+            challenge_data['instance_id'] = challenge_data.get('instance_id') or doc.id
             history.append(challenge_data)
         
         # Sort by completion date (most recent first)
-        history.sort(key=lambda x: x.get('completed_at', datetime.min), reverse=True)
+        from ..services.wear_projection import _ms
+        history.sort(key=lambda x: _ms(x.get('completed_at')), reverse=True)
         
         return {
             "success": True,

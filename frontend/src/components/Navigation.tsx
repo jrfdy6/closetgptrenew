@@ -7,7 +7,7 @@ import { signOutUser } from "@/lib/auth";
 import { useFirebase } from "@/lib/firebase-context";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Menu, X, Sparkles, Home, Shirt, Palette, User, Wand2 } from "lucide-react";
+import { Menu, X, Sparkles, Home, Shirt, Palette, User, Wand2, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import dynamic from 'next/dynamic';
@@ -76,6 +76,7 @@ export default function Navigation() {
     { href: "/dashboard", label: "Dashboard", icon: Home },
     { href: "/wardrobe", label: "Wardrobe", icon: Shirt },
     { href: "/outfits", label: "My Looks", icon: Palette },
+    { href: "/challenges", label: "Challenges", icon: Trophy },
     { href: "/profile", label: "Profile", icon: User },
   ];
 

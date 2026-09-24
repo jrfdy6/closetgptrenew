@@ -36,7 +36,8 @@ def create_owned_wardrobe_item(db, user_id: str, item_data: dict, *, now=None) -
         **item_data,
         "id": item_id,
         "userId": user_id,
-        "createdAt": item_data.get("createdAt") or timestamp,
+        # The creation instant is evidence for time-bound upload challenges.
+        "createdAt": timestamp,
         "updatedAt": timestamp,
         "backgroundRemovedUrl": None,
         "processing_status": "pending",
@@ -66,7 +67,7 @@ def create_owned_wardrobe_item(db, user_id: str, item_data: dict, *, now=None) -
                 transaction.create(asset_owner_ref, {'user_id': user_id})
             # An upload retry must not reset completed image work, wear history,
             # or edits. Return the original persisted garment without writing.
-            return {**existing, "id": item_id, "userId": user_id}
+            return {**existing, "id": item_id, "userId": user_id, "app_data_epoch": epoch}
         if not asset_owner.exists:
             transaction.create(asset_owner_ref, {'user_id': user_id})
         garment["app_data_epoch"] = epoch

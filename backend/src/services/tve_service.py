@@ -8,6 +8,10 @@ import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 from ..config.firebase import db
+from firebase_admin import firestore
+from .app_data_privacy import require_app_data_writable
+from .reward_ledger import read
+from .wardrobe_persistence import OWNER_FIELDS
 
 logger = logging.getLogger(__name__)
 
@@ -335,7 +339,9 @@ class TVEService:
     
     async def calculate_wardrobe_tve(
         self,
-        user_id: str
+        user_id: str,
+        *,
+        expected_epoch=None
     ) -> Dict[str, Any]:
         """
         Calculate comprehensive TVE statistics for user's wardrobe
@@ -350,6 +356,7 @@ class TVEService:
             - lowest_progress_category: Category with lowest % recouped
         """
         try:
+            epoch = require_app_data_writable(self.db, user_id, expected_epoch)
             import time
             tve_calc_start = time.time()
             logger.info(f"⏱️ TVE: Starting calculation for user: {user_id}")
@@ -473,7 +480,10 @@ class TVEService:
                         update_data['target_wears'] = target_wears
                     
                     if update_data:
-                        item_ref.update(update_data)
+                        self._write_derived_item(
+                            user_id, item_ref, update_data, epoch, item_data,
+                            spending_ranges, user_gender,
+                        )
                 
                 # Ensure we have valid numbers for aggregation
                 current_tve = float(current_tve) if current_tve is not None else 0.0
@@ -562,6 +572,8 @@ class TVEService:
             
         except Exception as e:
             logger.error(f"Error calculating wardrobe TVE for user {user_id}: {e}", exc_info=True)
+            if expected_epoch is not None:
+                raise
             return {
                 "total_tve": 0,
                 "total_wardrobe_cost": 0,
@@ -571,6 +583,28 @@ class TVEService:
                 "lowest_progress_category": None
             }
     
+    def _write_derived_item(self, user_id, item_ref, patch, epoch, original,
+                            spending_ranges, gender):
+        """Reject stale/deleted ownership and never overwrite a concurrent wear."""
+        @firestore.transactional
+        def save(transaction):
+            require_app_data_writable(self.db, user_id, epoch, transaction)
+            user = read(self.db.collection('users').document(user_id), transaction)
+            current = read(item_ref, transaction)
+            owners = [current.get(key) for key in OWNER_FIELDS
+                      if current and current.get(key) is not None]
+            if not current or not owners or any(value != user_id for value in owners):
+                raise ValueError('Item not owned by this account')
+            if any(current.get(key) for key in ('deleted', 'isDeleted', 'deletedAt', 'deleted_at')):
+                raise ValueError('Item no longer available')
+            if (any(current.get(key) != original.get(key)
+                    for key in ('wearCount', 'current_tve', 'type'))
+                    or user.get('spending_ranges', {}) != spending_ranges
+                    or user.get('gender') != gender):
+                raise RuntimeError('Derived TVE inputs changed; recalculate before saving')
+            transaction.update(item_ref, patch)
+        save(self.db.transaction())
+
     async def update_user_tve_cache(
         self,
         user_id: str,

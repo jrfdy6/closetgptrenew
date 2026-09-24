@@ -28,6 +28,10 @@ export function withSubscriptionGate<P extends object>(
       return <WrappedComponent {...(rest as P)} />;
     }
 
+    if (loading) {
+      return <div role="status" className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">Checking access to these insights…</div>;
+    }
+
     // Blurred preview with rosegold/creme overlay
     return (
       <div className="relative w-full h-full overflow-hidden rounded-xl group border border-[#C9956F]/25 bg-[#F5F0E8] dark:bg-[#251D18]">
@@ -35,6 +39,7 @@ export function withSubscriptionGate<P extends object>(
           style={{ filter: `blur(${blurAmount})` }}
           className="w-full h-full pointer-events-none select-none opacity-70 transition-all duration-500"
           aria-hidden="true"
+          ref={node => { node?.setAttribute('inert', ''); }}
         >
           <WrappedComponent {...(rest as P)} />
         </div>
@@ -52,7 +57,7 @@ export function withSubscriptionGate<P extends object>(
             </p>
             <button
               onClick={() => (window.location.href = "/upgrade")}
-              className="w-full py-2.5 px-4 bg-gradient-to-r from-[#C9956F] to-[#D4A574] text-white font-semibold rounded-lg shadow-sm hover:opacity-95 transition"
+              className="w-full min-h-11 py-2.5 px-4 bg-gradient-to-r from-[#C9956F] to-[#D4A574] text-[#241A14] font-semibold rounded-lg shadow-sm hover:opacity-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#70462C] focus-visible:ring-offset-2"
             >
               Upgrade to {requiredPlan === SubscriptionPlan.PRO ? "PRO" : "PREMIUM"}
             </button>
@@ -69,4 +74,3 @@ export function withSubscriptionGate<P extends object>(
 
   return GatedComponent;
 }
-

@@ -114,8 +114,13 @@ def record_outfit_rating(db, user_id, outfit_id, data, *, now=None):
             txn.set(feedback_ref, {**prior, **state, 'user_id': user_id, 'outfit_id': outfit_id,
                 'created_at': prior.get('created_at') if prior else timestamp, 'updated_at': timestamp,
                 'app_data_epoch': epoch, 'source': 'outfit_rating',
+                'reward_operation_id': 'outfit-rating-' + feedback_id, 'reward_pending': True,
                 'feedback_type': 'like' if state.get('isLiked') else 'dislike' if state.get('isDisliked') else 'rating'})
             outfit.update(patch)
+        elif not prior.get('reward_operation_id'):
+            # A repeated explicit save can settle a legacy rating using its same ledger key.
+            txn.update(feedback_ref, {'reward_operation_id': 'outfit-rating-' + feedback_id,
+                                     'reward_pending': True, 'app_data_epoch': epoch})
         return {'outfit': {**outfit, 'id': outfit_id}, 'feedback_id': feedback_id,
                 'created': not bool(prior), 'changed': changed, 'app_data_epoch': epoch,
                 'reward_operation_id': 'outfit-rating-' + feedback_id}

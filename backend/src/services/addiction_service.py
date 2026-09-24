@@ -57,7 +57,6 @@ class AddictionService:
             "promotion_req": {"total_outfits_logged": 10},
             "perks": {
                 "token_multiplier": 1.0,
-                "xp_multiplier": 1.0,
                 "gacha_luck_boost": 0.0
             },
             "description": "Starter - Basic app access"
@@ -67,7 +66,6 @@ class AddictionService:
             "promotion_req": {"total_outfits_logged": 25, "streak_days": 5},
             "perks": {
                 "token_multiplier": 1.15,  # 15% bonus
-                "xp_multiplier": 1.05,
                 "gacha_luck_boost": 0.03  # +3% to rare/legendary rates
             },
             "description": "Explorer - Early access, token bonuses"
@@ -77,7 +75,6 @@ class AddictionService:
             "promotion_req": {"total_outfits_logged": 50, "streak_days": 10},
             "perks": {
                 "token_multiplier": 1.3,  # 30% bonus
-                "xp_multiplier": 1.1,
                 "gacha_luck_boost": 0.06  # +6% to rare/legendary rates
             },
             "description": "Stylist - Enhanced perks and bonuses"
@@ -87,9 +84,7 @@ class AddictionService:
             "promotion_req": {"total_outfits_logged": 100, "streak_days": 14},
             "perks": {
                 "token_multiplier": 1.5,  # 50% bonus
-                "xp_multiplier": 1.15,
-                "gacha_luck_boost": 0.08,  # +8% to rare/legendary rates
-                "priority_ai": True
+                "gacha_luck_boost": 0.08  # +8% to rare/legendary rates
             },
             "description": "Curator - Premium features and priority access"
         },
@@ -99,10 +94,7 @@ class AddictionService:
             "decay_role": UserRole.CURATOR,
             "perks": {
                 "token_multiplier": 1.75,  # 75% bonus
-                "xp_multiplier": 1.25,
-                "gacha_luck_boost": 0.12,  # +12% to rare/legendary rates
-                "exclusive_gacha_pool": True,
-                "priority_ai": True
+                "gacha_luck_boost": 0.12  # +12% to rare/legendary rates
             },
             "description": "Master - Top tier with exclusive features"
         }
@@ -306,7 +298,7 @@ class AddictionService:
             user = read(user_ref, transaction)
             previous = read(pull_ref, transaction)
             if previous:
-                return {**previous["result"], "already_recorded": True}
+                return {**previous["result"], "remaining_tokens": int((user.get("style_tokens") or {}).get("balance", 0)), "already_recorded": True}
             balance = user.get("style_tokens") or {}
             current = int(balance.get("balance", 0))
             if current < self.GACHA_PULL_COST:
@@ -317,17 +309,17 @@ class AddictionService:
                 role = UserRole.STARTER
             luck = self.ROLE_CONFIG[role]["perks"].get("gacha_luck_boost", 0)
             if roll < self.DROP_RATES[GachaRarity.LEGENDARY] + luck:
-                rarity, kind, effect = "LEGENDARY", "style_recipe", "GOLD_CONFETTI"
-                reward = {"type": "Avant-Garde Style Recipe", "description": "Exclusive AI-generated outfit template for your wardrobe", "rarity": "legendary"}
+                rarity, kind, effect = "LEGENDARY", "badge", "GOLD_CONFETTI"
+                reward = {"type": "Legendary Style Badge", "description": "Legendary achievement badge saved to your collection", "rarity": "legendary"}
             elif roll < self.DROP_RATES[GachaRarity.LEGENDARY] + luck + self.DROP_RATES[GachaRarity.RARE] + luck * .5:
                 rarity, kind, effect = "RARE", "style_insight", "PURPLE_SPARKLE"
-                reward = {"type": "Advanced Styling Insight", "description": "Unlock new color combination or pattern mixing technique", "rarity": "rare"}
+                reward = {"type": "Advanced Styling Insight", "description": "Try one patterned piece with solid colors, repeating one accent color across the outfit.", "rarity": "rare"}
             else:
                 rarity, kind, effect = "COMMON", "xp_boost", "BLUE_TICK"
                 reward = {"type": "XP Bonus", "description": "+50 XP bonus for your next outfit log", "rarity": "common", "xp_amount": 50}
             patch = {"style_tokens": {**balance, "balance": current - self.GACHA_PULL_COST, "total_spent": int(balance.get("total_spent", 0)) + self.GACHA_PULL_COST}}
             if rarity == "COMMON":
-                patch.update({"pending_xp_bonus": 50, "pending_xp_bonus_source": "gacha_pull", "pending_xp_bonus_earned_at": timestamp.isoformat()})
+                patch.update({"pending_xp_bonus": max(0, int(user.get("pending_xp_bonus", 0))) + 50, "pending_xp_bonus_source": "gacha_pull", "pending_xp_bonus_earned_at": timestamp.isoformat()})
             elif rarity == "LEGENDARY":
                 patch["badges"] = list(dict.fromkeys([*(user.get("badges") or []), "gacha_legendary"]))
             else:
@@ -336,318 +328,85 @@ class AddictionService:
             transaction.update(user_ref, patch)
             transaction.set(pull_ref, {"user_id": user_id, "rarity": rarity, "reward_type": kind, "reward_data": reward, "visual_effect": effect, "cost": self.GACHA_PULL_COST, "pulled_at": timestamp, "result": result})
             return result
-        return pull(self.db.transaction())
+        result = pull(self.db.transaction())
+        return {**result, 'app_data_epoch': epoch_fence.expected_epoch}
 
-    async def check_and_update_role(self, user_id: str) -> Dict[str, Any]:
-        """
-        Check if user qualifies for role promotion or demotion.
-        """
-        try:
-            user_ref = self.db.collection('users').document(user_id)
-            user_doc = user_ref.get()
-            
-            if not user_doc.exists:
-                return {"error": "User not found"}
-            
-            user_data = user_doc.to_dict()
-            role_data = user_data.get('role', {})
-            current_role_str = role_data.get('current_role', 'starter')
-            
-            # Migration: Convert old role names to new ones
-            role_migration = {
-                'lurker': 'starter',
-                'scout': 'explorer',
-                'trendsetter': 'master'
-            }
-            if current_role_str in role_migration:
-                current_role_str = role_migration[current_role_str]
-                # Update the user's role in database
-                role_data['current_role'] = current_role_str
-                user_ref.update({'role': role_data})
-                logger.info(f"🔄 Migrated user {user_id} role from old name to {current_role_str}")
-            
-            try:
-                current_role = UserRole(current_role_str)
-            except:
-                current_role = UserRole.STARTER
-            
-            # Check for promotion
-            promotion_result = await self.check_for_promotion(user_id)
-            
-            # Check for demotion (only for Master)
-            demotion_result = None
-            if current_role == UserRole.MASTER:
-                demotion_result = await self.check_master_decay(user_id)
-            
-            return {
-                "current_role": current_role.value,
-                "promotion": promotion_result,
-                "demotion": demotion_result
-            }
-            
-        except Exception as e:
-            logger.error(f"Error checking role for user {user_id}: {e}", exc_info=True)
-            return {"error": str(e)}
-    
-    async def check_for_promotion(self, user_id: str) -> Dict[str, Any]:
-        """Check if user meets criteria for next role"""
-        try:
-            user_ref = self.db.collection('users').document(user_id)
-            user_doc = user_ref.get()
-            
-            if not user_doc.exists:
-                return {"promoted": False}
-            
-            user_data = user_doc.to_dict()
-            role_data = user_data.get('role', {})
-            current_role_str = role_data.get('current_role', 'starter')
-            
-            try:
-                current_role = UserRole(current_role_str)
-            except:
-                current_role = UserRole.STARTER
-            
-            config = self.ROLE_CONFIG.get(current_role)
-            if not config or not config.get('next_role'):
-                return {"promoted": False, "reason": "Top tier"}
-            
-            next_role = config['next_role']
-            reqs = config['promotion_req']
-            
-            # Get user stats
-            # Count total outfits logged
-            outfit_count = await self.get_user_outfit_count(user_id)
-            
-            # Get streak
-            streak_data = user_data.get('streak', {})
-            current_streak = streak_data.get('current_streak', 0)
-            
-            # Check requirements
-            meets_outfits = outfit_count >= reqs.get('total_outfits_logged', 0)
-            meets_streak = current_streak >= reqs.get('streak_days', 0)
-            
-            if meets_outfits and meets_streak:
-                # PROMOTE!
-                next_role_config = self.ROLE_CONFIG.get(next_role)
-                new_role_data = {
-                    'current_role': next_role.value,
-                    'role_earned_at': datetime.now().isoformat(),
-                    'role_decay_checks_remaining': 0,
-                    'privileges': next_role_config['perks'] if next_role_config else config['perks']
-                }
-                
-                user_ref.update({'role': new_role_data})
-                logger.info(f"🚀 Promoted user {user_id} to {next_role.value}")
-                
-                return {
-                    "promoted": True,
-                    "new_role": next_role.value,
-                    "message": f"You've been promoted to {next_role.value.title()}! Enjoy your new perks."
-                }
-            
-            return {
-                "promoted": False,
-                "progress": {
-                    "outfits": f"{outfit_count}/{reqs.get('total_outfits_logged', 0)}",
-                    "streak": f"{current_streak}/{reqs.get('streak_days', 0)}"
-                }
-            }
-            
-        except Exception as e:
-            logger.error(f"Error checking promotion for user {user_id}: {e}", exc_info=True)
-            return {"promoted": False, "error": str(e)}
-    
-    async def check_master_decay(self, user_id: str) -> Dict[str, Any]:
-        """Check if Master needs to be demoted due to inactivity"""
-        try:
-            user_ref = self.db.collection('users').document(user_id)
-            user_doc = user_ref.get()
-            
-            if not user_doc.exists:
-                return None
-            
-            user_data = user_doc.to_dict()
-            role_data = user_data.get('role', {})
-            
-            maintenance_req = self.ROLE_MAINTENANCE[UserRole.MASTER]
-            outfits_per_week = maintenance_req['outfits_per_week']
-            grace_period_days = maintenance_req['grace_period_days']
-            
-            # Check outfits logged in last 7 days
-            seven_days_ago = datetime.now() - timedelta(days=7)
-            seven_days_ago_ts = int(seven_days_ago.timestamp() * 1000)
-            
-            from google.cloud.firestore_v1 import FieldFilter
-            outfit_history_ref = self.db.collection('outfit_history')
-            query = outfit_history_ref.where(filter=FieldFilter('user_id', '==', user_id)).where(filter=FieldFilter('date_worn', '>=', seven_days_ago_ts))
-            recent_outfits = list(query.stream())
-            outfits_count = len(recent_outfits)
-            
-            if outfits_count < outfits_per_week:
-                # Check if in grace period
-                role_earned_at_str = role_data.get('role_earned_at')
-                if role_earned_at_str:
-                    try:
-                        role_earned_at = datetime.fromisoformat(role_earned_at_str.replace('Z', '+00:00'))
-                        days_since_promotion = (datetime.now() - role_earned_at.replace(tzinfo=None)).days
-                        
-                        if days_since_promotion < grace_period_days:
-                            return {
-                                "demoted": False,
-                                "warning": True,
-                                "message": f"Only {outfits_count}/{outfits_per_week} outfits this week. Maintain your Master status!",
-                                "days_remaining": grace_period_days - days_since_promotion
-                            }
-                    except:
-                        pass
-                
-                # DEMOTE to Curator and start recovery tracking
-                decay_role = UserRole.CURATOR
-                curator_config = self.ROLE_CONFIG[decay_role]
-                
-                # Initialize recovery tracking
-                recovery_data = {
-                    'in_recovery': True,
-                    'recovery_started_at': datetime.now().isoformat(),
-                    'recovery_weeks_completed': 0,
-                    'recovery_weeks_required': 2,
-                    'recovery_outfits_this_week': 0,
-                    'recovery_week_start': datetime.now().isoformat()
-                }
-                
-                new_role_data = {
-                    'current_role': decay_role.value,
-                    'role_earned_at': datetime.now().isoformat(),
-                    'role_decay_checks_remaining': 0,
-                    'privileges': curator_config['perks'],
-                    'recovery': recovery_data
-                }
-                
-                user_ref.update({'role': new_role_data})
-                logger.warning(f"⚠️ Demoted user {user_id} from Master to Curator (inactivity). Recovery mode started.")
-                
-                return {
-                    "demoted": True,
-                    "new_role": decay_role.value,
-                    "message": "You've been demoted to Curator. Complete 2 weeks of 5 outfits each to regain Master status!",
-                    "recovery_mode": True
-                }
-            
-            # Check if user is in recovery mode (easier path back to Master)
-            recovery_data = role_data.get('recovery', {})
-            if recovery_data.get('in_recovery'):
-                recovery_result = await self.check_role_recovery(user_id, recovery_data, outfits_count)
-                if recovery_result.get('recovered'):
-                    return {
-                        "demoted": False,
-                        "recovered": True,
-                        "new_role": UserRole.MASTER.value,
-                        "message": "Congratulations! You've regained Master status!"
-                    }
-                return {
-                    "demoted": False,
-                    "warning": False,
-                    "in_recovery": True,
-                    "recovery_progress": recovery_result,
-                    "outfits_this_week": outfits_count,
-                    "required": outfits_per_week
-                }
-            
-            return {
-                "demoted": False,
-                "warning": False,
-                "outfits_this_week": outfits_count,
-                "required": outfits_per_week
-            }
-            
-        except Exception as e:
-            logger.error(f"Error checking Master decay for user {user_id}: {e}", exc_info=True)
-            return None
-    
-    async def check_role_recovery(self, user_id: str, recovery_data: Dict[str, Any], outfits_this_week: int) -> Dict[str, Any]:
-        """
-        Check if user in recovery mode has completed requirements to regain Master status.
-        Recovery requires: 2 weeks of 5 outfits each (10 total, easier than normal maintenance).
-        """
-        try:
-            recovery_started_at_str = recovery_data.get('recovery_started_at')
-            if not recovery_started_at_str:
-                return {"recovered": False, "error": "Invalid recovery data"}
-            
-            recovery_started_at = datetime.fromisoformat(recovery_started_at_str.replace('Z', '+00:00'))
-            current_date = datetime.now()
-            
-            # Determine current week (Monday-based)
-            days_since_monday = current_date.weekday()
-            week_start = current_date - timedelta(days=days_since_monday)
-            week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
-            
-            recovery_week_start_str = recovery_data.get('recovery_week_start')
-            if recovery_week_start_str:
-                if isinstance(recovery_week_start_str, str):
-                    recovery_week_start = datetime.fromisoformat(recovery_week_start_str.replace('Z', '+00:00'))
-                else:
-                    recovery_week_start = datetime.fromtimestamp(recovery_week_start_str / 1000)
+    async def check_and_update_role(self, user_id: str, expected_epoch=None) -> Dict[str, Any]:
+        from firebase_admin import firestore
+        from .reward_ledger import read, WriteEpochFence
+        from .challenge_actions import _rows
+        from .wear_projection import _ms
+        from .wear_rewards import reward_timezone
+        ref = self.db.collection('users').document(user_id)
+        fence = WriteEpochFence(self.db, user_id, expected_epoch)
+        @firestore.transactional
+        def reconcile(transaction):
+            fence.check(transaction)
+            user = read(ref, transaction)
+            role = dict(user.get('role') or {})
+            raw = role.get('current_role', 'starter')
+            current = {'lurker':'starter','scout':'explorer','trendsetter':'master'}.get(raw, raw)
+            try: current_role = UserRole(current)
+            except ValueError: current_role = UserRole.STARTER; current = 'starter'
+            history = [r for r in _rows(self.db.collection('outfit_history').where(filter=FieldFilter('user_id', '==', user_id)), transaction) if not r.get('undone')]
+            now = datetime.now(tz.utc); now_ms = int(now.timestamp()*1000)
+            recent = sum(now_ms-7*86400000 <= _ms(r.get('date_worn')) <= now_ms for r in history)
+            result = {'promoted': False, 'demoted': False, 'outfits_this_week': recent, 'required': 5}
+            recovery = dict(role.get('recovery') or {})
+            if recovery.get('in_recovery'):
+                zone = ZoneInfo(reward_timezone(user, 'UTC'))
+                today = now.astimezone(zone).date(); this_week = today-timedelta(days=today.weekday())
+                began = _ms(recovery.get('recovery_started_at'))
+                weeks = {}
+                for event in history:
+                    worn = _ms(event.get('date_worn'))
+                    if began <= worn <= now_ms:
+                        day = datetime.fromtimestamp(worn/1000, zone).date(); week = day-timedelta(days=day.weekday())
+                        weeks[week] = weeks.get(week, 0)+1
+                previous = this_week-timedelta(days=7)
+                completed = int(weeks.get(previous,0)>=5)
+                if completed and weeks.get(previous-timedelta(days=7),0)>=5: completed=2
+                recovery.update(recovery_weeks_completed=completed,recovery_outfits_this_week=weeks.get(this_week,0),recovery_week_start=this_week.isoformat())
+                role['recovery'] = recovery
+                result.update(in_recovery=True,weeks_completed=completed,outfits_this_week=weeks.get(this_week,0))
+                if completed>=2:
+                    current='master'; role['role_earned_at']=now.isoformat();role['recovery']={};result.update(recovered=True,new_role='master',in_recovery=False)
+            elif current == 'master':
+                earned = _ms(role.get('role_earned_at'))
+                if recent<5 and earned and now_ms-earned >= 7*86400000:
+                    current='curator'; role['role_earned_at']=now.isoformat()
+                    role['recovery']={'in_recovery':True,'recovery_started_at':now.isoformat(),'recovery_weeks_completed':0,'recovery_weeks_required':2,'recovery_outfits_this_week':0,'recovery_week_start':now.date().isoformat()}
+                    result.update(demoted=True,new_role='curator',recovery_mode=True)
+                elif recent<5: result.update(warning=True)
             else:
-                recovery_week_start = week_start
-            
-            # Check if new week started
-            if week_start > recovery_week_start:
-                # Previous week ended - check if goal was met
-                prev_week_outfits = recovery_data.get('recovery_outfits_this_week', 0)
-                if prev_week_outfits >= 5:
-                    # Week goal met - increment weeks completed
-                    weeks_completed = recovery_data.get('recovery_weeks_completed', 0) + 1
-                    recovery_data['recovery_weeks_completed'] = weeks_completed
-                    recovery_data['recovery_week_start'] = week_start.isoformat()
-                    recovery_data['recovery_outfits_this_week'] = 1  # Current outfit counts for new week
-                    
-                    # Check if recovery complete (2 weeks done)
-                    if weeks_completed >= 2:
-                        # Promote back to Master
-                        master_config = self.ROLE_CONFIG[UserRole.MASTER]
-                        new_role_data = {
-                            'current_role': UserRole.MASTER.value,
-                            'role_earned_at': datetime.now().isoformat(),
-                            'role_decay_checks_remaining': 0,
-                            'privileges': master_config['perks'],
-                            'recovery': {}  # Clear recovery data
-                        }
-                        
-                        user_ref = self.db.collection('users').document(user_id)
-                        user_ref.update({'role': new_role_data})
-                        
-                        logger.info(f"✅ User {user_id} recovered Master status after 2 weeks of recovery")
-                        
-                        return {
-                            "recovered": True,
-                            "weeks_completed": weeks_completed
-                        }
-                else:
-                    # Previous week goal not met - reset recovery
-                    recovery_data['recovery_weeks_completed'] = 0
-                    recovery_data['recovery_week_start'] = week_start.isoformat()
-                    recovery_data['recovery_outfits_this_week'] = 1
-            else:
-                # Same week - increment outfit count
-                recovery_data['recovery_outfits_this_week'] = recovery_data.get('recovery_outfits_this_week', 0) + 1
-            
-            # Update recovery data in Firestore
-            user_ref = self.db.collection('users').document(user_id)
-            user_ref.update({'role.recovery': recovery_data})
-            
-            return {
-                "recovered": False,
-                "weeks_completed": recovery_data.get('recovery_weeks_completed', 0),
-                "weeks_required": 2,
-                "outfits_this_week": recovery_data.get('recovery_outfits_this_week', 0),
-                "outfits_required_per_week": 5
-            }
-            
-        except Exception as e:
-            logger.error(f"Error checking role recovery for user {user_id}: {e}", exc_info=True)
-            return {"recovered": False, "error": str(e)}
-    
+                config=self.ROLE_CONFIG[current_role];reqs=config.get('promotion_req',{})
+                streak_data = user.get('streak') or {}
+                streak = 0
+                try:
+                    last_day = datetime.fromisoformat(streak_data.get('last_log_date', '')).date()
+                    today = now.astimezone(ZoneInfo(reward_timezone(user, 'UTC'))).date()
+                    if 0 <= (today - last_day).days <= 1:
+                        streak = int(streak_data.get('current_streak', 0))
+                except (TypeError, ValueError):
+                    pass
+                result['progress']={'outfits':f"{len(history)}/{reqs.get('total_outfits_logged',0)}",'streak':f"{streak}/{reqs.get('streak_days',0)}"}
+                if config.get('next_role') and len(history)>=reqs.get('total_outfits_logged',0) and streak>=reqs.get('streak_days',0):
+                    current=config['next_role'].value;role['role_earned_at']=now.isoformat();result.update(promoted=True,new_role=current)
+            role.update(current_role=current,privileges=self.ROLE_CONFIG[UserRole(current)]['perks'])
+            if role != (user.get('role') or {}): transaction.update(ref,{'role':role})
+            return result
+        return reconcile(self.db.transaction())
+
+    async def check_for_promotion(self, user_id: str, expected_epoch=None):
+        return await self.check_and_update_role(user_id, expected_epoch)
+
+    async def check_master_decay(self, user_id: str, expected_epoch=None):
+        return await self.check_and_update_role(user_id, expected_epoch)
+
+    async def check_role_recovery(self, user_id: str, recovery_data=None, outfits_this_week=0, expected_epoch=None):
+        # Compatibility parameters are never trusted as activity evidence.
+        return await self.check_and_update_role(user_id, expected_epoch)
+
     async def get_user_outfit_count(self, user_id: str) -> int:
         """Get total number of outfits logged by user"""
         try:
@@ -655,7 +414,7 @@ class AddictionService:
             outfit_history_ref = self.db.collection('outfit_history')
             query = outfit_history_ref.where(filter=FieldFilter('user_id', '==', user_id))
             outfits = list(query.stream())
-            return len(outfits)
+            return sum(not item.to_dict().get("undone") for item in outfits)
         except Exception as e:
             logger.error(f"Error getting outfit count for user {user_id}: {e}")
             return 0

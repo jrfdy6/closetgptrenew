@@ -194,6 +194,45 @@ describe('Owned saved outfit controller', () => {
     expect(JSON.parse(writes()[0][1].body).feedback).toBe(outfit.feedback);
   });
 
+  it('refreshes rewards and announces only server XP from the real feedback button', async () => {
+    const activity = jest.fn(); const xp = jest.fn();
+    window.addEventListener('gamificationActivityChanged', activity);
+    window.addEventListener('xpAwarded', xp);
+    try {
+      fetchMock.mockImplementation((url, options) => options?.method === 'POST'
+        ? response({ status: 'success', xp_earned: 5, level_up: false }) : response(clone(outfit)));
+      render(<SavedOutfitView id="look" user={user} />); await loaded();
+      fireEvent.click(screen.getByText('Save feedback'));
+      await waitFor(() => expect(activity).toHaveBeenCalledTimes(1));
+      expect(activity.mock.calls[0][0].detail).toEqual({ uid: 'owner', outfitId: 'look' });
+      expect(xp.mock.calls[0][0].detail).toMatchObject({ xp: 5, reason: 'Outfit feedback' });
+      fireEvent.click(screen.getByText('Save feedback'));
+      await waitFor(() => expect(activity).toHaveBeenCalledTimes(2));
+      expect(xp).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener('gamificationActivityChanged', activity);
+      window.removeEventListener('xpAwarded', xp);
+    }
+  });
+
+  it('does not announce rewards from failed or late-account feedback saves', async () => {
+    const activity = jest.fn(); window.addEventListener('gamificationActivityChanged', activity);
+    try {
+      fetchMock.mockImplementation((url, options) => options?.method === 'POST'
+        ? response({ error: 'Feedback unavailable' }, 503) : response(clone(outfit)));
+      const view = render(<SavedOutfitView id="look" user={user} />); await loaded();
+      fireEvent.click(screen.getByText('Save feedback'));
+      await waitFor(() => expect(latest().feedbackError).toBe('Feedback unavailable'));
+      expect(activity).not.toHaveBeenCalled();
+      const pending = deferred(); fetchMock.mockImplementationOnce(() => pending.promise);
+      fireEvent.click(screen.getByText('Save feedback'));
+      await waitFor(() => expect(writes()).toHaveLength(2));
+      view.rerender(<SavedOutfitView id="look" user={null} />);
+      await act(async () => pending.resolve(await response({ status: 'success', xp_earned: 5 })));
+      expect(activity).not.toHaveBeenCalled();
+    } finally { window.removeEventListener('gamificationActivityChanged', activity); }
+  });
+
   it('disables wear for unavailable pieces without redirecting to generation', async () => {
     outfit.items_available = false;
     render(<SavedOutfitView id="look" user={user} />); await loaded();

@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from 'react';
 import Navigation from '@/components/Navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Target, TrendingUp, Sparkles } from 'lucide-react';
+import { Target, Sparkles } from 'lucide-react';
 import ChallengeList from '@/components/gamification/ChallengeList';
 import BadgeDisplay from '@/components/gamification/BadgeDisplay';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -56,9 +54,7 @@ export default function ChallengesPage() {
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Complete challenges to earn XP, unlock badges, and maximize your wardrobe!
             </p>
-            <Link href="/signin">
-              <Button>Sign In</Button>
-            </Link>
+            <Button asChild><Link href="/signin">Sign In</Link></Button>
           </div>
         </div>
       </div>
@@ -73,7 +69,7 @@ export default function ChallengesPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <Target className="w-8 h-8 text-purple-600" />
+            <Target className="w-8 h-8 text-[#80502F] dark:text-[#E8C8A0]" />
             Challenges
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
@@ -85,7 +81,7 @@ export default function ChallengesPage() {
         <div className="mb-8 space-y-6">
           <div>
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-1">
-              <Sparkles className="w-5 h-5 text-purple-600" />
+              <Sparkles className="w-5 h-5 text-[#80502F] dark:text-[#E8C8A0]" />
               Your Progress
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -103,8 +99,8 @@ export default function ChallengesPage() {
         {/* Challenge List */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-            <Target className="w-5 h-5 text-blue-600" />
-            Weekly Challenges
+            <Target className="w-5 h-5 text-[#80502F] dark:text-[#E8C8A0]" />
+            Challenges
           </h2>
           <ChallengeList />
         </div>
@@ -112,7 +108,7 @@ export default function ChallengesPage() {
         {/* Badge Showcase */}
         <div className="mt-12">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-[var(--copper-dark)]" />
+            <Sparkles className="w-6 h-6 text-[#80502F] dark:text-[#E8C8A0]" />
             Your Badges
           </h2>
           <BadgeDisplay />

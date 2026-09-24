@@ -187,7 +187,7 @@ async def get_user_badges(
     Get user's earned badges with details
     """
     try:
-        from ..custom_types.gamification import BADGE_DEFINITIONS, BadgeType
+        from ..custom_types.gamification import badge_details
         from ..config.firebase import db
         
         # Fetch badges directly from Firestore (not from UserProfile which may be stale)
@@ -206,20 +206,13 @@ async def get_user_badges(
         user_data = user_doc.to_dict()
         badges = user_data.get('badges', [])
         
-        badge_details = []
-        for badge_id in badges:
-            try:
-                badge_info = BADGE_DEFINITIONS.get(BadgeType(badge_id))
-                if badge_info:
-                    badge_details.append(badge_info.dict())
-            except:
-                logger.warning(f"Badge {badge_id} not found in definitions")
-        
+        details = [badge_details(badge_id) for badge_id in dict.fromkeys(badges) if isinstance(badge_id, str) and badge_id]
+
         return {
             "success": True,
             "data": {
-                "badges": badge_details,
-                "count": len(badge_details),
+                "badges": details,
+                "count": len(details),
                 "newly_unlocked": newly_unlocked
             }
         }

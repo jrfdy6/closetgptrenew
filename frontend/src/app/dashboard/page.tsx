@@ -548,7 +548,7 @@ export default function Dashboard() {
           </div>
 
           {/* Wardrobe Optimization Journey Card */}
-          <div className="component-card p-4 sm:p-6">
+          <Link href="/challenges" aria-label="Your progress, challenges and rewards" className="component-card p-4 sm:p-6 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
             <div className="flex flex-col space-y-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--copper-mid)]/30 to-[var(--copper-mid)]/30 dark:from-[var(--copper-mid)]/25 dark:to-[var(--copper-mid)]/25 rounded-xl flex items-center justify-center shadow-inner">
                 <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--copper-mid)] dark:text-[var(--copper-light)]" />
@@ -556,13 +556,13 @@ export default function Dashboard() {
               <div>
                 <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">Your Progress</p>
                 <p aria-live="polite" className={progressAvailable
-                  ? 'text-2xl sm:text-3xl lg:text-4xl font-bold gradient-copper-text component-text-primary'
+                  ? 'text-2xl sm:text-3xl lg:text-4xl font-bold text-[#70462C] dark:text-[var(--copper-light)]'
                   : 'text-sm sm:text-base component-text-secondary'}>
                   {gamificationLoading ? 'Loading…' : progressAvailable ? `Level ${progressLevel}` : 'Unavailable'}
                 </p>
               </div>
             </div>
-          </div>
+          </Link>
 
           {/* Total Items Card */}
           <div className="component-card p-4 sm:p-6">
