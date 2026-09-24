@@ -1,13 +1,13 @@
 import { useCallback, useEffect } from 'react';
 import { analytics } from '../utils/analytics';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 /**
  * React hook for analytics
  * Provides easy access to analytics functions and automatically initializes with user ID
  */
 export const useAnalytics = () => {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
 
   // Initialize analytics with user ID when user changes
   useEffect(() => {

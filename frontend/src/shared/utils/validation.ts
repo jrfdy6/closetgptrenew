@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ClothingItem, ClothingItemSchema, OpenAIClothingAnalysis, OpenAIClothingAnalysisSchema, ClothingTypeEnum, BasicMetadata, ColorAnalysis, OutfitSchema, UserProfileSchema, type Outfit, type UserProfile, type AppError, SuccessResponse, ErrorResponse } from '@shared/types';
+import { ClothingItem, ClothingItemSchema, OpenAIClothingAnalysis, OpenAIClothingAnalysisSchema, ClothingTypeEnum, BasicMetadata, ColorAnalysis, OutfitSchema, UserProfileSchema, type Outfit, type UserProfile, type AppError, SuccessResponse, ErrorResponse } from '../types';
 import unidecode from 'unidecode';
 
 // Maximum lengths for strings
@@ -11,7 +11,7 @@ const CLOTHING_TYPE_VALUES = ClothingTypeEnum.options;
 
 // Type for the clothing type mappings
 type ClothingTypeMapping = {
-  [K in z.infer<typeof ClothingTypeEnum>]: readonly string[];
+  [K in z.infer<typeof ClothingTypeEnum>]?: readonly string[];
 };
 
 // Canonical type mappings with synonyms

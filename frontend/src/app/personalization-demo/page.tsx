@@ -916,22 +916,21 @@ export default function PersonalizationDemoPage() {
                     {/* Wardrobe Diversity Info */}
                     <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                       <div className="text-sm font-medium text-green-600 dark:text-green-400 mb-2">
-                        Wardrobe Rotation Applied
+                        Wardrobe Rotation
                       </div>
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-muted-foreground">Strategy:</span>
                           <span className="ml-2 font-medium">
-                            {generatedOutfit.items?.some(item => item.wearCount === 0) 
-                              ? 'Never Worn Priority' 
-                              : 'Diversity Balanced'
-                            }
+                            {generatedOutfit.metadata?.generation_strategy || 'Unavailable'}
                           </span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Rotation:</span>
                           <span className="ml-2 font-medium">
-                            {generatedOutfit.items?.filter(item => item.diversityScore > 0).length || 0} Enhanced
+                            {generatedOutfit.items.length > 0 && generatedOutfit.items.every(item => typeof item.diversityScore === 'number' && Number.isFinite(item.diversityScore))
+                              ? `${generatedOutfit.items.filter(item => (item.diversityScore ?? 0) > 0).length} Enhanced`
+                              : 'Unavailable'}
                           </span>
                         </div>
                       </div>
@@ -949,17 +948,17 @@ export default function PersonalizationDemoPage() {
                         </div>
                         <div className="flex justify-between">
                           <span>Confidence:</span>
-                          <span className="font-medium">{generatedOutfit.confidence_score ? `${Math.round(generatedOutfit.confidence_score * 100)}%` : 'N/A'}</span>
+                          <span className="font-medium">{typeof generatedOutfit.confidence_score === 'number' && Number.isFinite(generatedOutfit.confidence_score) ? `${Math.round(generatedOutfit.confidence_score * 100)}%` : 'Unavailable'}</span>
                         </div>
                         {generatedOutfit.metadata && (
                           <>
                             <div className="flex justify-between">
                               <span>Validation Applied:</span>
-                              <span className="font-medium">{generatedOutfit.metadata.validation_applied ? '✅' : '❌'}</span>
+                              <span className="font-medium">{typeof generatedOutfit.metadata.validation_applied === 'boolean' ? (generatedOutfit.metadata.validation_applied ? '✅' : '❌') : 'Unavailable'}</span>
                             </div>
                             <div className="flex justify-between">
                               <span>Requirements Met:</span>
-                              <span className="font-medium">{generatedOutfit.metadata.occasion_requirements_met ? '✅' : '❌'}</span>
+                              <span className="font-medium">{typeof generatedOutfit.metadata.occasion_requirements_met === 'boolean' ? (generatedOutfit.metadata.occasion_requirements_met ? '✅' : '❌') : 'Unavailable'}</span>
                             </div>
                             {generatedOutfit.metadata.deduplication_applied && (
                               <div className="flex justify-between">
@@ -967,7 +966,7 @@ export default function PersonalizationDemoPage() {
                                 <span className="font-medium">✅</span>
                               </div>
                             )}
-                            {generatedOutfit.metadata.unique_items_count && (
+                            {typeof generatedOutfit.metadata.unique_items_count === 'number' && (
                               <div className="flex justify-between">
                                 <span>Unique Items:</span>
                                 <span className="font-medium">{generatedOutfit.metadata.unique_items_count}</span>
@@ -1024,7 +1023,7 @@ export default function PersonalizationDemoPage() {
                                       ⚠️ {item.diversityReason}
                                     </span>
                                   )}
-                                  {item.wearCount > 0 && (
+                                  {typeof item.wearCount === 'number' && item.wearCount > 0 && (
                                     <span className="text-gray-500 ml-2">
                                       Worn {item.wearCount}x
                                     </span>

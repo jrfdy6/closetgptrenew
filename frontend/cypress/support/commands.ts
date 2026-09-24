@@ -92,28 +92,10 @@ Cypress.Commands.add('checkMobileFontSize', { prevSubject: 'element' }, (subject
  * Test mobile navigation menu functionality
  */
 Cypress.Commands.add('testMobileNav', () => {
-  // Look for mobile menu button (hamburger icon)
-  cy.get('body').then(($body) => {
-    // Check if mobile menu exists (should be visible on mobile)
-    const menuButton = $body.find('button[aria-label*="menu" i], button:contains("Menu"), [data-testid*="menu"]').first();
-    
-    if (menuButton.length > 0) {
-      // Open menu
-      cy.wrap(menuButton).should('be.visible').click();
-      
-      // Wait for menu to open
-      cy.wait(300);
-      
-      // Check if menu overlay is visible
-      cy.get('body').should('have.class', 'menu-open').or(($body) => {
-        // Alternative: check for menu overlay or navigation panel
-        const menuOverlay = $body.find('[role="menu"], [aria-label*="navigation"], nav').first();
-        expect(menuOverlay.length).to.be.greaterThan(0);
-      });
-      
-      // Close menu (click overlay or close button)
-      cy.get('body').click(0, 0); // Click outside
-      cy.wait(300);
-    }
-  });
+  cy.get('button[aria-label="Toggle menu"]').should('be.visible').click();
+  // The persistent header nav is always visible; assert the actual overlay.
+  cy.get('[role="dialog"][aria-label="Navigation menu"]').should('be.visible');
+  cy.get('button[aria-label="Toggle menu"]').should('have.attr', 'aria-expanded', 'true');
+  cy.get('[role="dialog"][aria-label="Navigation menu"] button[aria-label="Close menu"]').click();
+  cy.get('[role="dialog"][aria-label="Navigation menu"]').should('not.exist');
 });

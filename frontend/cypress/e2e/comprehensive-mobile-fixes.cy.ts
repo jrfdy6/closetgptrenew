@@ -50,17 +50,13 @@ describe('Comprehensive Mobile Fixes Validation', () => {
             }).first();
 
             if (toggleBtn.length > 0 && toggleBtn.is(':visible')) {
-              cy.wrap(toggleBtn).then(($btn) => {
-                cy.wrap($btn).invoke('css', 'width').then((widthStr) => {
-                  const width = parseFloat(widthStr as string);
-                  expect(width).to.be.at.least(uxStandards.minTouchTarget, 
-                    `Password toggle button width should be >= ${uxStandards.minTouchTarget}px`);
-                });
-                cy.wrap($btn).invoke('css', 'height').then((heightStr) => {
-                  const height = parseFloat(heightStr as string);
-                  expect(height).to.be.at.least(uxStandards.minTouchTarget, 
-                    `Password toggle button height should be >= ${uxStandards.minTouchTarget}px`);
-                });
+              cy.wrap(toggleBtn).should(($btn) => {
+                const width = parseFloat($btn.css('width'));
+                const height = parseFloat($btn.css('height'));
+                expect(width).to.be.at.least(uxStandards.minTouchTarget,
+                  `Password toggle button width should be >= ${uxStandards.minTouchTarget}px`);
+                expect(height).to.be.at.least(uxStandards.minTouchTarget,
+                  `Password toggle button height should be >= ${uxStandards.minTouchTarget}px`);
               });
             }
           });
@@ -82,7 +78,7 @@ describe('Comprehensive Mobile Fixes Validation', () => {
               return ariaLabel.includes('password') || ariaLabel.includes('show') || ariaLabel.includes('hide');
             });
 
-            toggleBtns.each(($btn) => {
+            toggleBtns.each((_index, $btn) => {
               if (Cypress.$($btn).is(':visible')) {
                 cy.wrap($btn).hasMinimumTouchTarget();
               }
@@ -105,7 +101,7 @@ describe('Comprehensive Mobile Fixes Validation', () => {
               return text.includes('generate') || text.includes('outfit') || text.includes('add');
             });
 
-            quickActions.each(($btn) => {
+            quickActions.each((_index, $btn) => {
               if (Cypress.$($btn).is(':visible')) {
                 cy.wrap($btn).hasMinimumTouchTarget();
               }
@@ -159,12 +155,10 @@ describe('Comprehensive Mobile Fixes Validation', () => {
             if (desktopNavLinks.length > 0) {
               // Wait a moment for styles to fully apply
               cy.wait(500);
-              cy.wrap(desktopNavLinks.first()).then(($link) => {
-                cy.wrap($link).invoke('css', 'height').then((heightStr) => {
-                  const height = parseFloat(heightStr as string);
-                  expect(height).to.be.at.least(44, 
-                    `Desktop nav link should be >= 44px, got ${height}px`);
-                });
+              cy.wrap(desktopNavLinks.first()).should(($link) => {
+                const height = parseFloat($link.css('height'));
+                expect(height).to.be.at.least(44,
+                  `Desktop nav link should be >= 44px, got ${height}px`);
               });
             } else {
               // Desktop nav may not be visible at this breakpoint - that's okay
@@ -286,12 +280,10 @@ describe('Comprehensive Mobile Fixes Validation', () => {
           cy.visit('/signin');
           
           // Test default button size
-          cy.get('button[type="submit"]:visible').first().then(($btn) => {
-            cy.wrap($btn).invoke('css', 'height').then((heightStr) => {
-              const height = parseFloat(heightStr as string);
-              expect(height).to.be.at.least(uxStandards.minTouchTarget,
-                `Submit button height should be >= ${uxStandards.minTouchTarget}px`);
-            });
+          cy.get('button[type="submit"]:visible').first().should(($btn) => {
+            const height = parseFloat($btn.css('height'));
+            expect(height).to.be.at.least(uxStandards.minTouchTarget,
+              `Submit button height should be >= ${uxStandards.minTouchTarget}px`);
           });
         });
 
@@ -305,12 +297,10 @@ describe('Comprehensive Mobile Fixes Validation', () => {
             const classes = $el.attr('class') || '';
             if (classes.includes('h-11') || classes.includes('min-h-[44px]')) {
               cy.wrap($btn).then(($b) => {
-                cy.wrap($b).invoke('css', 'height').then((heightStr) => {
-                  const height = parseFloat(heightStr as string);
-                  if (height < uxStandards.minTouchTarget) {
-                    cy.log(`Warning: Button height ${height}px is less than ${uxStandards.minTouchTarget}px`);
-                  }
-                });
+                const height = parseFloat($b.css('height'));
+                if (height < uxStandards.minTouchTarget) {
+                  cy.log(`Warning: Button height ${height}px is less than ${uxStandards.minTouchTarget}px`);
+                }
               });
             }
           });
@@ -365,4 +355,3 @@ describe('Comprehensive Mobile Fixes Validation', () => {
     });
   });
 });
-

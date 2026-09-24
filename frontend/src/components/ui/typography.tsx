@@ -5,17 +5,22 @@ import { ReactNode } from "react";
 
 // Base typography component with mobile responsiveness
 interface TypographyProps {
-  children: ReactNode;
+  children?: ReactNode;
   className?: string;
   as?: keyof JSX.IntrinsicElements;
+  htmlFor?: string;
+  href?: string;
+  target?: React.HTMLAttributeAnchorTarget;
+  rel?: string;
 }
 
 export const Typography = ({ 
   children, 
   className = "", 
-  as: Component = "div" 
+  as: Component = "div",
+  ...attributes
 }: TypographyProps) => (
-  <Component className={cn("text-foreground", className)}>
+  <Component {...attributes} className={cn("text-foreground", className)}>
     {children}
   </Component>
 );
@@ -431,4 +436,4 @@ export const Kbd = ({
   >
     {children}
   </Typography>
-); 
+);

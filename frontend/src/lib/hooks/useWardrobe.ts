@@ -3,7 +3,14 @@ import { useFirebase } from '@/lib/firebase-context';
 import { WardrobeService } from '@/lib/services/wardrobeService';
 import { safeToDate } from '@/lib/utils/dateUtils';
 
+// The wardrobe API preserves nested analysis alongside flattened editing fields.
+interface WardrobeSourceMetadata {
+  visualAttributes?: { material?: string | string[] | null; [key: string]: unknown } | null;
+  [key: string]: unknown;
+}
 export interface ClothingItem {
+  metadata?: WardrobeSourceMetadata | null;
+  analysis?: { metadata?: WardrobeSourceMetadata | null; material?: string | string[] | null; [key: string]: unknown } | null;
   id: string;
   name: string;
   type: string;

@@ -1,3 +1,4 @@
+import type { ShoppingRecommendationsResponse } from '@/lib/services/shoppingService';
 import { User } from 'firebase/auth';
 import { publishWearReceipt } from '@/lib/wardrobeActivity';
 import { wearOperationKey, clearWearOperation } from '@/lib/savedOutfit';
@@ -17,14 +18,7 @@ export interface DashboardData {
   topItems: TopItem[];
   recentOutfits: RecentOutfit[];
   todaysOutfit: TodaysOutfit | null;
-  shoppingRecommendations?: {
-    success: boolean;
-    recommendations: any[];
-    store_recommendations: any[];
-    shopping_strategy: any;
-    total_estimated_cost: number;
-    budget_range: string;
-  };
+  shoppingRecommendations?: ShoppingRecommendationsResponse;
 }
 
 export interface StyleCollection {

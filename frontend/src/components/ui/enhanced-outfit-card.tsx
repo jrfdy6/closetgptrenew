@@ -54,6 +54,8 @@ interface Outfit {
     name: string;
     type: string;
     imageUrl?: string;
+    thumbnailUrl?: string | null;
+    backgroundRemovedUrl?: string | null;
     color: string;
   }>;
   metadata?: {

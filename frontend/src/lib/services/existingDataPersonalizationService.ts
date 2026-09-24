@@ -69,13 +69,18 @@ export interface PersonalizedOutfit {
     color: string;
     style?: string;
     occasion?: string;
+    imageUrl?: string;
+    wearCount?: number;
+    // Optional client rotation hints; generation may not return them.
+    diversityScore?: number;
+    diversityReason?: string;
   }>;
   style: string;
   occasion: string;
   mood: string;
   weather: Record<string, any>;
-  confidence: number;
-  personalization_score?: number;
+  confidence_score?: number | null;
+  personalization_score?: number | null;
   personalization_applied: boolean;
   user_interactions: number;
   data_source: string;
@@ -85,6 +90,11 @@ export interface PersonalizedOutfit {
     user_id: string;
     uses_existing_data: boolean;
     preference_data_source: string;
+    validation_applied?: boolean;
+    occasion_requirements_met?: boolean;
+    deduplication_applied?: boolean;
+    unique_items_count?: number;
+    generation_strategy?: string;
   };
 }
 

@@ -1,5 +1,6 @@
+import { readVisualAttributes } from './garmentMetadata';
 import { MAX_FILE_SIZE, ALLOWED_FILE_TYPES } from '../constants';
-import { ClothingItem, OpenAIClothingAnalysis } from '../types';
+import { ClothingItem, OpenAIClothingAnalysis, Outfit } from '../types';
 import { averagePairability } from './pairability';
 
 export const validateFile = (file: File): { isValid: boolean; error?: string } => {
@@ -94,8 +95,8 @@ const calculateMaterialCompatibility = (outfit: Outfit): number => {
   
   for (let i = 0; i < items.length; i++) {
     for (let j = i + 1; j < items.length; j++) {
-      const material1 = items[i].metadata?.visualAttributes?.material;
-      const material2 = items[j].metadata?.visualAttributes?.material;
+      const material1 = readVisualAttributes(items[i])?.material;
+      const material2 = readVisualAttributes(items[j])?.material;
       
       if (material1 && material2) {
         if (material1 === material2) {
@@ -114,7 +115,7 @@ const calculateMaterialCompatibility = (outfit: Outfit): number => {
 const calculatePatternMixing = (outfit: Outfit): number => {
   let score = 0;
   const items = outfit.items;
-  const patterns = items.map(item => item.metadata?.visualAttributes?.pattern).filter(Boolean);
+  const patterns = items.map(item => readVisualAttributes(item)?.pattern).filter(Boolean);
   
   // Define pattern compatibility rules
   const patternRules: Record<string, string[]> = {
@@ -202,7 +203,7 @@ export const calculateOutfitScore = (outfit: Outfit): number => {
   
   // Validate formality consistency
   const formalityLevels = outfit.items.map(item => 
-    item.metadata?.visualAttributes?.formalLevel
+    readVisualAttributes(item)?.formalLevel
   ).filter(Boolean);
   
   if (formalityLevels.length > 0) {

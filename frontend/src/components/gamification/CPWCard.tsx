@@ -1,156 +1,38 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { DollarSign, TrendingDown, TrendingUp, Info, Sparkles } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DollarSign } from 'lucide-react';
 import { useGamificationStats } from '@/hooks/useGamificationStats';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { withSubscriptionGate } from '@/components/providers/withSubscriptionGate';
 import { SubscriptionPlan } from '@/types/subscription';
 
 function CPWCard() {
-  const { stats, loading, error } = useGamificationStats();
+  const { loading, error } = useGamificationStats();
 
-  if (loading) {
-    return (
-      <Card className="bg-card dark:bg-card border border-border/60 dark:border-border/70">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-card-foreground">
-            <DollarSign className="w-5 h-5 text-primary" />
-            Cost Per Wear
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="h-12 bg-secondary dark:bg-muted rounded animate-pulse" />
-            <div className="h-4 bg-secondary dark:bg-muted rounded animate-pulse" />
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error || !stats?.cpw) {
-    return (
-      <Card className="bg-card dark:bg-card border border-border/60 dark:border-border/70">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-card-foreground">
-            <DollarSign className="w-5 h-5 text-primary" />
-            Cost Per Wear
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Set your spending ranges in settings to see CPW
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const { cpw } = stats;
-  const currentCPW = cpw.average;
-  const trend = cpw.trend;
-  const changePercentage = trend?.change_percentage || 0;
-  const isDecreasing = changePercentage < 0;
-
+  // The stats contract exposes TVE, not cost per wear or its historical trend.
+  // Do not reinterpret TVE or turn absent CPW data into a zero-dollar value.
   return (
-    <Card className="bg-card dark:bg-card border border-border/60 dark:border-border/70 overflow-hidden">
+    <Card className="bg-card dark:bg-card border border-border/60 dark:border-border/70">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-card-foreground">
           <DollarSign className="w-5 h-5 text-primary" />
           Cost Per Wear
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <Info className="w-4 h-4 text-muted-foreground" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="max-w-xs text-sm">
-                  CPW shows how much value you're getting from your wardrobe. 
-                  Lower CPW means you're maximizing your investment!
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </CardTitle>
-        <CardDescription className="text-muted-foreground">
-          Average across your wardrobe
-        </CardDescription>
       </CardHeader>
-      <CardContent className="pt-6">
-        <div className="space-y-4">
-          {/* Current CPW */}
-          <div className="flex items-baseline gap-2">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 200 }}
-              className="text-4xl font-display font-semibold
-                bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
-            >
-              ${currentCPW?.toFixed(2) || '0.00'}
-            </motion.div>
-            <span className="text-sm text-muted-foreground">per wear</span>
+      <CardContent>
+        {loading ? (
+          <div role="status" aria-label="Loading cost per wear" className="space-y-4">
+            <div className="h-12 bg-secondary dark:bg-muted rounded animate-pulse" />
+            <div className="h-4 bg-secondary dark:bg-muted rounded animate-pulse" />
           </div>
-
-          {/* Trend Indicator */}
-          {trend && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="flex items-center gap-2"
-            >
-              {isDecreasing ? (
-                <>
-                  <TrendingDown className="w-5 h-5 text-primary" />
-                  <span className="text-sm font-medium text-primary">
-                    {Math.abs(changePercentage).toFixed(1)}% decrease
-                  </span>
-                  <Badge className="bg-secondary dark:bg-muted border border-primary text-primary">
-                    Great!
-                  </Badge>
-                </>
-              ) : changePercentage > 0 ? (
-                <>
-                  <TrendingUp className="w-5 h-5 text-accent" />
-                  <span className="text-sm font-medium text-accent">
-                    {changePercentage.toFixed(1)}% increase
-                  </span>
-                </>
-              ) : (
-                <span className="text-sm text-muted-foreground">
-                  Stable this month
-                </span>
-              )}
-            </motion.div>
-          )}
-
-          {/* Insight */}
-          <div className="text-xs text-muted-foreground pt-2 border-t border-border/60 dark:border-border/70">
-            {isDecreasing ? (
-              <p className="flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-primary" />
-                You're getting more value from your wardrobe!
-              </p>
-            ) : currentCPW && currentCPW < 10 ? (
-              <p>Excellent value! Your wardrobe is working hard for you.</p>
-            ) : (
-              <p>Keep logging outfits to see your CPW improve!</p>
-            )}
-          </div>
-        </div>
+        ) : (
+          <p role="status" className="text-sm text-muted-foreground">
+            {error ? 'Cost per wear could not be loaded. Please try again later.' : 'Cost per wear is currently unavailable.'}
+          </p>
+        )}
       </CardContent>
     </Card>
   );
 }
 
 export default withSubscriptionGate(CPWCard, SubscriptionPlan.PRO);
-
