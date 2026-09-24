@@ -57,7 +57,7 @@ class UtilizationService:
             
             for doc in all_items:
                 item_data = doc.to_dict()
-                last_worn = item_data.get('lastWorn', 0)
+                last_worn = (item_data.get('lastWorn') or 0)
                 
                 if last_worn and last_worn >= cutoff_timestamp:
                     items_worn += 1
@@ -114,7 +114,7 @@ class UtilizationService:
             
             for doc in all_items:
                 item_data = doc.to_dict()
-                last_worn = item_data.get('lastWorn', 0)
+                last_worn = (item_data.get('lastWorn') or 0)
                 
                 # Consider dormant if never worn or not worn recently
                 if last_worn == 0 or last_worn < cutoff_timestamp:
@@ -163,7 +163,7 @@ class UtilizationService:
             for doc in all_items:
                 item_data = doc.to_dict()
                 category = item_data.get('type', 'other')
-                last_worn = item_data.get('lastWorn', 0)
+                last_worn = (item_data.get('lastWorn') or 0)
                 
                 if category not in category_stats:
                     category_stats[category] = {"total": 0, "worn": 0}
