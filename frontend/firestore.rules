@@ -1,71 +1,115 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only read/write their own wardrobe items
+    function signedIn() {
+      return request.auth != null &&
+        request.auth.token.get('firebase', {}).get('sign_in_provider', '') != 'anonymous';
+    }
+    function appDataWritable() {
+      let user = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return !(user.get('app_data_deletion', {}).get('status', '') in ['pending', 'running', 'failed']);
+    }
+    function sameOwnerAliases(data) {
+      return (data.get('userId', null) == null || data.userId == request.auth.uid) &&
+        (data.get('user_id', null) == null || data.user_id == request.auth.uid) &&
+        (data.get('firebase_uid', null) == null || data.firebase_uid == request.auth.uid) &&
+        (data.get('uid', null) == null || data.uid == request.auth.uid) &&
+        (data.get('ownerId', null) == null || data.ownerId == request.auth.uid);
+    }
+    function ownsRecord(data) {
+      return (data.get('userId', '') == request.auth.uid || data.get('user_id', '') == request.auth.uid ||
+        data.get('firebase_uid', '') == request.auth.uid || data.get('uid', '') == request.auth.uid ||
+        data.get('ownerId', '') == request.auth.uid) && sameOwnerAliases(data);
+    }
+    // Upload, deletion, image processing and wear authority use verified APIs.
     match /wardrobe/{itemId} {
-      allow read: if request.auth != null && 
-        resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && 
-        request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && 
-        resource.data.userId == request.auth.uid;
+      allow read: if signedIn() && ownsRecord(resource.data);
+      allow write: if false;
     }
-    
-    // Users can only read/write their own user profiles
+
+    // Browser bootstrap/name edits cannot grant account or quiz authority.
+    // Full editable profiles are persisted by the verified Railway API.
+    function safeProfileBootstrap(userId) {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['name', 'email', 'userId', 'user_id', 'firebase_uid', 'createdAt', 'created_at', 'updatedAt', 'updated_at']) &&
+        data.get('userId', userId) == userId && data.get('user_id', userId) == userId &&
+        data.get('firebase_uid', userId) == userId &&
+        data.get('email', request.auth.token.get('email', '')) == request.auth.token.get('email', '') &&
+        data.get('name', '') is string && data.get('name', '').size() <= 200;
+    }
+
+    // Server-owned account, quiz and derived fields survive every client write.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId &&
+        request.auth.token.get('firebase', {}).get('sign_in_provider', '') != 'anonymous' &&
+        safeProfileBootstrap(userId);
+      allow update: if signedIn() && request.auth.uid == userId && appDataWritable() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'updatedAt', 'updated_at']) &&
+        request.resource.data.get('name', '') is string && request.resource.data.get('name', '').size() <= 200;
+      allow delete: if false;
     }
     
-    // Users can only read/write their own profile data
+    // Profile, outfit admission, wearing and suggestions are server-authoritative.
     match /profiles/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow write: if false;
     }
-    
-    // Users can only read/write their own outfits
     match /outfits/{outfitId} {
-      allow read: if request.auth != null && 
-        resource.data.user_id == request.auth.uid;
-      allow create: if request.auth != null && 
-        request.resource.data.user_id == request.auth.uid;
-      allow update, delete: if request.auth != null && 
-        resource.data.user_id == request.auth.uid;
+      allow read: if signedIn() && ownsRecord(resource.data);
+      allow write: if false;
     }
-    
-    // Users can only read/write their own outfit history
     match /outfit_history/{entryId} {
-      allow read: if request.auth != null && 
-        resource.data.user_id == request.auth.uid;
-      allow create: if request.auth != null && 
-        request.resource.data.user_id == request.auth.uid;
-      allow update, delete: if request.auth != null && 
-        resource.data.user_id == request.auth.uid;
+      allow read: if signedIn() && ownsRecord(resource.data);
+      allow write: if false;
     }
-    
-    // Users can only read/write their own daily outfit suggestions
     match /daily_outfit_suggestions/{suggestionId} {
-      allow read: if request.auth != null && 
-        resource.data.user_id == request.auth.uid;
-      allow create: if request.auth != null && 
-        request.resource.data.user_id == request.auth.uid;
-      allow update, delete: if request.auth != null && 
-        resource.data.user_id == request.auth.uid;
+      allow read: if signedIn() && ownsRecord(resource.data);
+      allow write: if false;
     }
-    
-    // Only admins can write to wardrobe_stats, all users can read
+    // Financial, deletion, reward and worker receipts are private even to owners.
+    match /wardrobe_asset_owners/{id} { allow read, write: if false; }
+    match /wardrobe_deletion_receipts/{id} { allow read, write: if false; }
+    match /wardrobe_wear_receipts/{id} { allow read, write: if false; }
+    match /flat_lay_requests/{id} { allow read, write: if false; }
+    match /app_data_deletion_jobs/{id}/{nested=**} { allow read, write: if false; }
+    match /outfit_wear_receipts/{id} { allow read, write: if false; }
+    match /outfit_reward_receipts/{id} { allow read, write: if false; }
+    match /gamification_user_jobs/{id} { allow read, write: if false; }
+    match /reward_ledger/{id} { allow read, write: if false; }
+    match /wear_engagement_days/{id} { allow read, write: if false; }
+    match /gamification_rating_days/{id} { allow read, write: if false; }
+    match /wear_projection_jobs/{id} { allow read, write: if false; }
+    match /wear_projection_receipts/{id} { allow read, write: if false; }
+    match /codex_jobs/{id}/{nested=**} { allow read, write: if false; }
+    match /ingest_jobs/{id} { allow read, write: if false; }
+    match /knowledge_chunks/{id} { allow read, write: if false; }
+
+    // Aggregate projections are written only by the server.
     match /wardrobe_stats/{docId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow write: if false;
     }
     
-    // Trends: only authenticated users can read, only admins can write
+    // Trends remain readable to signed-in users; publication is server-owned.
     match /trends/{trendId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow write: if false;
     }
     
+    // Image attempt budgets and publication fences are server-owned.
+    match /garment_processing_jobs/{itemId} {
+      allow read, write: if false;
+    }
+
+    // Draft revisions and completion history are written only by verified server APIs.
+    match /onboarding_states/{userId} {
+      allow read, write: if false;
+    }
+
     // Deny all other access by default (CRITICAL SECURITY)
     match /{document=**} {
       allow read, write: if false;
     }
   }
-} 
+}

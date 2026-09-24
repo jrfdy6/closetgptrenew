@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Heart, HeartOff, Eye, Edit, Trash2, RefreshCw, ChevronDown } from 'lucide-react';
+import { Heart, ArrowUpRight, ImageOff, Edit, Trash2, RefreshCw, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -17,7 +19,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 // Import the established pattern components
@@ -40,245 +41,119 @@ interface OutfitCardProps {
   onFavorite: (id: string, isFavorite: boolean) => void;
   mutationError?: string;
   pending?: boolean;
-  onWear: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
-// ===== OUTFIT CARD COMPONENT =====
-function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete, mutationError, pending }: OutfitCardProps) {
+// Original garment photos are intentional browse previews. The detail route checks
+// the current private request/source identity before presenting a generated flatlay.
+function PiecePhoto({ item }: { item: Outfit['items'][number] }) {
+  const original = (item as typeof item & { originalImageUrl?: string }).originalImageUrl || item.imageUrl;
+  const [failedSource, setFailedSource] = useState<string | undefined>();
+  return (
+    <div className="flex min-h-0 items-center justify-center overflow-hidden rounded-xl bg-background/70">
+      {original && failedSource !== original ? (
+        <img src={original} alt={item.name || 'Wardrobe piece'} loading="lazy"
+          className="h-full w-full object-contain p-2"
+          onError={() => setFailedSource(original)} />
+      ) : (
+        <span className="px-3 text-center text-xs text-muted-foreground">
+          <ImageOff className="mx-auto mb-1 h-4 w-4" aria-hidden="true" />
+          {item.name || 'Wardrobe piece'}<br />Photo unavailable
+        </span>
+      )}
+    </div>
+  );
+}
+
+function savedDate(value: unknown): Date | null {
+  let parsed: Date | null = null;
+  if (value instanceof Date) parsed = value;
+  else if (typeof value === 'number') parsed = new Date(value < 1e12 ? value * 1000 : value);
+  else if (typeof value === 'string' && value.trim()) parsed = new Date(value);
+  else if (value && typeof value === 'object' && 'seconds' in value && typeof value.seconds === 'number') {
+    parsed = new Date(value.seconds * 1000);
+  }
+  return parsed && Number.isFinite(parsed.getTime()) ? parsed : null;
+}
+
+function OutfitCard({ outfit, onFavorite, onEdit, onDelete, mutationError, pending }: OutfitCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  
-  const handleFavorite = () => onFavorite(outfit.id, !outfit.isFavorite);
-  const handleWear = () => onWear(outfit.id);
-  const handleEdit = () => onEdit(outfit.id);
-  const handleDeleteClick = () => setDeleteDialogOpen(true);
-  
-  const handleDeleteConfirm = () => {
-    console.log(`🔍 [OutfitCard] Confirmed delete for outfit ${outfit.id}`);
-    onDelete(outfit.id);
-    setDeleteDialogOpen(false);
-  };
+  const pieces = Array.isArray(outfit.items) ? outfit.items : [];
+  const name = outfit.name || 'Untitled outfit';
+  const created = savedDate(outfit.createdAt);
+  const lastWorn = savedDate(outfit.lastWorn);
+  const wearCount = outfit.wearCount || 0;
 
   return (
-    <Card className="group bg-card/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-2xl hover:shadow-xl hover:shadow-primary/20 transition-transform duration-200 hover:scale-[1.01]">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-lg font-display font-semibold text-card-foreground line-clamp-2">
-            {outfit.name}
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleFavorite}
-            disabled={pending}
-            aria-label={`${outfit.isFavorite ? "Remove" : "Add"} ${outfit.name} ${outfit.isFavorite ? "from" : "to"} favorites`}
-            aria-pressed={Boolean(outfit.isFavorite)}
-            className="text-muted-foreground hover:text-primary transition-colors"
-          >
-            {outfit.isFavorite ? (
-              <Heart className="h-5 w-5 fill-primary text-primary" />
-            ) : (
-              <HeartOff className="h-5 w-5" />
-            )}
-          </Button>
-        </div>
-        
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary" className="text-xs uppercase tracking-wide">
-            {outfit.occasion}
-          </Badge>
-          <Badge variant="outline" className="text-xs border-border/60 dark:border-border/70">
-            {outfit.style}
-          </Badge>
-          {outfit.mood && (
-            <Badge variant="outline" className="text-xs border-border/60 dark:border-border/70">
-              {outfit.mood}
-            </Badge>
-          )}
-        </div>
+    <Card className="flex h-full flex-col overflow-hidden rounded-2xl border-border/60 bg-card/90 shadow-sm">
+      <CardHeader className="flex-row items-center justify-between space-y-0 px-4 py-2">
+        <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Saved outfit</p>
+        <Button variant="ghost" size="icon" onClick={() => onFavorite(outfit.id, !outfit.isFavorite)}
+          disabled={pending}
+          aria-label={`${outfit.isFavorite ? 'Remove' : 'Add'} ${name} ${outfit.isFavorite ? 'from' : 'to'} favorites`}
+          aria-pressed={Boolean(outfit.isFavorite)}
+          className="shrink-0 motion-reduce:transform-none motion-reduce:transition-none">
+          <Heart className={cn('h-5 w-5', outfit.isFavorite && 'fill-primary text-primary')} aria-hidden="true" />
+        </Button>
       </CardHeader>
-
-      <CardContent className="pt-0">
-        {/* Outfit Preview - Flat Lay or Items */}
-        <div className="mb-4">
-          {/* Check for flatlay URL in metadata or direct property */}
-          {(outfit as any).metadata?.flat_lay_url || (outfit as any).metadata?.flatLayUrl || (outfit as any).flat_lay_url || (outfit as any).flatLayUrl ? (
-            // Show flatlay image if available
-            <div className="mb-3">
-              <div className="aspect-[9/16] bg-secondary dark:bg-card border border-border/60 dark:border-border/70 rounded-2xl overflow-hidden">
-                {(() => {
-                  const flatLayUrl = (outfit as any).metadata?.flat_lay_url || (outfit as any).metadata?.flatLayUrl || (outfit as any).flat_lay_url || (outfit as any).flatLayUrl;
-                  const useProxy = flatLayUrl?.includes('storage.googleapis.com') || flatLayUrl?.includes('firebasestorage.googleapis.com');
-                  return (
-                    <img
-                      src={useProxy ? `/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}` : flatLayUrl}
-                      alt={outfit.name}
-                      className="w-full h-full object-contain hover:scale-105 transition-transform duration-200"
-                    />
-                  );
-                })()}
+      <CardContent className="flex flex-1 flex-col px-4 pb-4 pt-0">
+        <Link href={`/outfits/${encodeURIComponent(outfit.id)}`} aria-label={`Open ${name}`}
+          className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4">
+          <div className="aspect-[4/3] overflow-hidden rounded-xl border border-border/50 bg-secondary/40 p-2">
+            {pieces.length ? (
+              <div className={cn('grid h-full gap-2', pieces.length === 1 ? 'grid-cols-1' : 'grid-cols-2', pieces.length > 2 && 'grid-rows-2')}>
+                {pieces.slice(0, 4).map((item, index) => <PiecePhoto key={`${item.id}-${index}`} item={item} />)}
               </div>
-              <div className="flex items-center justify-between mt-2">
-                <Badge variant="secondary" className="text-xs">
-                  <Eye className="h-3 w-3 mr-1" />
-                  Flat Lay View
-                </Badge>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-sm text-muted-foreground">
+                <ImageOff className="h-6 w-6" aria-hidden="true" />
+                <span>No pieces saved with this outfit.</span>
               </div>
-            </div>
-          ) : (
-            // Fallback: Show item grid preview
-            <>
-              <p className="text-sm text-muted-foreground mb-2">Items ({outfit.items.length}):</p>
-              <div className="grid grid-cols-2 gap-2">
-                {outfit.items.slice(0, 4).map((item, index) => (
-                  <div key={index} className="relative group">
-                    {item.imageUrl ? (
-                      <div className="aspect-square rounded-xl overflow-hidden border border-border/60 dark:border-border/70 bg-secondary/60 dark:bg-card/70">
-                        <img
-                          src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl}
-                          alt={item.name}
-                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                          onError={(e) => {
-                            // Fallback to text if image fails to load
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const fallback = target.nextElementSibling as HTMLElement;
-                            if (fallback) fallback.style.display = 'block';
-                          }}
-                        />
-                        <div 
-                          className="hidden text-xs text-muted-foreground bg-card/80 dark:bg-card/80 px-2 py-1 rounded absolute inset-0 flex items-center justify-center"
-                          style={{ display: 'none' }}
-                        >
-                          {item.name}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-xs text-muted-foreground bg-secondary/60 dark:bg-card/70 px-2 py-1 rounded-xl aspect-square flex items-center justify-center text-center">
-                        {item.name}
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {outfit.items.length > 4 && (
-                  <div className="text-xs text-muted-foreground bg-secondary/60 dark:bg-card/70 px-2 py-1 rounded-xl aspect-square flex items-center justify-center">
-                    +{outfit.items.length - 4} more
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Outfit Stats */}
-        <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-          <div className="flex flex-col gap-1">
-            <span>Worn {outfit.wearCount || 0} times</span>
-            <span>Created: {
-              outfit.createdAt ? 
-                (outfit.createdAt instanceof Date ? 
-                  outfit.createdAt.toLocaleDateString() : 
-                  typeof outfit.createdAt === 'number' ?
-                    new Date(outfit.createdAt).toLocaleDateString() :
-                  typeof outfit.createdAt === 'string' ? 
-                    new Date(outfit.createdAt).toLocaleDateString() :
-                    outfit.createdAt.seconds ?
-                      new Date(outfit.createdAt.seconds * 1000).toLocaleDateString() :
-                      'Invalid Date'
-                ) : 'Unknown'
-            }</span>
+            )}
           </div>
-          {outfit.lastWorn && (
-            <span>Last: {
-              outfit.lastWorn instanceof Date ? 
-                outfit.lastWorn.toLocaleDateString() : 
-                typeof outfit.lastWorn === 'number' ?
-                  new Date(outfit.lastWorn).toLocaleDateString() :
-                typeof outfit.lastWorn === 'string' ? 
-                  new Date(outfit.lastWorn).toLocaleDateString() :
-                  outfit.lastWorn.seconds ? 
-                    new Date(outfit.lastWorn.seconds * 1000).toLocaleDateString() :
-                    'Invalid Date'
-            }</span>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleWear}
-            disabled={pending}
-            aria-label={`Mark ${outfit.name} as worn`}
-            className="flex-1 text-xs border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary"
-          >
-            <Eye className="h-3 w-3 mr-1" />
-            Mark worn
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleEdit}
-            disabled={pending}
-            aria-label={`Edit ${outfit.name}`}
-            className="text-xs border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary"
-          >
-            <Edit className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs text-destructive border-border/60 dark:border-border/70 hover:text-destructive/90"
-            onClick={handleDeleteClick}
-            disabled={pending}
-            aria-label={`Delete ${outfit.name}`}
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        </div>
-
-        {mutationError && (
-          <p role="alert" className="mt-3 text-sm text-destructive">
-            {mutationError} Please try the action again.
+          <CardTitle className="mt-4 line-clamp-2 text-lg font-display font-semibold text-card-foreground group-hover:text-primary">
+            {name}
+          </CardTitle>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {pieces.length ? `${pieces.length} ${pieces.length === 1 ? 'piece' : 'pieces'} · Your pieces` : 'Earlier saved entry'}
           </p>
-        )}
-
-        {/* Confidence Score */}
-        {outfit.confidenceScore && (
-          <div className="mt-3 pt-3 border-t border-border/60 dark:border-border/70">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Confidence:</span>
-              <span className={cn(
-                "font-medium",
-                outfit.confidenceScore >= 0.8 ? "text-green-600" :
-                outfit.confidenceScore >= 0.6 ? "text-amber-500" : "text-destructive"
-              )}>
-                {Math.round(outfit.confidenceScore * 100)}%
-              </span>
-            </div>
+          <span className="mt-3 inline-flex min-h-11 items-center gap-1 text-sm font-medium text-primary">
+            Open outfit <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+          </span>
+        </Link>
+        <div className="mb-4 mt-1 flex flex-wrap gap-2">
+          {outfit.occasion && <Badge variant="secondary" className="text-xs">{outfit.occasion}</Badge>}
+          {outfit.style && <Badge variant="outline" className="text-xs">{outfit.style}</Badge>}
+          {outfit.mood && <Badge variant="outline" className="text-xs">{outfit.mood}</Badge>}
+        </div>
+        <div className="mt-auto border-t border-border/50 pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground">
+            <span>{wearCount ? `Worn ${wearCount} ${wearCount === 1 ? 'time' : 'times'}` : 'Not worn yet'}</span>
+            {lastWorn ? <span>Last worn {lastWorn.toLocaleDateString()}</span> : created ? <span>Saved {created.toLocaleDateString()}</span> : null}
           </div>
-        )}
+          <div className="mt-2 flex items-center justify-end gap-1">
+            <Button variant="ghost" size="sm" onClick={() => onEdit(outfit.id)} disabled={pending}
+              aria-label={`Edit ${name}`} className="motion-reduce:transform-none motion-reduce:transition-none">
+              <Edit className="mr-2 h-4 w-4" aria-hidden="true" /> Edit
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setDeleteDialogOpen(true)} disabled={pending}
+              aria-label={`Delete ${name}`} className="text-muted-foreground hover:text-destructive motion-reduce:transform-none motion-reduce:transition-none">
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </div>
+        </div>
+        {mutationError && <p role="alert" className="mt-3 text-sm text-destructive">{mutationError} Please try the action again.</p>}
       </CardContent>
-      
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-card/90 dark:bg-card/90 border border-border/60 dark:border-border/70 rounded-2xl">
+        <AlertDialogContent className="rounded-2xl border-border/60 bg-card">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-card-foreground">Delete outfit</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm text-muted-foreground">
-              This will remove "{outfit.name}" permanently.
-            </AlertDialogDescription>
+            <AlertDialogTitle>Delete outfit</AlertDialogTitle>
+            <AlertDialogDescription>This will remove &quot;{name}&quot; permanently.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)} className="border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              className="bg-destructive hover:bg-destructive/90"
-            >
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { onDelete(outfit.id); setDeleteDialogOpen(false); }} className="bg-destructive hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -296,133 +171,76 @@ interface OutfitFiltersProps {
   onClear: () => void;
   sortBy: 'date-newest' | 'date-oldest' | 'wear-most' | 'wear-least';
   onSortChange: (sortBy: 'date-newest' | 'date-oldest' | 'wear-most' | 'wear-least') => void;
+  showSearch: boolean;
+  showFilters: boolean;
 }
 
-function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, sortBy, onSortChange }: OutfitFiltersProps) {
+function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, sortBy, onSortChange, showSearch, showFilters }: OutfitFiltersProps) {
   const [searchQuery, setSearchQuery] = useState('');
-
-  const handleSearch = () => {
-    onSearch(searchQuery);
-  };
-
-  const handleClear = () => {
-    setSearchQuery('');
-    onClear();
-  };
-
+  const activeFilters = Boolean(filters.occasion || filters.style || sortBy !== 'date-newest');
   return (
-    <div className="bg-card/85 dark:bg-card/85 border border-border/60 dark:border-border/70 rounded-3xl p-6 sm:p-8 mb-6 backdrop-blur-xl shadow-lg">
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        {/* Search Input */}
-        <div className="md:col-span-2">
-          <label htmlFor="outfit-search" className="block text-sm font-medium text-muted-foreground mb-2">
-            Search outfits
-          </label>
-          <div className="flex gap-2">
-            <Input
-              id="outfit-search"
-              placeholder="Search by name, occasion, style..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            />
-            <Button onClick={handleSearch} size="sm" className="bg-gradient-to-r from-primary to-accent text-primary-foreground px-4">
-              Search
-            </Button>
+    <div className="rounded-2xl border border-border/60 bg-card/80 p-4">
+      {showSearch && <form onSubmit={event => { event.preventDefault(); onSearch(searchQuery); }}>
+        <label htmlFor="outfit-search" className="mb-2 block text-sm font-medium text-card-foreground">Search outfits</label>
+        <div className="flex gap-2">
+          <Input id="outfit-search" className="h-11 min-w-0" placeholder="Name, occasion, or style" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} />
+          <Button type="submit" size="sm" className="motion-reduce:transform-none motion-reduce:transition-none">Search</Button>
+        </div>
+      </form>}
+      {showFilters && <details className={showSearch ? 'mt-2' : ''}>
+        <summary className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg text-sm font-medium text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <ChevronDown className="h-4 w-4" aria-hidden="true" />Filters and sort{activeFilters ? ' · Active' : ''}
+        </summary>
+        <div className="mt-2 grid gap-3 sm:grid-cols-3">
+          <div>
+            <label htmlFor="outfit-occasion" className="mb-2 block text-sm text-muted-foreground">Occasion</label>
+            <Select value={filters.occasion || 'all'} onValueChange={value => onFiltersChange({ ...filters, occasion: value === 'all' ? undefined : value })}>
+              <SelectTrigger id="outfit-occasion" className="h-11"><SelectValue placeholder="All occasions" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All occasions</SelectItem><SelectItem value="casual">Casual</SelectItem>
+                <SelectItem value="business">Business</SelectItem><SelectItem value="formal">Formal</SelectItem>
+                <SelectItem value="athletic">Athletic</SelectItem><SelectItem value="evening">Evening</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label htmlFor="outfit-style" className="mb-2 block text-sm text-muted-foreground">Style</label>
+            <Select value={filters.style || 'all'} onValueChange={value => onFiltersChange({ ...filters, style: value === 'all' ? undefined : value })}>
+              <SelectTrigger id="outfit-style" className="h-11"><SelectValue placeholder="All styles" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All styles</SelectItem><SelectItem value="classic">Classic</SelectItem>
+                <SelectItem value="modern">Modern</SelectItem><SelectItem value="vintage">Vintage</SelectItem>
+                <SelectItem value="bohemian">Bohemian</SelectItem><SelectItem value="minimalist">Minimalist</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label htmlFor="outfit-sort" className="mb-2 block text-sm text-muted-foreground">Sort by</label>
+            <Select value={sortBy} onValueChange={onSortChange}>
+              <SelectTrigger id="outfit-sort" className="h-11"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date-newest">Newest first</SelectItem><SelectItem value="date-oldest">Oldest first</SelectItem>
+                <SelectItem value="wear-most">Most worn</SelectItem><SelectItem value="wear-least">Least worn</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-
-        {/* Occasion Filter */}
-        <div>
-          <label className="block text-sm font-medium text-muted-foreground mb-2">
-            Occasion
-          </label>
-          <Select
-            value={filters.occasion || 'all'}
-            onValueChange={(value) => onFiltersChange({ ...filters, occasion: value === 'all' ? undefined : value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All occasions" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All occasions</SelectItem>
-              <SelectItem value="casual">Casual</SelectItem>
-              <SelectItem value="business">Business</SelectItem>
-              <SelectItem value="formal">Formal</SelectItem>
-              <SelectItem value="athletic">Athletic</SelectItem>
-              <SelectItem value="evening">Evening</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Style Filter */}
-        <div>
-          <label className="block text-sm font-medium text-muted-foreground mb-2">
-            Style
-          </label>
-          <Select
-            value={filters.style || 'all'}
-            onValueChange={(value) => onFiltersChange({ ...filters, style: value === 'all' ? undefined : value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All styles" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All styles</SelectItem>
-              <SelectItem value="classic">Classic</SelectItem>
-              <SelectItem value="modern">Modern</SelectItem>
-              <SelectItem value="vintage">Vintage</SelectItem>
-              <SelectItem value="bohemian">Bohemian</SelectItem>
-              <SelectItem value="minimalist">Minimalist</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Sort By */}
-        <div>
-          <label className="block text-sm font-medium text-muted-foreground mb-2">
-            Sort by
-          </label>
-          <Select
-            value={sortBy}
-            onValueChange={onSortChange}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Sort by..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="date-newest">Newest First</SelectItem>
-              <SelectItem value="date-oldest">Oldest First</SelectItem>
-              <SelectItem value="wear-most">Most Worn</SelectItem>
-              <SelectItem value="wear-least">Least Worn</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mt-6 pt-4 border-t border-border/60 dark:border-border/70">
-        <div className="text-sm text-muted-foreground">
-          {filters.occasion && filters.occasion !== 'all' && `Occasion: ${filters.occasion}`}
-          {filters.style && filters.style !== 'all' && ` Style: ${filters.style}`}
-          {((filters.occasion && filters.occasion !== 'all') || (filters.style && filters.style !== 'all')) && ' • '}
-          <span>Sort: {
-            sortBy === 'date-newest' ? 'Newest First' :
-            sortBy === 'date-oldest' ? 'Oldest First' :
-            sortBy === 'wear-most' ? 'Most Worn' :
-            'Least Worn'
-          }</span>
-        </div>
-        <Button variant="outline" onClick={handleClear} size="sm" className="self-start sm:self-auto border-border/60 dark:border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-2xl">
-          Clear filters
-        </Button>
-      </div>
+        <Button variant="ghost" size="sm" className="mt-3 motion-reduce:transform-none motion-reduce:transition-none"
+          onClick={() => { setSearchQuery(''); onSortChange('date-newest'); onClear(); }}>Clear filters</Button>
+      </details>}
     </div>
   );
 }
 
 // ===== MAIN OUTFIT GRID COMPONENT =====
-export default function OutfitGrid({ 
+export default function OutfitGrid(props: OutfitGridProps) {
+  const { user, loading } = useAuthContext();
+  // Close old account dialogs and clear local filters synchronously on account
+  // changes, in addition to the hook's request/acknowledgment fences.
+  return <OutfitGridContent key={loading ? 'auth-loading' : user?.uid ?? 'signed-out'} {...props} />;
+}
+
+function OutfitGridContent({
   showFilters = true,
   showSearch = true,
   maxOutfits = 1000,
@@ -434,22 +252,20 @@ export default function OutfitGrid({
   // - useOutfits_proper provides data and actions
   // - outfitService_proper handles API calls
   // - Proper TypeScript interfaces for data contracts
-  const { 
-    outfits, 
-    loading, 
+  const {
+    outfits,
+    loading,
     loadingMore,
     hasMore,
-    error, 
+    error,
     mutationErrors,
     pendingMutations,
-    fetchOutfits, 
+    fetchOutfits,
     loadMoreOutfits,
-    markAsWorn, 
-    toggleFavorite, 
-    updateOutfit, 
-    deleteOutfit, 
-    clearError, 
-    refresh 
+    toggleFavorite,
+    updateOutfit,
+    deleteOutfit,
+    refresh
   } = useOutfits();
 
   // ===== LOCAL STATE =====
@@ -459,7 +275,7 @@ export default function OutfitGrid({
   const isSearching = activeSearchQuery.length > 0;
   const [sortBy, setSortBy] = useState<'date-newest' | 'date-oldest' | 'wear-most' | 'wear-least'>('date-newest');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingOutfit, setEditingOutfit] = useState<Outfit | null>(null);
@@ -467,38 +283,16 @@ export default function OutfitGrid({
   // Intersection observer for infinite scroll
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const refreshQueryHandledRef = useRef(false);
-  
-  // Debounced refresh function to prevent multiple simultaneous refreshes
-  const debouncedRefresh = useCallback(() => {
-    if (isRefreshing) {
-      console.log('🔄 [OutfitGrid] Refresh already in progress, skipping...');
-      return;
-    }
-    
-    setIsRefreshing(true);
-    console.log('🔄 [OutfitGrid] Starting debounced refresh...');
-    
-    refresh().finally(() => {
-      setTimeout(() => {
-        setIsRefreshing(false);
-        console.log('✅ [OutfitGrid] Refresh completed');
-      }, 1000); // Small delay to prevent rapid successive refreshes
-    });
-  }, [refresh]); // Removed isRefreshing from dependencies
 
-  // ===== HELPER FUNCTIONS =====
-  const safeToDate = (dateValue: any): Date => {
-    if (dateValue instanceof Date) {
-      return dateValue;
-    }
-    if (dateValue && typeof dateValue.toDate === 'function') {
-      return dateValue.toDate();
-    }
-    if (typeof dateValue === 'string' || typeof dateValue === 'number') {
-      return new Date(dateValue);
-    }
-    return new Date(); // Fallback to current date
-  };
+  // Deduplicate overlapping refreshes without a timeout or stale state closure.
+  const refreshInFlight = useRef(false);
+  const debouncedRefresh = useCallback(async () => {
+    if (refreshInFlight.current) return;
+    refreshInFlight.current = true;
+    setIsRefreshing(true);
+    try { await refresh(); }
+    finally { refreshInFlight.current = false; setIsRefreshing(false); }
+  }, [refresh]);
 
   // ===== COMPUTED VALUES =====
   const totalFavorites = useMemo(
@@ -508,7 +302,7 @@ export default function OutfitGrid({
 
   const filteredOutfits = useMemo(() => {
     let baseOutfits = outfits;
-    
+
     if (isSearching) {
       baseOutfits = outfits.filter(outfit => {
         const searchText = `${outfit.name} ${outfit.occasion} ${outfit.style} ${outfit.mood || ''}`.toLowerCase();
@@ -519,55 +313,35 @@ export default function OutfitGrid({
     if (showFavoritesOnly) {
       baseOutfits = baseOutfits.filter(outfit => outfit.isFavorite);
     }
-    
+
     // Apply sorting based on selected option
     const sorted = [...baseOutfits].sort((a, b) => {
       switch (sortBy) {
         case 'date-newest':
-          const dateA = safeToDate(a.createdAt);
-          const dateB = safeToDate(b.createdAt);
+          const dateA = (savedDate(a.createdAt) || new Date(0));
+          const dateB = (savedDate(b.createdAt) || new Date(0));
           return dateB.getTime() - dateA.getTime(); // Newest first
-        
+
         case 'date-oldest':
-          const dateAOld = safeToDate(a.createdAt);
-          const dateBOld = safeToDate(b.createdAt);
+          const dateAOld = (savedDate(a.createdAt) || new Date(0));
+          const dateBOld = (savedDate(b.createdAt) || new Date(0));
           return dateAOld.getTime() - dateBOld.getTime(); // Oldest first
-        
+
         case 'wear-most':
           const wearCountA = a.wearCount || 0;
           const wearCountB = b.wearCount || 0;
           return wearCountB - wearCountA; // Most worn first
-        
+
         case 'wear-least':
           const wearCountALeast = a.wearCount || 0;
           const wearCountBLeast = b.wearCount || 0;
           return wearCountALeast - wearCountBLeast; // Least worn first
-        
+
         default:
           return 0;
       }
     });
-    
-    if (sorted.length > 0) {
-      console.log('🔄 [OutfitGrid] Sorted outfits:', {
-        total: sorted.length,
-        sortBy: sortBy,
-        first: {
-          name: sorted[0]?.name,
-          createdAt: sorted[0]?.createdAt,
-          wearCount: sorted[0]?.wearCount || 0
-        },
-        last: {
-          name: sorted[sorted.length - 1]?.name,
-          createdAt: sorted[sorted.length - 1]?.createdAt,
-          wearCount: sorted[sorted.length - 1]?.wearCount || 0
-        }
-      });
-      
-      // DEBUG: Show first 3 outfit dates explicitly
-      console.log('🔍 [OutfitGrid] First 3 outfit dates:', sorted.slice(0, 3).map(o => `${o.name}: ${o.createdAt}`));
-    }
-    
+
     return sorted;
   }, [outfits, activeSearchQuery, isSearching, sortBy, showFavoritesOnly]);
 
@@ -584,9 +358,12 @@ export default function OutfitGrid({
       debouncedRefresh();
     };
 
+    const onReturn = () => { if (document.visibilityState === 'visible') void debouncedRefresh(); };
+    document.addEventListener('visibilitychange', onReturn);
     window.addEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
-    
+
     return () => {
+      document.removeEventListener('visibilitychange', onReturn);
       window.removeEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
     };
   }, [debouncedRefresh]);
@@ -598,7 +375,7 @@ export default function OutfitGrid({
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const refreshParam = urlParams.get('refresh');
-    
+
     if (!refreshParam) {
       return;
     }
@@ -616,7 +393,7 @@ export default function OutfitGrid({
     const cleanUrl = remainingQuery
       ? `${window.location.pathname}?${remainingQuery}`
       : window.location.pathname;
-    window.history.replaceState({}, '', cleanUrl);
+    window.history.replaceState(window.history.state, '', cleanUrl);
   }, [debouncedRefresh]);
 
   /**
@@ -624,7 +401,7 @@ export default function OutfitGrid({
    */
   useEffect(() => {
     // Don't set up observer if there's no more to load or we're already loading
-    if (!hasMore || loadingMore || isRefreshing) {
+    if (!hasMore || loadingMore || isRefreshing || error) {
       return;
     }
 
@@ -665,11 +442,9 @@ export default function OutfitGrid({
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
+      observer.disconnect();
     };
-  }, [hasMore, loadingMore, loadMoreOutfits, isRefreshing]);
+  }, [hasMore, loadingMore, loadMoreOutfits, isRefreshing, error]);
 
   // ===== EVENT HANDLERS =====
   const handleFiltersChange = (newFilters: OutfitFilters) => {
@@ -696,28 +471,6 @@ export default function OutfitGrid({
 
   const handleFavorite = async (id: string, isFavorite: boolean) => {
     await toggleFavorite(id, isFavorite);
-  };
-
-  const handleWear = async (id: string) => {
-    try {
-      const saved = await markAsWorn(id);
-      if (!saved) return;
-      
-      // Dispatch event to notify dashboard of outfit being marked as worn
-      const outfit = outfits.find(o => o.id === id);
-      const event = new CustomEvent('outfitMarkedAsWorn', {
-        detail: {
-          outfitId: id,
-          outfitName: outfit?.name || 'Unknown Outfit',
-          timestamp: new Date().toISOString()
-        }
-      });
-      window.dispatchEvent(event);
-      console.log('🔄 [OutfitGrid] Dispatched outfitMarkedAsWorn event for dashboard refresh');
-      
-    } catch (error) {
-      console.error('Failed to mark as worn:', error);
-    }
   };
 
   const handleEdit = (id: string) => {
@@ -751,8 +504,8 @@ export default function OutfitGrid({
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">Loading your outfits...</p>
+          <RefreshCw className="h-8 w-8 animate-spin motion-reduce:animate-none text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading your outfits...</p>
         </div>
       </div>
     );
@@ -760,13 +513,10 @@ export default function OutfitGrid({
 
   if (error && outfits.length === 0) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+      <div role="alert" className="rounded-2xl border border-destructive/30 bg-card p-6 text-center">
         <p className="text-red-600 mb-4">{error}</p>
         <div className="flex gap-2 justify-center">
-          <Button onClick={clearError} variant="outline" size="sm">
-            Dismiss
-          </Button>
-          <Button onClick={refresh} size="sm">
+          <Button onClick={debouncedRefresh} disabled={isRefreshing} size="sm">
             Try Again
           </Button>
         </div>
@@ -784,36 +534,37 @@ export default function OutfitGrid({
         </div>
       )}
       {/* Header with Stats */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            {isSearching ? 'Search Results' : showFavoritesOnly ? 'Favorite Looks' : 'All Looks'}
+          <h2 className="text-xl font-display font-semibold text-card-foreground">
+            {isSearching ? 'Search results' : showFavoritesOnly ? 'Favorite looks' : 'Saved outfits'}
           </h2>
-          <p className="text-gray-600">
+          <p className="text-sm text-muted-foreground">
             {(() => {
               const displayCount = filteredOutfits.length;
               const searchLabel = displayCount === 1 ? 'outfit' : 'outfits';
-              
+
               if (isSearching) {
                 return `Found ${displayCount} ${showFavoritesOnly ? 'favorite ' : ''}${searchLabel} matching your search in loaded outfits`;
               }
-              
+
               if (showFavoritesOnly) {
                 return `Showing ${displayCount} of ${totalFavorites} favorite ${totalFavorites === 1 ? 'outfit' : 'outfits'}`;
               }
-              
+
               return `Showing ${displayCount} of ${outfits.length} loaded ${outfits.length === 1 ? 'outfit' : 'outfits'}`;
             })()}
           </p>
         </div>
-        
+
         <div className="flex gap-2">
           <Button
             onClick={() => setShowFavoritesOnly(prev => !prev)}
+            aria-pressed={showFavoritesOnly}
             variant={showFavoritesOnly ? 'default' : 'outline'}
             size="sm"
             className={cn(
-              "flex items-center gap-2 border",
+              "flex items-center gap-2 border motion-reduce:transform-none motion-reduce:transition-none",
               showFavoritesOnly
                 ? "bg-red-100 text-red-600 border-red-200 hover:bg-red-200"
                         : "text-muted-foreground border-border/60 hover:bg-secondary"
@@ -822,24 +573,24 @@ export default function OutfitGrid({
             <Heart className={cn("h-4 w-4", showFavoritesOnly ? "fill-current" : "")} />
             {showFavoritesOnly ? 'Favorites Only' : 'Favorites'}
           </Button>
-          <Button 
-            onClick={() => {
-              console.log('🔄 [OutfitGrid] Manual refresh triggered by user');
-              refresh();
-            }} 
-            variant="outline" 
+          <Button
+            onClick={debouncedRefresh}
+            variant="outline"
             size="sm"
-            disabled={loading}
+            className="motion-reduce:transform-none motion-reduce:transition-none"
+            disabled={loading || isRefreshing}
           >
-            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin motion-reduce:animate-none")} />
             Refresh
           </Button>
         </div>
       </div>
 
       {/* Filters and Search */}
-      {showFilters && (
+      {(showFilters || showSearch) && (
         <OutfitFiltersComponent
+          showSearch={showSearch}
+          showFilters={showFilters}
           filters={filters}
           onFiltersChange={handleFiltersChange}
           onSearch={handleSearch}
@@ -854,7 +605,7 @@ export default function OutfitGrid({
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-blue-800 text-sm">
             🔍 Showing {filteredOutfits.length} matches in loaded outfits.
-            <button 
+            <button
               onClick={handleClear}
               className="text-blue-600 hover:text-blue-800 underline ml-2"
             >
@@ -867,22 +618,22 @@ export default function OutfitGrid({
       {/* Outfits Grid */}
       {filteredOutfits.length === 0 ? (
         <div className="text-center py-12">
-          <div className="text-gray-400 mb-4">
+          <div className="text-muted-foreground mb-4">
             <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium text-card-foreground mb-2">
             {isSearching
               ? showFavoritesOnly ? 'No favorite outfits found' : 'No outfits found'
               : showFavoritesOnly ? 'No favorite outfits yet' : 'No outfits yet'}
           </h3>
-          <p className="text-gray-500 mb-4">
-            {isSearching 
+          <p className="text-muted-foreground mb-4">
+            {isSearching
               ? 'Try adjusting your search terms or filters'
               : showFavoritesOnly
                 ? 'Tap the heart icon on outfits you love to collect them here.'
-                : 'Create your first outfit to get started'}
+                : 'Your created outfits will be saved here. Open one anytime to view its pieces or record a wear.'}
           </p>
           {!isSearching && showFavoritesOnly && (
             <Button onClick={() => setShowFavoritesOnly(false)} variant="outline">
@@ -890,19 +641,16 @@ export default function OutfitGrid({
             </Button>
           )}
           {!isSearching && !showFavoritesOnly && (
-            <Button onClick={refresh} variant="outline">
-              Refresh
-            </Button>
+            <Button asChild><Link href="/outfits/generate">Create an outfit</Link></Button>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredOutfits.map((outfit) => (
             <OutfitCard
               key={outfit.id}
               outfit={outfit}
               onFavorite={handleFavorite}
-              onWear={handleWear}
               onEdit={handleEdit}
               onDelete={handleDelete}
               mutationError={mutationErrors[outfit.id]}
@@ -917,13 +665,13 @@ export default function OutfitGrid({
         <div ref={loadMoreRef} className="text-center py-8">
           {loadingMore ? (
             <div className="flex flex-col items-center gap-3">
-              <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
-              <p className="text-gray-500 text-sm">Loading more outfits...</p>
+              <RefreshCw className="h-6 w-6 animate-spin motion-reduce:animate-none text-muted-foreground" />
+              <p className="text-muted-foreground text-sm">Loading more outfits...</p>
             </div>
           ) : (
-            <Button 
+            <Button
               onClick={loadMoreOutfits}
-              variant="outline" 
+              variant="outline"
               className="flex items-center gap-2"
               disabled={loadingMore}
             >
@@ -937,7 +685,7 @@ export default function OutfitGrid({
       {/* End of Results */}
       {!hasMore && outfits.length > 0 && (
         <div className="text-center py-6">
-          <p className="text-gray-500 text-sm">
+          <p className="text-muted-foreground text-sm">
             {outfits.length} outfits loaded.
           </p>
         </div>

@@ -5,8 +5,9 @@ Provides /api/chat, /api/knowledge/search, and /api/knowledge/get endpoints
 import logging
 import os
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, ConfigDict, Field
+from src.auth.operator import require_operator
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +28,18 @@ from ..services.ai_runtime.embedding_runtime import generate_text_embedding
 
 
 class ChatRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     query: str
-    limit: Optional[int] = 5
+    limit: int = Field(default=5, ge=1, le=100)
+
+
+def _owned_chunk(chunk: dict | None, user_id: str) -> bool:
+    """Unscoped legacy records and conflicting owner aliases stay private."""
+    return bool(chunk and chunk.get("user_id") == user_id and all(
+        key not in chunk or chunk[key] == user_id
+        for key in ("userId", "firebase_uid", "uid", "ownerId")
+    ))
 
 
 def _chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[str]:
@@ -66,7 +77,7 @@ def _cosine_similarity(a: List[float], b: List[float]) -> float:
 
 
 @router.post("/chat")
-async def chat_retrieve(request: ChatRequest):
+async def chat_retrieve(request: ChatRequest, claims: dict = Depends(require_operator)):
     """
     Perform RAG retrieval against Firestore.
     Uses embeddings + vector search to return the most relevant chunks.
@@ -79,16 +90,16 @@ async def chat_retrieve(request: ChatRequest):
         query_embedding = await _generate_embedding(request.query)
         if not query_embedding:
             # Fallback to keyword search if embeddings fail
-            return await _keyword_search(request.query, request.limit or 5)
+            return await _keyword_search(request.query, request.limit or 5, claims["uid"])
         
-        # Get all knowledge chunks from Firestore
-        chunks_ref = db.collection("knowledge_chunks")
+        # Scope the database query before scanning or scoring any content.
+        chunks_ref = db.collection("knowledge_chunks").where("user_id", "==", claims["uid"])
         docs = chunks_ref.limit(1000).stream()  # Limit for performance
         
         chunks_with_scores = []
         for doc in docs:
             chunk_data = doc.to_dict()
-            if not chunk_data:
+            if not _owned_chunk(chunk_data, claims["uid"]):
                 continue
             
             chunk_embedding = chunk_data.get("embedding")
@@ -115,24 +126,26 @@ async def chat_retrieve(request: ChatRequest):
             "count": len(top_chunks)
         }
     
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(f"Error in chat retrieval: {e}")
-        raise HTTPException(status_code=500, detail=f"Retrieval failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Retrieval failed") from None
 
 
-async def _keyword_search(query: str, limit: int) -> Dict[str, Any]:
+async def _keyword_search(query: str, limit: int, user_id: str) -> Dict[str, Any]:
     """Fallback keyword search if embeddings are not available"""
     if not db or not firebase_initialized:
         raise HTTPException(status_code=503, detail="Database not available")
     
     query_lower = query.lower()
-    chunks_ref = db.collection("knowledge_chunks")
+    chunks_ref = db.collection("knowledge_chunks").where("user_id", "==", user_id)
     docs = chunks_ref.limit(1000).stream()
     
     matching_chunks = []
     for doc in docs:
         chunk_data = doc.to_dict()
-        if not chunk_data:
+        if not _owned_chunk(chunk_data, user_id):
             continue
         
         text = chunk_data.get("text", "").lower()
@@ -156,17 +169,21 @@ async def _keyword_search(query: str, limit: int) -> Dict[str, Any]:
 @router.get("/knowledge/search")
 async def knowledge_search(
     query: str = Query(..., description="Search query"),
-    limit: int = Query(10, description="Maximum number of results")
+    limit: int = Query(10, ge=1, le=100, description="Maximum number of results"),
+    claims: dict = Depends(require_operator),
 ):
     """
     Search knowledge by keyword.
     Returns chunks that contain the search query.
     """
-    return await _keyword_search(query, limit)
+    return await _keyword_search(query, limit, claims["uid"])
 
 
 @router.get("/knowledge/get")
-async def knowledge_get(chunk_id: str = Query(..., description="Chunk ID to retrieve")):
+async def knowledge_get(
+    chunk_id: str = Query(..., min_length=1, pattern=r"^[^/]+$", description="Chunk ID to retrieve"),
+    claims: dict = Depends(require_operator),
+):
     """
     Get a specific chunk by ID.
     """
@@ -177,10 +194,9 @@ async def knowledge_get(chunk_id: str = Query(..., description="Chunk ID to retr
         doc_ref = db.collection("knowledge_chunks").document(chunk_id)
         doc = doc_ref.get()
         
-        if not doc.exists:
-            raise HTTPException(status_code=404, detail=f"Chunk {chunk_id} not found")
-        
-        chunk_data = doc.to_dict()
+        chunk_data = doc.to_dict() if doc.exists else None
+        if not _owned_chunk(chunk_data, claims["uid"]):
+            raise HTTPException(status_code=404, detail="Chunk not found")
         return {
             "chunk_id": doc.id,
             "text": chunk_data.get("text", ""),
@@ -192,4 +208,4 @@ async def knowledge_get(chunk_id: str = Query(..., description="Chunk ID to retr
         raise
     except Exception as e:
         logger.exception(f"Error retrieving chunk: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve chunk: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve chunk") from None

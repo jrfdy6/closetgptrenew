@@ -64,17 +64,18 @@ export function buildOutfitGenerationUserProfile(
     measurements.shoeSize,
     measurements.braSize,
   ]);
-  const bodyType = firstString(source.bodyType, source.body_type, measurements.bodyType) || 'average';
+  const bodyType = firstString(source.bodyType, source.body_type, measurements.bodyType);
   const skinTone = firstString(source.skinTone, source.skin_tone, measurements.skinTone) || null;
   const height = firstString(source.height, measurements.height);
   const weight = firstString(source.weight, measurements.weight);
-  const age = typeof source.age === 'number' && Number.isFinite(source.age) ? source.age : 25;
+  const age = typeof source.age === 'number' && Number.isFinite(source.age)
+    && source.age > 0 && source.age <= 120 ? source.age : undefined;
 
   return {
     id: user.uid,
     name: user.displayName || firstString(source.name) || 'User',
     email: user.email || firstString(source.email),
-    gender: firstString(source.gender) || 'male',
+    gender: firstString(source.gender),
     age,
     height,
     weight,

@@ -559,7 +559,7 @@ export default function WardrobeInsightsHub({
                       </p>
                     </div>
                     <Button
-                      onClick={() => router.push('/pricing')}
+                      onClick={() => router.push('/upgrade')}
                       className="w-full gradient-copper-gold hover:opacity-90"
                       size="lg"
                     >
@@ -634,4 +634,3 @@ const ChallengeListWrapper = dynamic(
   () => import('@/components/gamification/ChallengeList'),
   { ssr: false, loading: () => <div className="h-48 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" /> }
 );
-

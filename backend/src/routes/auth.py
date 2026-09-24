@@ -54,79 +54,9 @@ async def timeout_context(timeout_seconds: float):
         )
 
 def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    """Get current user ID from Firebase ID token."""
-    try:
-        logger.info("🔍 DEBUG: ===== STARTING AUTHENTICATION PROCESS =====")
-        token = credentials.credentials
-        logger.info(f"🔍 DEBUG: Received token length: {len(token)}")
-        logger.info(f"🔍 DEBUG: Received token starts with: {token[:20]}...")
-        
-        logger.info("🔍 DEBUG: About to start Firebase token verification...")
-        
-        # Try with default settings first with timeout
-        try:
-            logger.info("🔍 DEBUG: Creating ThreadPoolExecutor...")
-            
-            # Use a timeout for the Firebase verification
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                logger.info("🔍 DEBUG: Submitting Firebase verification task...")
-                future = executor.submit(firebase_auth.verify_id_token, token)
-                logger.info("🔍 DEBUG: Waiting for Firebase verification result...")
-                try:
-                    decoded_token = future.result(timeout=30.0)  # Increased timeout to 30 seconds
-                    logger.info("🔍 DEBUG: Firebase verification completed successfully!")
-                    logger.info(f"🔍 DEBUG: Decoded token keys: {list(decoded_token.keys())}")
-                except concurrent.futures.TimeoutError:
-                    logger.error("🔍 DEBUG: Firebase token verification timed out after 30 seconds")
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Token verification timed out"
-                    )
-            
-            logger.info("🔍 DEBUG: Extracting user_id from decoded token...")
-            user_id: str = (decoded_token.get("uid") if decoded_token else None)
-            logger.info(f"🔍 DEBUG: Token verification successful, user_id: {user_id}")
-            
-            if user_id is None:
-                logger.error("🔍 DEBUG: No user_id found in decoded token")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid token: no user ID found"
-                )
-            
-            logger.info("🔍 DEBUG: Authentication completed successfully!")
-            logger.info("🔍 DEBUG: ===== AUTHENTICATION PROCESS COMPLETED =====")
-            return user_id
-        except Exception as e:
-            logger.error(f"🔍 DEBUG: Firebase token verification failed: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token verification failed"
-            )
-    except firebase_auth.ExpiredIdTokenError:
-        logger.error("🔍 DEBUG: Token expired")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token expired"
-        )
-    except firebase_auth.RevokedIdTokenError:
-        logger.error("🔍 DEBUG: Token has been revoked")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has been revoked"
-        )
-    except firebase_auth.InvalidIdTokenError:
-        logger.error("🔍 DEBUG: Invalid token")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
-        )
-    except Exception as e:
-        logger.error(f"🔍 DEBUG: Token verification failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
-        )
+    """Compatibility dependency uses verified Firebase identity and revocation."""
+    from ..auth.verified_user import verify_bearer_claims
+    return verify_bearer_claims(f'{credentials.scheme} {credentials.credentials}' if credentials else None)['uid']
 
 # Keep the old JWT function for backward compatibility
 def get_current_user_id_jwt(token: str = Depends(security)) -> str:
@@ -178,7 +108,8 @@ async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depe
     """Verify a Firebase ID token and return user information."""
     try:
         token = credentials.credentials
-        decoded_token = firebase_auth.verify_id_token(token)
+        from ..auth.verified_user import verify_bearer_claims
+        decoded_token = verify_bearer_claims(f'Bearer {token}')
         
         user_id = (decoded_token.get("uid") if decoded_token else None)
         email = (decoded_token.get("email") if decoded_token else None)

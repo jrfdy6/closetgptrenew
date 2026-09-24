@@ -8,7 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, User, CheckCircle, AlertCircle } from "lucide-react";
-import { signUp, signInWithGoogle } from "@/lib/auth";
+import { signUp, signInWithGoogle, saveSignUpName } from "@/lib/auth";
+import type { User as FirebaseUser } from 'firebase/auth';
+import { authorizeNewAccountGuestTransfer, getPendingGuestTransfer, transferGuestDraftToNewAccount } from '@/lib/guestDraftTransfer';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { auth } from '@/lib/firebase/config';
 
 export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
@@ -23,7 +27,26 @@ export default function SignUp() {
     confirmPassword: ""
   });
   const router = useRouter();
+  const { user: signedInUser, loading: authLoading } = useAuthContext();
   const [fromQuiz, setFromQuiz] = useState(false);
+  const [createdAccount, setCreatedAccount] = useState<{ user: FirebaseUser; isNew: boolean; name?: string } | null>(null);
+
+  const finishAccountSetup = async (account: { user: FirebaseUser; isNew: boolean; name?: string }) => {
+    if (auth.currentUser?.uid !== account.user.uid) throw new Error('Your signed-in account changed. Sign in with the account you created to retry setup.');
+    if (account.name) await saveSignUpName(account.user, account.name);
+    if (fromQuiz) await transferGuestDraftToNewAccount(account.user, account.isNew);
+    if (auth.currentUser?.uid !== account.user.uid) return;
+    router.push('/onboarding');
+  };
+
+  const retryAccountSetup = async () => {
+    if (!createdAccount) return;
+    setIsLoading(true);
+    setError('');
+    try { await finishAccountSetup(createdAccount); }
+    catch (failure: any) { setError(failure.message || 'Your account is ready. Please retry saving your details.'); }
+    finally { setIsLoading(false); }
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -31,6 +54,16 @@ export default function SignUp() {
       setFromQuiz(params.get("from") === "quiz");
     }
   }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+    const receipt = fromQuiz && signedInUser ? getPendingGuestTransfer(signedInUser.uid) : null;
+    if (receipt && signedInUser) {
+      setCreatedAccount({ user: signedInUser, isNew: false, name: receipt.name });
+    } else {
+      setCreatedAccount(previous => previous?.user.uid === signedInUser?.uid ? previous : null);
+    }
+  }, [authLoading, signedInUser?.uid, fromQuiz]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -43,47 +76,19 @@ export default function SignUp() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
-    
+
     try {
-      const result = await signUp(formData.email, formData.password);
-      
-      if (result.success) {
-        console.log("Signup successful:", result.user?.email);
-        if (fromQuiz && typeof window !== "undefined") {
-          try {
-            const pendingRaw = sessionStorage.getItem("pendingQuizSubmission");
-            if (pendingRaw && result.user) {
-              const pending = JSON.parse(pendingRaw);
-              const token = await result.user.getIdToken();
-              const submissionPayload = {
-                userId: result.user.uid,
-                token,
-                answers: pending.answers || [],
-                colorAnalysis: pending.colorAnalysis || null,
-                stylePreferences: pending.stylePreferences || [],
-                colorPreferences: pending.colorPreferences || []
-              };
+      const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+      const result = await signUp(formData.email, formData.password, fullName);
 
-              await fetch("/api/style-quiz/submit", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify(submissionPayload)
-              });
-
-              sessionStorage.removeItem("pendingQuizSubmission");
-            }
-          } catch (quizError) {
-            console.error("Failed to submit pending quiz after signup:", quizError);
-          }
-
-          router.push("/style-persona?from=quiz");
-        } else {
-          // Redirect to onboarding
-          router.push("/onboarding");
-        }
+      if (result.success && result.user) {
+        const account = { user: result.user, isNew: true, name: fullName };
+        setCreatedAccount(account);
+        if (fromQuiz) authorizeNewAccountGuestTransfer(result.user, fullName);
+        if (result.profileError) { setError(result.profileError); return; }
+        if (fromQuiz) await transferGuestDraftToNewAccount(result.user, true);
+        if (auth.currentUser?.uid !== result.user.uid) return;
+        router.push('/onboarding');
       } else {
         setError(result.error || "Sign up failed");
         console.error("Signup error:", result.error);
@@ -96,54 +101,21 @@ export default function SignUp() {
     }
   };
 
-  const isFormValid = formData.firstName && formData.lastName && formData.email && 
+  const isFormValid = formData.firstName && formData.lastName && formData.email &&
                      formData.password && formData.password === formData.confirmPassword;
 
   const handleGoogleSignUp = async () => {
     setIsLoading(true);
     setError("");
-    
+
     try {
       const result = await signInWithGoogle();
-      
+
       if (result.success && result.user) {
-        console.log("Google signup successful:", result.user.email);
-
-        if (fromQuiz && typeof window !== "undefined") {
-          try {
-            const pendingRaw = sessionStorage.getItem("pendingQuizSubmission");
-            if (pendingRaw) {
-              const pending = JSON.parse(pendingRaw);
-              const token = await result.user.getIdToken();
-              const submissionPayload = {
-                userId: result.user.uid,
-                token,
-                answers: pending.answers || [],
-                colorAnalysis: pending.colorAnalysis || null,
-                stylePreferences: pending.stylePreferences || [],
-                colorPreferences: pending.colorPreferences || []
-              };
-
-              await fetch("/api/style-quiz/submit", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify(submissionPayload)
-              });
-
-              sessionStorage.removeItem("pendingQuizSubmission");
-            }
-          } catch (quizError) {
-            console.error("Failed to submit pending quiz after Google signup:", quizError);
-          }
-
-          router.push("/style-persona?from=quiz");
-        } else {
-          // Redirect to onboarding
-          router.push("/onboarding");
-        }
+        const account = { user: result.user, isNew: result.isNewUser === true };
+        setCreatedAccount(account);
+        if (fromQuiz && account.isNew) authorizeNewAccountGuestTransfer(result.user);
+        await finishAccountSetup(account);
       } else {
         setError(result.error || "Google sign up failed");
         console.error("Google signup error:", result.error);
@@ -178,13 +150,19 @@ export default function SignUp() {
               <span className="text-sm text-red-700">{error}</span>
             </div>
           )}
-          
+
+          {createdAccount && (
+            <div className="mb-4" role="status">
+              <p className="mb-2 text-sm">Your account is ready. Continue saving your details without creating another account.</p>
+              <Button onClick={retryAccountSetup} disabled={isLoading}>Retry setup</Button>
+            </div>
+          )}
           <Button
             type="button"
             variant="outline"
             className="w-full border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-4 rounded-2xl font-semibold text-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors mb-6"
             onClick={handleGoogleSignUp}
-            disabled={isLoading}
+            disabled={isLoading || !!createdAccount}
           >
             <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -217,7 +195,7 @@ export default function SignUp() {
               </span>
             </div>
           </div>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -237,7 +215,7 @@ export default function SignUp() {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="lastName" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Last Name
@@ -274,7 +252,7 @@ export default function SignUp() {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Password
@@ -339,8 +317,8 @@ export default function SignUp() {
 
             {formData.password && formData.confirmPassword && (
               <div className={`flex items-center space-x-2 text-sm ${
-                formData.password === formData.confirmPassword 
-                  ? 'text-green-600 dark:text-green-400' 
+                formData.password === formData.confirmPassword
+                  ? 'text-green-600 dark:text-green-400'
                   : 'text-red-600 dark:text-red-400'
               }`}>
                 {formData.password === formData.confirmPassword ? (
@@ -349,8 +327,8 @@ export default function SignUp() {
                   <div className="w-4 h-4 rounded-full border-2 border-red-600 dark:border-red-400" />
                 )}
                 <span>
-                  {formData.password === formData.confirmPassword 
-                    ? 'Passwords match' 
+                  {formData.password === formData.confirmPassword
+                    ? 'Passwords match'
                     : 'Passwords do not match'
                   }
                 </span>
@@ -360,7 +338,7 @@ export default function SignUp() {
             <Button
               type="submit"
               className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground px-6 py-4 rounded-2xl font-semibold text-lg shadow-lg shadow-amber-500/25 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
-              disabled={isLoading || !isFormValid}
+              disabled={isLoading || !!createdAccount || !isFormValid}
             >
               {isLoading ? "Creating account..." : "Create account"}
             </Button>
@@ -369,8 +347,8 @@ export default function SignUp() {
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
-              <Link 
-                href="/signin" 
+              <Link
+                href="/signin"
                 className="font-medium text-primary hover:text-primary/90"
               >
                 Sign in

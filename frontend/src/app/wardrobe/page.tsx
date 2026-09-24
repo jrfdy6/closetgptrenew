@@ -77,6 +77,9 @@ export default function WardrobePage() {
   } = useWardrobe();
 
   const [activeTab, setActiveTab] = useState("all");
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('view') === 'favorites') setActiveTab('favorites');
+  }, []);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<string>("all");
@@ -107,9 +110,12 @@ export default function WardrobePage() {
       refetch();
     };
 
+    const onReturn = () => { if (document.visibilityState === 'visible') void refetch(); };
+    document.addEventListener('visibilitychange', onReturn);
     window.addEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
     
     return () => {
+      document.removeEventListener('visibilitychange', onReturn);
       window.removeEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
     };
   }, [refetch]);
@@ -376,7 +382,7 @@ export default function WardrobePage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto [&>button]:shrink-0">
             <TabsTrigger value="all">All Items</TabsTrigger>
             <TabsTrigger value="favorites">
               <Heart className="w-4 h-4 mr-2" />

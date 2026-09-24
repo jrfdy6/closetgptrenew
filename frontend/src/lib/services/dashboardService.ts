@@ -1,12 +1,13 @@
 import { User } from 'firebase/auth';
-import { getPublicBackendUrl } from '@/lib/publicBackendUrl';
+import { publishWearReceipt } from '@/lib/wardrobeActivity';
+import { wearOperationKey, clearWearOperation } from '@/lib/savedOutfit';
 
 export interface DashboardData {
   totalItems: number;
   favorites: number;
   styleGoalsCompleted: number;
   totalStyleGoals: number;
-  outfitsThisWeek: number;
+  outfitsThisWeek: number | null;
   overallProgress: number;
   styleCollections: StyleCollection[];
   styleExpansions: StyleExpansion[];
@@ -160,613 +161,176 @@ const calculatePreferenceScore = (item: any) => {
 };
 
 class DashboardService {
-  private async makeAuthenticatedRequest(endpoint: string, user: User | null, options: RequestInit = {}): Promise<any> {
-    console.log('🔍 DEBUG: makeAuthenticatedRequest called with user:', user ? 'authenticated' : 'null');
-    console.log('🔍 DEBUG: User email:', user?.email);
-    console.log('🔍 DEBUG: User UID:', user?.uid);
-    
-    // Get authentication token
-    let token: string;
-    if (!user) {
-      throw new Error('User not authenticated. Please log in.');
+  private async makeAuthenticatedRequest(
+    endpoint: string,
+    user: User | null,
+    options: RequestInit = {},
+    timeoutMs: number = 15000,
+  ): Promise<any> {
+    if (!user) throw new Error('Please sign in to load your dashboard.');
+    if (!endpoint.startsWith('/') || endpoint.startsWith('//')) {
+      throw new Error('Your dashboard could not be loaded. Please try again.');
     }
-    
-    token = await user.getIdToken();
-    if (!token) {
-      throw new Error('Failed to get authentication token');
-    }
-    console.log('🔍 DEBUG: Got real token:', token.substring(0, 20) + '...');
-    
-    // Use Next.js API route as proxy instead of calling backend directly
-    const fullUrl = endpoint.startsWith('http') ? endpoint : `/api${endpoint}`;
-    console.log('🔍 DEBUG: Making request to:', fullUrl);
-    console.log('🔍 DEBUG: Authorization header:', `Bearer ${token.substring(0, 20)}...`);
 
-    // Keep headers simple to avoid CORS issues
-    const headers: Record<string, string> = {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
-
-    const response = await fetch(fullUrl, {
-      method: 'GET', // Default to GET, can be overridden in options
-      headers,
-      ...options,
+    const controller = new AbortController();
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        controller.abort();
+        reject(new Error('Dashboard request timed out'));
+      }, timeoutMs);
     });
-
-    if (!response.ok) {
-      console.error('🔍 DEBUG: API request failed:', response.status, response.statusText);
-      const errorText = await response.text().catch(() => 'Unable to read error');
-      console.error('🔍 DEBUG: Error details:', errorText);
-      
-      // Try to parse error as JSON for better error messages
-      let errorData = {};
-      try {
-        errorData = await response.json();
-      } catch (e) {
-        // If JSON parsing fails, use the text error
-      }
-      
-      throw new Error(`API request failed: ${response.status} ${JSON.stringify(errorData)}`);
+    const request = async () => {
+      const token = await user.getIdToken();
+      // Token acquisition cannot be cancelled; a late token must not start I/O.
+      if (controller.signal.aborted) throw new Error('Dashboard request timed out');
+      if (!token) throw new Error('Authentication unavailable');
+      const headers = new Headers(options.headers);
+      headers.set('Authorization', `Bearer ${token}`);
+      headers.set('Content-Type', 'application/json');
+      const response = await fetch(`/api${endpoint}`, {
+        method: 'GET',
+        ...options,
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error('Dashboard request failed');
+      return await response.json();
+    };
+    try {
+      // The deadline covers token acquisition, fetch, and response parsing.
+      return await Promise.race([request(), deadline]);
+    } catch {
+      // Upstream bodies, tokens and private profile/wardrobe data stay out of logs
+      // and user-facing errors. Required callers must not replace failures with 0.
+      throw new Error('Your dashboard could not be loaded. Please try again.');
+    } finally {
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
     }
-
-    return response.json();
   }
 
   async getDashboardData(user: User | null, forceFresh: boolean = false): Promise<DashboardData> {
     try {
-      console.log('🔍 DEBUG: Fetching dashboard data...');
-      
-      // Fetch data with individual timeouts to prevent one slow API from blocking everything
-      const fetchWithTimeout = async (promise: Promise<any>, timeoutMs: number, fallback: any, endpointName: string = 'unknown') => {
+      if (!user) throw new Error('Please sign in to load your dashboard.');
+      const fetchWithTimeout = async (promise: Promise<any>, timeoutMs: number, fallback: any) => {
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
         try {
           return await Promise.race([
             promise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs))
+            new Promise((_, reject) => {
+              timeoutId = setTimeout(() => reject(new Error('Dashboard insight timed out')), timeoutMs);
+            }),
           ]);
-        } catch (error) {
-          console.error(`❌ DEBUG: ${endpointName} failed:`, error);
-          if (error instanceof Error && error.message.includes('Timeout')) {
-            console.error(`⏱️ DEBUG: ${endpointName} timed out after ${timeoutMs}ms - using fallback data`);
-            console.error(`⏱️ DEBUG: This could mean the endpoint is slow or the backend is overloaded`);
-          }
-          console.warn(`⚠️ DEBUG: Using fallback data for ${endpointName}:`, fallback);
+        } catch {
           return fallback;
+        } finally {
+          if (timeoutId !== undefined) clearTimeout(timeoutId);
         }
       };
 
-      // Fetch user profile with persona data - make it non-blocking with timeout
-      // Profile is optional for dashboard - don't block if backend is slow
-      const userProfile = await fetchWithTimeout(
+      // These are required inputs. An unavailable wardrobe/profile is not an
+      // empty wardrobe; let the page preserve its last successful state or retry.
+      const [userProfile, wardrobeStats] = await Promise.all([
         this.getUserProfile(user),
-        15000, // 15s timeout (shorter than the internal 30s timeout)
-        { stylePersona: null }, // Fallback
-        'UserProfile'
-      );
-
-      // Fetch wardrobe data first, then use it for top worn items calculation
-      // Longer timeout on mobile for slow networks
-      const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const wardrobeTimeout = isMobile ? 60000 : 35000; // 60s on mobile, 35s on desktop
-      const wardrobeStats = await fetchWithTimeout(
-        this.getWardrobeStats(user), 
-        wardrobeTimeout,
-        { items: [], total_items: 0 }, 
-        'WardrobeStats'
-      );
-      
-      // Extract wardrobe items for top worn calculation
-      const wardrobeItems = (wardrobeStats as any)?.items || [];
-      console.log('🔍 DEBUG: Using', wardrobeItems.length, 'wardrobe items for top worn calculation');
-      
-      // Fetch remaining data in parallel, passing wardrobe items to top worn calculator
-      const hasWardrobeItems = Array.isArray(wardrobeItems) && wardrobeItems.length > 0;
-
-      const [
-        simpleAnalytics,
-        trendingStyles,
-        todaysOutfit,
-        topWornItems
-      ] = await Promise.all([
-        fetchWithTimeout(this.getSimpleAnalytics(user, forceFresh), 15000, { success: true, outfits_worn_this_week: 0 }, 'SimpleAnalytics'),
-        fetchWithTimeout(this.getTrendingStyles(user), 8000, { success: true, data: { styles: [] } }, 'TrendingStyles'),
-        fetchWithTimeout(this.getTodaysOutfit(user), 8000, { success: true, suggestion: null }, 'TodaysOutfit'),
-        fetchWithTimeout(this.getTopWornItems(user, wardrobeItems, hasWardrobeItems), 8000, { success: true, data: { items: [] } }, 'TopWornItems')
+        this.getWardrobeStats(user),
       ]);
+      const wardrobeItems = wardrobeStats.items;
+      const hasWardrobeItems = wardrobeItems.length > 0;
 
-      console.log('🔍 DEBUG: All API calls completed, processing data...');
-
-      // Process and combine the data with proper backend response mapping
-      console.log('🔍 DEBUG: Processing wardrobeStats:', wardrobeStats);
-      console.log('🔍 DEBUG: Processing simpleAnalytics:', simpleAnalytics);
-      console.log('🔍 DEBUG: Processing trendingStyles:', trendingStyles);
-      console.log('🔍 DEBUG: Processing todaysOutfit:', todaysOutfit);
-      console.log('🔍 DEBUG: Processing topWornItems:', topWornItems);
-      
-      // Extract data from backend responses with proper fallbacks
-      // Now using /wardrobe endpoint which returns individual items
-      const totalItems = (wardrobeStats as any)?.total_items || wardrobeItems.length || 0;
-      
-      const topWornItemsList = (topWornItems as any)?.data?.items || (topWornItems as any)?.items || topWornItems || [];
-      const trendingStylesList = (trendingStyles as any)?.data?.styles || (trendingStyles as any)?.styles || trendingStyles || [];
-      // Get outfits worn this week from simple analytics - no complex fallbacks needed
-      const outfitsThisWeek = (simpleAnalytics as any)?.outfits_worn_this_week || 0;
-      console.log('🔍 DEBUG: Simple analytics returned:', outfitsThisWeek, 'outfits worn this week');
-      
-      // Force browser cache refresh - removed all outfitHistory references
-      
-      console.log('🔍 DEBUG: Extracted data:');
-      console.log('🔍 DEBUG: - wardrobeItems:', wardrobeItems.length, 'items (empty - backend only returns stats)');
-      console.log('🔍 DEBUG: - totalItems:', totalItems);
-      console.log('🔍 DEBUG: - hasWardrobeItems:', hasWardrobeItems);
-      console.log('🔍 DEBUG: - topWornItemsList:', topWornItemsList.length, 'items');
-      console.log('🔍 DEBUG: - trendingStylesList:', trendingStylesList.length, 'styles');
-      console.log('🔍 DEBUG: - outfitsThisWeek:', outfitsThisWeek);
-      console.log('🔍 DEBUG: - wardrobeStats structure:', {
-        total_items: (wardrobeStats as any)?.data?.total_items,
-        item_types: Object.keys((wardrobeStats as any)?.data?.item_types || {}).length,
-        colors: Object.keys((wardrobeStats as any)?.data?.colors || {}).length,
-        styles: Object.keys((wardrobeStats as any)?.data?.styles || {}).length
-      });
-      
-      // Build style collections first so we can calculate goals from them
+      // Optional insights retain their existing bounded fallbacks.
+      const [simpleAnalytics, trendingStyles, todaysOutfit, topWornItems] = await Promise.all([
+        fetchWithTimeout(this.getSimpleAnalytics(user, forceFresh), 15000, null),
+        fetchWithTimeout(this.getTrendingStyles(user), 8000, { success: true, data: { styles: [] } }),
+        fetchWithTimeout(this.getTodaysOutfit(user), 8000, { success: true, suggestion: null }),
+        fetchWithTimeout(this.getTopWornItems(user, wardrobeItems, hasWardrobeItems), 8000, { success: true, data: { items: [] } }),
+      ]);
       const styleCollections = this.buildStyleCollections(wardrobeStats, trendingStyles, userProfile);
       const styleGoalsData = this.calculateStyleGoals(styleCollections);
-      
-      // Make wardrobe gaps non-blocking with timeout - don't let it hang the dashboard
-      const resolvedWardrobeGaps = hasWardrobeItems 
-        ? await fetchWithTimeout(
-            this.getWardrobeGapsFromBackend(user),
-            10000, // 10s timeout
-            [], // Empty array fallback
-            'WardrobeGaps'
-          )
+      const resolvedWardrobeGaps = hasWardrobeItems
+        ? await fetchWithTimeout(this.getWardrobeGapsFromBackend(user), 10000, [])
         : [];
-      if (!hasWardrobeItems) {
-        console.log('ℹ️ DEBUG: No wardrobe items found for user, skipping wardrobe gaps fetch and returning empty insights.');
-      }
 
-      const dashboardData: DashboardData = {
-        totalItems: totalItems,
+      return {
+        totalItems: wardrobeStats.total_items,
         favorites: this.calculateFavorites(wardrobeStats),
         styleGoalsCompleted: styleGoalsData.completed,
         totalStyleGoals: styleGoalsData.total,
-        outfitsThisWeek: outfitsThisWeek,
+        outfitsThisWeek: simpleAnalytics?.outfits_worn_this_week ?? null,
         overallProgress: this.calculateOverallProgress(wardrobeStats, trendingStyles, userProfile),
-        styleCollections: styleCollections,
+        styleCollections,
         styleExpansions: this.buildStyleExpansions(wardrobeStats, trendingStyles),
         seasonalBalance: this.buildSeasonalBalance(wardrobeStats),
         colorVariety: this.buildColorVariety(wardrobeStats),
         wardrobeGaps: resolvedWardrobeGaps,
         topItems: this.buildTopItems(topWornItems),
         recentOutfits: this.buildRecentOutfits(),
-        todaysOutfit: (todaysOutfit as any)?.todaysOutfit || todaysOutfit || null,
-        shoppingRecommendations: null // Will be populated by the enhanced component
+        todaysOutfit: todaysOutfit?.todaysOutfit || todaysOutfit || null,
+        shoppingRecommendations: null,
       };
-
-      console.log('🔍 DEBUG: Dashboard data processed:', dashboardData);
-      console.log('🔍 DEBUG: Dashboard data totalItems:', dashboardData.totalItems);
-      console.log('🔍 DEBUG: Dashboard data styleCollections length:', dashboardData.styleCollections.length);
-      console.log('🔍 DEBUG: Dashboard data colorVariety:', dashboardData.colorVariety);
-      console.log('🔍 DEBUG: Dashboard data seasonalBalance:', dashboardData.seasonalBalance);
-      console.log('🔍 DEBUG: Dashboard data wardrobeGaps length:', dashboardData.wardrobeGaps.length);
-      return dashboardData;
-
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      throw error;
+    } catch {
+      // Keep a failed refresh distinguishable from a successful empty response.
+      throw new Error('Your dashboard could not be loaded. Please try again.');
     }
   }
 
-  private async getUserProfile(user: User | null) {
-    try {
-      if (!user) return { stylePersona: null };
-      
-      const token = await user.getIdToken();
-      const backendUrl = getPublicBackendUrl();
-      
-      // Quick health check first (5s timeout) - non-blocking, just for logging
-      // Don't block profile request if health check fails - actual API calls will handle errors gracefully
-      // Increased timeout to 5s to account for network latency and CORS preflight
-      const healthCheckController = new AbortController();
-      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 5000);
-      try {
-        const healthResponse = await fetch(`${backendUrl}/health/simple`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          signal: healthCheckController.signal,
-        });
-        clearTimeout(healthCheckTimeout);
-        if (!healthResponse.ok) {
-          console.warn('⚠️ DEBUG: Backend health check returned non-OK status - proceeding anyway');
-        }
-      } catch (healthError) {
-        clearTimeout(healthCheckTimeout);
-        // Health check failures are non-blocking - just log and continue
-        // The actual API calls will handle errors gracefully
-        console.warn('⚠️ DEBUG: Backend health check failed (non-blocking):', healthError);
-      }
-      
-      // If health check passes, try profile with timeout (longer on mobile for slow networks)
-      const isMobileProfile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-      const profileTimeout = isMobileProfile ? 30000 : 15000; // 30s on mobile, 15s on desktop
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), profileTimeout);
-      
-      let response: Response;
-      try {
-        response = await fetch(`${backendUrl}/api/auth/profile`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          signal: controller.signal,
-        });
-      } finally {
-        clearTimeout(timeoutId);
-      }
-
-      if (response.ok) {
-        const profileData = await response.json();
-        console.log('🎭 [Dashboard] Fetched user profile with persona:', profileData?.stylePersona?.name || 'No persona');
-        return profileData;
-      }
-      
-      console.warn('🔍 DEBUG: Profile response not ok:', response.status, response.statusText);
-      return { stylePersona: null };
-    } catch (error) {
-        console.error('Error fetching user profile:', error);
-      if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
-        const isMobileProfile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-        const timeoutSeconds = isMobileProfile ? 30 : 15;
-        console.error(`⏱️ DEBUG: Profile request timed out after ${timeoutSeconds} seconds (non-critical, continuing...)`);
-      }
-      return { stylePersona: null };
+  private async getUserProfile(user: User) {
+    const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+    const profile = await this.makeAuthenticatedRequest('/user/profile', user, {}, isMobile ? 30000 : 15000);
+    if (!profile || typeof profile !== 'object' || Array.isArray(profile) ||
+        profile.userId !== user.uid || profile.success === false || profile.error ||
+        ['user_id', 'firebase_uid'].some(key => profile[key] != null && profile[key] !== user.uid) ||
+        (profile.stylePreferences != null && (!Array.isArray(profile.stylePreferences) ||
+          profile.stylePreferences.some((value: unknown) => typeof value !== 'string'))) ||
+        (profile.preferences != null && (typeof profile.preferences !== 'object' || Array.isArray(profile.preferences))) ||
+        (profile.preferences?.style != null && (!Array.isArray(profile.preferences.style) ||
+          profile.preferences.style.some((value: unknown) => typeof value !== 'string')))) {
+      throw new Error('Your dashboard could not be loaded. Please try again.');
     }
+    return profile;
   }
 
   private async getWardrobeStats(user: User) {
-    try {
-      console.log('🔍 DEBUG: Fetching wardrobe items from /wardrobe (not wardrobe-stats)');
-      console.log('🔍 DEBUG: User ID:', user.uid);
-      console.log('🔍 DEBUG: User email:', user.email);
-      
-      const token = await user.getIdToken();
-      const backendUrl = getPublicBackendUrl();
-      
-      const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
-      
-      // Declare response variable that will be used in both paths
-      let response: any;
-      
-      // Quick health check first (5s timeout) - non-blocking, just for logging
-      // Don't block dashboard loading if health check fails - actual API calls will handle errors gracefully
-      // Increased timeout to 5s to account for network latency and CORS preflight
-      const healthCheckController = new AbortController();
-      const healthCheckTimeout = setTimeout(() => healthCheckController.abort(), 5000);
-      try {
-        const healthResponse = await fetch(`${backendUrl}/health/simple`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          signal: healthCheckController.signal,
-        });
-        clearTimeout(healthCheckTimeout);
-        if (!healthResponse.ok) {
-          console.warn('⚠️ DEBUG: Backend health check returned non-OK status - proceeding anyway');
-        }
-      } catch (healthError) {
-        clearTimeout(healthCheckTimeout);
-        // Health check failures are non-blocking - just log and continue
-        // The actual API calls will handle errors gracefully
-        console.warn('⚠️ DEBUG: Backend health check failed (non-blocking):', healthError);
-      }
-      
-      // Always proceed with API calls - don't block on health check failures
-      // The individual API calls will handle errors gracefully
-      
-      // SECURITY NOTE: Calling backend directly (bypassing Vercel API route)
-      // - Backend URL is already public (NEXT_PUBLIC_BACKEND_URL in client bundle)
-      // - Authentication still required (Firebase ID tokens verified by backend)
-      // - CORS is properly configured and working (Railway logs confirm)
-      // - Backend has its own security measures (auth, validation, rate limiting)
-      // 
-      // Reason: Vercel API route times out at 10s (Hobby plan limit)
-      // Backend is working (Railway logs show successful requests)
-      // TODO: Consider upgrading Vercel plan or optimizing backend for faster responses
-      console.log(isMobile ? '📱 DEBUG: Mobile - calling backend directly (health check passed)' : '🖥️ DEBUG: Desktop - calling backend directly (health check passed)');
-      
-      // Direct backend call - longer timeout on mobile for slow networks
-      const directTimeout = isMobile ? 60000 : 35000; // 60s on mobile, 35s on desktop
-      const directBackendPromise = (async () => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-          console.warn('⏱️ DEBUG: Direct backend call timing out...');
-          controller.abort();
-        }, directTimeout);
-        
-        const wardrobeUrl = `${backendUrl}/api/wardrobe/`;
-        console.log(`🚀 FRONTEND: About to fetch wardrobe from: ${wardrobeUrl}`);
-        console.log(`🚀 FRONTEND: Token length: ${token.length}, isMobile: ${isMobile}, timeout: ${directTimeout}ms`);
-        const fetchStart = Date.now();
-        
-        try {
-          console.log(`🚀 FRONTEND: Sending GET request to ${wardrobeUrl}...`);
-          console.log(`🚀 FRONTEND: Request headers:`, {
-            'Authorization': `Bearer ${token.substring(0, 20)}...`,
-            'Content-Type': 'application/json',
-          });
-          
-          const directResponse = await fetch(wardrobeUrl, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            signal: controller.signal,
-          });
-          
-          const responseTime = Date.now() - fetchStart;
-          console.log(`🚀 FRONTEND: Received response after ${responseTime}ms, status: ${directResponse.status}`);
-          
-          if (!directResponse.ok) {
-            const errorText = await directResponse.text().catch(() => 'Unable to read error');
-            console.error(`🚀 FRONTEND: Response not OK - status: ${directResponse.status}, body: ${errorText.substring(0, 200)}`);
-          }
-          
-          clearTimeout(timeoutId);
-          
-          if (directResponse.ok) {
-            const data = await directResponse.json();
-            console.log('✅ DEBUG: Direct backend call succeeded');
-            return data;
-          } else {
-            throw new Error(`Direct backend returned ${directResponse.status}`);
-          }
-        } catch (error) {
-          clearTimeout(timeoutId);
-          const errorTime = Date.now() - fetchStart;
-          console.error(`🚀 FRONTEND: Fetch error after ${errorTime}ms:`, error);
-          console.error(`🚀 FRONTEND: Error type:`, error instanceof Error ? error.constructor.name : typeof error);
-          console.error(`🚀 FRONTEND: Error message:`, error instanceof Error ? error.message : String(error));
-          if (error instanceof Error && error.name === 'AbortError') {
-            console.error(`🚀 FRONTEND: Request was aborted (likely timeout)`);
-          }
-          throw error;
-        }
-      })();
-      
-      // Call backend directly - Railway logs show it's working, just needs time
-      try {
-        response = await directBackendPromise;
-        console.log('✅ DEBUG: Direct backend call succeeded');
-      } catch (error) {
-        console.error('❌ DEBUG: Direct backend call failed:', error);
-        throw error;
-      }
-      console.log('🔍 DEBUG: Wardrobe stats response:', response);
-      console.log('🔍 DEBUG: Wardrobe stats response type:', typeof response);
-      console.log('🔍 DEBUG: Wardrobe stats response keys:', Object.keys(response || {}));
-      console.log('🔍 DEBUG: response.success:', response?.success);
-      console.log('🔍 DEBUG: response.error:', response?.error);
-      console.log('🔍 DEBUG: response.count:', response?.count);
-      console.log('🔍 DEBUG: response.items:', response.items);
-      console.log('🔍 DEBUG: response.items length:', response?.items?.length);
-      console.log('🔍 DEBUG: response.user_id:', response?.user_id);
-      console.log('🔍 DEBUG: response.wardrobe_items:', response.wardrobe_items);
-      
-      // Check if the response indicates an error
-      if (response?.error || response?.success === false) {
-        console.error('❌ DEBUG: Backend returned error:', response.error);
-        console.error('❌ DEBUG: This means the backend could not fetch your wardrobe data');
-        console.error('❌ DEBUG: Possible reasons: authentication issue, backend down, or database query failed');
-      }
-      
-      // Process the wardrobe items to create stats with null checks
-      // The /wardrobe endpoint returns: {"success": true, "items": [...], "count": N}
-      const wardrobeItems = response?.items || [];
-      const totalItems = response?.count || wardrobeItems.length;
-      
-      console.log('🔍 DEBUG: Extracted wardrobeItems:', wardrobeItems);
-      console.log('🔍 DEBUG: WardrobeItems type:', typeof wardrobeItems);
-      console.log('🔍 DEBUG: WardrobeItems isArray:', Array.isArray(wardrobeItems));
-      console.log('🔍 DEBUG: Total items from response:', totalItems);
-      
-      // Alert if we got 0 items - this is unusual
-      if (totalItems === 0) {
-        console.warn('⚠️ DEBUG: Got 0 wardrobe items from backend!');
-        console.warn('⚠️ DEBUG: This could mean:');
-        console.warn('⚠️ DEBUG: 1. Your wardrobe is empty (unlikely if you just made changes)');
-        console.warn('⚠️ DEBUG: 2. The backend query is not finding your items (field name mismatch?)');
-        console.warn('⚠️ DEBUG: 3. Authentication token is incorrect');
-        console.warn('⚠️ DEBUG: 4. Backend is returning fallback/mock data');
-      }
-      
-      // OPTIMIZED: Limit items processed on mobile for better performance
-      const maxItemsForStats = isMobile ? 200 : wardrobeItems.length; // Limit to 200 items on mobile for stats
-      const itemsForStats = Array.isArray(wardrobeItems) ? wardrobeItems.slice(0, maxItemsForStats) : [];
-      
-      if (isMobile && wardrobeItems.length > maxItemsForStats) {
-        console.log(`📱 DEBUG: Mobile detected - limiting stats calculation to ${maxItemsForStats} items (out of ${wardrobeItems.length})`);
-      }
-      
-      // Calculate categories and colors from the actual items (limited on mobile)
-      const categories: { [key: string]: number } = {};
-      const colors: { [key: string]: number } = {};
-      
-      if (itemsForStats.length > 0) {
-        itemsForStats.forEach((item: any) => {
-          // Count categories
-          const category = item.type || item.category || 'unknown';
-          categories[category] = (categories[category] || 0) + 1;
-          
-          // Count colors
-          const color = item.color || 'unknown';
-          colors[color] = (colors[color] || 0) + 1;
-        });
-      }
-      
-      return {
-        total_items: totalItems,
-        categories,
-        colors,
-        user_id: user.uid,
-        items: wardrobeItems // Include items for favorites calculation
-      };
-    } catch (error) {
-      console.error('Error fetching wardrobe stats:', error);
-      // Return fallback data for production when backend is not ready
-      return {
-        total_items: 0,
-        categories: {},
-        colors: {},
-        user_id: user.uid
-      };
+    const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
+    const response = await this.makeAuthenticatedRequest('/wardrobe', user, {}, isMobile ? 60000 : 35000);
+    if (!response || response.success !== true || response.error || !Array.isArray(response.items) ||
+        !Number.isInteger(response.count) || response.count < 0 || response.count !== response.items.length ||
+        response.items.some((item: unknown) => !item || typeof item !== 'object' || Array.isArray(item) ||
+          typeof (item as { id?: unknown }).id !== 'string' || !(item as { id: string }).id.trim())) {
+      throw new Error('Your dashboard could not be loaded. Please try again.');
     }
+    const wardrobeItems = response.items;
+    const itemsForStats = isMobile ? wardrobeItems.slice(0, 200) : wardrobeItems;
+    const categories: Record<string, number> = {};
+    const colors: Record<string, number> = {};
+    itemsForStats.forEach((item: any) => {
+      const category = item.type || item.category || 'unknown';
+      categories[category] = (categories[category] || 0) + 1;
+      const color = item.color || 'unknown';
+      colors[color] = (colors[color] || 0) + 1;
+    });
+    return { total_items: response.count, categories, colors, user_id: user.uid, items: wardrobeItems };
   }
 
   // Removed getOutfitHistory - replaced with getSimpleAnalytics
 
-  private async getSimpleAnalytics(user: User, forceFresh: boolean = false) {
-    try {
-      console.log('🔍 DEBUG: [FRONTEND FIX] Counting outfits directly from Firestore - bypassing broken backend');
-      console.log('🔍 DEBUG: forceFresh:', forceFresh);
-      console.log('🔍 DEBUG: User ID:', user.uid);
-      
-      // Import Firestore with getDocsFromServer for fresh data
-      const { db } = await import('@/lib/firebase/config');
-      const { collection, query, where, getDocs, getDocsFromServer } = await import('firebase/firestore');
-      
-      console.log('🔍 DEBUG: Firestore imports loaded successfully');
-      console.log('🔍 DEBUG: getDocsFromServer available:', typeof getDocsFromServer);
-      
-      // Calculate week start (Sunday 00:00:00 in user's local timezone)
-      const now = new Date();
-      const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
-      const daysToSubtract = dayOfWeek; // If Sunday (0), subtract 0 days
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - daysToSubtract);
-      weekStart.setHours(0, 0, 0, 0);
-      
-      // For debugging: show both local time and timestamp
-      console.log('📅 Current date:', now.toLocaleString());
-      console.log('📅 Day of week:', dayOfWeek, '(0=Sunday, 6=Saturday)');
-      console.log('📅 Week starts:', weekStart.toLocaleString());
-      console.log('📅 Week start timestamp:', weekStart.getTime());
-      console.log('📅 Week start ISO:', weekStart.toISOString());
-      
-      // Query outfit_history collection for this user, this week
-      const historyRef = collection(db, 'outfit_history');
-      const historyQuery = query(
-        historyRef,
-        where('user_id', '==', user.uid)
-      );
-      
-      // Use getDocsFromServer when forceFresh is true to bypass cache
-      const snapshot = forceFresh 
-        ? await getDocsFromServer(historyQuery)
-        : await getDocs(historyQuery);
-      
-      console.log(`📊 Query returned ${snapshot.size} entries (source: ${forceFresh ? 'server' : 'cache-or-server'})`);
-      
-      // Count entries worn this week
-      let wornThisWeek = 0;
-      const allEntries: any[] = [];
-      
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        const dateWorn = data.date_worn;
-        
-        // Enhanced logging for each entry
-        console.log(`\n📅 Processing entry ${doc.id}:`);
-        console.log(`  Outfit: ${data.outfit_name}`);
-        console.log(`  date_worn raw:`, dateWorn);
-        console.log(`  date_worn type: ${typeof dateWorn}`);
-        
-        // Handle multiple date formats
-        let wornDate: Date | null = null;
-        if (typeof dateWorn === 'number') {
-          // Unix timestamp in milliseconds
-          wornDate = new Date(dateWorn);
-          console.log(`  ➜ Parsed as number timestamp`);
-          console.log(`     Local time: ${wornDate.toLocaleString()}`);
-          console.log(`     ISO: ${wornDate.toISOString()}`);
-          console.log(`     Timestamp: ${wornDate.getTime()}`);
-        } else if (dateWorn && dateWorn.toDate && typeof dateWorn.toDate === 'function') {
-          // Firestore Timestamp
-          wornDate = dateWorn.toDate();
-          console.log(`  ➜ Parsed as Firestore Timestamp: ${wornDate.toISOString()}`);
-        } else if (typeof dateWorn === 'string') {
-          // ISO string
-          wornDate = new Date(dateWorn);
-          console.log(`  ➜ Parsed as string: ${wornDate.toISOString()}`);
-        } else {
-          console.log(`  ⚠️ Unknown date format, cannot parse`);
-        }
-        
-        // Validate the parsed date
-        const isValidDate = wornDate && !isNaN(wornDate.getTime());
-        const isThisWeek = isValidDate && wornDate >= weekStart;
-        
-        console.log(`  ➜ Date valid: ${isValidDate}`);
-        if (isValidDate) {
-          console.log(`  ➜ Comparison: ${wornDate.getTime()} >= ${weekStart.getTime()}`);
-          console.log(`  ➜ Result: ${wornDate.getTime() >= weekStart.getTime()}`);
-          console.log(`  ➜ This week: ${isThisWeek}${isThisWeek ? ' ✅' : ' ❌'}`);
-        }
-        
-        const entry = {
-          id: doc.id,
-          outfit_name: data.outfit_name,
-          date_worn: dateWorn,
-          parsed_date: isValidDate ? wornDate.toISOString() : null,
-          is_this_week: isThisWeek
-        };
-        allEntries.push(entry);
-        
-        if (isThisWeek) {
-          wornThisWeek++;
-        }
-      });
-      
-      // Log all entries for debugging
-      console.log('📊 DEBUG: All outfit_history entries:', allEntries);
-      
-      console.log(`✅ DEBUG: Counted ${wornThisWeek} outfits worn this week (frontend calculation, ${forceFresh ? 'FRESH from server' : 'cache-or-server'})`);
-      console.log(`📊 DEBUG: Week starts at ${weekStart.toISOString()}, current time: ${new Date().toISOString()}`);
-      console.log(`📊 DEBUG: Total entries in outfit_history for user: ${snapshot.size}`);
-      console.log(`📊 DEBUG: Entries this week: ${wornThisWeek}`);
-      
-      return {
-        success: true,
-        outfits_worn_this_week: wornThisWeek,
-        user_id: user.uid,
-        week_start: weekStart.toISOString(),
-        calculated_at: new Date().toISOString(),
-        source: forceFresh ? 'frontend_firestore_server_fresh' : 'frontend_firestore_direct',
-        version: '2025-10-26-cache-fix-v2'
-      };
-    } catch (error) {
-      console.error('Error fetching worn outfits analytics:', error);
-      // Return fallback data that matches the expected structure
-      return {
-        success: true,
-        outfits_worn_this_week: 0,
-        message: 'Using fallback data due to analytics service unavailable'
-      };
+  private async getSimpleAnalytics(user: User, _forceFresh: boolean = false) {
+    const response = await this.makeAuthenticatedRequest('/simple-analytics/outfits-worn-this-week', user);
+    const count = response?.outfits_worn_this_week ?? response?.worn_this_week;
+    if (response?.success !== true || !Number.isInteger(count) || count < 0) {
+      throw new Error('Your wear history could not be loaded. Please try again.');
     }
+    return { outfits_worn_this_week: count };
   }
 
   private async getTrendingStyles(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching trending styles from /wardrobe/trending-styles');
       const response = await this.makeAuthenticatedRequest('/wardrobe/trending-styles', user, {
         method: 'GET'
       });
-      console.log('🔍 DEBUG: Trending styles response:', response);
+
       return response.data || response || {};
-    } catch (error) {
-      console.error('Error fetching trending styles:', error);
+    } catch {
       // Return fallback data for production when backend is not ready
       return {
         trending_styles: [],
@@ -779,25 +343,17 @@ class DashboardService {
   private async getTodaysOutfit(user: User) {
     try {
       // Temporarily disabled due to 405 errors on outfit-history endpoints
-      console.log('🔍 DEBUG: Today\'s outfit suggestion temporarily disabled');
+
       return null;
       
       // TODO: Re-enable when backend outfit-history routes are fixed
-      // console.log('🔍 DEBUG: Fetching today\'s outfit suggestion from /outfit-history/today-suggestion');
-      // console.log('🔍 DEBUG: User ID:', user.uid);
-      // console.log('🔍 DEBUG: User email:', user.email);
       // const response = await this.makeAuthenticatedRequest('/outfit-history/today-suggestion', user);
-      // console.log('🔍 DEBUG: Today\'s outfit suggestion response:', response);
-      // console.log('🔍 DEBUG: Today\'s outfit suggestion response details:', JSON.stringify(response, null, 2));
       
       // Handle new suggestion format
       // if (response.suggestion) {
       //   const suggestion = response.suggestion;
       //   const outfitData = suggestion.outfitData || {};
       //   
-      //   console.log('🔍 DEBUG: Today\'s outfit suggestion data:', JSON.stringify(suggestion, null, 2));
-      //   console.log('🔍 DEBUG: Today\'s outfit items count:', Array.isArray(outfitData.items) ? outfitData.items.length : 'not an array');
-      //   console.log('🔍 DEBUG: Today\'s outfit name:', outfitData.name);
       //   
       //   return {
       //     suggestionId: suggestion.id,
@@ -815,11 +371,9 @@ class DashboardService {
       // }
       // 
       // // Handle case where no suggestion is returned
-      // console.log('🔍 DEBUG: No suggestion found in response, response keys:', Object.keys(response));
       // 
       // return null;
-    } catch (error) {
-      console.error('Error fetching today\'s outfit:', error);
+    } catch {
       // Return null for production when backend is not ready
       return null;
     }
@@ -827,17 +381,10 @@ class DashboardService {
 
   private async getTopWornItems(user: User, wardrobeItems: any[] = [], hasWardrobeItems: boolean = true) {
     try {
-      console.log('🔍 DEBUG: Calculating top worn items from wardrobe data');
-      console.log('🔍 DEBUG: Wardrobe items count:', wardrobeItems.length);
-      
       // OPTIMIZED: Limit items processed on mobile for better performance
       const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
       const maxItemsToProcess = isMobile ? 100 : wardrobeItems.length; // Limit to 100 items on mobile
       const itemsToProcess = wardrobeItems.slice(0, maxItemsToProcess);
-      
-      if (isMobile && wardrobeItems.length > maxItemsToProcess) {
-        console.log(`📱 DEBUG: Mobile detected - limiting processing to ${maxItemsToProcess} items (out of ${wardrobeItems.length})`);
-      }
       
       // Calculate top worn items from the wardrobe data we already have
       if (itemsToProcess && itemsToProcess.length > 0) {
@@ -893,12 +440,6 @@ class DashboardService {
           .slice(0, desiredCount)
           .map(mapWardrobeItemToTopItem);
         
-        console.log('🔍 DEBUG: Calculated top worn items:', topItems.length);
-        console.log('🔍 DEBUG: Top items with images:', topItems.filter(i => i.image_url).length);
-        topItems.forEach(item => {
-          console.log(`🔍 DEBUG: ${item.name} - imageUrl: ${item.image_url}`);
-        });
-        
         return {
           success: true,
           top_worn_items: topItems,
@@ -909,7 +450,7 @@ class DashboardService {
       
       // If the user truly has no wardrobe items, return empty data instead of demo/fallback items
       if (!hasWardrobeItems) {
-        console.log('ℹ️ DEBUG: No wardrobe items available for this user, skipping top worn API and returning empty list.');
+
         return {
           success: true,
           top_worn_items: [],
@@ -919,14 +460,13 @@ class DashboardService {
       }
       
       // Fallback to API if we expect items but none were passed (e.g., stats endpoint failed)
-      console.log('🔍 DEBUG: No wardrobe items, fetching from API');
+
       const response = await this.makeAuthenticatedRequest('/wardrobe/top-worn-items?limit=5', user, {
         method: 'GET'
       });
-      console.log('🔍 DEBUG: Top worn items response:', response);
+
       return response.data || response || {};
-    } catch (error) {
-      console.error('Error fetching top worn items:', error);
+    } catch {
       // Return fallback data for production when backend is not ready
       return {
         top_worn_items: [],
@@ -939,19 +479,18 @@ class DashboardService {
 
   async markSuggestionAsWorn(user: User, suggestionId: string): Promise<boolean> {
     try {
-      console.log('👕 DEBUG: Marking suggestion as worn:', suggestionId);
       const response = await this.makeAuthenticatedRequest('/outfit-history/today-suggestion/wear', user, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ suggestionId }),
+        body: JSON.stringify({ suggestionId, idempotency_key: wearOperationKey(user.uid, 'suggestion:' + suggestionId), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' }),
       });
       
-      console.log('✅ DEBUG: Suggestion marked as worn:', response);
-      return response.success || false;
-    } catch (error) {
-      console.error('Error marking suggestion as worn:', error);
+      publishWearReceipt(user.uid, response);
+      clearWearOperation(user.uid, 'suggestion:' + suggestionId);
+      return response.undone !== true;
+    } catch {
       return false;
     }
   }
@@ -978,12 +517,6 @@ class DashboardService {
     const completed = styleCollections.reduce((sum, collection) => sum + collection.progress, 0);
     const total = styleCollections.reduce((sum, collection) => sum + collection.target, 0);
     
-    console.log('🎯 [Style Goals] Calculating from collections:', {
-      collections: styleCollections.map(c => `${c.name}: ${c.progress}/${c.target}`),
-      totalCompleted: completed,
-      totalTarget: total
-    });
-    
     return { completed, total };
   }
 
@@ -1001,13 +534,6 @@ class DashboardService {
     
     const averageProgress = collections.length > 0 ? totalProgress / collections.length : 0;
     
-    console.log('🔍 DEBUG: Overall Progress Calculation (Style Collections Based):');
-    collections.forEach(collection => {
-      const completion = Math.min(collection.progress / collection.target * 100, 100);
-      console.log(`  - ${collection.name}: ${collection.progress}/${collection.target} (${Math.round(completion)}%)`);
-    });
-    console.log('  - Average Progress:', Math.round(averageProgress), '%');
-    
     return Math.round(averageProgress);
   }
 
@@ -1015,7 +541,7 @@ class DashboardService {
     const colors = wardrobeStats.colors || {};
     const uniqueColors = Object.keys(colors).length;
     const score = Math.min(uniqueColors / 8 * 100, 100); // Target: 8 colors
-    console.log('🔍 DEBUG: Color Variety - Unique colors:', uniqueColors, 'Score:', score, '%');
+
     return score;
   }
 
@@ -1048,8 +574,6 @@ class DashboardService {
     
     // Get user's style preferences from profile
     const stylePreferences = userProfile?.stylePreferences || userProfile?.preferences?.style || [];
-    console.log(`🎭 [Style Collections] User style preferences:`, stylePreferences);
-    console.log(`🎭 [Style Collections] Item style distribution:`, itemStyles);
     
     // Build dynamic collections based on user's style preferences
     const dynamicCollections = this.getDynamicStyleCollections(stylePreferences, categories, itemStyles, items);
@@ -1291,9 +815,6 @@ class DashboardService {
           
           const finalCount = matchingItems.length;
           
-          console.log(`🎭 [${styleConfig.name}] Matched ${finalCount} items:`, 
-            matchingItems.map(i => `${i.name} (${i.type})`));
-          
           collections.push({
             name: styleConfig.name,
             progress: finalCount,
@@ -1505,7 +1026,6 @@ class DashboardService {
       }
     });
     
-    console.log('🔍 DEBUG: Style Expansions:', expansions);
     return expansions;
   }
 
@@ -1605,21 +1125,16 @@ class DashboardService {
 
   private async getWardrobeGapsFromBackend(user: User | null): Promise<WardrobeGap[]> {
     try {
-      console.log('🔍 DEBUG: Fetching wardrobe gaps from backend...');
       const response = await this.makeAuthenticatedRequest('/wardrobe-analysis/gaps', user);
       
       if (response?.success && response?.data?.gaps) {
-        console.log('✅ DEBUG: Successfully fetched wardrobe gaps from backend:', response.data.gaps.length);
-        console.log('🔍 DEBUG: Gap Analysis Debug Info:', response.debug);
-        console.log('🔍 DEBUG: Wardrobe Stats from Gap Analysis:', response.debug?.wardrobe_stats);
-        console.log('🔍 DEBUG: Parsing Errors (first 10):', response.debug?.parsing_errors);
+
         return response.data.gaps;
       } else {
-        console.log('⚠️ DEBUG: No gaps data from backend, falling back to local analysis');
+
         return [];
       }
-    } catch (error) {
-      console.error('❌ DEBUG: Error fetching wardrobe gaps from backend:', error);
+    } catch {
       return [];
     }
   }
@@ -1639,9 +1154,6 @@ class DashboardService {
     }
     
     const totalItems = wardrobeStats?.total_items || items.length;
-    
-    console.log('🔍 DEBUG: Building wardrobe gaps from data:', totalItems, 'total items');
-    console.log('🔍 DEBUG: Categories counted:', categories);
     
     // Essential wardrobe categories with minimum requirements
     // Updated to match actual item types in the wardrobe
@@ -1710,7 +1222,6 @@ class DashboardService {
     const colorGaps = this.analyzeColorGaps(wardrobeStats);
     gaps.push(...colorGaps);
     
-    console.log('🔍 DEBUG: Wardrobe gaps identified:', gaps);
     return gaps;
   }
   
@@ -1792,19 +1303,6 @@ class DashboardService {
       }
     });
     
-    console.log('🔍 DEBUG: Style analysis - Formal items:', formalItems, 'Casual items:', casualItems);
-    console.log('🔍 DEBUG: Total items analyzed:', items.length);
-    console.log('🔍 DEBUG: Formal styles keywords:', formalStyles);
-    
-    // Debug: Show some sample items with formal styles
-    const formalSample = items.filter(item => {
-      const styles = item.style || [];
-      const styleString = styles.join(' ').toLowerCase();
-      const itemName = (item.name || '').toLowerCase();
-      return formalStyles.some(style => styleString.includes(style)) || formalStyles.some(style => itemName.includes(style));
-    }).slice(0, 3);
-    console.log('🔍 DEBUG: Sample formal items found:', formalSample.map(item => ({name: item.name, style: item.style})));
-    
     // Check for formal wear gaps
     const formalTarget = 3;
     if (formalItems < formalTarget) {
@@ -1878,18 +1376,15 @@ class DashboardService {
       const topWornItems = topWornItemsResponse.data?.top_worn_items || 
                           topWornItemsResponse.top_worn_items || 
                           topWornItemsResponse || [];
-      console.log('🔍 DEBUG: Processing top worn items:', topWornItems);
-      console.log('🔍 DEBUG: Top worn items response structure:', topWornItemsResponse);
-      
+
       if (!Array.isArray(topWornItems)) {
-        console.log('🔍 DEBUG: Top worn items is not an array:', topWornItems);
+
         return [];
       }
       
       return topWornItems.map((item: any) => {
         // Handle multiple possible image field names and provide fallback
         const imageUrl = item.image_url || item.imageUrl || item.image || '';
-        console.log('🔍 DEBUG: Item:', item.name, '- Image URL:', imageUrl || '(none)');
         
         return {
           id: item.id,
@@ -1900,8 +1395,7 @@ class DashboardService {
           rating: item.is_favorite || item.isFavorite ? 5 : 3 // Use favorite status as rating proxy
         };
       });
-    } catch (error) {
-      console.error('Error building top items:', error);
+    } catch {
       return [];
     }
   }

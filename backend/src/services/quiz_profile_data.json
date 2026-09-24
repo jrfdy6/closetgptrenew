@@ -1,0 +1,316 @@
+{
+  "source_sha256": {
+    "frontend/src/lib/server/quizProfile.ts": "fdb28a52453fcf07376ad93aa06b4f1e138f247bdf70865a87ead1f1f89db509",
+    "frontend/src/lib/onboarding/questions.ts": "8eca86d6c923229a77883afd314d59ca7bcdd0b22f69cee67d71a003ced511ed"
+  },
+  "required_question_ids": {
+    "Male": [
+      "gender",
+      "body_type_male",
+      "skin_tone",
+      "height",
+      "weight",
+      "top_size",
+      "bottom_size",
+      "shoe_size_male",
+      "category_spend_tops",
+      "category_spend_pants",
+      "category_spend_shoes",
+      "category_spend_jackets",
+      "category_spend_accessories",
+      "category_spend_undergarments",
+      "category_spend_swimwear",
+      "style_item_m_1",
+      "style_item_m_2",
+      "style_item_m_3",
+      "style_item_m_4",
+      "style_item_m_5",
+      "style_item_m_6",
+      "style_item_m_7",
+      "style_item_m_8",
+      "daily_activities",
+      "style_elements"
+    ],
+    "Female": [
+      "gender",
+      "body_type_female",
+      "skin_tone",
+      "height",
+      "weight",
+      "top_size",
+      "bottom_size",
+      "cup_size",
+      "shoe_size_female",
+      "category_spend_tops",
+      "category_spend_pants",
+      "category_spend_shoes",
+      "category_spend_jackets",
+      "category_spend_dresses",
+      "category_spend_accessories",
+      "category_spend_undergarments",
+      "category_spend_swimwear",
+      "style_item_f_1",
+      "style_item_f_2",
+      "style_item_f_3",
+      "style_item_f_4",
+      "style_item_f_5",
+      "style_item_f_6",
+      "style_item_f_7",
+      "style_item_f_8",
+      "daily_activities",
+      "style_elements"
+    ],
+    "Non-binary": [
+      "gender",
+      "body_type_nonbinary",
+      "skin_tone",
+      "height",
+      "weight",
+      "top_size",
+      "bottom_size",
+      "cup_size",
+      "shoe_size",
+      "category_spend_tops",
+      "category_spend_pants",
+      "category_spend_shoes",
+      "category_spend_jackets",
+      "category_spend_dresses",
+      "category_spend_accessories",
+      "category_spend_undergarments",
+      "category_spend_swimwear",
+      "style_item_f_1",
+      "style_item_f_2",
+      "style_item_f_3",
+      "style_item_f_4",
+      "style_item_f_5",
+      "style_item_f_6",
+      "style_item_f_7",
+      "style_item_f_8",
+      "style_item_m_1",
+      "style_item_m_2",
+      "style_item_m_3",
+      "style_item_m_4",
+      "style_item_m_5",
+      "style_item_m_6",
+      "style_item_m_7",
+      "style_item_m_8",
+      "daily_activities",
+      "style_elements"
+    ],
+    "Prefer not to say": [
+      "gender",
+      "body_type_nonbinary",
+      "skin_tone",
+      "height",
+      "weight",
+      "top_size",
+      "bottom_size",
+      "cup_size",
+      "shoe_size",
+      "category_spend_tops",
+      "category_spend_pants",
+      "category_spend_shoes",
+      "category_spend_jackets",
+      "category_spend_dresses",
+      "category_spend_accessories",
+      "category_spend_undergarments",
+      "category_spend_swimwear",
+      "style_item_f_1",
+      "style_item_f_2",
+      "style_item_f_3",
+      "style_item_f_4",
+      "style_item_f_5",
+      "style_item_f_6",
+      "style_item_f_7",
+      "style_item_f_8",
+      "style_item_m_1",
+      "style_item_m_2",
+      "style_item_m_3",
+      "style_item_m_4",
+      "style_item_m_5",
+      "style_item_m_6",
+      "style_item_m_7",
+      "style_item_m_8",
+      "daily_activities",
+      "style_elements"
+    ]
+  },
+  "personas": {
+    "architect": {
+      "id": "architect",
+      "name": "The Architect",
+      "tagline": "Clean lines. Bold vision. Timeless design.",
+      "description": "You approach fashion like an architect approaches buildings - with precision, intention, and a focus on form following function. Your style is structured, sophisticated, and built to last. You appreciate quality construction and aren't afraid to make a statement with clean, geometric lines.",
+      "styleMission": "Build your wardrobe like you'd design a building - with a strong foundation, thoughtful details, and pieces that stand the test of time.",
+      "examples": [
+        "Zaha Hadid",
+        "Tadao Ando",
+        "Frank Gehry",
+        "Norman Foster",
+        "Rem Koolhaas"
+      ],
+      "traits": [
+        "Clean lines",
+        "Bold vision",
+        "Timeless design",
+        "Quality construction",
+        "Geometric precision"
+      ],
+      "cta": "See My Plan Options →"
+    },
+    "strategist": {
+      "id": "strategist",
+      "name": "The Strategist",
+      "tagline": "Smart choices. Versatile pieces. Effortless style.",
+      "description": "You approach fashion strategically, building a wardrobe that works hard for you. Your style is practical, versatile, and always appropriate. You value pieces that can be mixed and matched across different occasions and seasons.",
+      "styleMission": "Build a strategic wardrobe with pieces that work together seamlessly. Focus on versatility and quality over quantity.",
+      "examples": [
+        "Amal Clooney",
+        "Victoria Beckham",
+        "Ryan Gosling",
+        "Emma Stone",
+        "Chris Evans"
+      ],
+      "traits": [
+        "Smart choices",
+        "Versatile pieces",
+        "Effortless style",
+        "Strategic thinking",
+        "Quality over quantity"
+      ],
+      "cta": "See My Plan Options →"
+    },
+    "innovator": {
+      "id": "innovator",
+      "name": "The Innovator",
+      "tagline": "Forward-thinking. Experimental. Trend-setting.",
+      "description": "You're always ahead of the curve, experimenting with new styles and pushing boundaries. Your fashion choices reflect your innovative spirit and willingness to take risks. You're not afraid to try new things and often set trends rather than follow them.",
+      "styleMission": "Stay ahead of trends and don't be afraid to experiment. Focus on pieces that reflect your innovative spirit and forward-thinking approach.",
+      "examples": [
+        "Lady Gaga",
+        "Pharrell Williams",
+        "Rihanna",
+        "Billy Porter",
+        "Zendaya"
+      ],
+      "traits": [
+        "Forward-thinking",
+        "Experimental",
+        "Trend-setting",
+        "Risk-taking",
+        "Innovative spirit"
+      ],
+      "cta": "See My Plan Options →"
+    },
+    "classic": {
+      "id": "classic",
+      "name": "The Classic",
+      "tagline": "Timeless elegance. Sophisticated style. Never goes out of fashion.",
+      "description": "You appreciate the finer things and believe in investing in pieces that will last a lifetime. Your style is elegant, sophisticated, and built on timeless principles. You look polished without being flashy, and your wardrobe reflects your appreciation for quality and tradition.",
+      "styleMission": "Refine your existing foundation. Focus on perfect tailoring, quality fabrics, and timeless silhouettes. Invest in pieces that will last decades.",
+      "examples": [
+        "Audrey Hepburn",
+        "Grace Kelly",
+        "Cary Grant",
+        "Sophia Loren",
+        "Paul Newman"
+      ],
+      "traits": [
+        "Timeless elegance",
+        "Sophisticated style",
+        "Quality investment",
+        "Polished appearance",
+        "Traditional values"
+      ],
+      "cta": "See My Plan Options →"
+    },
+    "wanderer": {
+      "id": "wanderer",
+      "name": "The Wanderer",
+      "tagline": "Free-spirited. Bohemian soul. Adventure-ready.",
+      "description": "You're drawn to pieces that tell a story and reflect your adventurous spirit. Your style is eclectic, free-spirited, and often inspired by your travels and experiences. You value comfort and self-expression over trends.",
+      "styleMission": "Embrace your free spirit and don't be afraid to mix styles and cultures. Focus on pieces that reflect your adventures and personal journey.",
+      "examples": [
+        "Stevie Nicks",
+        "Johnny Depp",
+        "Kate Moss",
+        "Lenny Kravitz",
+        "Sienna Miller"
+      ],
+      "traits": [
+        "Free-spirited",
+        "Bohemian soul",
+        "Adventure-ready",
+        "Eclectic style",
+        "Story-telling pieces"
+      ],
+      "cta": "See My Plan Options →"
+    },
+    "rebel": {
+      "id": "rebel",
+      "name": "The Rebel",
+      "tagline": "Bold statements. Unconventional choices. Authentic expression.",
+      "description": "You don't follow trends - you create them. Your style is bold, unconventional, and authentically you. You're not afraid to mix unexpected pieces, experiment with color, or wear something that makes people look twice. Your fashion choices are a form of self-expression and rebellion against the ordinary.",
+      "styleMission": "Break the rules, set your own trends, and wear what makes you feel most like yourself. Don't be afraid to stand out.",
+      "examples": [
+        "David Bowie",
+        "Grace Jones",
+        "Prince",
+        "Frida Kahlo",
+        "Alexander McQueen"
+      ],
+      "traits": [
+        "Bold statements",
+        "Unconventional choices",
+        "Authentic expression",
+        "Rule breaking",
+        "Trend setting"
+      ],
+      "cta": "See My Plan Options →"
+    },
+    "connoisseur": {
+      "id": "connoisseur",
+      "name": "The Connoisseur",
+      "tagline": "Refined taste. Luxury details. Quiet confidence.",
+      "description": "You have an eye for quality and appreciate the finer things in life. Your style is sophisticated, understated, and built on investment pieces that speak to your refined taste. You understand that true luxury is in the details, not the labels.",
+      "styleMission": "Curate your collection with intention. Focus on exceptional pieces that will last decades and don't be afraid to invest in quality over quantity.",
+      "examples": [
+        "Meghan Markle",
+        "Blake Lively",
+        "Ryan Reynolds",
+        "Henry Cavill",
+        "Cate Blanchett"
+      ],
+      "traits": [
+        "Refined taste",
+        "Quality over quantity",
+        "Luxury details",
+        "Quiet confidence",
+        "Investment pieces"
+      ],
+      "cta": "See My Plan Options →"
+    },
+    "modernist": {
+      "id": "modernist",
+      "name": "The Modernist",
+      "tagline": "Clean lines. Contemporary edge. Future-focused.",
+      "description": "You're drawn to clean, contemporary design and appreciate the intersection of fashion and function. Your style is modern, streamlined, and forward-thinking. You value versatility and pieces that work across different contexts while maintaining a sleek, contemporary aesthetic.",
+      "styleMission": "Build a wardrobe that's both functional and fashionable. Focus on versatile pieces with clean lines and don't be afraid to experiment with modern silhouettes.",
+      "examples": [
+        "Hailey Bieber",
+        "Kendall Jenner",
+        "Timothée Chalamet",
+        "Harry Styles",
+        "Anya Taylor-Joy"
+      ],
+      "traits": [
+        "Clean lines",
+        "Contemporary edge",
+        "Functional fashion",
+        "Versatile pieces",
+        "Future-focused"
+      ],
+      "cta": "See My Plan Options →"
+    }
+  }
+}

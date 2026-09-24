@@ -1,5 +1,8 @@
 'use client';
 
+import { readSavedOutfit } from '@/lib/savedOutfit';
+import { extractFlatLayState } from '@/lib/flatLayState';
+import { isOnboardingRequired } from '@/lib/apiRequestError';
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -288,6 +291,7 @@ export default function CreateOutfitPage() {
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [onboardingRequired, setOnboardingRequired] = useState(false);
   
   // UI state
   const [searchQuery, setSearchQuery] = useState('');
@@ -302,7 +306,8 @@ export default function CreateOutfitPage() {
   const flatLayRequestPending = useRef(false);
   const [flatLayError, setFlatLayError] = useState<string | null>(null);
   const [flatLayRequestError, setFlatLayRequestError] = useState<string | null>(null);
-  const [flatLayRequestAllowed, setFlatLayRequestAllowed] = useState(true);
+  const [flatLayRequestAllowed, setFlatLayRequestAllowed] = useState(false);
+  const [admissionPaused, setAdmissionPaused] = useState(false);
 
   // Group items by category
   const itemsByCategory = useMemo(() => {
@@ -365,7 +370,7 @@ export default function CreateOutfitPage() {
     });
   }, [wardrobeItems, selectedItems, searchQuery, selectedCategory, selectedColor]);
 
-  const loadFlatLayUsage = useCallback(async () => {
+  const loadFlatLayUsage = useCallback(async (outfitId = createdOutfitId) => {
     if (!user) {
       setFlatLayUsage(null);
       return;
@@ -376,7 +381,15 @@ export default function CreateOutfitPage() {
 
     try {
       // Use subscription service to get current subscription from payment system
-      const subscription = await subscriptionService.getCurrentSubscription(user);
+      if (!outfitId) throw new Error('Save this outfit first.');
+      const [subscription, saved] = await Promise.all([
+        subscriptionService.getCurrentSubscription(user),
+        user.getIdToken().then(token => readSavedOutfit(outfitId, user.uid, token)),
+      ]);
+      const availability = extractFlatLayState(saved);
+      setFlatLayRequestAllowed(availability.requestAllowed);
+      setAdmissionPaused(Boolean(availability.admissionPaused));
+      setFlatLayRequestError(availability.admissionReason || null);
       const tier = subscription.role || 'tier1';
       
       // Get tier info to get the limit
@@ -395,10 +408,11 @@ export default function CreateOutfitPage() {
       console.error('Error loading flat lay usage:', error);
       setFlatLayError('Unable to load your flat lay balance right now.');
       setFlatLayUsage(null);
+      setFlatLayRequestAllowed(false);
     } finally {
       setFlatLayLoading(false);
     }
-  }, [user]);
+  }, [user, createdOutfitId]);
 
   const handleAddItem = (item: ClothingItem) => {
     if (selectedItems.length >= 10) {
@@ -505,8 +519,10 @@ export default function CreateOutfitPage() {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Requesting flat lay…
               </>
+            ) : flatLayError ? (
+              'Balance unavailable'
             ) : !flatLayRequestAllowed ? (
-              'Preview needs review'
+              admissionPaused ? 'Temporarily unavailable' : 'Preview needs review'
             ) : balanceExhausted ? (
               'No credits available'
             ) : !hasFlatLayCredits ? (
@@ -526,7 +542,7 @@ export default function CreateOutfitPage() {
               </Link>
             </Button>
           )}
-          {flatLayError && <Button variant="outline" className="w-full" onClick={loadFlatLayUsage} disabled={flatLayLoading}>Check balance again</Button>}
+          {flatLayError && <Button variant="outline" className="w-full" onClick={() => { void loadFlatLayUsage(); }} disabled={flatLayLoading}>Check balance again</Button>}
           <Button
             variant="outline"
             onClick={handleFlatLaySkip}
@@ -580,22 +596,12 @@ export default function CreateOutfitPage() {
         style: style || 'Classic',
         description: description || undefined,
         notes: notes || undefined,
-        user_id: user.uid,
-        items: selectedItems.map(item => ({
-          id: item.id,
-          name: item.name,
-          category: item.type,
-          style: item.style?.[0] || style || 'Classic',
-          color: item.color,
-          imageUrl: item.imageUrl,
-          user_id: item.userId
-        }))
+        items: selectedItems.map(item => ({ id: item.id }))
       };
 
       console.log('🎨 [CreateOutfit] Saving outfit:', { 
         name: outfitData.name, 
         itemCount: outfitData.items.length,
-        user_id: outfitData.user_id 
       });
 
       const createdOutfit = await createOutfit(outfitData);
@@ -603,10 +609,10 @@ export default function CreateOutfitPage() {
       if (createdOutfit?.id) {
         setCreatedOutfitId(createdOutfit.id);
         setFlatLayRequestError(null);
-        setFlatLayRequestAllowed(true);
+        setFlatLayRequestAllowed(false);
         setFlatLayUsage(null);
         setFlatLayPromptOpen(true);
-        loadFlatLayUsage();
+        loadFlatLayUsage(createdOutfit.id);
       
       toast({
         title: "Outfit created!",
@@ -616,6 +622,7 @@ export default function CreateOutfitPage() {
         throw new Error('Could not confirm the save. Your outfit is still here so you can try again.');
       }
     } catch (error) {
+      if (isOnboardingRequired(error)) { setOnboardingRequired(true); return; }
       console.error('Error creating outfit:', error);
       toast({
         title: "Error",
@@ -639,6 +646,7 @@ export default function CreateOutfitPage() {
         {flatLayDialog}
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
         <Navigation />
+      {onboardingRequired && <div role="alert" className="mx-auto max-w-7xl p-4"><p>Finish your style profile and ten-item capsule before saving a new outfit. Your current selections are still here.</p><Link href="/onboarding" className="inline-flex min-h-11 items-center underline">Continue my setup</Link></div>}
         
         {/* Header */}
         <div className="sticky top-0 z-40 glass-navbar px-4 py-4 border-b border-stone-200 dark:border-stone-700">
@@ -1008,6 +1016,7 @@ export default function CreateOutfitPage() {
       {flatLayDialog}
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
       <Navigation />
+      {onboardingRequired && <div role="alert" className="mx-auto max-w-7xl p-4"><p>Finish your style profile and ten-item capsule before saving a new outfit. Your current selections are still here.</p><Link href="/onboarding" className="inline-flex min-h-11 items-center underline">Continue my setup</Link></div>}
       
       {/* Header */}
       <div className="glass-navbar px-4 py-6">

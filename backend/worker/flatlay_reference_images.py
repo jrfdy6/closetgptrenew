@@ -2,7 +2,7 @@
 
 This module has no environment access, service initialization, or provider calls.
 The caller supplies its existing storage bucket. Reads are restricted to the
-canonical object for each garment; source URLs are never followed.
+reserved original object for each garment; source URLs are never followed.
 """
 from io import BytesIO
 import json
@@ -10,6 +10,11 @@ import re
 import warnings
 
 from PIL import Image
+
+try:
+    from .original_source import request_original_path
+except ImportError:
+    from original_source import request_original_path
 
 
 MAX_REFERENCE_ITEMS = 16
@@ -96,8 +101,8 @@ def _storage_error(error):
     return _error("original_image_unavailable", "An original item photo could not be loaded. Please try again later.")
 
 
-def prepare_original_references(items, bucket):
-    """Read every exact items/<id>/original.png, validate it, and retain its bytes.
+def prepare_original_references(items, bucket, *, request_id=None):
+    """Read exact reserved originals, validate them, and retain their bytes.
 
     Metadata and downloads have a finite timeout and no automatic storage retry.
     The generation precondition binds the downloaded bytes to the inspected size.
@@ -108,8 +113,23 @@ def prepare_original_references(items, bucket):
     references = []
     total_bytes = total_pixels = 0
     for identifier, item in validated:
+        original_path = item.get("originalStoragePath")
+        legacy_path = f"items/{identifier}/original.png"
         try:
-            blob = bucket.blob(f"items/{identifier}/original.png")
+            request_path = request_original_path(identifier, request_id) if request_id is not None else None
+        except ValueError:
+            raise _error("invalid_original_path", "An original item photo could not be identified safely.") from None
+        if original_path is None:
+            original_path = legacy_path
+        if not isinstance(original_path, str) or not (
+            original_path == legacy_path or (request_path is not None and original_path == request_path) or re.fullmatch(
+                rf"items/{re.escape(identifier)}/attempts/[A-Za-z0-9_-]{{1,128}}/original\.png",
+                original_path,
+            )
+        ):
+            raise _error("invalid_original_path", "An original item photo could not be identified safely.")
+        try:
+            blob = bucket.blob(original_path)
             blob.reload(timeout=STORAGE_READ_TIMEOUT_SECONDS, retry=None)
             size, generation = blob.size, blob.generation
         except Exception as error:

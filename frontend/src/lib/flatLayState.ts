@@ -8,6 +8,8 @@ export interface FlatLayState {
   status: string;
   error: string | null;
   requestAllowed: boolean;
+  admissionPaused?: boolean;
+  admissionReason?: string | null;
 }
 
 // Canonical top-level values, including explicit clears, precede legacy aliases.
@@ -24,7 +26,9 @@ export function extractFlatLayState(source: FlatLaySource): FlatLayState {
     url,
     status: typeof rawStatus === 'string' ? rawStatus.toLowerCase() : url ? 'done' : 'awaiting_consent',
     error: typeof rawError === 'string' && rawError.trim() ? rawError : null,
-    requestAllowed: allowed !== false,
+    requestAllowed: allowed !== false && source.flat_lay_admission_paused !== true,
+    admissionPaused: source.flat_lay_admission_paused === true,
+    admissionReason: typeof source.flat_lay_admission_reason === 'string' ? source.flat_lay_admission_reason : null,
   };
 }
 

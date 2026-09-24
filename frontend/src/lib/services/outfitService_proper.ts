@@ -1,27 +1,9 @@
 import type { Outfit, OutfitCreate, OutfitUpdate, OutfitFilters as BaseOutfitFilters } from '@/lib/services/outfitService';
 
 type OutfitFilters = BaseOutfitFilters & { season?: string };
-import { db } from '@/lib/firebase/config';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import { extractFlatLayState } from '@/lib/flatLayState';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
-function omitUndefined<T extends object>(value: T): T {
-  const result = { ...value };
-  for (const key of Object.keys(result) as Array<keyof T>) {
-    if (result[key] === undefined) delete result[key];
-  }
-  return result;
-}
-
-function itemIdentity(items: unknown): string {
-  if (!Array.isArray(items)) return '';
-  return JSON.stringify(Array.from(new Set(items.map(item => {
-    if (typeof item === 'string') return item;
-    return item && typeof item === 'object' ? item.id ?? item.itemId ?? item.item_id : null;
-  }).filter(id => typeof id === 'string'))).sort());
-}
+import { auth } from '@/lib/firebase/config';
+import { wearOperationKey, clearWearOperation } from '@/lib/savedOutfit';
+import { apiRequestError } from '@/lib/apiRequestError';
 
 class OutfitService {
   private async makeRequest(endpoint: string, options: RequestInit = {}) {
@@ -35,13 +17,12 @@ class OutfitService {
 
     const response = await fetch(url, {
       ...options,
+      cache: 'no-store',
       headers: defaultHeaders,
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => null);
-      const message = error?.error ?? error?.detail;
-      throw new Error(typeof message === 'string' ? message : `Request failed with status ${response.status}`);
+      throw await apiRequestError(response);
     }
 
     return response.json();
@@ -62,7 +43,8 @@ class OutfitService {
   }
 
   async getOutfitById(id: string, token: string): Promise<Outfit> {
-    return this.makeRequest(`/outfits/${id}`, {
+    return this.makeRequest(`/outfits/${encodeURIComponent(id)}`, {
+      cache: 'no-store',
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -70,9 +52,16 @@ class OutfitService {
   }
 
   async createOutfit(outfit: OutfitCreate, token: string): Promise<Outfit> {
+    // Ownership, garment metadata and generated state are resolved by the API.
+    // Keep legacy caller fields from reaching its strict creation contract.
+    const editable = ['id', 'name', 'occasion', 'style', 'mood', 'season', 'description', 'notes'];
+    const payload = {
+      ...Object.fromEntries(Object.entries(outfit).filter(([field, value]) => editable.includes(field) && value !== undefined)),
+      items: outfit.items.map(item => ({ id: item.id })),
+    };
     const response = await this.makeRequest('/outfits', {
       method: 'POST',
-      body: JSON.stringify(outfit),
+      body: JSON.stringify(payload),
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -89,97 +78,50 @@ class OutfitService {
   }
 
   async updateOutfit(id: string, outfit: OutfitUpdate, token: string): Promise<Outfit> {
-    try {
-      console.log(`🔍 [OutfitService] Updating outfit ${id} directly in Firestore`);
-      
-      // Get the current outfit to verify it exists
-      const outfitRef = doc(db, 'outfits', id);
-      const outfitDoc = await getDoc(outfitRef);
-      
-      if (!outfitDoc.exists()) {
-        throw new Error('Outfit not found');
-      }
-      
-      // Update the outfit in Firestore
-      // Filter out undefined values as Firestore doesn't accept them
-      const updateData: Record<string, unknown> = omitUndefined({
-        ...outfit,
-        updatedAt: new Date(),
-      });
-      
-      // Also filter undefined values from nested objects in items array
-      if (updateData.items && Array.isArray(updateData.items)) {
-        updateData.items = updateData.items.map(item => {
-          if (typeof item === 'object' && item !== null) {
-            return omitUndefined(item);
-          }
-          return item;
-        });
-      }
-
-      const currentOutfit = outfitDoc.data();
-      if (Array.isArray(updateData.items) && itemIdentity(updateData.items) !== itemIdentity(currentOutfit?.items)) {
-        // Clear the old visual in the same write as its changed pieces. The
-        // private server ledger still controls consent, charges and in-flight work.
-        const previous = extractFlatLayState(currentOutfit ?? {});
-        const presentation: Record<string, unknown> = { flat_lay_url: null, flatLayUrl: null };
-        if (previous.status === 'done') {
-          Object.assign(presentation, {
-            flat_lay_status: 'awaiting_consent', flatLayStatus: 'awaiting_consent',
-            flat_lay_error: null, flatLayError: null, flat_lay_request_allowed: true,
-          });
-        }
-        Object.assign(updateData, presentation);
-        for (const [key, value] of Object.entries(presentation)) updateData[`metadata.${key}`] = value;
-      }
-      
-      console.log('🔍 [OutfitService] Filtered update data:', updateData);
-      
-      await updateDoc(outfitRef, updateData);
-      
-      // Get the updated outfit
-      const updatedDoc = await getDoc(outfitRef);
-      const updatedOutfit = {
-        id: updatedDoc.id,
-        ...updatedDoc.data(),
-      } as Outfit;
-      
-      console.log(`✅ [OutfitService] Successfully updated outfit ${id} in Firestore`);
-      return updatedOutfit;
-      
-    } catch (error) {
-      console.error(`❌ [OutfitService] Error updating outfit ${id}:`, error);
-      throw error;
-    }
+    const editable = ['name', 'description', 'notes', 'occasion', 'style', 'mood', 'season', 'items', 'isFavorite'];
+    const patch = Object.fromEntries(Object.entries(outfit).filter(([field, value]) => editable.includes(field) && value !== undefined));
+    const result = await this.makeRequest(`/outfits/${encodeURIComponent(id)}`, {
+      method: 'PUT', body: JSON.stringify(patch), headers: { Authorization: `Bearer ${token}` },
+    });
+    if (result?.success !== true || result.id !== id) throw new Error('The server did not confirm your outfit update. Please retry.');
+    // The backend owns garment identity and stale-preview invalidation.
+    return this.getOutfitById(id, token);
   }
 
   async deleteOutfit(id: string, token: string): Promise<void> {
-    return this.makeRequest(`/outfits/${id}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const result = await this.makeRequest(`/outfits/${encodeURIComponent(id)}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
     });
+    if (result?.success !== true || result.id !== id || result.deleted !== true) {
+      throw new Error('The server did not confirm deletion. Please retry.');
+    }
   }
 
-  async markOutfitAsWorn(id: string, token: string): Promise<any> {
-    // Returns: { success, message, outfit_id, wear_count, xp_earned, level_up, new_level }
-    return this.makeRequest(`/outfits/${id}/worn`, {
+  async markOutfitAsWorn(id: string, token: string, operationKey?: string, timezone?: string): Promise<any> {
+    const uid = auth?.currentUser?.uid || 'signed-in';
+    const key = operationKey || wearOperationKey(uid, id);
+    const result = await this.makeRequest('/outfits/' + encodeURIComponent(id) + '/worn', {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      body: JSON.stringify({ idempotency_key: key, timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' }),
+      headers: { Authorization: 'Bearer ' + token },
     });
+    if (result?.success !== true || result.outfit_id !== id || !result.event_id || !Number.isInteger(result.wear_count)) {
+      throw new Error('We could not confirm the wear record. Retry to check the same action.');
+    }
+    if (!operationKey) clearWearOperation(uid, id);
+    return result;
   }
 
   async setOutfitFavorite(id: string, isFavorite: boolean, token: string): Promise<{ isFavorite: boolean }> {
-    return this.makeRequest(`/outfits/${id}/favorite`, {
+    const result = await this.makeRequest(`/outfits/${encodeURIComponent(id)}/favorite`, {
       method: 'PUT',
       body: JSON.stringify({ isFavorite }),
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
+    if (result?.success === false || result?.isFavorite !== isFavorite) throw new Error('The server did not confirm your favorite update. Please retry.');
+    return result;
   }
 
   async getOutfitStats(token: string): Promise<any> {

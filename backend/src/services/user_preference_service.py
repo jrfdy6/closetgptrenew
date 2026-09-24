@@ -10,6 +10,7 @@ import logging
 from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime, timezone
 from collections import Counter
+from .app_data_privacy import optional_policy, require_app_data_writable, write_optional_record
 
 logger = logging.getLogger(__name__)
 
@@ -32,38 +33,49 @@ class UserPreferenceService:
     
     async def get_preferences(self, user_id: str) -> Dict[str, Any]:
         """
-        Get user preferences from Firestore (with caching).
+        Get user preferences after checking current privacy and deletion state.
         Creates default preferences if none exist.
         """
-        # Check cache first
-        if user_id in self._cache:
-            cached = self._cache[user_id]
-            # Cache valid for 5 minutes
-            if (datetime.now(timezone.utc) - cached['cached_at']).seconds < 300:
-                return cached['data']
-        
+        # Do not serve old learned data across privacy changes or a data clear.
+        self._cache.pop(user_id, None)
         try:
+            epoch = self._personalization_epoch(user_id)
+            if epoch is None:
+                return {**self._create_default_preferences(user_id), 'personalization_enabled': False}
             pref_ref = self.db.collection(self.collection_name).document(user_id)
             pref_doc = pref_ref.get()
             
             if pref_doc.exists:
                 prefs = pref_doc.to_dict()
-                # Update cache
-                self._cache[user_id] = {
-                    'data': prefs,
-                    'cached_at': datetime.now(timezone.utc)
-                }
+                require_app_data_writable(self.db, user_id, epoch)
+                if not optional_policy(self.db, user_id, 'personalization') or prefs.get('app_data_epoch', 0) != epoch:
+                    return {**self._create_default_preferences(user_id), 'personalization_enabled': False}
                 return prefs
             else:
                 # Create default preferences
                 default_prefs = self._create_default_preferences(user_id)
-                pref_ref.set(default_prefs)
+                if not write_optional_record(self.db, user_id, pref_ref, default_prefs, kind='personalization', expected_epoch=epoch):
+                    return {**default_prefs, 'personalization_enabled': False}
                 logger.info(f"✨ Created default preferences for user {user_id}")
-                return default_prefs
+                return {**default_prefs, 'app_data_epoch': epoch}
                 
         except Exception as e:
             logger.error(f"❌ Failed to get preferences for {user_id}: {e}")
-            return self._create_default_preferences(user_id)
+            return {**self._create_default_preferences(user_id), 'personalization_enabled': False}
+
+    def _personalization_epoch(self, user_id: str) -> Optional[int]:
+        if not optional_policy(self.db, user_id, 'personalization'):
+            return None
+        try:
+            return require_app_data_writable(self.db, user_id)
+        except Exception:
+            return None
+
+    def _learning_disabled(self) -> Dict[str, Any]:
+        return {'messages': [], 'learning_messages': [], 'personalization_enabled': False,
+                'total_feedback_count': 0, 'personalization_level': 0, 'confidence_level': 'learning',
+                'preferred_colors': [], 'preferred_styles': [], 'wear_count_total': 0,
+                'frequently_worn_items': 0}
     
     def _create_default_preferences(self, user_id: str) -> Dict[str, Any]:
         """Create default preference structure."""
@@ -122,13 +134,20 @@ class UserPreferenceService:
         rating: Optional[int] = None,
         is_liked: bool = False,
         is_disliked: bool = False,
-        feedback_text: Optional[str] = None
+        feedback_text: Optional[str] = None,
+        *,
+        expected_epoch: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Update preferences based on outfit rating.
         Returns learning confirmation data.
         """
+        epoch = self._personalization_epoch(user_id)
+        if epoch is None or (expected_epoch is not None and expected_epoch != epoch):
+            return self._learning_disabled()
         prefs = await self.get_preferences(user_id)
+        if prefs.get('personalization_enabled') is False:
+            return self._learning_disabled()
         updates = {}
         learning_messages = []
         
@@ -230,7 +249,8 @@ class UserPreferenceService:
             updates['first_feedback_at'] = now
         
         # Save to Firestore
-        await self._save_preferences(user_id, updates)
+        if not await self._save_preferences(user_id, updates, expected_epoch=epoch):
+            return self._learning_disabled()
         
         # Invalidate cache
         if user_id in self._cache:
@@ -254,7 +274,12 @@ class UserPreferenceService:
         Update preferences based on wearing an outfit.
         Wearing is a STRONG signal (stronger than just rating).
         """
+        epoch = self._personalization_epoch(user_id)
+        if epoch is None:
+            return self._learning_disabled()
         prefs = await self.get_preferences(user_id)
+        if prefs.get('personalization_enabled') is False:
+            return self._learning_disabled()
         updates = {}
         learning_messages = []
         
@@ -309,7 +334,8 @@ class UserPreferenceService:
             learning_messages.append(f"Tracking your {', '.join(outfit_colors[:2])} color preference")
         
         # Save to Firestore
-        await self._save_preferences(user_id, updates)
+        if not await self._save_preferences(user_id, updates, expected_epoch=epoch):
+            return self._learning_disabled()
         
         # Invalidate cache
         if user_id in self._cache:
@@ -328,7 +354,12 @@ class UserPreferenceService:
         is_favoriting: bool
     ) -> Dict[str, Any]:
         """Update preferences when user favorites/unfavorites an item."""
+        epoch = self._personalization_epoch(user_id)
+        if epoch is None:
+            return self._learning_disabled()
         prefs = await self.get_preferences(user_id)
+        if prefs.get('personalization_enabled') is False:
+            return self._learning_disabled()
         updates = {}
         learning_messages = []
         
@@ -363,7 +394,8 @@ class UserPreferenceService:
         
         updates['last_updated'] = datetime.now(timezone.utc).isoformat()
         
-        await self._save_preferences(user_id, updates)
+        if not await self._save_preferences(user_id, updates, expected_epoch=epoch):
+            return self._learning_disabled()
         
         if user_id in self._cache:
             del self._cache[user_id]
@@ -412,12 +444,15 @@ class UserPreferenceService:
         else:
             return 'learning'
     
-    async def _save_preferences(self, user_id: str, updates: Dict[str, Any]):
+    async def _save_preferences(self, user_id: str, updates: Dict[str, Any], *, expected_epoch=None) -> bool:
         """Save preference updates to Firestore."""
         try:
             pref_ref = self.db.collection(self.collection_name).document(user_id)
-            pref_ref.set(updates, merge=True)  # Merge to preserve other fields
+            if not write_optional_record(self.db, user_id, pref_ref, {'user_id': user_id, **updates},
+                                         kind='personalization', expected_epoch=expected_epoch, merge=True):
+                return False
             logger.info(f"✅ Updated preferences for user {user_id}")
+            return True
         except Exception as e:
             logger.error(f"❌ Failed to save preferences for {user_id}: {e}")
             raise
@@ -427,6 +462,10 @@ class UserPreferenceService:
         Generate a Spotify-style summary combining user preferences + outfit metadata.
         Used for "Personalized for You" explanations.
         """
+        epoch = self._personalization_epoch(prefs['user_id']) if prefs.get('user_id') else None
+        if epoch is None or prefs.get('app_data_epoch', 0) != epoch:
+            return {'summary': 'Personalization is turned off.', 'confidence': 'low',
+                    'insights': [], 'personalization_level': 0}
         total_feedback = prefs.get('total_feedback_count', 0)
         
         if total_feedback < 5:
@@ -506,4 +545,3 @@ class UserPreferenceService:
 
 # Global instance
 user_preference_service = UserPreferenceService()
-

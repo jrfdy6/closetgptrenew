@@ -17,9 +17,27 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
     }
 
-    // Users can only read/write their own user profile
+    // Browser bootstrap/name edits cannot grant account or quiz authority.
+    // Full editable profiles are persisted by the verified Railway API.
+    function safeProfileBootstrap(userId) {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['name', 'email', 'userId', 'user_id', 'firebase_uid', 'createdAt', 'created_at', 'updatedAt', 'updated_at']) &&
+        data.get('userId', userId) == userId && data.get('user_id', userId) == userId &&
+        data.get('firebase_uid', userId) == userId &&
+        data.get('email', request.auth.token.get('email', '')) == request.auth.token.get('email', '') &&
+        data.get('name', '') is string && data.get('name', '').size() <= 200;
+    }
+
+    // Server-owned account, quiz and derived fields survive every client write.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId &&
+        request.auth.token.get('firebase', {}).get('sign_in_provider', '') != 'anonymous' &&
+        safeProfileBootstrap(userId);
+      allow update: if request.auth != null && request.auth.uid == userId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'updatedAt', 'updated_at']) &&
+        request.resource.data.get('name', '') is string && request.resource.data.get('name', '').size() <= 200;
+      allow delete: if false;
     }
 
     // Users can only read/write their own profile data
@@ -37,14 +55,24 @@ service cloud.firestore {
         resource.data.user_id == request.auth.uid;
     }
 
-    // Users can only read/write their own outfit history
+    // New transactional wear events are immutable to clients. Legacy entries
+    // retain their existing edit policy; only the server can create receipt IDs.
     match /outfit_history/{entryId} {
-      allow read: if request.auth != null && 
+      allow read: if request.auth != null &&
         resource.data.user_id == request.auth.uid;
-      allow create: if request.auth != null && 
-        request.resource.data.user_id == request.auth.uid;
-      allow update, delete: if request.auth != null && 
-        resource.data.user_id == request.auth.uid;
+      allow create: if request.auth != null &&
+        request.resource.data.user_id == request.auth.uid &&
+        !entryId.matches('wear-v1-.*') &&
+        !request.resource.data.keys().hasAny(['wear_operation_version']);
+      allow update, delete: if request.auth != null &&
+        resource.data.user_id == request.auth.uid &&
+        !entryId.matches('wear-v1-.*') &&
+        !resource.data.keys().hasAny(['wear_operation_version']);
+    }
+
+    // Idempotency keys and per-day wear receipts are exclusively server-owned.
+    match /outfit_wear_receipts/{receiptId} {
+      allow read, write: if false;
     }
 
     // Users can only read/write their own daily outfit suggestions
@@ -69,9 +97,19 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.token.admin == true;
     }
 
+    // Image attempt budgets and publication fences are server-owned.
+    match /garment_processing_jobs/{itemId} {
+      allow read, write: if false;
+    }
+
+    // Draft revisions and completion history are written only by verified server APIs.
+    match /onboarding_states/{userId} {
+      allow read, write: if false;
+    }
+
     // Deny all other access by default (CRITICAL SECURITY)
     match /{document=**} {
       allow read, write: if false;
     }
   }
-} 
+}

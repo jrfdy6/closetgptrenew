@@ -12,6 +12,13 @@ import { signIn, signInWithGoogle } from "@/lib/auth";
 import PasswordLinkPrompt from "@/components/PasswordLinkPrompt";
 import PasswordLinkBanner from "@/components/PasswordLinkBanner";
 
+function savedOutfitReturnPath(value: string | null): string | null {
+  // This return flow accepts only a single saved outfit ID, never arbitrary
+  // URLs, encoded separators, query strings or the outfit creation routes.
+  const match = value?.match(/^\/outfits\/([A-Za-z0-9_-][A-Za-z0-9_.-]{0,255})$/);
+  return match && match[0] === value && !['generate', 'create'].includes(match[1]) ? value : null;
+}
+
 export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -19,7 +26,7 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
-  const [fromQuiz, setFromQuiz] = useState(false);
+  const [returnPath, setReturnPath] = useState('/dashboard');
   const [showPasswordLinkPrompt, setShowPasswordLinkPrompt] = useState(false);
   const [googleSignInEmail, setGoogleSignInEmail] = useState("");
   const [showPasswordLinkBanner, setShowPasswordLinkBanner] = useState(false);
@@ -28,56 +35,27 @@ export default function SignIn() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      setFromQuiz(params.get("from") === "quiz");
+      setReturnPath(params.get("from") === "quiz"
+        ? '/onboarding'
+        : savedOutfitReturnPath(params.get('redirect')) || '/dashboard');
     }
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     setIsLoading(true);
     setError("");
-    
+
     try {
       const result = await signIn(email, password);
-      
+
       if (result.success && result.user) {
         console.log("Signin successful:", result.user.email);
 
-        if (fromQuiz && typeof window !== "undefined") {
-          try {
-            const pendingRaw = sessionStorage.getItem("pendingQuizSubmission");
-            if (pendingRaw) {
-              const pending = JSON.parse(pendingRaw);
-              const token = await result.user.getIdToken();
-              const submissionPayload = {
-                userId: result.user.uid,
-                token,
-                answers: pending.answers || [],
-                colorAnalysis: pending.colorAnalysis || null,
-                stylePreferences: pending.stylePreferences || [],
-                colorPreferences: pending.colorPreferences || []
-              };
-
-              await fetch("/api/style-quiz/submit", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify(submissionPayload)
-              });
-
-              sessionStorage.removeItem("pendingQuizSubmission");
-            }
-          } catch (quizError) {
-            console.error("Failed to submit pending quiz after signin:", quizError);
-          }
-
-          router.push("/style-persona?from=quiz");
-        } else {
-          router.push("/dashboard");
-        }
+        // Signing in must never import guest answers over an existing account.
+        // Keep the guest draft locally; onboarding resolves this account's saved state.
+        router.push(returnPath);
       } else {
         setError(result.error || "Sign in failed");
         console.error("Signin error:", result.error);
@@ -93,10 +71,10 @@ export default function SignIn() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setError("");
-    
+
     try {
       const result = await signInWithGoogle();
-      
+
       if (result.success && result.user) {
         console.log("Google signin successful:", result.user.email);
 
@@ -116,40 +94,7 @@ export default function SignIn() {
           setShowPasswordLinkBanner(true);
         }
 
-        if (fromQuiz && typeof window !== "undefined") {
-          try {
-            const pendingRaw = sessionStorage.getItem("pendingQuizSubmission");
-            if (pendingRaw) {
-              const pending = JSON.parse(pendingRaw);
-              const token = await result.user.getIdToken();
-              const submissionPayload = {
-                userId: result.user.uid,
-                token,
-                answers: pending.answers || [],
-                colorAnalysis: pending.colorAnalysis || null,
-                stylePreferences: pending.stylePreferences || [],
-                colorPreferences: pending.colorPreferences || []
-              };
-
-              await fetch("/api/style-quiz/submit", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify(submissionPayload)
-              });
-
-              sessionStorage.removeItem("pendingQuizSubmission");
-            }
-          } catch (quizError) {
-            console.error("Failed to submit pending quiz after Google signin:", quizError);
-          }
-
-          router.push("/style-persona?from=quiz");
-        } else {
-          router.push("/dashboard");
-        }
+        router.push(returnPath);
       } else {
         setError(result.error || "Google sign in failed");
         console.error("Google signin error:", result.error);
@@ -275,7 +220,7 @@ export default function SignIn() {
               </span>
             </div>
           </div>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -294,7 +239,7 @@ export default function SignIn() {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Password
@@ -347,8 +292,8 @@ export default function SignIn() {
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <Link 
-                href="/signup" 
+              <Link
+                href="/signup"
                 className="font-medium text-primary hover:text-primary/90"
               >
                 Sign up
@@ -364,21 +309,13 @@ export default function SignIn() {
         onClose={() => {
           setShowPasswordLinkPrompt(false);
           // Navigate after closing prompt
-          if (fromQuiz) {
-            router.push("/style-persona?from=quiz");
-          } else {
-            router.push("/dashboard");
-          }
+          router.push(returnPath);
         }}
         onSuccess={() => {
           setShowPasswordLinkPrompt(false);
           setShowPasswordLinkBanner(false);
           // Navigate after successful linking
-          if (fromQuiz) {
-            router.push("/style-persona?from=quiz");
-          } else {
-            router.push("/dashboard");
-          }
+          router.push(returnPath);
         }}
       />
 

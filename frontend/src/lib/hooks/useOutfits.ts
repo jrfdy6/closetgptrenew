@@ -208,79 +208,15 @@ export function useOutfits(): UseOutfitsReturn {
       
       console.log(`👕 [useOutfits] Marking outfit ${id} as worn`);
       
-      // Find the outfit in outfits array or use the current outfit
-      const targetOutfit = outfits.find(o => o.id === id) || outfit;
-      
-      const currentTimestamp = Date.now();
-      const currentDate = new Date(currentTimestamp);
-      console.log(`📅 [useOutfits] Sending timestamp: ${currentTimestamp} (${currentDate.toLocaleString()})`);
-      
-      // Use API route to mark as worn - this updates backend stats for dashboard counter
-      const token = await user.getIdToken();
-      const response = await fetch(`/api/outfit-history/mark-worn`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          outfitId: id,
-          outfitName: targetOutfit?.name || 'Outfit',
-          dateWorn: currentTimestamp, // Send current timestamp in milliseconds to avoid timezone issues
-          occasion: targetOutfit?.occasion || 'Casual',
-          mood: targetOutfit?.mood || 'Comfortable',
-          weather: {},
-          notes: '',
-          tags: [],
-          items: targetOutfit?.items || []
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to mark outfit as worn: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      console.log(`✅ [useOutfits] Successfully marked outfit as worn via API:`, result);
-      
-      // ✅ Show XP notification if XP was awarded
-      if (result.xp_earned && result.xp_earned > 0) {
-        window.dispatchEvent(new CustomEvent('xpAwarded', {
-          detail: {
-            xp: result.xp_earned,
-            reason: 'Outfit logged',
-            level_up: result.level_up || false,
-            new_level: result.new_level
-          }
-        }));
-      }
-      
-      // Update local state
-      setOutfits(prev => prev.map(o => 
-        o.id === id ? { ...o, wearCount: (o.wearCount || 0) + 1, lastWorn: new Date() as any } : o
-      ));
-      
-      if (outfit?.id === id) {
-        setOutfit(prev => prev ? { 
-          ...prev, 
-          wearCount: (prev.wearCount || 0) + 1, 
-          lastWorn: new Date() as any 
-        } : null);
-      }
-      
-      // Dispatch event to notify dashboard of outfit being marked as worn
-      const event = new CustomEvent('outfitMarkedAsWorn', {
-        detail: {
-          outfitId: id,
-          outfitName: outfit?.name || 'Outfit',
-          timestamp: new Date().toISOString()
-        }
-      });
-      window.dispatchEvent(event);
-      console.log('🔄 [useOutfits] Dispatched outfitMarkedAsWorn event for dashboard refresh');
-      
-      console.log(`✅ [useOutfits] Successfully marked outfit ${id} as worn`);
-      
+      const [{ default: service }, { publishWearReceipt }] = await Promise.all([
+        import('@/lib/services/outfitService_proper'), import('@/lib/wardrobeActivity'),
+      ]);
+      const receipt = await service.markOutfitAsWorn(id, await user.getIdToken());
+      publishWearReceipt(user.uid, receipt);
+      if (receipt.undone) throw new Error('This wear was undone. Choose Wear again to record a new wear.');
+      setOutfits(prev => prev.map(o => o.id === id ? { ...o, wearCount: receipt.wear_count, lastWorn: receipt.last_worn } : o));
+      setOutfit(prev => prev?.id === id ? { ...prev, wearCount: receipt.wear_count, lastWorn: receipt.last_worn } : prev);
+
     } catch (error) {
       handleError(error, 'mark outfit as worn');
     }

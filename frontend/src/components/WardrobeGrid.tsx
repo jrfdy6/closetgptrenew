@@ -2,7 +2,7 @@
 // Force deploy - stealth mode background removal Nov 6 2025
 
 import { useState } from "react";
-import Image from "next/image";
+import WardrobeCardImage from "@/components/WardrobeCardImage";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -187,17 +187,13 @@ export default function WardrobeGrid({
         >
           {/* Image Container */}
           <div className="relative aspect-square overflow-hidden rounded-t-2xl border-b border-border/60 dark:border-border/70">
-            <div className="relative w-full h-full bg-secondary dark:bg-card flex items-center justify-center">
-              <Image
-                src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl}
+            <div className="absolute inset-0 bg-secondary dark:bg-card flex items-center justify-center">
+              <WardrobeCardImage
+                itemId={item.id}
+                thumbnailUrl={item.thumbnailUrl}
+                backgroundRemovedUrl={item.backgroundRemovedUrl}
+                imageUrl={item.imageUrl}
                 alt={item.name || "Wardrobe item"}
-                fill
-                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                className="object-cover transition-all duration-300 group-hover:scale-105"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = '/placeholder.jpg';
-                }}
               />
             </div>
             
@@ -290,4 +286,4 @@ export default function WardrobeGrid({
       </AlertDialog>
     </div>
   );
-} 
+}

@@ -1,125 +1,72 @@
-# Background Image Processing Worker
+# Background image worker
 
-This worker service runs alpha matting on uploaded wardrobe items in the background, providing "stealth mode" image upgrades.
+The worker runs as Railway service `background-processor`, with `backend/worker`
+as its root and `python main.py` as its start command. Follow the canonical
+[operator playbook](../../docs/technical/EASYOUTFIT_OPERATOR_PLAYBOOK.md) for
+production identity and deployment. No deployment is implied by this source.
 
-The worker intentionally uses its local `subscription_utils.py` helper for quota logic. Railway runs this service with `backend/worker` as the root directory, so it should not rely on importing `backend/src` at runtime.
+## Execution
 
-## How It Works
+- A lightweight coordinator polls every five seconds. It supervises one garment
+  process and one flatlay process independently; neither runs inference in the
+  coordinator. Expiry and lease recovery run regardless of either job's progress.
+- Garments use the private `garment_processing_jobs` collection. An attempt and
+  360-second lease are committed before process launch. At most three automatic
+  attempts run for one photo, with 30/120-second backoff between failures.
+- Original preparation, storage and background removal run in a disposable job.
+  Alpha inference has a separate 240-second process budget and fallback has 60
+  seconds. An independent watchdog enforces the remaining whole-job budget even
+  when database I/O blocks the coordinator. Termination covers descendant groups.
+- The original is published before background removal. Original and cutout assets
+  use immutable `items/<id>/attempts/<attempt>/...` objects; transaction fences
+  prevent a stale process from publishing over a changed photo or newer attempt.
+- Paid flatlays retain the private request ledger, original-reference inputs,
+  explicit user request and existing credit settlement. A stopped or unconfirmed
+  provider job is not automatically retried. Coordinator expiry settles its
+  reservation under the existing ambiguity policy.
+- A flatlay can prepare originals for its selected items before their cutouts run.
+  It reads only snapshotted owned upload objects from the configured bucket,
+  normalizes them without inference, and saves immutable request-specific PNGs.
+  A transaction checks ownership/source changes and records preparation provenance
+  before admitting the provider call. A stalled unrelated cutout cannot block it.
 
-1. **User uploads** wardrobe item → saved immediately with `processing_status: "pending"`
-2. **Worker detects** pending item → downloads, processes with alpha matting
-3. **Worker uploads** clean PNG → updates Firestore with `backgroundRemovedUrl`
-4. **Frontend auto-swaps** to clean image when ready (no user action needed)
+## Failure and retry
 
-## Deployment on Railway
+Saved originals remain usable if a cutout fails. Inspect the private attempt
+record and public `processing_error_code`, `processing_attempt_count`,
+`processing_attempt_id` and `processing_retryable` projection. Missing or invalid
+photos receive a visible failure without expensive processing. Existing
+`codex_pending` upload-analysis records are not adopted until promoted to pending.
 
-### Option 1: Add as New Service (Recommended)
+A signed-in owner can explicitly retry one terminal failed garment using
+`POST /api/wardrobe/{id}/retry-processing` with its `expected_attempt_id`. Duplicate
+requests acknowledge the same run. This starts a new bounded run for that item;
+changing a public retry count/status cannot reset the authoritative budget.
+Do not use bulk status resets as a recovery mechanism.
 
-1. In Railway dashboard, click **"New Service"**
-2. Select **"Deploy from GitHub repo"**
-3. Choose this repo
-4. Set **Root Directory**: `backend/worker`
-5. Railway will auto-detect Python and install requirements
-6. Add environment variables (same as main backend):
-   - `FIREBASE_PROJECT_ID`
-   - `FIREBASE_PRIVATE_KEY`
-   - `FIREBASE_CLIENT_EMAIL`
-   - All other Firebase credentials
+## Configuration
 
-### Option 2: Manual Start Command
+Firebase access comes from platform-managed `FIREBASE_PROJECT_ID`,
+`FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` (plus existing optional account
+fields). The existing storage bucket is unchanged. Only the flatlay child uses
+`OPENAI_API_KEY`; garment and inference children do not receive it. Existing
+`EASYOUTFIT_OPENAI_*` model/timeout/quality overrides remain unchanged. No new
+provider, model, quota, billing or resource-size choice is introduced.
 
-If Railway doesn't auto-start, set:
-```
-Start Command: python main.py
-```
+No timing, memory or throughput result is claimed from configuration alone.
+Inspect actual runtime signals before diagnosing an infrastructure failure as OOM.
 
-## Environment Variables Needed
+## Verification and release
 
-The worker needs the **same Firebase credentials** as your main backend:
+See [Goal 2 handoff](../../docs/technical/IMAGE_WORKER_GOAL2_HANDOFF.md) for the
+state contract, tests, release order, rollback constraints and live verification
+that remains required. Worker modules are self-contained because the Railway
+worker root cannot depend on `backend/src`. Mirrored lifecycle modules have
+byte-parity tests.
 
-```
-FIREBASE_PROJECT_ID=closetgptrenew
-FIREBASE_PRIVATE_KEY=(from Railway)
-FIREBASE_CLIENT_EMAIL=(from Railway)
-FIREBASE_CLIENT_ID=(from Railway)
-FIREBASE_CLIENT_X509_CERT_URL=(from Railway)
-FIREBASE_PRIVATE_KEY_ID=(from Railway)
-```
+Credential-free process checks, from `backend`:
 
-Optional AI runtime overrides for flat-lay enhancement:
-
-```
-OPENAI_API_KEY=(from Railway)
-EASYOUTFIT_OPENAI_TIMEOUT_SECONDS=45
-EASYOUTFIT_OPENAI_IMAGE_EDIT_MODEL=gpt-image-1
-EASYOUTFIT_OPENAI_IMAGE_EDIT_TIMEOUT_SECONDS=120
-```
-
-## Monitoring
-
-The worker logs to stdout. Check Railway logs for:
-
-```
-🔥 Worker started. Listening for new images...
-📸 Processing abc-123...
-  🎨 Running alpha matting...
-  ✅ Background removed with alpha matting
-✅ COMPLETE: abc-123 - Image auto-upgraded in UI
-```
-
-## Performance
-
-- **Processing time**: 5-10 seconds per item (alpha matting)
-- **Batch size**: 3 items at a time
-- **Polling interval**: 5 seconds when idle
-- **Memory**: ~500MB (loads rembg + PyMatting models)
-
-## Frontend Integration
-
-No changes needed! Frontend already uses:
-
-```typescript
-const imageSrc = item.backgroundRemovedUrl ?? item.imageUrl;
-```
-
-When worker finishes, Firestore updates trigger automatic UI refresh.
-
-## Scaling
-
-- **Current**: Single worker processes items sequentially
-- **Future**: Add Redis queue + multiple workers for parallel processing
-- **Load**: Handles ~10-20 uploads/minute comfortably
-
-## Troubleshooting
-
-### Worker not processing items
-
-1. Check Railway logs for startup errors
-2. Verify Firebase credentials are set
-3. Check Firestore has items with `processing_status: "pending"`
-
-### Items stuck in "pending"
-
-1. Check worker logs for errors
-2. Verify image URLs are accessible
-3. Check Railway memory limits (alpha matting needs ~500MB)
-
-### Worker crashes/restarts
-
-- Alpha matting is memory-intensive
-- Upgrade Railway plan if OOM errors occur
-- Or disable alpha matting (use fast mode) in `main.py`
-- If you change subscription quota logic in the main backend, mirror the same change in `backend/worker/subscription_utils.py`
-
-## Local Development
-
-```bash
-cd backend/worker
-pip install -r requirements.txt
-
-# Set Firebase credentials
-export FIREBASE_PROJECT_ID=closetgptrenew
-# ... other env vars
-
-python main.py
+```sh
+python -m unittest discover -s tests -p 'test_process_supervisor.py' -v
+python -m unittest discover -s tests -p 'test_worker_coordinator.py' -v
 ```

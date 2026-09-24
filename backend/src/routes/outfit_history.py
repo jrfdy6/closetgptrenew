@@ -14,6 +14,8 @@ def parse_last_worn(ts):
     if not ts:
         return None
     try:
+        if isinstance(ts, (int, float)) and not isinstance(ts, bool):
+            return datetime.fromtimestamp(ts / 1000 if abs(ts) >= 1e12 else ts, tz=timezone.utc)
         if isinstance(ts, str):
             if ts.endswith("Z"):
                 return datetime.fromisoformat(ts.replace("Z", "+00:00"))
@@ -66,11 +68,15 @@ async def calculate_worn_outfits_this_week(user_id: str) -> int:
             return 0
         
         # Get start and end of current week (Sunday to Saturday) - timezone aware
-        now = datetime.now(timezone.utc)
+        from zoneinfo import ZoneInfo
+        profile_doc = db.collection("users").document(user_id).get()
+        profile = profile_doc.to_dict() if profile_doc.exists else {}
+        from ..services.wear_rewards import reward_timezone
+        now = datetime.now(ZoneInfo(reward_timezone(profile, "UTC")))
         # weekday() returns 0=Monday, 6=Sunday
         # For Sunday start: if today is Sunday (6), days_since_sunday = 0
         # if today is Monday (0), days_since_sunday = 1, etc.
-        days_since_sunday = (now.weekday() + 1) % 7
+        days_since_sunday = now.weekday()
         week_start = now - timedelta(days=days_since_sunday)
         week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
         week_end = week_start + timedelta(days=6, hours=23, minutes=59, seconds=59)
@@ -85,6 +91,8 @@ async def calculate_worn_outfits_this_week(user_id: str) -> int:
         history_docs = history_ref.stream()
         for doc in history_docs:
             data = doc.to_dict()
+            if data.get("undone"):
+                continue
             date_worn_raw = (data.get('date_worn') if data else None)
             outfit_id = (data.get('outfit_id') if data else None)
             
@@ -203,6 +211,8 @@ async def get_outfit_history(
         for doc in docs:
             doc_count += 1
             data = doc.to_dict()
+            if data.get("undone"):
+                continue
             outfit_history.append({
                 "id": doc.id,
                 "outfitId": (data.get('outfit_id') if data else None),
@@ -237,527 +247,52 @@ async def get_outfit_history(
         logger.error(f"❌ User ID: {current_user.id if current_user else 'None'}")
         logger.error(f"❌ Error type: {type(e).__name__}")
         
-        # Return safe fallback instead of 500 error
-        return {
-            "success": True,
-            "outfitHistory": [],
-            "count": 0,
-            "user_id": current_user.id if current_user else None,
-            "error": f"Database query failed: {str(e)}",
-            "fallback": True
-        }
+        raise HTTPException(503, "Outfit history is temporarily unavailable. Please retry.") from None
 
 @router.post("/mark-worn")
-async def mark_outfit_as_worn(
-    data: Dict[str, Any],
-    current_user: UserProfile = Depends(get_current_user)
-):
-    """
-    Mark an outfit as worn on a specific date
-    """
+async def mark_outfit_as_worn(data: Dict[str, Any], current_user: UserProfile = Depends(get_current_user)):
+    """Calendar and deployed clients share the canonical wear transaction."""
+    from ..services.outfit_wear import mark_outfit_worn, OutfitWearError, _digest
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
     try:
-        logger.info(f"🚨 MARK-WORN ENDPOINT CALLED")
-        logger.info(f"🔍 DEBUG: Request data keys: {list(data.keys()) if data else 'NO DATA'}")
-        
-        if not current_user:
-            logger.error(f"❌ No current_user")
-            raise HTTPException(status_code=400, detail="User not found")
-            
-        logger.info(f"👕 Marking outfit as worn for user {current_user.id}")
-        logger.info(f"🔍 DEBUG: Received data: {data}")
-        
-        outfit_id = (data.get('outfitId') if data else None)
-        date_worn = (data.get('dateWorn') if data else None)
-        occasion = (data.get('occasion', 'Casual') if data else 'Casual')
-        mood = (data.get('mood', 'Comfortable') if data else 'Comfortable')
-        weather = (data.get('weather', {}) if data else {})
-        notes = (data.get('notes', '') if data else '')
-        tags = (data.get('tags', []) if data else [])
-        
-        logger.info(f"🔍 DEBUG: Parsed outfit_id: {outfit_id}, date_worn: {date_worn}")
-        
-        if not outfit_id or not date_worn:
-            raise HTTPException(status_code=400, detail="outfitId and dateWorn are required")
-        
-        # Get Firebase database client
-        db = get_db()
-        
-        # Convert date string to timestamp
-        if isinstance(date_worn, str):
-            date_obj = datetime.strptime(date_worn, '%Y-%m-%d')
-            date_timestamp = int(date_obj.timestamp() * 1000)
-        else:
-            date_timestamp = date_worn
-        
-        # Get outfit details from outfits collection (if it exists)
-        outfit_doc = db.collection('outfits').document(outfit_id).get()
-        outfit_data = outfit_doc.to_dict() if outfit_doc.exists else {}
-        
-        # Update outfit's own wear count if it exists in outfits collection
-        if outfit_doc.exists:
-            current_outfit_wear_count = outfit_data.get('wearCount', 0)
-            current_timestamp_now = int(datetime.utcnow().timestamp() * 1000)
-            db.collection('outfits').document(outfit_id).update({
-                'wearCount': current_outfit_wear_count + 1,
-                'lastWorn': current_timestamp_now,
-                'updatedAt': current_timestamp_now
-            })
-            logger.info(f"✅ Updated outfit {outfit_id} wearCount: {current_outfit_wear_count} → {current_outfit_wear_count + 1}")
-        
-        # Extract item IDs from the outfit
-        # First try from Firestore outfit_data, then from request data
-        item_ids = []
-        items_source = outfit_data.get('items') or data.get('items', [])
-        
-        if items_source:
-            for item in items_source:
-                if isinstance(item, dict) and 'id' in item:
-                    item_ids.append(item['id'])
-                elif isinstance(item, str):
-                    item_ids.append(item)
-        
-        logger.info(f"🔍 DEBUG: Found {len(item_ids)} items to update wear counts for")
-        
-        # Increment wear count for all items in the outfit
-        current_timestamp = int(datetime.utcnow().timestamp() * 1000)
-        if item_ids:
-            batch = db.batch()
-            wardrobe_ref = db.collection('wardrobe')
-            
-            for item_id in item_ids:
-                item_ref = wardrobe_ref.document(item_id)
-                item_doc = item_ref.get() if item_ref else None
-                
-                if item_doc.exists:
-                    item_data = item_doc.to_dict()
-                    current_wear_count = (item_data.get('wearCount', 0) if item_data else 0)
-                    
-                    # Update wear count and last worn timestamp
-                    batch.update(item_ref, {
-                        'wearCount': current_wear_count + 1,
-                        'lastWorn': current_timestamp,
-                        'updatedAt': current_timestamp
-                    })
-            
-            # Commit the batch update
-            batch.commit()
-            logger.info(f"Updated wear counts for {len(item_ids)} items in outfit {outfit_id}")
-        
-        # Create outfit history entry
-        # Use outfit name from Firestore, or from request data, or default
-        outfit_name = outfit_data.get('name') or data.get('outfitName') or data.get('name') or 'Generated Outfit'
-        
-        # Serialize items to ensure they're JSON-compatible
-        serialized_items = []
-        if items_source:
-            for item in items_source:
-                if isinstance(item, dict):
-                    # Create a clean copy with only serializable fields
-                    clean_item = {
-                        'id': item.get('id', ''),
-                        'name': item.get('name', ''),
-                        'type': item.get('type', ''),
-                        'color': item.get('color', ''),
-                        'brand': item.get('brand', ''),
-                        'imageUrl': item.get('imageUrl', ''),
-                    }
-                    serialized_items.append(clean_item)
-                elif isinstance(item, str):
-                    serialized_items.append({'id': item})
-        
-        entry_data = {
-            'user_id': current_user.id,
-            'outfit_id': outfit_id,
-            'outfit_name': outfit_name,
-            'outfit_image': outfit_data.get('imageUrl', ''),
-            'date_worn': date_timestamp,
-            'occasion': occasion,
-            'mood': mood,
-            'weather': weather if isinstance(weather, dict) else {},
-            'notes': notes if isinstance(notes, str) else '',
-            'tags': tags if isinstance(tags, list) else [],
-            'created_at': current_timestamp,
-            'updated_at': current_timestamp,
-            'items': serialized_items  # Store the serialized items
-        }
-        
-        # Save to Firestore
+        outfit_id = data.get("outfitId")
+        zone = data.get("timezone") or "UTC"
+        value = data.get("dateWorn")
         try:
-            logger.info(f"🔍 DEBUG: About to save outfit history entry to Firestore")
-            logger.info(f"🔍 DEBUG: Entry data: user_id={(((entry_data.get('user_id') if entry_data else None) if entry_data else None) if entry_data else None)}, date={entry_data.get('date')}, outfit_id={entry_data.get('outfit_id')}")
-            logger.info(f"🔍 DEBUG: User ID: {current_user.id}")
-            logger.info(f"🔍 DEBUG: Outfit ID: {outfit_id}")
-            logger.info(f"🔍 DEBUG: Date worn timestamp: {date_timestamp}")
-            
-            # Firestore add() returns (timestamp, DocumentReference)
-            _, doc_ref = db.collection('outfit_history').add(entry_data)
-            doc_id = doc_ref.id
-            logger.info(f"✅ Created outfit history entry with ID: {doc_id}")
-            logger.info(f"🔍 DEBUG: Document reference: {doc_ref}")
-            logger.info(f"🔍 DEBUG: Document ID: {doc_id}")
-            
-            # Verify the entry was actually saved
-            saved_doc = doc_ref.get() if doc_ref else None
-            if saved_doc.exists:
-                saved_data = saved_doc.to_dict()
-                logger.info(f"✅ VERIFIED: Entry saved successfully with data: {saved_data}")
-            else:
-                logger.error(f"❌ VERIFICATION FAILED: Document {doc_id} does not exist after save")
-                
-        except Exception as firestore_error:
-            logger.error(f"❌ Failed to save to Firestore: {firestore_error}")
-            logger.error(f"❌ Firestore error details: {str(firestore_error)}")
-            raise HTTPException(status_code=500, detail="Failed to save outfit history entry")
-        
-        # ============== GAMIFICATION INTEGRATION (AWAITED) ==============
-        # Initialize at function scope so it's accessible throughout
-        gamification_result = {"tokens_awarded": 0, "xp_awarded": 0, "level_up": False, "new_level": 1, "current_streak": 0}
-        completed_challenges = []
-        milestone_results = []
-        
-        try:
-            from ..services.addiction_service import AddictionService
-            from ..services.challenge_service import challenge_service
-            from ..services.tve_service import tve_service, CATEGORY_TO_SPENDING_KEY
-            
-            addiction_service = AddictionService()
-            
-            # Get current timestamp for the log
-            log_timestamp_ms = int(datetime.now().timestamp() * 1000)
-            
-            # Process gamification (tokens, XP, streak) - AWAITED for immediate consistency
-            gamification_result = await addiction_service.process_outfit_log(
-                user_id=current_user.id,
-                log_timestamp=log_timestamp_ms
-            )
-            
-            logger.info(f"✅ Gamification processed: {gamification_result}")
-            
-            # 2. Auto-start annual challenge if not already active
-            try:
-                annual_start_result = await challenge_service.auto_start_annual_challenge(current_user.id)
-                if annual_start_result.get('success') and not annual_start_result.get('already_exists'):
-                    logger.info(f"✅ Auto-started annual challenge for user {current_user.id}")
-            except Exception as annual_error:
-                logger.warning(f"⚠️ Could not auto-start annual challenge: {annual_error}")
-            
-            # 3. Check for challenge progress
-            completed_challenges = await challenge_service.check_challenge_progress(
-                user_id=current_user.id,
-                outfit_data={"items": item_ids, "date": date_timestamp}
-            )
-            if completed_challenges:
-                logger.info(f"🎉 Completed challenges: {completed_challenges}")
-            
-            # 4. Check for 30-wears milestones on each worn item
-            for item_id in item_ids:
-                item_ref = db.collection('wardrobe').document(item_id)
-                item_doc = item_ref.get()
-                if item_doc.exists:
-                    item_data = item_doc.to_dict()
-                    new_wear_count = item_data.get('wearCount', 0)
-                    
-                    milestone_result = await challenge_service.check_30_wears_milestones(
-                        user_id=current_user.id,
-                        item_id=item_id,
-                        new_wear_count=new_wear_count
-                    )
-                    if milestone_result:
-                        milestone_results.append(milestone_result)
-                        logger.info(f"🏆 Milestone reached for item {item_id}: {milestone_result}")
-            
-            # 4. Increment TVE for each worn item (Event-Triggered Hybrid Approach)
-            total_tve_increment = 0
-            for item_id in item_ids:
-                item_ref = db.collection('wardrobe').document(item_id)
-                item_doc = item_ref.get()
-                
-                if item_doc.exists:
-                    item_data = item_doc.to_dict()
-                    
-                    # Get value_per_wear for this item
-                    value_per_wear = item_data.get('value_per_wear', 0)
-                    
-                    # If value_per_wear not set, initialize TVE fields for this item
-                    if value_per_wear == 0 or value_per_wear is None:
-                        logger.info(f"⚠️ Item {item_id} missing TVE fields, initializing...")
-                        await tve_service.initialize_item_tve_fields(current_user.id, item_id)
-                        # Re-fetch to get the initialized value
-                        item_doc = item_ref.get()
-                        if item_doc.exists:
-                            item_data = item_doc.to_dict()
-                            value_per_wear = item_data.get('value_per_wear', 5.0)
-                    
-                    # Increment item's TVE
-                    if value_per_wear > 0:
-                        success = await tve_service.increment_item_tve(item_id, value_per_wear)
-                        if success:
-                            total_tve_increment += value_per_wear
-                            
-                            # Get category for user cache update
-                            item_type = item_data.get('type', '').lower().replace(" ", "_")
-                            category = CATEGORY_TO_SPENDING_KEY.get(item_type, "tops")
-                            logger.info(f"✅ Incremented TVE for item {item_id} by ${value_per_wear:.2f} ({category})")
-                        else:
-                            logger.warning(f"⚠️ Failed to increment TVE for item {item_id}")
-            
-            # 5. Update user's cached TVE totals (aggregate update)
-            if total_tve_increment > 0:
-                # Note: We're updating the total but need to track per-category
-                # For simplicity, we'll recalculate category totals from items
-                # In a production system, you'd maintain category counters
-                logger.info(f"✅ Total TVE increment for outfit: ${total_tve_increment:.2f}")
-                logger.info("💡 User TVE cache will be updated on next stats fetch")
-            
-        except Exception as gamification_error:
-            # Non-critical failure logging (must not stop the primary request)
-            logger.error(f"Gamification error (non-critical): {gamification_error}", exc_info=True)
-            # Ensure the result structure is still valid for the response model
-            gamification_result = {"tokens_awarded": 0, "xp_awarded": 0, "error": "Gamification failed"}
-        # ====================================================
-        
-        # Update user_stats for dashboard counter
-        try:
-            from google.cloud.firestore import Increment, SERVER_TIMESTAMP
-            stats_ref = db.collection('user_stats').document(current_user.id)
-            
-            # Use Firestore Increment to properly add 1 to existing count
-            stats_ref.set({
-                'user_id': current_user.id,
-                'worn_this_week': Increment(1),
-                'last_updated': SERVER_TIMESTAMP,
-                'updated_at': SERVER_TIMESTAMP
-            }, merge=True)
-            logger.info(f"✅ Updated user_stats for dashboard counter")
-        except Exception as stats_error:
-            logger.warning(f"⚠️ Stats update failed: {stats_error}")
-            # Don't fail the whole request if stats update fails
-        
-        # ============== GAMIFICATION INTEGRATION ==============
-        # Award XP and track challenges
-        # NOTE: This is a duplicate block - gamification is already handled above
-        # Keeping for backward compatibility but should be removed in future cleanup
-        xp_result = {}
-        completed_challenges = []
-        milestone_results = []
-        
-        try:
-            from ..services.gamification_service import gamification_service
-            from ..services.challenge_service import challenge_service
-            from ..services.cpw_service import cpw_service
-            
-            # 1. Award XP for outfit logging (already handled by process_outfit_log above)
-            # This is kept for backward compatibility
-            xp_result = gamification_result if 'gamification_result' in locals() else {}
-            logger.info(f"✅ Gamification already processed above")
-            
-            # 2. Check for challenge progress
-            completed_challenges = await challenge_service.check_challenge_progress(
-                user_id=current_user.id,
-                outfit_data={"items": item_ids, "date": date_timestamp}
-            )
-            if completed_challenges:
-                logger.info(f"🎉 Completed challenges: {completed_challenges}")
-            
-            # 3. Check for 30-wears milestones
-            for item_id in item_ids:
-                item_ref = db.collection('wardrobe').document(item_id)
-                item_doc = item_ref.get()
-                if item_doc.exists:
-                    new_wear_count = item_doc.to_dict().get('wearCount', 0)
-                    milestone_result = await challenge_service.check_30_wears_milestones(
-                        user_id=current_user.id,
-                        item_id=item_id,
-                        new_wear_count=new_wear_count
-                    )
-                    if milestone_result:
-                        milestone_results.append(milestone_result)
-            
-            # 4. Recalculate CPW for worn items
-            await cpw_service.recalculate_items_cpw(current_user.id, item_ids)
-            
-        except Exception as gamification_error:
-            logger.error(f"Gamification error (non-critical): {gamification_error}", exc_info=True)
-        # ====================================================
-        
-        # Log analytics event (simplified to avoid serialization issues)
-        try:
-            # Create a simple dict instead of AnalyticsEvent object
-            analytics_data = {
-                "user_id": current_user.id,
-                "event_type": "outfit_worn",
-                "metadata": {
-                    "outfit_id": outfit_id,
-                    "date_worn": date_worn,
-                    "occasion": occasion,
-                    "mood": mood,
-                    "weather": weather,
-                    "source": "outfit_history_api"
-                }
-            }
-            log_analytics_event(analytics_data)
-            logger.info(f"✅ Analytics event logged for outfit {outfit_id}")
-        except Exception as analytics_error:
-            logger.warning(f"⚠️ Failed to log analytics event: {analytics_error}")
-            # Don't fail the whole request if analytics fails
-        
-        logger.info(f"Successfully marked outfit {outfit_id} as worn for user {current_user.id}")
-        
-        return {
-            "success": True,
-            "message": "Outfit marked as worn successfully",
-            "entryId": str(doc_id),
-            "xp_earned": gamification_result.get('xp_awarded', 0),
-            "tokens_earned": gamification_result.get('tokens_awarded', 0),
-            "level_up": gamification_result.get('level_up', False),
-            "new_level": gamification_result.get('new_level', 1),
-            "current_streak": gamification_result.get('current_streak', 0),
-            "challenges_completed": completed_challenges,
-            "milestones_reached": milestone_results
-        }
-        
+            local_zone = ZoneInfo(zone)
+            if isinstance(value, (float, int)) and not isinstance(value, bool):
+                value = datetime.fromtimestamp(value / 1000, local_zone).date().isoformat()
+        except (ValueError, TypeError, OverflowError, OSError, ZoneInfoNotFoundError):
+            raise HTTPException(422, "Invalid wear date or timezone") from None
+        if not outfit_id or not value:
+            raise HTTPException(422, "outfitId and dateWorn are required")
+        key = data.get("idempotency_key") or "calendar-" + _digest(current_user.id, outfit_id, value)
+        result = mark_outfit_worn(get_db(), outfit_id, current_user.id, key, zone, wear_date=value, metadata=data, source="calendar")
+        reward = result.get("rewards", {})
+        return {**result, "message": "Outfit recorded", "xp_earned": reward.get("xp_awarded", 0), "tokens_earned": reward.get("tokens_awarded", 0), "level_up": reward.get("level_up", False), "new_level": reward.get("new_level"), "current_streak": reward.get("current_streak", 0), "challenges_completed": []}
+    except OutfitWearError as exc:
+        raise HTTPException(exc.status_code, exc.detail) from None
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"❌ CRITICAL ERROR in mark_outfit_as_worn: {str(e)}")
-        logger.error(f"❌ Error type: {type(e).__name__}")
-        logger.error(f"❌ Full traceback:", exc_info=True)
-        import traceback
-        logger.error(f"❌ Traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Failed to mark outfit as worn: {str(e)}")
+    except Exception:
+        raise HTTPException(503, "The wear request could not be acknowledged. Retry the same request.") from None
 
 @router.patch("/{entry_id}")
-async def update_outfit_history_entry(
-    entry_id: str,
-    updates: Dict[str, Any],
-    current_user: UserProfile = Depends(get_current_user)
-):
-    """
-    Update an outfit history entry
-    """
+async def update_outfit_history_entry(entry_id: str, updates: Dict[str, Any], current_user: UserProfile = Depends(get_current_user)):
+    from ..services.outfit_wear import update_wear_metadata, OutfitWearError
     try:
-        if not current_user:
-            raise HTTPException(status_code=400, detail="User not found")
-            
-        logger.info(f"Updating outfit history entry {entry_id} for user {current_user.id}")
-        
-        # Get the entry
-        db = get_db()
-        doc_ref = db.collection('outfit_history').document(entry_id)
-        doc = doc_ref.get() if doc_ref else None
-        
-        if not doc.exists:
-            raise HTTPException(status_code=404, detail="Entry not found")
-        
-        entry_data = doc.to_dict()
-        
-        # Verify ownership
-        if entry_data.get('user_id') != current_user.id:
-            raise HTTPException(status_code=403, detail="Not authorized to update this entry")
-        
-        # Prepare update data
-        update_data = {
-            'updated_at': int(datetime.utcnow().timestamp() * 1000)
-        }
-        
-        # Map frontend field names to database field names
-        field_mapping = {
-            'occasion': 'occasion',
-            'mood': 'mood',
-            'weather': 'weather',
-            'notes': 'notes',
-            'tags': 'tags'
-        }
-        
-        for frontend_field, db_field in field_mapping.items():
-            if frontend_field in updates:
-                update_data[db_field] = updates[frontend_field]
-        
-        # Update the document
-        doc_ref.update(update_data)
-        
-        # Log analytics event
-        from ..models.analytics_event import AnalyticsEvent
-        analytics_event = AnalyticsEvent(
-            user_id=current_user.id,
-            event_type="outfit_history_updated",
-            metadata={
-                "entry_id": entry_id,
-                "outfit_id": (entry_data.get('outfit_id') if entry_data else None),
-                "updates": updates,
-                "source": "outfit_history_api"
-            }
-        )
-        log_analytics_event(analytics_event)
-        
-        logger.info(f"Successfully updated outfit history entry {entry_id}")
-        
-        return {
-            "success": True,
-            "message": "Outfit history entry updated successfully"
-        }
-        
-    except Exception as e:
-        logger.error(f"Error updating outfit history entry: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to update outfit history entry")
+        return update_wear_metadata(get_db(), current_user.id, entry_id, updates)
+    except OutfitWearError as exc:
+        raise HTTPException(exc.status_code, exc.detail) from None
+
 
 @router.delete("/{entry_id}")
-async def delete_outfit_history_entry(
-    entry_id: str,
-    current_user: UserProfile = Depends(get_current_user)
-):
-    """
-    Delete an outfit history entry
-    """
+async def delete_outfit_history_entry(entry_id: str, current_user: UserProfile = Depends(get_current_user)):
+    from ..services.outfit_wear import undo_wear, OutfitWearError
     try:
-        if not current_user:
-            raise HTTPException(status_code=400, detail="User not found")
-            
-        logger.info(f"Deleting outfit history entry {entry_id} for user {current_user.id}")
-        
-        # Get the entry
-        doc_ref = db.collection('outfit_history').document(entry_id)
-        doc = doc_ref.get() if doc_ref else None
-        
-        if not doc.exists:
-            raise HTTPException(status_code=404, detail="Entry not found")
-        
-        entry_data = doc.to_dict()
-        
-        # Verify ownership
-        if entry_data.get('user_id') != current_user.id:
-            raise HTTPException(status_code=403, detail="Not authorized to delete this entry")
-        
-        # Delete the document
-        doc_ref.delete()
-        
-        # Log analytics event
-        from ..models.analytics_event import AnalyticsEvent
-        analytics_event = AnalyticsEvent(
-            user_id=current_user.id,
-            event_type="outfit_history_deleted",
-            metadata={
-                "entry_id": entry_id,
-                "outfit_id": (entry_data.get('outfit_id') if entry_data else None),
-                "outfit_name": (entry_data.get('outfit_name') if entry_data else None),
-                "date_worn": (entry_data.get('date_worn') if entry_data else None),
-                "occasion": (entry_data.get('occasion') if entry_data else None),
-                "mood": (entry_data.get('mood') if entry_data else None),
-                "source": "outfit_history_api"
-            }
-        )
-        log_analytics_event(analytics_event)
-        
-        logger.info(f"Successfully deleted outfit history entry {entry_id}")
-        
-        return {
-            "success": True,
-            "message": "Outfit history entry deleted successfully"
-        }
-        
-    except Exception as e:
-        logger.error(f"Error deleting outfit history entry: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to delete outfit history entry")
+        return undo_wear(get_db(), current_user.id, entry_id)
+    except OutfitWearError as exc:
+        raise HTTPException(exc.status_code, exc.detail) from None
 
 @router.get("/today")
 async def get_todays_outfit(
@@ -808,6 +343,8 @@ async def get_todays_outfit(
             for doc in docs:
                 try:
                     data = doc.to_dict()
+                    if data.get("undone"):
+                        continue
                     todays_outfits.append({
                         "id": doc.id,
                         "outfitId": (data.get('outfit_id') if data else None),
@@ -853,591 +390,114 @@ async def get_todays_outfit(
         raise HTTPException(status_code=500, detail="Failed to get today's outfit")
 
 @router.get("/today-suggestion")
-async def get_todays_outfit_suggestion(
-    current_user: UserProfile = Depends(get_current_user)
-):
-    """
-    Get or generate today's outfit suggestion for the current user.
-    This generates a new outfit suggestion once per day and caches it.
-    """
-#     print("⚡ HIT: today-suggestion from outfit_history.py")
-    try:
-        if not current_user:
-            raise HTTPException(status_code=400, detail="User not found")
-            
-        logger.info(f"Getting today's outfit suggestion for user {current_user.id}")
-        
-        # Get today's date as a string for caching
-        from datetime import datetime, timezone
-        today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-        
-        # Check if firebase is available
-        if not db:
-            logger.warning("Firebase not available, returning fallback suggestion")
-            return {
-                "success": True,
-                "suggestion": None,
-                "isWorn": False,
-                "message": "Service temporarily unavailable"
-            }
-        
-        # Look for existing suggestion for today
-        suggestions_ref = db.collection('daily_outfit_suggestions')
-        query = suggestions_ref.where(filter=FieldFilter('user_id', '==', current_user.id)).where(filter=FieldFilter('date', '==', today_str))
-        existing_docs = list(query.stream())
-        
-        if existing_docs:
-            # Return existing suggestion
-            doc = existing_docs[0]
-            suggestion_data = doc.to_dict()
-            outfit_data = (suggestion_data.get('outfit_data', {}) if suggestion_data else {})
-            items = (outfit_data.get('items', []) if outfit_data else [])
-            
-            # Check if the cached suggestion contains mock items (old fallback items)
-            has_mock_items = any(
-                (item.get('id', '') if item else '').startswith('fallback-') or 
-                (item.get('name', '') if item else '').endswith(' Top') or 
-                (item.get('name', '') if item else '').endswith(' Pants') or 
-                (item.get('name', '') if item else '').endswith(' Shoes')
-                for item in items
-            )
-            
-            if has_mock_items:
-                logger.info(f"Found cached suggestion with mock items, regenerating for {today_str}")
-                # Delete the old suggestion with mock items
-                doc.reference.delete()
-                # Continue to generate a new suggestion below
-            else:
-                logger.info(f"Found existing suggestion for {today_str}")
-                return {
-                    "success": True,
-                    "suggestion": {
-                        "id": doc.id,
-                        "outfitData": outfit_data,
-                        "generatedAt": (suggestion_data.get('generated_at') if suggestion_data else None),
-                        "date": (suggestion_data.get('date') if suggestion_data else None)
-                    },
-                    "isWorn": (suggestion_data.get('is_worn', False) if suggestion_data else False),
-                    "wornAt": (suggestion_data.get('worn_at') if suggestion_data else None),
-                    "message": "Today's outfit suggestion"
-                }
-        
-        # Generate new suggestion for today (either no existing suggestion or regenerating due to mock items)
-        logger.info(f"Generating new outfit suggestion for {today_str}")
-        
+async def get_todays_outfit_suggestion(current_user: UserProfile = Depends(get_current_user)):
+    """Use the same admitted generator and saved outfit as other entry points."""
+    from google.cloud.firestore_v1 import FieldFilter
+    from firebase_admin import firestore
+    from ..services.outfit_creation_admission import require_outfit_creation_ready, resolve_owned_items
+    from ..services.app_data_privacy import require_app_data_writable, AppDataDeletionError
+    from ..services.wear_rewards import reward_timezone
+    from ..services.reward_ledger import read, key_for
+    from ..utils.outfit_admission import has_complete_combination
+    from zoneinfo import ZoneInfo
+    database = get_db()
+    admission = require_outfit_creation_ready(database, current_user.id)
+    user = database.collection("users").document(current_user.id).get().to_dict() or {}
+    day = datetime.now(ZoneInfo(reward_timezone(user, "UTC"))).date().isoformat()
+    suggestion_id = key_for(current_user.id, "daily", day)
+    reference = database.collection("daily_outfit_suggestions").document(suggestion_id)
+    existing = reference.get()
+    if existing.exists:
+        record = existing.to_dict()
+    else:
+        from ..routes.outfits.routes import generate_outfit, OutfitRequest
+        wardrobe = [{**snapshot.to_dict(), "id": snapshot.id} for snapshot in database.collection("wardrobe").where(filter=FieldFilter("userId", "==", current_user.id)).stream()]
+        generated = await generate_outfit(OutfitRequest(occasion="Casual", style="Minimalist", mood="Subtle", wardrobe=wardrobe, description="Daily outfit suggestion"), current_user.id)
+        outfit = generated.model_dump() if hasattr(generated, "model_dump") else generated.dict() if hasattr(generated, "dict") else generated
+        now = int(datetime.now(timezone.utc).timestamp() * 1000)
+        @firestore.transactional
+        def save(transaction):
+            require_app_data_writable(database, current_user.id, admission["app_data_epoch"], transaction)
+            require_outfit_creation_ready(database, current_user.id, transaction=transaction)
+            previous = read(reference, transaction)
+            if previous:
+                return previous
+            items = resolve_owned_items(database, transaction, current_user.id, outfit.get("items"))
+            if not has_complete_combination(items):
+                raise HTTPException(422, "Daily suggestion is missing required pieces")
+            record = {"user_id": current_user.id, "date": day, "outfit_id": outfit["id"], "outfit_data": {**outfit, "items": items}, "generated_at": now, "created_at": now, "updated_at": now, "is_worn": False, "app_data_epoch": admission["app_data_epoch"]}
+            transaction.set(reference, record)
+            return record
         try:
-            # Import outfit generation logic
-            from ..routes.outfits import generate_outfit_logic, OutfitRequest, get_user_profile_cached
-            
-            # Fetch user profile for personalization
-            user_profile = await get_user_profile_cached(current_user.id)
-            
-            # Fetch weather data if available
-            weather_data = None
-            try:
-                # Try to get weather from user's location if stored
-                # This is optional - outfit generation will work without it
-                pass  # Weather fetching can be added later if needed
-            except Exception as weather_error:
-                logger.warning(f"Could not fetch weather data: {weather_error}")
-            
-            # Fetch user's liked outfits for personalization
-            liked_outfits = []
-            try:
-                liked_docs = db.collection('outfit_likes').where('userId', '==', current_user.id).limit(10).stream()
-                liked_outfits = [{'id': doc.id, **doc.to_dict()} for doc in liked_docs]
-            except Exception as e:
-                logger.warning(f"Could not fetch liked outfits: {e}")
-            
-            # Get user preferences
-            preferences = {}
-            try:
-                pref_doc = db.collection('user_preferences').document(current_user.id).get()
-                if pref_doc.exists:
-                    preferences = pref_doc.to_dict()
-            except Exception as e:
-                logger.warning(f"Could not fetch preferences: {e}")
-            
-            # Create a comprehensive request for daily wear with all context
-            daily_request = OutfitRequest(
-                occasion="casual",
-                style="comfortable", 
-                mood="confident",
-                description="Daily outfit suggestion",
-                weather=weather_data,
-                user_profile=user_profile,
-                likedOutfits=liked_outfits,
-                trendingStyles=[],  # Can be populated if trending data is available
-                preferences=preferences
-            )
-            
-            logger.info(f"About to generate outfit with request: style={daily_request.style}, occasion={daily_request.occasion}, items_count={len(daily_request.wardrobe) if daily_request.wardrobe else 0}")
-            
-            # Generate outfit using existing logic with timeout
-            import asyncio
-            try:
-                generated_outfit = await asyncio.wait_for(
-                    generate_outfit_logic(daily_request, current_user.id),
-                    timeout=30.0  # 30 second timeout
-                )
-                logger.info(f"Successfully generated outfit: {(generated_outfit.get('name', 'Unknown') if generated_outfit else 'Unknown')}")
-            except asyncio.TimeoutError:
-                logger.error("Outfit generation timed out after 30 seconds")
-                raise Exception("Outfit generation timed out")
-            except Exception as gen_error:
-                logger.error(f"Outfit generation failed: {gen_error}")
-                raise gen_error
-            
-            # Save suggestion to cache
-            current_timestamp = int(datetime.utcnow().timestamp() * 1000)
-            suggestion_doc = {
-                'user_id': current_user.id,
-                'date': today_str,
-                'outfit_data': generated_outfit,
-                'generated_at': current_timestamp,
-                'is_worn': False,
-                'worn_at': None,
-                'created_at': current_timestamp,
-                'updated_at': current_timestamp
-            }
-            
-            # Save to Firestore
-            doc_ref = db.collection('daily_outfit_suggestions').add(suggestion_doc)
-            suggestion_id = doc_ref[1].id
-            
-            logger.info(f"Generated and saved new outfit suggestion {suggestion_id}")
-            
-            return {
-                "success": True,
-                "suggestion": {
-                    "id": suggestion_id,
-                    "outfitData": generated_outfit,
-                    "generatedAt": current_timestamp,
-                    "date": today_str
-                },
-                "isWorn": False,
-                "wornAt": None,
-                "message": "Generated new outfit suggestion for today"
-            }
-            
-        except Exception as generation_error:
-            logger.error(f"Failed to generate outfit suggestion: {generation_error}")
-            
-            # Create a simple fallback outfit with actual wardrobe items
-            logger.info("Creating fallback outfit with user's wardrobe items")
-            
-            # Get user's wardrobe items for fallback
-            from ..routes.outfits import get_user_wardrobe
-            try:
-                wardrobe_items = await get_user_wardrobe(current_user.id)
-                logger.info(f"Retrieved {len(wardrobe_items)} wardrobe items for fallback")
-                
-                # Simple fallback logic: pick basic items
-                selected_items = []
-                categories_needed = ['tops', 'bottoms']  # Basic outfit needs
-                
-                for category in categories_needed:
-                    # Find items in this category
-                    category_items = [item for item in wardrobe_items if item.get('type', '').lower() in [category[:-1], category]]  # 'top'/'tops', 'bottom'/'bottoms'
-                    if category_items:
-                        # Pick the first suitable item
-                        selected_items.append(category_items[0])
-                        logger.info(f"Selected {category_items[0].get('name', 'Unknown')} for {category}")
-                
-                # Add a jacket/outerwear if available
-                outerwear = [item for item in wardrobe_items if item.get('type', '').lower() in ['jacket', 'outerwear', 'blazer', 'cardigan']]
-                if outerwear:
-                    selected_items.append(outerwear[0])
-                    logger.info(f"Added outerwear: {outerwear[0].get('name', 'Unknown')}")
-                
-                fallback_outfit = {
-                    "name": "Today's Casual Look",
-                    "occasion": "casual",
-                    "style": "comfortable",
-                    "mood": "confident",
-                    "description": "A simple, comfortable outfit for your day",
-                    "items": selected_items,  # Actual wardrobe items
-                    "imageUrl": "",
-                    "weather": {}
-                }
-                
-                logger.info(f"Created fallback outfit with {len(selected_items)} items")
-                
-            except Exception as wardrobe_error:
-                logger.error(f"Failed to get wardrobe items for fallback: {wardrobe_error}")
-                # Ultimate fallback with empty items
-                fallback_outfit = {
-                    "name": "Today's Casual Look",
-                    "occasion": "casual",
-                    "style": "comfortable",
-                    "mood": "confident",
-                    "description": "A simple, comfortable outfit for your day",
-                    "items": [],
-                    "imageUrl": "",
-                    "weather": {}
-                }
-            
-            # Save fallback suggestion to cache
-            try:
-                current_timestamp = int(datetime.utcnow().timestamp() * 1000)
-                fallback_doc = {
-                    'user_id': current_user.id,
-                    'date': today_str,
-                    'outfit_data': fallback_outfit,
-                    'generated_at': current_timestamp,
-                    'is_worn': False,
-                    'worn_at': None,
-                    'created_at': current_timestamp,
-                    'updated_at': current_timestamp,
-                    'is_fallback': True  # Mark as fallback
-                }
-                
-                doc_ref = db.collection('daily_outfit_suggestions').add(fallback_doc)
-                suggestion_id = doc_ref[1].id
-                
-                logger.info(f"Created fallback outfit suggestion {suggestion_id}")
-                
-                return {
-                    "success": True,
-                    "suggestion": {
-                        "id": suggestion_id,
-                        "outfitData": fallback_outfit,
-                        "generatedAt": current_timestamp,
-                        "date": today_str
-                    },
-                    "isWorn": False,
-                    "wornAt": None,
-                    "message": "Daily outfit suggestion (simplified)"
-                }
-                
-            except Exception as fallback_error:
-                logger.error(f"Failed to save fallback suggestion: {fallback_error}")
-                return {
-                    "success": True,
-                    "suggestion": None,
-                    "isWorn": False,
-                    "message": "Could not generate outfit suggestion today"
-                }
-        
-    except Exception as e:
-        logger.error(f"Error getting today's outfit suggestion: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to get today's outfit suggestion")
+            record = save(database.transaction())
+        except AppDataDeletionError as exc:
+            raise HTTPException(exc.status_code, exc.detail) from None
+    return {"success": True, "suggestion": {"id": suggestion_id, "outfitData": record["outfit_data"], "generatedAt": record["generated_at"], "date": day}, "isWorn": record.get("is_worn", False), "wornAt": record.get("worn_at"), "message": "Today's outfit suggestion"}
 
 @router.delete("/today-suggestion/clear-cache")
-async def clear_todays_suggestion_cache(
-    current_user: UserProfile = Depends(get_current_user)
-):
-    """Clear today's outfit suggestion cache for the current user."""
+async def clear_todays_suggestion_cache(current_user: UserProfile = Depends(get_current_user)):
+    from google.cloud.firestore_v1 import FieldFilter
+    from ..services.app_data_privacy import require_app_data_writable, AppDataDeletionError
+    from ..services.wear_rewards import reward_timezone
+    from zoneinfo import ZoneInfo
+    database = get_db()
     try:
-        if not current_user:
-            raise HTTPException(status_code=400, detail="User not found")
-        
-        logger.info(f"Clearing today's outfit suggestion cache for user {current_user.id}")
-        
-        # Get today's date
-        from datetime import datetime, timezone
-        today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-        
-        # Check if firebase is available
-        if not db:
-            return {
-                "success": False,
-                "message": "Firebase not available"
-            }
-        
-        # Delete all suggestions for today
-        suggestions_ref = db.collection('daily_outfit_suggestions')
-        query = suggestions_ref.where(filter=FieldFilter('user_id', '==', current_user.id)).where(filter=FieldFilter('date', '==', today_str))
-        existing_docs = list(query.stream())
-        
-        deleted_count = 0
-        for doc in existing_docs:
-            doc.reference.delete()
-            deleted_count += 1
-        
-        logger.info(f"Deleted {deleted_count} cached suggestions for user {current_user.id}")
-        
-        return {
-            "success": True,
-            "deleted_count": deleted_count,
-            "message": f"Cleared {deleted_count} cached suggestions for today"
-        }
-        
-    except Exception as e:
-        logger.error(f"Error clearing suggestion cache: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to clear suggestion cache")
+        require_app_data_writable(database, current_user.id)
+    except AppDataDeletionError as exc:
+        raise HTTPException(exc.status_code, exc.detail) from None
+    user = database.collection("users").document(current_user.id).get().to_dict() or {}
+    day = datetime.now(ZoneInfo(reward_timezone(user, "UTC"))).date().isoformat()
+    records = database.collection("daily_outfit_suggestions").where(filter=FieldFilter("user_id", "==", current_user.id)).where(filter=FieldFilter("date", "==", day)).stream()
+    deleted = 0
+    for record in records:
+        # Saved look/history remain intact. Only the suggestion pointer is cleared.
+        record.reference.delete()
+        deleted += 1
+    return {"success": True, "deleted_count": deleted}
 
 @router.post("/today-suggestion/wear")
-async def mark_today_suggestion_as_worn(
-    data: Dict[str, Any],
-    current_user: UserProfile = Depends(get_current_user)
-):
-    """
-    Mark today's outfit suggestion as worn.
-    This creates an outfit history entry and updates the suggestion status.
-    """
+async def mark_today_suggestion_as_worn(data: Dict[str, Any], current_user: UserProfile = Depends(get_current_user)):
+    from ..services.outfit_wear import mark_outfit_worn, OutfitWearError, _digest
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
     try:
-        if not current_user:
-            raise HTTPException(status_code=400, detail="User not found")
-            
-        suggestion_id = (data.get('suggestionId') if data else None)
-        if not suggestion_id:
-            raise HTTPException(status_code=400, detail="suggestionId is required")
-            
-        logger.info(f"Marking today's suggestion {suggestion_id} as worn for user {current_user.id}")
-        
-        # Check if firebase is available
-        if not db:
-            raise HTTPException(status_code=503, detail="Service temporarily unavailable")
-        
-        # Get the suggestion document
-        suggestion_ref = db.collection('daily_outfit_suggestions').document(suggestion_id)
-        suggestion_doc = suggestion_ref.get() if suggestion_ref else None
-        
-        if not suggestion_doc.exists:
-            raise HTTPException(status_code=404, detail="Suggestion not found")
-        
-        suggestion_data = suggestion_doc.to_dict()
-        
-        # Verify ownership
-        if suggestion_data.get('user_id') != current_user.id:
-            raise HTTPException(status_code=403, detail="Not authorized")
-        
-        # Check if already worn
-        if suggestion_data.get('is_worn'):
-            return {
-                "success": True,
-                "message": "Suggestion already marked as worn",
-                "alreadyWorn": True
-            }
-        
-        # Mark suggestion as worn
-        current_timestamp = int(datetime.utcnow().timestamp() * 1000)
-        suggestion_ref.update({
-            'is_worn': True,
-            'worn_at': current_timestamp,
-            'updated_at': current_timestamp
-        })
-        
-        # Extract and update wardrobe item wear counts
-        outfit_data = (suggestion_data.get('outfit_data', {}) if suggestion_data else {})
-        outfit_items = (outfit_data.get('items', []) if outfit_data else [])
-        
-        if outfit_items:
-            try:
-                batch = db.batch()
-                wardrobe_ref = db.collection('wardrobe')
-                
-                for item in outfit_items:
-                    if isinstance(item, dict) and 'id' in item:
-                        item_id = item['id']
-                        item_ref = wardrobe_ref.document(item_id)
-                        item_doc = item_ref.get() if item_ref else None
-                        
-                        if item_doc.exists:
-                            item_data = item_doc.to_dict()
-                            current_wear_count = (item_data.get('wearCount', 0) if item_data else 0)
-                            
-                            # Update wear count and last worn timestamp
-                            batch.update(item_ref, {
-                                'wearCount': current_wear_count + 1,
-                                'lastWorn': current_timestamp,
-                                'updatedAt': current_timestamp
-                            })
-                
-                # Commit the batch update
-                batch.commit()
-                logger.info(f"✅ Updated wear counts for {len(outfit_items)} items in suggestion {suggestion_id}")
-                
-                # Increment TVE for each worn item
-                try:
-                    from ..services.tve_service import tve_service, CATEGORY_TO_SPENDING_KEY
-                    
-                    total_tve_increment = 0
-                    for item in outfit_items:
-                        if isinstance(item, dict) and 'id' in item:
-                            item_id = item['id']
-                            item_ref = wardrobe_ref.document(item_id)
-                            item_doc = item_ref.get()
-                            
-                            if item_doc.exists:
-                                item_data = item_doc.to_dict()
-                                value_per_wear = item_data.get('value_per_wear', 0)
-                                
-                                # Initialize TVE fields if missing
-                                if value_per_wear == 0 or value_per_wear is None:
-                                    logger.info(f"⚠️ Item {item_id} missing TVE fields, initializing...")
-                                    await tve_service.initialize_item_tve_fields(current_user.id, item_id)
-                                    # Re-fetch
-                                    item_doc = item_ref.get()
-                                    if item_doc.exists:
-                                        item_data = item_doc.to_dict()
-                                        value_per_wear = item_data.get('value_per_wear', 5.0)
-                                
-                                # Increment TVE
-                                if value_per_wear > 0:
-                                    success = await tve_service.increment_item_tve(item_id, value_per_wear)
-                                    if success:
-                                        total_tve_increment += value_per_wear
-                                        logger.info(f"✅ Incremented TVE for item {item_id} by ${value_per_wear:.2f}")
-                    
-                    if total_tve_increment > 0:
-                        logger.info(f"✅ Total TVE increment for suggestion: ${total_tve_increment:.2f}")
-                        
-                except Exception as tve_error:
-                    logger.warning(f"⚠️ Failed to update TVE: {tve_error}")
-                    # Don't fail the whole request if TVE update fails
-                    
-            except Exception as item_error:
-                logger.warning(f"⚠️ Failed to update wardrobe item wear counts: {item_error}")
-                # Don't fail the whole request if item updates fail
-        
-        # Create outfit history entry
-        history_entry = {
-            'user_id': current_user.id,
-            'outfit_id': f"suggestion_{suggestion_id}",  # Special ID for suggested outfits
-            'outfit_name': (outfit_data.get('name', 'Daily Suggestion') if outfit_data else 'Daily Suggestion'),
-            'outfit_image': (outfit_data.get('imageUrl', '') if outfit_data else ''),
-            'date_worn': current_timestamp,
-            'occasion': 'Daily Suggestion',
-            'mood': 'Confident',
-            'weather': {},
-            'notes': 'Generated daily outfit suggestion',
-            'tags': ['daily-suggestion'],
-            'created_at': current_timestamp,
-            'updated_at': current_timestamp,
-            'suggestion_id': suggestion_id  # Link back to the suggestion
-        }
-        
-        # Save to outfit history
-        db.collection('outfit_history').add(history_entry)
-        
-        # Update user_stats for dashboard counter
+        suggestion_id = data.get("suggestionId")
+        if not isinstance(suggestion_id, str) or "/" in suggestion_id:
+            raise HTTPException(422, "suggestionId is required")
+        database = get_db()
+        snapshot = database.collection("daily_outfit_suggestions").document(suggestion_id).get()
+        suggestion = snapshot.to_dict() if snapshot.exists else None
+        if not suggestion or suggestion.get("user_id") != current_user.id:
+            raise HTTPException(404, "Suggestion not found")
+        outfit_id = suggestion.get("outfit_id") or "suggestion-" + _digest(current_user.id, suggestion_id)
+        zone = data.get("timezone") or "UTC"
         try:
-            from google.cloud.firestore import Increment, SERVER_TIMESTAMP
-            stats_ref = db.collection('user_stats').document(current_user.id)
-            
-            # Use Firestore Increment to properly add 1 to existing count
-            stats_ref.set({
-                'user_id': current_user.id,
-                'worn_this_week': Increment(1),
-                'last_updated': SERVER_TIMESTAMP,
-                'updated_at': SERVER_TIMESTAMP
-            }, merge=True)
-            logger.info(f"✅ Updated user_stats for dashboard counter")
-        except Exception as stats_error:
-            logger.warning(f"⚠️ Stats update failed: {stats_error}")
-            # Don't fail the whole request if stats update fails
-        
-        # Log analytics event
-        try:
-            from ..models.analytics_event import AnalyticsEvent
-            analytics_event = AnalyticsEvent(
-                user_id=current_user.id,
-                event_type="daily_suggestion_worn",
-                metadata={
-                    "suggestion_id": suggestion_id,
-                    "outfit_name": (outfit_data.get('name', 'Daily Suggestion') if outfit_data else 'Daily Suggestion'),
-                    "date": (suggestion_data.get('date') if suggestion_data else None),
-                    "source": "daily_outfit_suggestion"
-                }
-            )
-            # from ..services.analytics_service import log_analytics_event  # Temporarily commented out
-            # log_analytics_event(analytics_event)  # Temporarily commented out
-        except Exception as analytics_error:
-            logger.warning(f"Failed to log analytics: {analytics_error}")
-        
-        logger.info(f"Successfully marked suggestion {suggestion_id} as worn")
-        
-        return {
-            "success": True,
-            "message": "Daily outfit suggestion marked as worn",
-            "wornAt": current_timestamp
-        }
-        
+            day = datetime.now(ZoneInfo(zone)).date().isoformat()
+        except (ValueError, TypeError, ZoneInfoNotFoundError):
+            raise HTTPException(422, "Invalid timezone") from None
+        key = data.get("idempotency_key") or "suggestion-" + _digest(current_user.id, suggestion_id, day)
+        result = mark_outfit_worn(database, outfit_id, current_user.id, key, zone, source="daily_suggestion", suggestion_id=suggestion_id)
+        return {**result, "alreadyWorn": result["already_recorded"], "message": "Suggestion recorded"}
+    except OutfitWearError as exc:
+        raise HTTPException(exc.status_code, exc.detail) from None
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"Error marking suggestion as worn: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to mark suggestion as worn")
+    except Exception:
+        raise HTTPException(503, "The wear request could not be acknowledged. Retry the same request.") from None
 
 @router.get("/stats")
-async def get_outfit_history_stats(
-    current_user: UserProfile = Depends(get_current_user),
-    days: int = Query(7, description="Number of days to look back for stats")
-):
-    """Get outfit statistics from pre-aggregated user stats document - LIGHTNING FAST!"""
+async def get_outfit_history_stats(current_user: UserProfile = Depends(get_current_user), days: int = Query(30, ge=1, le=365)):
+    from google.cloud.firestore_v1 import FieldFilter
+    database = get_db()
     try:
-        if not current_user:
-            raise HTTPException(status_code=400, detail="User not found")
-        
-        logger.info(f"Getting pre-aggregated stats for user {current_user.id}")
-        
-        # Import and use the stats service
-        from ..services.user_stats_service import user_stats_service
-        
-        # Get stats from single document read (fast!)
-        stats_data = await user_stats_service.get_user_stats(current_user.id)
-        
-        # Extract outfit stats
-        outfit_stats = (stats_data.get("outfits", {}) if stats_data else {})
-        wardrobe_stats = (stats_data.get("wardrobe", {}) if stats_data else {})
-        
-        # Calculate worn outfits this week on-the-fly (until stats are properly tracking this)
-        worn_this_week = await calculate_worn_outfits_this_week(current_user.id)
-        
-        # Format for frontend compatibility
-        response_stats = {
-            "total_outfits": (outfit_stats.get("total", 0) if outfit_stats else 0),
-            "outfits_this_week": worn_this_week,  # Show actual worn count
-            "totalThisWeek": worn_this_week,  # Frontend compatibility
-            "days_queried": days,
-            "recent_outfits": [],  # Could be populated if needed
-            "wardrobe_total": (wardrobe_stats.get("total_items", 0) if wardrobe_stats else 0),
-            "wardrobe_favorites": (wardrobe_stats.get("favorites", 0) if wardrobe_stats else 0),
-            "last_updated": (stats_data.get("last_updated") if stats_data else None),
-            "date_range": {
-                "start": (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(),
-                "end": datetime.now(timezone.utc).isoformat()
-            }
-        }
-        
-        logger.info(f"Fast stats retrieved: {response_stats['total_outfits']} total outfits, {response_stats['outfits_this_week']} this week")
-        
-        return {
-            "success": True,
-            "data": response_stats,
-            "message": f"Pre-aggregated stats (updated: {(stats_data.get('last_updated', 'unknown') if stats_data else 'unknown')})",
-            **response_stats  # Also return stats at root level for compatibility
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to get pre-aggregated stats: {str(e)}")
-        
-        # Return a working fallback response
-        return {
-            "success": False,
-            "data": {
-                "total_outfits": 1500,  # Use known count
-                "outfits_this_week": 0,
-                "totalThisWeek": 0,
-                "days_queried": days,
-                "recent_outfits": [],
-                "wardrobe_total": 155,  # Use known count
-                "wardrobe_favorites": 0,
-                "date_range": {
-                    "start": (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(),
-                    "end": datetime.now(timezone.utc).isoformat()
-                }
-            },
-            "error": f"Stats service failed: {str(e)}",
-            "message": "Using fallback stats",
-            "total_outfits": 1500,
-            "outfits_this_week": 0,
-            "totalThisWeek": 0
-        }
+        outfits = [snapshot.to_dict() for snapshot in database.collection("outfits").where(filter=FieldFilter("user_id", "==", current_user.id)).stream()]
+        outfits = [item for item in outfits if not any(item.get(key) for key in ("deleted", "isDeleted", "deletedAt", "deleted_at"))]
+        garments = [snapshot.to_dict() for snapshot in database.collection("wardrobe").where(filter=FieldFilter("userId", "==", current_user.id)).stream()]
+        garments = [item for item in garments if not item.get("deleted_at")]
+        weekly = await calculate_worn_outfits_this_week(current_user.id)
+        values = {"total_outfits": len(outfits), "outfits_this_week": weekly, "totalThisWeek": weekly, "days_queried": days, "recent_outfits": [], "wardrobe_total": len(garments), "wardrobe_favorites": sum(bool(item.get("isFavorite")) for item in garments)}
+        return {"success": True, "data": values, **values}
+    except Exception:
+        raise HTTPException(503, "Outfit statistics are temporarily unavailable") from None
 
 @router.get("/debug-user-docs")
 async def debug_user_outfit_history(
@@ -1629,6 +689,8 @@ async def verify_worn_calculation(
         
         for doc in outfits_ref.stream():
             data = doc.to_dict()
+            if data.get("undone"):
+                continue
             last_worn_raw = (data.get('lastWorn') if data else None)
             last_worn_dt = parse_last_worn(last_worn_raw)
             
@@ -1650,6 +712,8 @@ async def verify_worn_calculation(
         
         for doc in history_ref.stream():
             data = doc.to_dict()
+            if data.get("undone"):
+                continue
             date_worn_raw = (data.get('date_worn') if data else None)
             date_worn_dt = parse_last_worn(date_worn_raw)
             outfit_id = (data.get('outfit_id') if data else None)

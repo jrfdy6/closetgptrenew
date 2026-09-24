@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Navigation from "@/components/Navigation";
 import ClientOnlyNav from "@/components/ClientOnlyNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +32,6 @@ import {
   Info,
   RefreshCw,
   Upload,
-  X,
   ChevronDown
 } from "lucide-react";
 import Link from "next/link";
@@ -41,9 +40,11 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import dynamic from 'next/dynamic';
 import { dashboardService, DashboardData, TopItem } from "@/lib/services/dashboardService";
 import { useWardrobe } from '@/lib/hooks/useWardrobe';
-import MissingWardrobeModal from '@/components/MissingWardrobeModal';
+import OnboardingResumeCard from '@/components/onboarding/OnboardingResumeCard';
 import WardrobeInsightsHub from '@/components/ui/wardrobe-insights-hub';
 import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerator";
+import { evaluateCapsule } from "@/lib/onboarding/state";
+import { useOnboardingState } from "@/lib/hooks/useOnboardingState";
 import { useAutoWeather } from '@/hooks/useWeather';
 import PremiumTeaser from '@/components/PremiumTeaser';
 import { useGamificationStats } from '@/hooks/useGamificationStats';
@@ -129,11 +130,17 @@ const BatchImageUpload = dynamic(() => import('@/components/BatchImageUpload'), 
 
 
 export default function Dashboard() {
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [dashboardSnapshot, setDashboardSnapshot] = useState<{ userId: string; data: DashboardData } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [dashboardRequestOwner, setDashboardRequestOwner] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
+  const dashboardRequestId = useRef(0);
   const [markingAsWorn, setMarkingAsWorn] = useState(false);
   const [showBatchUpload, setShowBatchUpload] = useState(false);
+  const [batchUploadPending, setBatchUploadPending] = useState(false);
+  const [uploadCloseBlocked, setUploadCloseBlocked] = useState(false);
+  const uploadTriggerRef = useRef<HTMLButtonElement>(null);
+  const uploadTitleRef = useRef<HTMLHeadingElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [windowWidth, setWindowWidth] = useState<number>(0);
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -141,16 +148,22 @@ export default function Dashboard() {
   const [showOutfitDetails, setShowOutfitDetails] = useState(false);
   const { toast } = useToast();
   const { user, loading } = useAuthContext();
+  const currentDashboardUserId = useRef(user?.uid);
+  const dashboardData = dashboardSnapshot?.userId === user?.uid ? dashboardSnapshot?.data : null;
   const router = useRouter();
   
   // Check wardrobe items for modal
-  const { items: wardrobeItems, loading: wardrobeLoading, refetch: refetchWardrobe } = useWardrobe();
+  const { items: wardrobeItems, loading: wardrobeLoading, error: wardrobeError, refetch: refetchWardrobe } = useWardrobe();
   
+  const { state: onboardingState, loading: onboardingLoading, error: onboardingError, refresh: refreshOnboarding } = useOnboardingState();
+
   // Weather hook for automatic location detection
   const { weather, fetchWeatherByLocation } = useAutoWeather();
   
   // Gamification stats for Level and AI Fit Score
-  const { stats: gamificationStats } = useGamificationStats();
+  const { stats: gamificationStats, loading: gamificationLoading, error: gamificationError } = useGamificationStats();
+  const progressLevel = gamificationStats?.level?.level;
+  const progressAvailable = !gamificationLoading && !gamificationError && progressLevel != null;
   
   // Subscription plan for gating premium features
   const { plan, canAccess, loading: planLoading, subscription } = useSubscriptionPlan();
@@ -160,8 +173,10 @@ export default function Dashboard() {
   // Default to false during loading to prevent premature content display
   const canAccessPro = !planLoading && plan !== SubscriptionPlan.FREE && canAccess(SubscriptionPlan.PRO);
   
-  // Modal should show if user has fewer than 10 items (direct computation, no state needed)
-  const shouldShowMissingWardrobeModal = !wardrobeLoading && wardrobeItems.length < 10;
+  // Current inventory controls generation; saved milestones control the onboarding gate.
+  const capsule = evaluateCapsule(wardrobeItems);
+  const generationEnabled = !wardrobeLoading && !wardrobeError && !onboardingLoading && !onboardingError &&
+    capsule.ready && onboardingState?.stage === 'complete';
 
   // Debug: Log subscription info
   useEffect(() => {
@@ -257,81 +272,74 @@ export default function Dashboard() {
 
   // Fetch real dashboard data
   useEffect(() => {
+    currentDashboardUserId.current = user?.uid;
     if (!loading) {
       fetchDashboardData();
     }
+    return () => {
+      dashboardRequestId.current += 1;
+      currentDashboardUserId.current = undefined;
+    };
   }, [user, loading]);
 
   // Listen for outfit marked as worn events to refresh dashboard
   useEffect(() => {
+    const pendingRefreshes = new Set<ReturnType<typeof setTimeout>>();
     const handleOutfitMarkedAsWorn = (event: CustomEvent) => {
       debugDashboard('🔄 Dashboard: Outfit marked as worn, refreshing data...', event.detail);
       // Add a small delay to allow Firestore write to propagate
       // This ensures the query picks up the newly created outfit_history entry
-      setTimeout(() => {
+      const timer = setTimeout(() => {
+        pendingRefreshes.delete(timer);
         debugDashboard('🔄 Dashboard: Fetching fresh data from server...');
         if (user) {
           fetchDashboardDataFresh();
         }
       }, 2000); // 2 second delay for Firestore consistency
+      pendingRefreshes.add(timer);
     };
 
+    const onReturn = () => { if (document.visibilityState === 'visible') void fetchDashboardDataFresh(); };
+    document.addEventListener('visibilitychange', onReturn);
     window.addEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
     
     return () => {
+      document.removeEventListener('visibilitychange', onReturn);
       window.removeEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
+      pendingRefreshes.forEach(clearTimeout);
     };
   }, [user]); // Only depend on user, not fetchDashboardData
 
-  const fetchDashboardData = async () => {
+  const loadDashboardData = async (forceFresh: boolean) => {
+    const requestUserId = user?.uid;
+    if (currentDashboardUserId.current !== requestUserId) return;
+    const requestId = ++dashboardRequestId.current;
     try {
+      setDashboardRequestOwner(requestUserId);
       setIsLoading(true);
       setError(null);
-      debugDashboard('🔍 DEBUG: Dashboard: Starting to fetch real data...');
-      
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      const data = await dashboardService.getDashboardData(user);
-      debugDashboard('🔍 DEBUG: Dashboard: Real data received:', data);
-      debugDashboard('🔍 DEBUG: Dashboard: Data type:', typeof data);
-      debugDashboard('🔍 DEBUG: Dashboard: Data keys:', Object.keys(data || {}));
-      debugDashboard('🔍 DEBUG: Dashboard: Total items value:', data?.totalItems);
-      
-      setDashboardData(data);
-      debugDashboard('🔍 DEBUG: Dashboard: State update called with:', data);
-    } catch (err) {
-      console.error('🔍 DEBUG: Dashboard: Error fetching data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
+      const data = forceFresh
+        ? await dashboardService.getDashboardData(user, true)
+        : await dashboardService.getDashboardData(user);
+      if (dashboardRequestId.current === requestId && currentDashboardUserId.current === requestUserId) {
+        setDashboardSnapshot({ userId: user.uid, data });
+      }
+    } catch {
+      if (dashboardRequestId.current === requestId && currentDashboardUserId.current === requestUserId) {
+        setError("We couldn't load your dashboard. Please try again.");
+      }
     } finally {
-      setIsLoading(false);
+      if (dashboardRequestId.current === requestId && currentDashboardUserId.current === requestUserId) {
+        setIsLoading(false);
+      }
     }
   };
 
-  const fetchDashboardDataFresh = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      debugDashboard('🔍 DEBUG: Dashboard: Starting to fetch FRESH data (bypassing cache)...');
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-      
-      const data = await dashboardService.getDashboardData(user, true); // Force fresh
-      debugDashboard('🔍 DEBUG: Dashboard: FRESH data received:', data);
-      debugDashboard('🔍 DEBUG: Dashboard: FRESH outfitsThisWeek:', data?.outfitsThisWeek);
-      
-      setDashboardData(data);
-      debugDashboard('🔍 DEBUG: Dashboard: State update called with FRESH data:', data);
-    } catch (err) {
-      console.error('🔍 DEBUG: Dashboard: Error fetching FRESH data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const fetchDashboardData = () => loadDashboardData(false);
+  const fetchDashboardDataFresh = () => loadDashboardData(true);
 
   const handleMarkAsWorn = async () => {
     if (!user || !dashboardData?.todaysOutfit) return;
@@ -339,13 +347,7 @@ export default function Dashboard() {
     // If there's a suggestionId, use the backend endpoint
     const suggestionId = (dashboardData.todaysOutfit as any)?.suggestionId;
     if (!suggestionId) {
-      // If no suggestionId, we can't mark it as worn via backend
-      // But we can still show feedback to the user
-      toast({
-        title: "Outfit saved",
-        description: "This outfit has been noted in your history.",
-        variant: "default",
-      });
+      setError('This suggestion could not be confirmed. Open a saved look to record a wear.');
       return;
     }
     
@@ -379,13 +381,13 @@ export default function Dashboard() {
 
 
   // Show loading state while authentication is resolving or subscription is loading
-  if (loading || isLoading || planLoading) {
+  if (loading || ((isLoading || dashboardRequestOwner !== user?.uid) && !dashboardData) || planLoading) {
     return (
       <div className="min-h-screen">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-600 mx-auto"></div>
+          <div className="text-center" role="status">
+            <div aria-hidden="true" className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-600 mx-auto"></div>
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">Loading your dashboard...</p>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-500">
               Fetching real-time data from your wardrobe...
@@ -415,19 +417,19 @@ export default function Dashboard() {
   }
 
   // Show error state if data fetching failed
-  if (error) {
+  if (error && !dashboardData) {
     return (
       <div className="min-h-screen">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Dashboard Error</h1>
+          <div className="text-center" role="alert">
+            <AlertCircle aria-hidden="true" className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Your dashboard couldn&apos;t load</h1>
             <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button onClick={handleRetry}>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Retry
+                Retry dashboard
               </Button>
               <Link href="/wardrobe">
                 <Button variant="outline">Go to Wardrobe</Button>
@@ -436,9 +438,6 @@ export default function Dashboard() {
                 <Button variant="outline">Go to Profile</Button>
               </Link>
             </div>
-            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-              If you continue to see this error, please check the browser console (F12) for detailed debug information.
-            </p>
           </div>
         </div>
       </div>
@@ -482,7 +481,13 @@ export default function Dashboard() {
               Generate today&apos;s fit
             </Button>
             <Button
-                onClick={() => setShowBatchUpload(true)}
+                ref={uploadTriggerRef}
+                aria-haspopup="dialog"
+                aria-expanded={showBatchUpload}
+                onClick={() => {
+                  setUploadCloseBlocked(false);
+                  setShowBatchUpload(true);
+                }}
                 variant="outline"
                 className="component-button-outline px-6 py-3 dark:hover:bg-white/10 dark:!text-white"
               >
@@ -493,14 +498,26 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Smart Weather Outfit Generator - The original component with all functionality */}
+        {error && <div role="alert" className="mb-4 space-y-2 text-red-600 dark:text-red-400">
+          <p>{error} Your last loaded dashboard is still shown.</p>
+          <Button variant="outline" onClick={handleRetry} disabled={isLoading}>Retry dashboard</Button>
+        </div>}
+        {isLoading && <p role="status" className="mb-4 component-text-secondary">Updating your dashboard…</p>}
+        {onboardingError && <div role="alert" className="mb-4 text-red-600 dark:text-red-400">
+          {onboardingError} <Button variant="outline" onClick={() => { void refreshOnboarding(); }}>Retry saved progress</Button>
+        </div>}
+        {!onboardingLoading && !onboardingError && onboardingState && <OnboardingResumeCard state={onboardingState} />}
+        {/* Keep the generated result mounted while dashboard statistics refresh. */}
         <div id="smart-weather-outfit" className="mb-6 sm:mb-8 lg:mb-12">
           {user && (
-            <SmartWeatherOutfitGenerator 
+            <SmartWeatherOutfitGenerator
+              generationEnabled={generationEnabled}
+              readinessMessage={wardrobeError ? "We couldn't load your wardrobe. Refresh to try again." : onboardingError || (wardrobeLoading || onboardingLoading ? 'Loading your saved wardrobe…' : onboardingState?.stage === 'style' ? 'Finish your style questionnaire before creating outfits.' : onboardingState?.stage === 'first-look' ? 'Choose your settings above to create your first outfit.' : undefined)}
               onOutfitGenerated={(outfit) => {
                 // Refresh dashboard when outfit is generated
                 if (user) {
                   fetchDashboardData();
+                  void refreshOnboarding();
                 }
               }}
             />
@@ -538,54 +555,14 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">Your Progress</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-copper-text component-text-primary">
-                  Level {gamificationStats?.level?.level || 1}
+                <p aria-live="polite" className={progressAvailable
+                  ? 'text-2xl sm:text-3xl lg:text-4xl font-bold gradient-copper-text component-text-primary'
+                  : 'text-sm sm:text-base component-text-secondary'}>
+                  {gamificationLoading ? 'Loading…' : progressAvailable ? `Level ${progressLevel}` : 'Unavailable'}
                 </p>
               </div>
             </div>
           </div>
-
-          {/* AI Fit Score Card - PRO/PREMIUM ONLY */}
-          {canAccessPro ? (
-            <div className="component-card p-4 sm:p-6">
-              <div className="flex flex-col space-y-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--copper-mid)]/30 to-primary/35 dark:from-[var(--copper-mid)]/20 dark:to-primary/25 rounded-xl flex items-center justify-center shadow-inner">
-                  <Star className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80 dark:text-primary/70" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">AI Fit Score</p>
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E8A4A4] to-[#D4A574] bg-clip-text text-transparent mb-0.5">
-                    {Math.round(gamificationStats?.ai_fit_score?.total_score || 0)}
-                  </p>
-                  <p className="text-xs sm:text-sm component-text-secondary">
-                    {gamificationStats?.ai_fit_score?.total_score === undefined || gamificationStats?.ai_fit_score?.total_score === 0 
-                      ? 'Getting Started' 
-                      : gamificationStats?.ai_fit_score?.total_score >= 75 
-                        ? 'AI Master' 
-                        : gamificationStats?.ai_fit_score?.total_score >= 50 
-                          ? 'AI Apprentice' 
-                          : 'Learning'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="component-card p-4 sm:p-6 relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-[var(--copper-mid)]/5 to-primary/5 dark:from-[var(--copper-mid)]/10 dark:to-primary/10 blur-sm" />
-              <div className="relative flex flex-col space-y-3 opacity-60">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--copper-mid)]/30 to-primary/35 dark:from-[var(--copper-mid)]/20 dark:to-primary/25 rounded-xl flex items-center justify-center shadow-inner">
-                  <Star className="h-5 w-5 sm:h-6 sm:w-6 text-primary/80 dark:text-primary/70" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">AI Fit Score</p>
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E8A4A4] to-[#D4A574] bg-clip-text text-transparent mb-0.5">
-                    --
-                  </p>
-                  <p className="text-xs sm:text-sm component-text-secondary">Upgrade to PRO</p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Total Items Card */}
           <div className="component-card p-4 sm:p-6">
@@ -596,7 +573,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">Total items</p>
                 <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#D4A574] to-[#C9956F] bg-clip-text text-transparent">
-                  {dashboardData?.totalItems || 0}
+                  {dashboardData?.totalItems ?? '—'}
                 </p>
               </div>
             </div>
@@ -629,7 +606,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">This week</p>
                   <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#C9956F] to-[#D4A574] bg-clip-text text-transparent">
-                    {dashboardData?.outfitsThisWeek || 0}
+                    {dashboardData?.outfitsThisWeek ?? 'Unavailable'}
                   </p>
                 </div>
           </div>
@@ -676,7 +653,7 @@ export default function Dashboard() {
                       <div>
                         <p className="text-xs font-medium component-text-secondary mb-1">This week</p>
                         <p className="text-2xl font-bold bg-gradient-to-r from-[#C9956F] to-[#D4A574] bg-clip-text text-transparent">
-                          {dashboardData?.outfitsThisWeek || 0}
+                          {dashboardData?.outfitsThisWeek ?? 'Unavailable'}
                         </p>
                       </div>
                     </div>
@@ -836,7 +813,7 @@ export default function Dashboard() {
                         </p>
                       </div>
                       <Button
-                        onClick={() => router.push('/pricing')}
+                        onClick={() => router.push('/upgrade')}
                         className="w-full gradient-copper-gold hover:opacity-90"
                         size="lg"
                       >
@@ -892,33 +869,47 @@ export default function Dashboard() {
         </Accordion>
 
         {/* Batch Upload Modal */}
-        {showBatchUpload && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="glass-modal rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-2xl font-serif text-gray-900 dark:text-white">Add Items with AI</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowBatchUpload(false)}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  <X className="w-5 h-5" />
-                </Button>
-              </div>
-              <div className="p-6">
-                <BatchImageUpload 
-                  userId={user?.uid || ''}
-                  onUploadComplete={() => {
-                    setShowBatchUpload(false);
-                    // Refresh dashboard data to show new items
-                    fetchDashboardData();
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+        <Dialog open={showBatchUpload} onOpenChange={open => {
+          if (!open && batchUploadPending) {
+            setUploadCloseBlocked(true);
+            return;
+          }
+          setUploadCloseBlocked(false);
+          setShowBatchUpload(open);
+        }}>
+          <DialogContent
+            className="glass-modal w-[calc(100%-2rem)] max-w-4xl max-h-[90dvh] overflow-y-auto rounded-2xl"
+            onOpenAutoFocus={event => {
+              event.preventDefault();
+              uploadTitleRef.current?.focus();
+            }}
+            onCloseAutoFocus={event => {
+              event.preventDefault();
+              uploadTriggerRef.current?.focus();
+            }}
+          >
+            <DialogHeader className="pr-6 text-left">
+              <DialogTitle ref={uploadTitleRef} tabIndex={-1} className="text-2xl font-serif">Add Items with AI</DialogTitle>
+              <DialogDescription>Choose clothing photos, then save them to your wardrobe.</DialogDescription>
+            </DialogHeader>
+            {uploadCloseBlocked && batchUploadPending && (
+              <p role="alert" className="text-sm text-destructive">
+                Your photos are still here. Save or remove unsaved selections before closing. If photos are being prepared or saved, wait for them to finish.
+              </p>
+            )}
+            <BatchImageUpload
+              userId={user?.uid || ''}
+              onPendingChange={setBatchUploadPending}
+              onUploadComplete={() => {
+                setBatchUploadPending(false);
+                setUploadCloseBlocked(false);
+                setShowBatchUpload(false);
+                // Completion is acknowledged by the uploader before closing.
+                fetchDashboardData();
+              }}
+            />
+          </DialogContent>
+        </Dialog>
 
       </main>
       
@@ -1098,16 +1089,6 @@ export default function Dashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* Missing Wardrobe Modal - Block access if < 10 items */}
-      <MissingWardrobeModal
-        userId={user?.uid || ''}
-        isOpen={shouldShowMissingWardrobeModal}
-        onComplete={() => {
-          refetchWardrobe();
-        }}
-        targetCount={10}
-      />
       
       {/* Client-Only Navigation - No Props to Avoid Serialization */}
       <ClientOnlyNav />

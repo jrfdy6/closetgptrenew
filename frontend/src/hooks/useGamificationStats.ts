@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { GAMIFICATION_ACTIVITY_EVENT, useWardrobeActivityRefresh } from '@/hooks/useWardrobeActivityRefresh';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { getPublicBackendUrl } from '@/lib/publicBackendUrl';
 
@@ -98,12 +99,19 @@ export interface BadgeInfo {
 
 export function useGamificationStats() {
   const { user } = useAuthContext();
+  const owner = useRef(user?.uid);
+  const sequence = useRef(0);
+  if (owner.current !== user?.uid) { owner.current = user?.uid; sequence.current++; }
   const [stats, setStats] = useState<GamificationStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchStats = useCallback(async () => {
+    const requestId = ++sequence.current;
+    const current = () => owner.current === user?.uid && sequence.current === requestId;
     if (!user) {
+      setStats(null);
+      setError(null);
       setLoading(false);
       return;
     }
@@ -113,8 +121,7 @@ export function useGamificationStats() {
       setError(null);
       
       const token = await user.getIdToken();
-      // Call backend directly to avoid Vercel API route timeout (10s limit)
-      const backendUrl = getPublicBackendUrl();
+      if (!current()) return;
       const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
       const timeout = isMobile ? 60000 : 30000; // 60s on mobile (matching wardrobe), 30s on desktop
       
@@ -125,7 +132,8 @@ export function useGamificationStats() {
       }, timeout);
       
       try {
-        const response = await fetch(`${backendUrl}/api/gamification/stats`, {
+        const response = await fetch('/api/gamification/stats', {
+          cache: 'no-store',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -140,6 +148,7 @@ export function useGamificationStats() {
       }
 
       const data = await response.json();
+      if (!current()) return;
       
         if (data.success) {
           setStats(data.data);
@@ -151,22 +160,23 @@ export function useGamificationStats() {
         throw fetchError;
       }
     } catch (err) {
+      if (!current()) return;
       if (err instanceof Error && err.name === 'AbortError') {
         const isMobile = typeof navigator !== 'undefined' && /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
         const timeoutSeconds = isMobile ? 60 : 30;
         console.error(`⏱️ DEBUG: Gamification stats timed out after ${timeoutSeconds}s (non-critical, continuing...)`);
-        // Don't set error for timeout - allow dashboard to continue without stats
-        setStats(null);
+        setError('Your progress could not be refreshed. Please try again.');
       } else {
         console.error('Error fetching gamification stats:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
       }
     } finally {
-      setLoading(false);
+      if (current()) setLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
+    setStats(null);
     fetchStats();
   }, [fetchStats]);
 
@@ -184,6 +194,8 @@ export function useGamificationStats() {
     };
   }, [fetchStats]);
 
+  useWardrobeActivityRefresh(user?.uid, fetchStats);
+
   return {
     stats,
     loading,
@@ -194,12 +206,19 @@ export function useGamificationStats() {
 
 export function useBadges() {
   const { user } = useAuthContext();
+  const owner = useRef(user?.uid);
+  const sequence = useRef(0);
+  if (owner.current !== user?.uid) { owner.current = user?.uid; sequence.current++; }
   const [badges, setBadges] = useState<BadgeInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchBadges = useCallback(async () => {
+    const requestId = ++sequence.current;
+    const current = () => owner.current === user?.uid && sequence.current === requestId;
     if (!user) {
+      setBadges([]);
+      setError(null);
       setLoading(false);
       return;
     }
@@ -209,6 +228,7 @@ export function useBadges() {
       setError(null);
       
       const token = await user.getIdToken();
+      if (!current()) return;
       const response = await fetch('/api/gamification/badges', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -221,6 +241,7 @@ export function useBadges() {
       }
 
       const data = await response.json();
+      if (!current()) return;
       
       if (data.success) {
         setBadges(data.data.badges || []);
@@ -228,16 +249,20 @@ export function useBadges() {
         throw new Error(data.error || 'Failed to fetch badges');
       }
     } catch (err) {
+      if (!current()) return;
       console.error('Error fetching badges:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
-      setLoading(false);
+      if (current()) setLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
+    setBadges([]);
     fetchBadges();
   }, [fetchBadges]);
+
+  useWardrobeActivityRefresh(user?.uid, fetchBadges);
 
   return {
     badges,
@@ -249,13 +274,20 @@ export function useBadges() {
 
 export function useChallenges() {
   const { user } = useAuthContext();
+  const owner = useRef(user?.uid);
+  const sequence = useRef(0);
+  if (owner.current !== user?.uid) { owner.current = user?.uid; sequence.current++; }
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
   const [availableChallenges, setAvailableChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchChallenges = useCallback(async () => {
+    const requestId = ++sequence.current;
+    const current = () => owner.current === user?.uid && sequence.current === requestId;
     if (!user) {
+      setActiveChallenges([]);
+      setError(null);
       setLoading(false);
       return;
     }
@@ -265,6 +297,7 @@ export function useChallenges() {
       setError(null);
       
       const token = await user.getIdToken();
+      if (!current()) return;
       
       // Call backend directly to avoid Vercel API route timeout
       const backendUrl = getPublicBackendUrl();
@@ -311,18 +344,21 @@ export function useChallenges() {
         })()
       ]);
 
+      if (!activeResponse.ok || !availableResponse.ok) throw new Error('Your challenges could not be loaded. Please try again.');
       if (activeResponse.ok && availableResponse.ok) {
         const activeData = await activeResponse.json();
         const availableData = await availableResponse.json();
+        if (!current()) return;
         
         setActiveChallenges(activeData.data?.challenges || []);
         setAvailableChallenges(availableData.data?.challenges || []);
       }
     } catch (err) {
+      if (!current()) return;
       console.error('Error fetching challenges:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
-      setLoading(false);
+      if (current()) setLoading(false);
     }
   }, [user]);
 
@@ -331,7 +367,7 @@ export function useChallenges() {
 
     try {
       const token = await user.getIdToken();
-      const response = await fetch(`/api/challenges/${challengeId}/start`, {
+      const response = await fetch(`${getPublicBackendUrl()}/api/challenges/${encodeURIComponent(challengeId)}/start`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -340,8 +376,9 @@ export function useChallenges() {
       });
 
       if (response.ok) {
-        // Refresh challenges
-        await fetchChallenges();
+        if (owner.current !== user.uid) return false;
+        // Refresh both the challenge list and the summary from committed state.
+        window.dispatchEvent(new CustomEvent(GAMIFICATION_ACTIVITY_EVENT, { detail: { uid: user.uid } }));
         return true;
       }
       return false;
@@ -352,8 +389,12 @@ export function useChallenges() {
   }, [user, fetchChallenges]);
 
   useEffect(() => {
+    setActiveChallenges([]);
+    setAvailableChallenges([]);
     fetchChallenges();
   }, [fetchChallenges]);
+
+  useWardrobeActivityRefresh(user?.uid, fetchChallenges);
 
   return {
     activeChallenges,

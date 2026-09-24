@@ -7,7 +7,7 @@ declare const afterEach: jest.Lifecycle;
 
 import '@testing-library/jest-dom';
 import React from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import FlatLayViewer from '@/components/FlatLayViewer';
 
@@ -242,4 +242,89 @@ describe('Flat lay presentation', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Share' })).toBeEnabled());
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
+  it('retries a failed image load without submitting a new paid request', () => {
+    const request = jest.fn();
+    render(<FlatLayViewer {...ready} onRequestFlatLay={request} />);
+    fireEvent.error(screen.getByRole('img', { name: 'AI-styled preview of A quiet afternoon' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry loading image' }));
+    loadImage();
+    expect(screen.getByRole('button', { name: 'Download' })).toBeEnabled();
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it.each(['queued', 'processing', 'failed', 'stale', 'unexpected_state'])('hides an earlier image when the current state is %s', status => {
+    render(<FlatLayViewer {...ready} status={status} onRequestFlatLay={jest.fn()} />);
+    expect(screen.queryByRole('img', { name: 'AI-styled preview of A quiet afternoon' })).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Linen shirt' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Download' })).not.toBeInTheDocument();
+  });
+
+  it('requires a status refresh for an unknown state or a completed request without an image', () => {
+    const refresh = jest.fn();
+    const request = jest.fn();
+    const { rerender } = render(<FlatLayViewer outfitItems={pieces} status="unknown" onRefresh={refresh} onRequestFlatLay={request} flatLayUsage={credits} hasFlatLayCredits />);
+    expect(screen.getByText('Your flat lay status is unavailable')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Create flat lay' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh status' }));
+    expect(refresh).toHaveBeenCalledTimes(1);
+    rerender(<FlatLayViewer outfitItems={pieces} status="done" onRefresh={refresh} onRequestFlatLay={request} />);
+    expect(screen.getByText('Your flat lay status is unavailable')).toBeVisible();
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it('does not download or display stale success after navigating to another saved look', async () => {
+    let resolveFetch!: (value: unknown) => void;
+    (global.fetch as jest.Mock).mockImplementation(() => new Promise(resolve => { resolveFetch = resolve; }));
+    const click = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const { rerender } = render(<FlatLayViewer {...ready} outfitId="first" />);
+    loadImage();
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }));
+    rerender(<FlatLayViewer outfitId="second" outfitItems={pieces} status="awaiting_consent" />);
+    await act(async () => { resolveFetch({ ok: true, headers: { get: () => 'image/png' }, blob: async () => new Blob(['late-image'], { type: 'image/png' }) }); });
+    expect(click).not.toHaveBeenCalled();
+    expect(screen.queryByText('Download started.')).not.toBeInTheDocument();
+  });
+
+  it.each(['awaiting_consent', 'manual_pending', 'failed', 'stale'])('offers read-only balance recovery while %s without creating a request', status => {
+    const refresh = jest.fn();
+    const request = jest.fn();
+    const { rerender } = render(<FlatLayViewer outfitItems={pieces} status={status} onRefresh={refresh} onRequestFlatLay={request} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh status' }));
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(request).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: status === 'failed' ? 'Request a new flat lay' : 'Create flat lay' })).toBeDisabled();
+    rerender(<FlatLayViewer outfitItems={pieces} status={status} onRefresh={refresh} onRequestFlatLay={request} flatLayUsage={credits} hasFlatLayCredits flatLayError="Credit check failed" refreshPending />);
+    expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled();
+    expect(screen.getByText('Credit check failed')).toBeVisible();
+    expect(request).not.toHaveBeenCalled();
+    rerender(<FlatLayViewer outfitItems={pieces} status={status} onRefresh={refresh} onRequestFlatLay={request} flatLayUsage={credits} hasFlatLayCredits />);
+    expect(screen.getByRole('button', { name: status === 'failed' ? 'Request a new flat lay' : 'Create flat lay' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Refresh status' })).not.toBeInTheDocument();
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it('explains a changed outfit when the server returns to awaiting consent without creating another image', () => {
+    const request = jest.fn();
+    const explanation = 'These pieces have changed since your previous flat lay. Create a new one when you are ready.';
+    render(<FlatLayViewer outfitItems={pieces} flatLayUrl={null} status="awaiting_consent" error={explanation} requestAllowed onRequestFlatLay={request} flatLayUsage={credits} hasFlatLayCredits />);
+    expect(screen.getByText('Your outfit has changed')).toBeVisible();
+    expect(screen.getByText(explanation)).toBeVisible();
+    expect(screen.getByRole('img', { name: 'Linen shirt' })).toBeVisible();
+    expect(screen.queryByRole('img', { name: /AI-styled preview/ })).not.toBeInTheDocument();
+    expect(request).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Create flat lay' }));
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+});
+
+it('keeps original pieces visible and disables new requests during the global pause', () => {
+  const request = jest.fn();
+  render(<FlatLayViewer outfitItems={pieces} status="awaiting_consent" onRequestFlatLay={request}
+    requestAllowed={false} admissionPaused admissionReason="Flat-lay requests are temporarily paused. No credit was used."
+    flatLayUsage={credits} hasFlatLayCredits />);
+  expect(screen.getByRole('button', { name: 'Temporarily unavailable' })).toBeDisabled();
+  expect(screen.getByText(/requests are temporarily paused/)).toBeVisible();
+  expect(screen.getByRole('img', { name: 'Linen shirt' })).toBeVisible();
+  expect(request).not.toHaveBeenCalled();
 });

@@ -28,8 +28,8 @@ interface ForgottenItem {
   imageUrl: string;
   color: string;
   style: string[];
-  lastWorn?: number;
-  daysSinceWorn: number;
+  lastWorn?: number | null;
+  daysSinceWorn: number | null;
   usageCount: number;
   favoriteScore: number;
   suggestedOutfits: string[];
@@ -43,6 +43,28 @@ interface ForgottenGemsData {
   potentialSavings: number;
   rediscoveryOpportunities: number;
   analysis_timestamp: string;
+}
+
+function wearRecencyLabel(item: ForgottenItem): string {
+  const now = Date.now();
+  const raw = item.lastWorn;
+  // Older responses may contain seconds; current responses normalize to ms.
+  const lastWorn = typeof raw === 'number' && Number.isFinite(raw)
+    ? (raw < 1e12 ? raw * 1000 : raw)
+    : NaN;
+  if (!Number.isFinite(lastWorn) || lastWorn < Date.UTC(2000, 0, 1) || lastWorn > now) {
+    return item.usageCount > 0 ? 'Last worn unknown' : 'Never worn';
+  }
+
+  // Derive recency from the actual wear date, not legacy placeholder day counts.
+  const days = Math.floor((now - lastWorn) / 86_400_000);
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days} days ago`;
+  const [amount, unit] = days < 30 ? [Math.floor(days / 7), 'week']
+    : days < 365 ? [Math.floor(days / 30), 'month']
+      : [Math.floor(days / 365), 'year'];
+  return `${amount} ${unit}${amount === 1 ? '' : 's'} ago`;
 }
 
 export default function ForgottenGems() {
@@ -99,15 +121,6 @@ export default function ForgottenGems() {
     // Navigate to outfit generation page with this item as the base item
     // Same pattern as wardrobe page: /outfits/generate?baseItemId=${item.id}
     router.push(`/outfits/generate?baseItemId=${item.id}`);
-  };
-
-  const formatDaysAgo = (days: number) => {
-    if (days === 0) return "Today";
-    if (days === 1) return "Yesterday";
-    if (days < 7) return `${days} days ago`;
-    if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
-    if (days < 365) return `${Math.floor(days / 30)} months ago`;
-    return `${Math.floor(days / 365)} years ago`;
   };
 
   const highPotentialItems = data?.forgottenItems
@@ -221,7 +234,7 @@ export default function ForgottenGems() {
                       </div>
                       <CardTitle className="text-lg">{item.name}</CardTitle>
                       <CardDescription className="text-sm">
-                        {formatDaysAgo(item.daysSinceWorn)} • Worn {item.usageCount} times
+                        {wearRecencyLabel(item)} • Worn {item.usageCount} times
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">

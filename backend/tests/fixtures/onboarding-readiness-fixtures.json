@@ -1,0 +1,653 @@
+{
+  "aliases": [
+    {
+      "type": "dress",
+      "category": "one-piece"
+    },
+    {
+      "type": "dresses",
+      "category": "one-piece"
+    },
+    {
+      "type": "shirtdress",
+      "category": "one-piece"
+    },
+    {
+      "type": "shirt dress",
+      "category": "one-piece"
+    },
+    {
+      "type": "sundress",
+      "category": "one-piece"
+    },
+    {
+      "type": "cocktail dress",
+      "category": "one-piece"
+    },
+    {
+      "type": "maxi dress",
+      "category": "one-piece"
+    },
+    {
+      "type": "mini dress",
+      "category": "one-piece"
+    },
+    {
+      "type": "jumpsuit",
+      "category": "one-piece"
+    },
+    {
+      "type": "jumpsuits",
+      "category": "one-piece"
+    },
+    {
+      "type": "romper",
+      "category": "one-piece"
+    },
+    {
+      "type": "rompers",
+      "category": "one-piece"
+    },
+    {
+      "type": "overalls",
+      "category": "one-piece"
+    },
+    {
+      "type": "one piece",
+      "category": "one-piece"
+    },
+    {
+      "type": "onepiece",
+      "category": "one-piece"
+    },
+    {
+      "type": "layer",
+      "category": "layer"
+    },
+    {
+      "type": "jacket",
+      "category": "layer"
+    },
+    {
+      "type": "jackets",
+      "category": "layer"
+    },
+    {
+      "type": "coat",
+      "category": "layer"
+    },
+    {
+      "type": "coats",
+      "category": "layer"
+    },
+    {
+      "type": "blazer",
+      "category": "layer"
+    },
+    {
+      "type": "blazers",
+      "category": "layer"
+    },
+    {
+      "type": "cardigan",
+      "category": "layer"
+    },
+    {
+      "type": "cardigans",
+      "category": "layer"
+    },
+    {
+      "type": "outerwear",
+      "category": "layer"
+    },
+    {
+      "type": "vest",
+      "category": "layer"
+    },
+    {
+      "type": "vests",
+      "category": "layer"
+    },
+    {
+      "type": "dress shoes",
+      "category": "shoes"
+    },
+    {
+      "type": "shoe",
+      "category": "shoes"
+    },
+    {
+      "type": "shoes",
+      "category": "shoes"
+    },
+    {
+      "type": "sneaker",
+      "category": "shoes"
+    },
+    {
+      "type": "sneakers",
+      "category": "shoes"
+    },
+    {
+      "type": "boot",
+      "category": "shoes"
+    },
+    {
+      "type": "boots",
+      "category": "shoes"
+    },
+    {
+      "type": "sandal",
+      "category": "shoes"
+    },
+    {
+      "type": "sandals",
+      "category": "shoes"
+    },
+    {
+      "type": "heel",
+      "category": "shoes"
+    },
+    {
+      "type": "heels",
+      "category": "shoes"
+    },
+    {
+      "type": "loafer",
+      "category": "shoes"
+    },
+    {
+      "type": "loafers",
+      "category": "shoes"
+    },
+    {
+      "type": "oxford",
+      "category": "shoes"
+    },
+    {
+      "type": "oxfords",
+      "category": "shoes"
+    },
+    {
+      "type": "flat",
+      "category": "shoes"
+    },
+    {
+      "type": "flats",
+      "category": "shoes"
+    },
+    {
+      "type": "footwear",
+      "category": "shoes"
+    },
+    {
+      "type": "bottom",
+      "category": "bottom"
+    },
+    {
+      "type": "bottoms",
+      "category": "bottom"
+    },
+    {
+      "type": "pants",
+      "category": "bottom"
+    },
+    {
+      "type": "dress pants",
+      "category": "bottom"
+    },
+    {
+      "type": "chinos",
+      "category": "bottom"
+    },
+    {
+      "type": "slacks",
+      "category": "bottom"
+    },
+    {
+      "type": "joggers",
+      "category": "bottom"
+    },
+    {
+      "type": "sweatpants",
+      "category": "bottom"
+    },
+    {
+      "type": "mini skirt",
+      "category": "bottom"
+    },
+    {
+      "type": "midi skirt",
+      "category": "bottom"
+    },
+    {
+      "type": "maxi skirt",
+      "category": "bottom"
+    },
+    {
+      "type": "pencil skirt",
+      "category": "bottom"
+    },
+    {
+      "type": "trousers",
+      "category": "bottom"
+    },
+    {
+      "type": "jeans",
+      "category": "bottom"
+    },
+    {
+      "type": "shorts",
+      "category": "bottom"
+    },
+    {
+      "type": "skirt",
+      "category": "bottom"
+    },
+    {
+      "type": "skirts",
+      "category": "bottom"
+    },
+    {
+      "type": "leggings",
+      "category": "bottom"
+    },
+    {
+      "type": "dress shirt",
+      "category": "top"
+    },
+    {
+      "type": "crop top",
+      "category": "top"
+    },
+    {
+      "type": "tee",
+      "category": "top"
+    },
+    {
+      "type": "top",
+      "category": "top"
+    },
+    {
+      "type": "tops",
+      "category": "top"
+    },
+    {
+      "type": "shirt",
+      "category": "top"
+    },
+    {
+      "type": "shirts",
+      "category": "top"
+    },
+    {
+      "type": "tshirt",
+      "category": "top"
+    },
+    {
+      "type": "tshirts",
+      "category": "top"
+    },
+    {
+      "type": "t shirt",
+      "category": "top"
+    },
+    {
+      "type": "t shirts",
+      "category": "top"
+    },
+    {
+      "type": "blouse",
+      "category": "top"
+    },
+    {
+      "type": "blouses",
+      "category": "top"
+    },
+    {
+      "type": "sweater",
+      "category": "top"
+    },
+    {
+      "type": "sweaters",
+      "category": "top"
+    },
+    {
+      "type": "hoodie",
+      "category": "top"
+    },
+    {
+      "type": "hoodies",
+      "category": "top"
+    },
+    {
+      "type": "sweatshirt",
+      "category": "top"
+    },
+    {
+      "type": "sweatshirts",
+      "category": "top"
+    },
+    {
+      "type": "knitwear",
+      "category": "top"
+    },
+    {
+      "type": "polo",
+      "category": "top"
+    },
+    {
+      "type": "tank",
+      "category": "top"
+    },
+    {
+      "type": "tank top",
+      "category": "top"
+    },
+    {
+      "type": "accessory",
+      "category": "accessory"
+    },
+    {
+      "type": "accessories",
+      "category": "accessory"
+    },
+    {
+      "type": "bag",
+      "category": "accessory"
+    },
+    {
+      "type": "bags",
+      "category": "accessory"
+    },
+    {
+      "type": "belt",
+      "category": "accessory"
+    },
+    {
+      "type": "belts",
+      "category": "accessory"
+    },
+    {
+      "type": "hat",
+      "category": "accessory"
+    },
+    {
+      "type": "hats",
+      "category": "accessory"
+    },
+    {
+      "type": "scarf",
+      "category": "accessory"
+    },
+    {
+      "type": "scarves",
+      "category": "accessory"
+    },
+    {
+      "type": "jewelry",
+      "category": "accessory"
+    },
+    {
+      "type": "watch",
+      "category": "accessory"
+    },
+    {
+      "type": "sunglasses",
+      "category": "accessory"
+    },
+    {
+      "type": "tie",
+      "category": "accessory"
+    }
+  ],
+  "combinations": [
+    {
+      "name": "empty",
+      "items": [],
+      "hasCoverage": false,
+      "ready": false
+    },
+    {
+      "name": "separates",
+      "items": [
+        {
+          "id": "item-0",
+          "type": "dress_shirt",
+          "imageUrl": "https://example.invalid/0.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-1",
+          "type": "chinos",
+          "imageUrl": "https://example.invalid/1.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-2",
+          "type": "dress_shoes",
+          "imageUrl": "https://example.invalid/2.jpg",
+          "userId": "fixture-user"
+        }
+      ],
+      "hasCoverage": true,
+      "ready": false
+    },
+    {
+      "name": "one-piece",
+      "items": [
+        {
+          "id": "item-0",
+          "type": "cocktail_dress",
+          "imageUrl": "https://example.invalid/0.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-1",
+          "type": "heels",
+          "imageUrl": "https://example.invalid/1.jpg",
+          "userId": "fixture-user"
+        }
+      ],
+      "hasCoverage": true,
+      "ready": false
+    },
+    {
+      "name": "ten-shirts",
+      "items": [
+        {
+          "id": "item-0",
+          "type": "shirt",
+          "imageUrl": "https://example.invalid/0.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-1",
+          "type": "shirt",
+          "imageUrl": "https://example.invalid/1.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-2",
+          "type": "shirt",
+          "imageUrl": "https://example.invalid/2.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-3",
+          "type": "shirt",
+          "imageUrl": "https://example.invalid/3.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-4",
+          "type": "shirt",
+          "imageUrl": "https://example.invalid/4.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-5",
+          "type": "shirt",
+          "imageUrl": "https://example.invalid/5.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-6",
+          "type": "shirt",
+          "imageUrl": "https://example.invalid/6.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-7",
+          "type": "shirt",
+          "imageUrl": "https://example.invalid/7.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-8",
+          "type": "shirt",
+          "imageUrl": "https://example.invalid/8.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-9",
+          "type": "shirt",
+          "imageUrl": "https://example.invalid/9.jpg",
+          "userId": "fixture-user"
+        }
+      ],
+      "hasCoverage": false,
+      "ready": false
+    },
+    {
+      "name": "shirt-dress",
+      "items": [
+        {
+          "id": "item-0",
+          "type": "shirt dress",
+          "imageUrl": "https://example.invalid/0.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-1",
+          "type": "sandals",
+          "imageUrl": "https://example.invalid/1.jpg",
+          "userId": "fixture-user"
+        }
+      ],
+      "hasCoverage": true,
+      "ready": false
+    },
+    {
+      "name": "no-shoes",
+      "items": [
+        {
+          "id": "item-0",
+          "type": "tops",
+          "imageUrl": "https://example.invalid/0.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-1",
+          "type": "jeans",
+          "imageUrl": "https://example.invalid/1.jpg",
+          "userId": "fixture-user"
+        }
+      ],
+      "hasCoverage": false,
+      "ready": false
+    },
+    {
+      "name": "layers-only",
+      "items": [
+        {
+          "id": "item-0",
+          "type": "jacket",
+          "imageUrl": "https://example.invalid/0.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-1",
+          "type": "coat",
+          "imageUrl": "https://example.invalid/1.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-2",
+          "type": "shoes",
+          "imageUrl": "https://example.invalid/2.jpg",
+          "userId": "fixture-user"
+        }
+      ],
+      "hasCoverage": false,
+      "ready": false
+    },
+    {
+      "name": "usable-capsule",
+      "items": [
+        {
+          "id": "item-0",
+          "type": "t-shirt",
+          "imageUrl": "https://example.invalid/0.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-1",
+          "type": "sweater",
+          "imageUrl": "https://example.invalid/1.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-2",
+          "type": "hoodie",
+          "imageUrl": "https://example.invalid/2.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-3",
+          "type": "pants",
+          "imageUrl": "https://example.invalid/3.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-4",
+          "type": "chinos",
+          "imageUrl": "https://example.invalid/4.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-5",
+          "type": "skirt",
+          "imageUrl": "https://example.invalid/5.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-6",
+          "type": "jacket",
+          "imageUrl": "https://example.invalid/6.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-7",
+          "type": "cardigan",
+          "imageUrl": "https://example.invalid/7.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-8",
+          "type": "shoes",
+          "imageUrl": "https://example.invalid/8.jpg",
+          "userId": "fixture-user"
+        },
+        {
+          "id": "item-9",
+          "type": "boots",
+          "imageUrl": "https://example.invalid/9.jpg",
+          "userId": "fixture-user"
+        }
+      ],
+      "hasCoverage": true,
+      "ready": true
+    }
+  ]
+}

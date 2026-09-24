@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 from datetime import datetime
 from enum import Enum
 from pydantic import validator
@@ -481,6 +481,15 @@ class ClothingItem(BaseModel):
     thumbnailUrl: Optional[str] = None  # NEW: URL to worker-generated thumbnail image
     embedding: Optional[List[float]] = None
     metadata: Optional[Dict[str, Any]] = None  # Accept any dict - don't validate nested structure
+    analysis: Any = None  # Keep legacy/unknown source shapes without invalidating the saved garment
+
+    @model_validator(mode='before')
+    @classmethod
+    def preserve_garment_analysis(cls, value):
+        if isinstance(value, dict):
+            from src.utils.garment_metadata import normalize_garment_metadata
+            return normalize_garment_metadata(value)
+        return value
     
     # Usage tracking fields for wardrobe diversity
     wearCount: Optional[int] = 0
@@ -671,4 +680,4 @@ __all__ = [
     'LayerLevel',
     'WarmthFactor',
     'CoreCategory'
-] 
+]

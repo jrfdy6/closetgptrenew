@@ -24,6 +24,7 @@ from datetime import datetime, timedelta
 
 # Import Firebase
 from ..config.firebase import db
+from .app_data_privacy import optional_policy, require_app_data_writable
 
 # Import existing types
 from ..custom_types.user_style import UserStyleProfile, FeedbackType
@@ -46,6 +47,7 @@ class UserPreferenceFromExisting:
     total_interactions: int
     last_updated: float
     data_source: str  # "firebase_existing"
+    app_data_epoch: Optional[int] = None
 
 class ExistingDataPersonalizationEngine:
     """Personalization engine that uses existing Firebase data"""
@@ -75,6 +77,10 @@ class ExistingDataPersonalizationEngine:
                 last_updated=time.time(),
                 data_source="firebase_existing"
             )
+            if not optional_policy(self.db, user_id, 'personalization'):
+                preference.data_source = 'personalization_disabled'
+                return preference
+            preference.app_data_epoch = require_app_data_writable(self.db, user_id)
             
             # 1. Get wardrobe items and their favorites/wear data
             wardrobe_data = await self._get_wardrobe_preferences(user_id)
@@ -108,6 +114,12 @@ class ExistingDataPersonalizationEngine:
             preference.preferred_colors = self._deduplicate_and_rank(preference.preferred_colors)
             preference.preferred_styles = self._deduplicate_and_rank(preference.preferred_styles)
             preference.preferred_occasions = self._deduplicate_and_rank(preference.preferred_occasions)
+            require_app_data_writable(self.db, user_id, preference.app_data_epoch)
+            if not optional_policy(self.db, user_id, 'personalization'):
+                return UserPreferenceFromExisting(
+                    user_id=user_id, preferred_colors=[], preferred_styles=[], preferred_occasions=[],
+                    disliked_colors=[], disliked_styles=[], favorite_items=[], most_worn_items=[],
+                    total_interactions=0, last_updated=time.time(), data_source='personalization_disabled')
             
             logger.info(f"✅ Loaded existing preferences for user {user_id}: {preference.total_interactions} interactions")
             return preference
@@ -131,6 +143,9 @@ class ExistingDataPersonalizationEngine:
     
     async def _get_wardrobe_preferences(self, user_id: str) -> Dict[str, Any]:
         """Get preferences from wardrobe items (favorites, wear counts)"""
+        if not optional_policy(self.db, user_id, 'personalization'):
+            return {'preferred_colors': [], 'preferred_styles': [], 'preferred_occasions': [],
+                    'favorite_items': [], 'most_worn_items': [], 'interactions': 0}
         try:
             # Get wardrobe items - limit to 1000 to prevent slow queries
             wardrobe_ref = self.db.collection('wardrobe')
@@ -214,6 +229,8 @@ class ExistingDataPersonalizationEngine:
     
     async def _get_outfit_preferences(self, user_id: str) -> Dict[str, Any]:
         """Get preferences from outfit favorites and wear counts"""
+        if not optional_policy(self.db, user_id, 'personalization'):
+            return {'preferred_colors': [], 'preferred_styles': [], 'preferred_occasions': [], 'interactions': 0}
         try:
             # Get outfits - limit to 1000 to prevent slow queries
             outfits_ref = self.db.collection('outfits')
@@ -290,6 +307,8 @@ class ExistingDataPersonalizationEngine:
     
     async def _get_user_style_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get user style profile if it exists"""
+        if not optional_policy(self.db, user_id, 'personalization'):
+            return None
         try:
             # Get user style profile
             style_ref = self.db.collection('user_style_profiles')
@@ -342,6 +361,8 @@ class ExistingDataPersonalizationEngine:
     
     async def _get_item_analytics(self, user_id: str) -> Dict[str, Any]:
         """Get item analytics data"""
+        if not optional_policy(self.db, user_id, 'personalization'):
+            return {'interactions': 0}
         try:
             # Get item analytics - limit to 500 to prevent slow queries
             analytics_ref = self.db.collection('item_analytics')
@@ -376,6 +397,14 @@ class ExistingDataPersonalizationEngine:
     
     def rank_outfits_by_existing_preferences(self, user_id: str, outfits: List[Dict[str, Any]], preference: UserPreferenceFromExisting) -> List[Dict[str, Any]]:
         """Rank outfits based on existing user preferences"""
+        if preference.user_id != user_id or not optional_policy(self.db, user_id, 'personalization'):
+            return outfits
+        try:
+            if preference.app_data_epoch is None:
+                return outfits
+            require_app_data_writable(self.db, user_id, preference.app_data_epoch)
+        except Exception:
+            return outfits
         if preference.total_interactions < 3:
             # Not enough data for personalization
             return outfits
@@ -441,7 +470,7 @@ class ExistingDataPersonalizationEngine:
             
             return {
                 "user_id": user_id,
-                "personalization_enabled": True,
+                "personalization_enabled": preference.data_source == 'firebase_existing',
                 "has_existing_data": preference.total_interactions > 0,
                 "total_interactions": preference.total_interactions,
                 "min_interactions_required": 3,

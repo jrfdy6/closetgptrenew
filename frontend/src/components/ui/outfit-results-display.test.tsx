@@ -196,7 +196,7 @@ describe('Outfit results presentation and live image updates', () => {
     expect(screen.queryByText(/Weather context|Estimated context/)).not.toBeInTheDocument();
   });
 
-  it('preserves a valid zero score and presents only supplied styling evidence', async () => {
+  it('hides internal scores and presents only supplied styling evidence', async () => {
     render(<OutfitResultsDisplay {...props({ outfit: {
       ...outfit, confidence_score: 0, reasoning: 'The shirt and trousers have a similar visual weight.',
       outfitAnalysis: { color: { insight: 'A neutral palette.' }, weather: { score: 0.8 } },
@@ -206,7 +206,7 @@ describe('Outfit results presentation and live image updates', () => {
     await connected();
     expect(screen.getByText('Estimated context: 72°F')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Styling notes'));
-    expect(screen.getByText('Styling score: 0/100 · Internal ranking score')).toBeVisible();
+    expect(screen.queryByText(/Styling score|Internal ranking/)).not.toBeInTheDocument();
     expect(screen.getByText('The shirt and trousers have a similar visual weight.')).toBeVisible();
     expect(screen.getByText('A neutral palette.')).toBeVisible();
     expect(screen.getByText(/A breathable layer/)).toBeVisible();
@@ -248,7 +248,7 @@ describe('Outfit results presentation and live image updates', () => {
     fireEvent.click(screen.getByRole('button', { name: 'View My Looks' }));
     expect(callbacks.onViewOutfits).toHaveBeenCalledTimes(1);
     expect(callbacks.onWearOutfit).not.toHaveBeenCalled();
-    expect(screen.getByText('Marked as worn')).toBeVisible();
+    expect(screen.getByText('Marked as worn today')).toBeVisible();
     fireEvent.click(screen.getByText('Feedback saved'));
     expect(screen.getByRole('button', { name: 'Rate 3 stars' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Rate 3 stars' })).toHaveAttribute('aria-pressed', 'true');
@@ -274,4 +274,78 @@ describe('Outfit results presentation and live image updates', () => {
       hasFlatLayCredits: true,
     }));
   });
+  it('lets the saved controller own state without creating a Firestore listener', async () => {
+    const callbacks = props({ liveUpdates: false, onRefresh: jest.fn(), updatesError: 'Could not refresh this saved look.' });
+    const { rerender } = render(<OutfitResultsDisplay {...callbacks} />);
+    await act(async () => { await Promise.resolve(); });
+    expect(snapshotMock).not.toHaveBeenCalled();
+    expect(screen.getByText('Saved to My Looks')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh status' }));
+    expect(callbacks.onRefresh).toHaveBeenCalledTimes(1);
+    rerender(<OutfitResultsDisplay {...callbacks} updatesError={null} outfit={{ ...outfit, flat_lay_status: 'done', flat_lay_url: '/saved.png' }} />);
+    expect(viewerProps()).toEqual(expect.objectContaining({ flatLayUrl: '/saved.png', outfitId: outfit.id }));
+    rerender(<OutfitResultsDisplay {...callbacks} updatesError={null} outfit={{ ...outfit, flat_lay_status: 'stale', flat_lay_url: null, metadata: { flatLayUrl: '/saved.png' } }} />);
+    expect(viewerProps()).toEqual(expect.objectContaining({ status: 'stale', flatLayUrl: null }));
+  });
+
+  it('shows durable wear history separately from today and keeps failures retryable', () => {
+    const callbacks = props({ liveUpdates: false, wearCount: 3, lastWornAt: '2026-09-21T12:00:00Z', wearError: 'Could not confirm your wear. Retry to check it.' });
+    const { rerender } = render(<OutfitResultsDisplay {...callbacks} />);
+    expect(screen.getByText(/Worn 3 times.*Last worn/)).toBeVisible();
+    expect(screen.queryByText('Marked as worn today')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry saving wear' }));
+    expect(callbacks.onWearOutfit).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not confirm');
+    rerender(<OutfitResultsDisplay {...callbacks} wearPending wearError={null} />);
+    expect(screen.getByRole('button', { name: 'Saving wear…' })).toBeDisabled();
+    expect(screen.queryByText('Marked as worn today')).not.toBeInTheDocument();
+  });
+
+  it('keeps favorite, saved outfit, and feedback save as separate acknowledged actions', () => {
+    const callbacks = props({ liveUpdates: false, isFavorite: true, favoriteError: 'Favorite could not be updated.', onFavoriteToggle: jest.fn(), onSaveFeedback: jest.fn(), feedbackError: 'Feedback could not be saved.' });
+    const { rerender } = render(<OutfitResultsDisplay {...callbacks} />);
+    expect(screen.getByRole('button', { name: 'Favorited' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Favorited' }));
+    expect(callbacks.onFavoriteToggle).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByText('How does this feel?'));
+    fireEvent.change(screen.getByLabelText('Anything you would change?'), { target: { value: 'More color' } });
+    expect(callbacks.onSaveFeedback).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry saving feedback' }));
+    expect(callbacks.onSaveFeedback).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText('Anything you would change?')).toBeEnabled();
+    expect(screen.queryByText('Thanks — your feedback is saved.')).not.toBeInTheDocument();
+    rerender(<OutfitResultsDisplay {...callbacks} favoritePending feedbackPending />);
+    expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Saving feedback…' })).toBeDisabled();
+  });
+
+  it('disables Wear for unavailable saved pieces without substituting generation or navigation', () => {
+    const callbacks = props({ liveUpdates: false, canWear: false });
+    const { rerender } = render(<OutfitResultsDisplay {...callbacks} />);
+    const wear = screen.getByRole('button', { name: 'Wear this outfit' });
+    expect(wear).toBeDisabled();
+    fireEvent.click(wear);
+    expect(callbacks.onWearOutfit).not.toHaveBeenCalled();
+    expect(callbacks.onRegenerate).not.toHaveBeenCalled();
+    expect(callbacks.onViewOutfits).not.toHaveBeenCalled();
+    rerender(<OutfitResultsDisplay {...callbacks} isWorn />);
+    fireEvent.click(screen.getByRole('button', { name: 'View My Looks' }));
+    expect(callbacks.onViewOutfits).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves the saved changed-source explanation and explicit image clear over stale metadata', () => {
+    const explanation = 'The outfit pieces changed. Your earlier flat lay is no longer current.';
+    const changedItems = [{ ...outfit.items[0], name: 'Current blue shirt', imageUrl: '/current-shirt.jpg' }];
+    render(<OutfitResultsDisplay {...props({ liveUpdates: false, outfit: {
+      ...outfit, items: changedItems, flat_lay_status: 'awaiting_consent', flat_lay_url: null,
+      flat_lay_error: explanation, flat_lay_request_allowed: true,
+      metadata: { flat_lay_status: 'done', flat_lay_url: '/earlier-look.png', flat_lay_error: null },
+    } })} />);
+    expect(viewerProps()).toEqual(expect.objectContaining({
+      status: 'awaiting_consent', flatLayUrl: null, error: explanation, requestAllowed: true, outfitItems: changedItems,
+    }));
+    expect(screen.getByText('Current blue shirt')).toBeVisible();
+    expect(snapshotMock).not.toHaveBeenCalled();
+  });
+
 });

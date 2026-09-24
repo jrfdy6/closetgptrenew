@@ -1,10 +1,15 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Request
+from fastapi.responses import JSONResponse
 from firebase_admin import storage
 import uuid
 import logging
 import tempfile
 import os
 from PIL import Image
+from src.auth.verified_identity import verified_identity, reject_identity_overrides, IDENTITY_KEYS
+from src.auth.operator import require_internal_operator
+from src.config.firebase import db
+from src.services.app_data_privacy import require_app_data_writable, AppDataDeletionError
 
 logger = logging.getLogger(__name__)
 
@@ -134,15 +139,7 @@ def process_image_file(contents: bytes, filename: str, content_type: str) -> tup
 
 router = APIRouter()
 
-# Import auth dependency
-try:
-    from src.auth.auth_service import get_current_user_id
-    AUTH_AVAILABLE = True
-except ImportError:
-    AUTH_AVAILABLE = False
-    logger.warning("Auth service not available, uploads will be anonymous")
-
-@router.get("/create-firebase-bucket")
+@router.get("/create-firebase-bucket", dependencies=[Depends(require_internal_operator)])
 async def create_firebase_bucket():
     """Try to create a Firebase Storage bucket"""
     try:
@@ -183,7 +180,7 @@ async def create_firebase_bucket():
             "error_type": type(e).__name__
         }
 
-@router.get("/test-firebase-upload")
+@router.get("/test-firebase-upload", dependencies=[Depends(require_internal_operator)])
 async def test_firebase_upload():
     """Test Firebase Storage upload with different bucket name formats"""
     try:
@@ -252,7 +249,7 @@ async def test_firebase_upload():
             "error_type": type(e).__name__
         }
 
-@router.get("/debug-firebase")
+@router.get("/debug-firebase", dependencies=[Depends(require_internal_operator)])
 async def debug_firebase():
     """Debug Firebase Storage configuration"""
     try:
@@ -296,11 +293,18 @@ async def debug_firebase():
 
 @router.post("/upload")
 async def upload_image(
+    request: Request,
     file: UploadFile = File(...),
-    user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
+    claims: dict = Depends(verified_identity),
 ):
-    """Minimal working image upload handler"""
+    """Store an original only for a verified, enabled Firebase identity."""
+    form = await request.form()
+    for key in IDENTITY_KEYS:
+        for value in form.getlist(key):
+            reject_identity_overrides(claims, {key: value})
+    user_id = claims['uid']
     try:
+        epoch = require_app_data_writable(db, user_id)
         logger.info(f"Starting image upload for user: {user_id}")
         logger.info(f"File: {file.filename}, Content-Type: {file.content_type}")
         
@@ -363,37 +367,50 @@ async def upload_image(
             logger.info(f"Blob created successfully")
             
             logger.info(f"Uploading {len(contents)} bytes to Firebase Storage...")
-            blob.upload_from_string(contents, content_type=file.content_type)
+            require_app_data_writable(db, user_id, expected_epoch=epoch)
+            blob.upload_from_string(contents, content_type=processed_content_type)
+            require_app_data_writable(db, user_id, expected_epoch=epoch)
             logger.info("Successfully uploaded to Firebase Storage")
             
             # Make public and get URL
             logger.info("Making blob public...")
             blob.make_public()
             public_url = blob.public_url
-            logger.info(f"Public URL: {public_url}")
+            require_app_data_writable(db, user_id, expected_epoch=epoch)
             
-            return {
+            return JSONResponse(content={
                 "success": True, 
                 "image_url": public_url,
                 "filename": file.filename,
                 "size": len(contents)
-            }
+            }, headers={"Cache-Control": "private, no-store"})
             
-        except Exception as e:
-            logger.error(f"Firebase Storage upload failed: {e}", exc_info=True)
-            # Temporary fallback for testing - return a mock URL
-            logger.warning("Using fallback mock URL for testing")
-            mock_url = f"https://picsum.photos/200/300?test={uuid.uuid4()}"
-            return {
-                "success": True, 
-                "image_url": mock_url,
-                "filename": file.filename,
-                "size": len(contents),
-                "fallback": True
-            }
+        except AppDataDeletionError as error:
+            if 'blob' in locals():
+                try:
+                    blob.delete(if_generation_match=blob.generation)
+                except Exception:
+                    logger.warning("Interrupted upload cleanup will be retried by data deletion")
+            raise HTTPException(error.status_code, error.detail) from error
+        except Exception:
+            # An upload or visibility failure is not a saved original. Never
+            # return a substitute photo that downstream analysis could count.
+            logger.warning("Photo storage upload could not be confirmed")
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "success": False,
+                    "code": "upload_unavailable",
+                    "error": "Your photo upload could not be confirmed. Please try again.",
+                    "retryable": True,
+                },
+                headers={"Retry-After": "5", "Cache-Control": "private, no-store"},
+            )
             
     except HTTPException:
         raise
+    except AppDataDeletionError as error:
+        raise HTTPException(error.status_code, error.detail) from error
     except Exception as e:
         logger.error(f"Unexpected error in upload_image: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to upload image")

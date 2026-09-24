@@ -1,3 +1,4 @@
+import { wearOperationKey, clearWearOperation } from '@/lib/savedOutfit';
 import type { ClothingItem, WardrobeFilters } from '@/lib/hooks/useWardrobe';
 
 // Use Next.js API routes instead of direct backend calls
@@ -439,27 +440,26 @@ export class WardrobeService {
     }
   }
 
-  static async incrementWearCount(id: string): Promise<void> {
-    try {
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/wardrobe/${id}/increment-wear`, {
-        method: 'POST',
-        headers,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.message || 'Failed to increment wear count');
-      }
-    } catch (error) {
-      console.error('Error incrementing wear count:', error);
-      throw error;
+  static async incrementWearCount(id: string): Promise<{ itemId: string; newWearCount: number; lastWorn: number }> {
+    const { auth } = await import('@/lib/firebase/config');
+    const user = auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+    const key = wearOperationKey(user.uid, 'item:' + id);
+    const headers = new Headers(await this.getAuthHeaders());
+    headers.set('Idempotency-Key', key);
+    if (auth.currentUser?.uid !== user.uid) throw new Error('Your account changed. Please try again.');
+    const response = await fetch(`${API_BASE_URL}/wardrobe/${encodeURIComponent(id)}/increment-wear`, {
+      method: 'POST', headers, cache: 'no-store',
+    });
+    const result = await response.json().catch(() => null);
+    const data = result?.data;
+    if (!response.ok || result?.success !== true || data?.itemId !== id ||
+        !Number.isInteger(data.newWearCount) || data.newWearCount < 0 || !Number.isFinite(data.lastWorn)) {
+      throw new Error('We could not confirm the wear count. Retry to check the same action.');
     }
+    clearWearOperation(user.uid, 'item:' + id);
+    if (auth.currentUser?.uid !== user.uid) throw new Error('Your account changed. Please refresh your wardrobe.');
+    return data;
   }
 
   // Method to check if the service is available

@@ -23,6 +23,9 @@ from enum import Enum
 # Robust import strategy to handle different execution contexts
 from ..config.feature_flags import is_semantic_match_enabled, is_debug_output_enabled, is_force_traditional_enabled
 from ..utils.semantic_normalization import normalize_item_metadata
+from ..utils.recommendation_fidelity import prefer_plain_candidates, pattern_kind, minimalist_subtle_cues
+from ..utils.outfit_admission import classify_garment
+from ..utils.profile_normalization import normalize_profile_signals
 from ..utils.semantic_compatibility import style_matches, mood_matches, occasion_matches
 from ..utils.semantic_telemetry import record_semantic_filtering_metrics
 from ..utils.enhanced_debug_output import format_final_debug_response
@@ -1136,51 +1139,10 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🌤️ Weather: {temp}°F, {condition}")
         
-        # Smart user profile defaults - context-aware
+        # Missing optional answers remain unknown; occasion is not a body profile.
         if not context.user_profile:
-            logger.warning(f"⚠️ Missing user profile, using SMART DEFAULTS")
-            # Smart defaults based on occasion/style
-            if (context.occasion if context else "unknown").lower() in ['business', 'formal']:
-                context.user_profile = {
-                    'bodyType': 'Average',
-                    'height': 'Average', 
-                    'weight': 'Average',
-                    'gender': 'Unspecified',
-                    'skinTone': 'Medium',
-                    'stylePreferences': {'preferredStyles': ['classic', 'professional']}
-                }
-            elif (context.occasion if context else "unknown").lower() in ['party', 'evening']:
-                context.user_profile = {
-                    'bodyType': 'Average',
-                    'height': 'Average', 
-                    'weight': 'Average',
-                    'gender': 'Unspecified',
-                    'skinTone': 'Medium',
-                    'stylePreferences': {'preferredStyles': ['elegant', 'trendy']}
-                }
-            elif (context.occasion if context else "unknown").lower() == 'athletic':
-                context.user_profile = {
-                    'bodyType': 'Athletic',
-                    'height': 'Average', 
-                    'weight': 'Average',
-                    'gender': 'Unspecified',
-                    'skinTone': 'Medium',
-                    'stylePreferences': {'preferredStyles': ['athletic', 'casual']}
-                }
-            else:
-                context.user_profile = {
-                    'bodyType': 'Average',
-                    'height': 'Average', 
-                    'weight': 'Average',
-                    'gender': 'Unspecified',
-                    'skinTone': 'Medium',
-                    'stylePreferences': {}
-                }
-            
-            logger.info(f"🎯 SMART PROFILE DEFAULT: {context.user_profile['bodyType']} body type for {context.occasion} occasion")
-            # Log for learning system
-            logger.info(f"📊 DEFAULT_APPLIED: profile_default_occasion_{context.occasion.lower()}_body_{context.user_profile['bodyType'].lower()}")
-        
+            context.user_profile = {'stylePreferences': {}}
+
         # Log wardrobe breakdown
         item_types = [self.safe_get_item_type(item) for item in (context.wardrobe if context else [])]
         type_counts = {item_type: item_types.count(item_type) for item_type in set(item_types)}
@@ -2438,10 +2400,10 @@ class RobustOutfitGenerationService:
             userId=context.user_id,
             weather=context.weather.__dict__ if (context.weather if context else None) else {},
             pieces=[],
-            explanation=f"Outfit optimized for {body_type} body type and {height} height",
+            explanation="Uses your optional shape preferences; actual fit depends on the garment",
             styleTags=[context.style.lower().replace(' ', '_'), f"body_type_{body_type}"],
             colorHarmony="flattering",
-            styleNotes=f"Designed to flatter {body_type} body type",
+            styleNotes="Body preferences are styling guidance, not measured fit",
             season="current",
             updatedAt=int(time.time()),
             metadata={"generation_strategy": "body_type_optimized", "body_type": body_type},
@@ -5075,7 +5037,13 @@ class RobustOutfitGenerationService:
         return score
     
     def _get_item_category(self, item: ClothingItem) -> str:
-        """Get category for an item - METADATA-FIRST approach"""
+        """Saved category corrections outrank older image-analysis predictions."""
+        saved_type = self.safe_get_item_attr(item, 'type', '')
+        saved_category = classify_garment({'type': saved_type})
+        categories = {'top': 'tops', 'bottom': 'bottoms', 'one-piece': 'dress',
+                      'shoes': 'shoes', 'layer': 'outerwear', 'accessory': 'accessories'}
+        if saved_category in categories:
+            return categories[saved_category]
         item_type = getattr(item, 'type', '')
         item_name = getattr(item, 'name', 'Unknown')
         
@@ -5261,16 +5229,12 @@ class RobustOutfitGenerationService:
         """Analyze and score each item based on body type, height, weight, gender, and skin tone"""
         logger.info(f"👤 BODY TYPE ANALYZER: Scoring {len(item_scores)} items")
         
-        # Extract ALL user physical attributes
         user_profile = getattr(context, 'user_profile', None)
-        body_type = safe_get(user_profile, 'bodyType', 'Average').lower() if user_profile else 'average'
-        height = safe_get(user_profile, 'height', 'Average') if user_profile else 'Average'
-        weight = safe_get(user_profile, 'weight', 'Average') if user_profile else 'Average'
-        gender = safe_get(user_profile, 'gender', 'Unspecified').lower() if user_profile else 'unspecified'
-        skin_tone = safe_get(user_profile, 'skinTone', 'Medium') if user_profile else 'Medium'
-        
-        logger.info(f"👤 User profile: body_type={body_type}, height={height}, weight={weight}, gender={gender}, skin_tone={skin_tone}")
-        
+        signals = normalize_profile_signals(user_profile)
+        body_type = signals['body_type']
+        height = signals['height_category']
+        gender = str(safe_get(user_profile, 'gender', '') or '').lower()
+
         # Body type scoring rules
         body_type_rules = {
             'hourglass': {
@@ -5304,7 +5268,7 @@ class RobustOutfitGenerationService:
             }
         }
         
-        rules = (safe_get(body_type_rules, body_type, body_type_rules['average']) if body_type_rules else body_type_rules['average'])
+        rules = body_type_rules.get(body_type, {})
         
         for item_id, scores in item_scores.items():
             item = scores['item']
@@ -5350,11 +5314,10 @@ class RobustOutfitGenerationService:
             # ═══════════════════════════════════════════════════════════
             # HEIGHT SCORING - Proportions and lengths
             # ═══════════════════════════════════════════════════════════
-            if height and height != 'Average':
-                height_lower = str(height).lower()
+            if height in {'short', 'tall'}:
                 
                 # Short height (under 5'4")
-                if any(h in height_lower for h in ["5'0", "5'1", "5'2", "5'3", "under"]):
+                if height == 'short':
                     # Favor items that elongate
                     if 'high waist' in item_name_lower or 'high-waist' in item_name_lower:
                         base_score += 0.15
@@ -5367,7 +5330,7 @@ class RobustOutfitGenerationService:
                         base_score -= 0.10
                 
                 # Tall height (over 5'9")
-                elif any(h in height_lower for h in ["5'10", "5'11", "6'", "over"]):
+                elif height == 'tall':
                     # Can wear longer items well
                     if 'long' in item_name_lower or 'maxi' in item_name_lower:
                         base_score += 0.10
@@ -5380,11 +5343,9 @@ class RobustOutfitGenerationService:
             # ═══════════════════════════════════════════════════════════
             # WEIGHT SCORING - Fit and comfort
             # ═══════════════════════════════════════════════════════════
-            if weight and weight != 'Average':
-                weight_lower = str(weight).lower()
-                
-                # Plus size considerations
-                if any(w in weight_lower for w in ["201", "225", "250", "plus"]):
+            if signals['plus_size']:
+                # An explicit preference only; weight does not establish fit.
+                if signals['plus_size']:
                     # Favor items with structure and flow
                     if 'structured' in item_name_lower or 'tailored' in item_name_lower:
                         base_score += 0.10
@@ -5520,21 +5481,19 @@ class RobustOutfitGenerationService:
             'avoid': ['neon colors', 'very bright colors']
         }
         
-        # Determine which color palette to use
-        skin_tone_lower = str(skin_tone).lower()
-        color_palette = neutral_skin_colors  # Default
-        
-        if 'warm' in skin_tone_lower or skin_tone in ['79', '80', '81', '82', '83', '84']:  # Warm medium tones
+        signals = normalize_profile_signals(context.user_profile)
+        color_palette = {'excellent': [], 'good': [], 'avoid': []}
+        if signals['skin_undertone'] == 'warm':
             color_palette = warm_skin_colors
-        elif 'cool' in skin_tone_lower or skin_tone in ['20', '21', '22', '23', '24', '25']:  # Cool light tones
+        elif signals['skin_undertone'] == 'cool':
             color_palette = cool_skin_colors
-        elif 'deep' in skin_tone_lower or 'dark' in skin_tone_lower or skin_tone in ['95', '96', '97', '98', '99', '100']:
+        elif signals['skin_undertone'] == 'neutral':
+            color_palette = neutral_skin_colors
+        elif signals['skin_depth'] == 'deep':
             color_palette = deep_skin_colors
-        elif 'light' in skin_tone_lower or 'fair' in skin_tone_lower or skin_tone in ['10', '11', '12', '13', '14', '15']:
+        elif signals['skin_depth'] == 'light':
             color_palette = light_skin_colors
-        
-        logger.info(f"🎨 COLOR THEORY: Using color palette for skin tone category")
-        
+
         lounge_boost_ids = set()
         if target_style == 'loungewear' and hasattr(context, 'metadata_notes') and isinstance(context.metadata_notes, dict):
             lounge_boost_ids = set(context.metadata_notes.get('lounge_item_ids', []) or [])
@@ -6915,7 +6874,15 @@ class RobustOutfitGenerationService:
                         break
         
         # Use the exploration-mixed list for selection
-        sorted_items = exploration_mixed
+        # Restore otherwise practical plain alternatives omitted by exploration,
+        # then honor the requested style after diversity and strategy adjustments.
+        mixed_ids = {item_id for item_id, _ in exploration_mixed}
+        style_candidates = exploration_mixed + [entry for entry in sorted_items if entry[0] not in mixed_ids]
+        sorted_items = prefer_plain_candidates(
+            style_candidates if str(context.style).lower() == 'minimalist' else exploration_mixed,
+            context.style, mood=context.mood, category=self._get_item_category,
+            eligible=lambda item: self._hard_filter(item, context.occasion, context.style),
+        )
         
         # Log category distribution
         category_counts = {}
@@ -7182,6 +7149,10 @@ class RobustOutfitGenerationService:
                         reverse=True
                     )
                     
+                    category_candidates = prefer_plain_candidates(
+                        category_candidates, context.style, mood=context.mood, category=self._get_item_category,
+                        eligible=lambda item: self._hard_filter(item, context.occasion, context.style),
+                    )
                     # Try to find an item with score > -2.0 (more lenient than Phase 1's -1.0)
                     added = False
                     for item_id, score_data in category_candidates:
@@ -7807,6 +7778,27 @@ class RobustOutfitGenerationService:
                         if not _is_monochrome_allowed(alternative, alt_id, None, log_prefix="  "):
                             logger.debug(f"  ⏭️ Diversity swap skipped for {getattr(alternative, 'name', 'Unknown')} due to monochrome palette mismatch")
                             continue
+                        if (str(context.style).lower() == 'minimalist'
+                                and pattern_kind(item_to_replace) == 'plain'
+                                and pattern_kind(alternative) == 'graphic'):
+                            continue
+                        current_id = self.safe_get_item_attr(item_to_replace, 'id', '')
+                        if (str(context.style).lower() == 'minimalist'
+                                and str(context.mood).lower() == 'subtle'):
+                            if (current_id not in item_scores or alt_id not in item_scores):
+                                # An unscored suggestion cannot establish a practical
+                                # reason to discard the selected, evidenced cue.
+                                if (minimalist_subtle_cues(item_to_replace)['supported']
+                                        and not minimalist_subtle_cues(alternative)['supported']):
+                                    continue
+                            else:
+                                preferred = prefer_plain_candidates(
+                                    [(alt_id, item_scores[alt_id]), (current_id, item_scores[current_id])],
+                                    context.style, mood=context.mood, category=self._get_item_category,
+                                    eligible=lambda item: self._hard_filter(item, context.occasion, context.style),
+                                )
+                                if preferred[0][0] == current_id:
+                                    continue
                         # Replace in selected items
                         selected_items = [alternative if self.safe_get_item_attr(item, "id", "") == item_to_replace.id else item 
                                         for item in selected_items]
@@ -7952,21 +7944,21 @@ class RobustOutfitGenerationService:
         outfit = OutfitGeneratedOutfit(
             id=str(uuid.uuid4()),
             name=f"{context.style} {context.occasion} Outfit",
-            description=f"6D scored outfit optimized for {context.occasion}",
+            description=f"Selected from your wardrobe for {context.occasion}",
             occasion=context.occasion,
             style=context.style,
             mood=context.mood,
             confidence=final_confidence,  # Use calculated confidence
             items=selected_items,
-            reasoning=f"Created using 6D analysis: body type, style, weather, user feedback, compatibility, and diversity",
+            reasoning=f"Selected from your wardrobe for the requested {context.style} direction and {context.occasion} occasion",
             createdAt=int(time.time()),
             userId=context.user_id,
             weather=context.weather.__dict__ if (context.weather if context else None) else {},
             pieces=[],
-            explanation=f"Optimized outfit using 6D scoring: body type, style profile, weather, user feedback, metadata compatibility, and diversity boost",
+            explanation="Uses your saved wardrobe attributes and requested context",
             styleTags=[context.style.lower().replace(' ', '_'), 'multi_layered'],
             colorHarmony="color_theory_optimized",
-            styleNotes=f"6D scoring: body type, style, weather, user feedback, compatibility, diversity",
+            styleNotes="Review the pieces and share what you would change",
             season="current",
             updatedAt=int(time.time()),
             metadata={
@@ -8312,111 +8304,13 @@ class RobustOutfitGenerationService:
     # ═══════════════════════════════════════════════════════════════════════════
     
     def _generate_learning_insight_message(self, context, item_scores, diversity_scores, favorited_count):
-        """Generate a Spotify-style learning insight message for the user - SMART version with real data"""
-        try:
-            # Count how many items have high diversity scores (fresh picks)
-            fresh_picks = sum(1 for score in diversity_scores.values() if score > 1.1)
-            
-            # Count favorited items actually in item_scores (real data)
-            favorites_in_outfit = sum(1 for scores in item_scores.values() 
-                                     if scores.get('user_feedback_score', 0) > 0.7)
-            
-            # Get actual user stats from context
-            total_outfits = safe_get(context.user_profile, 'total_outfits_rated', 0) if context.user_profile else 0
-            
-            # SMART MESSAGING based on user experience level
-            if total_outfits == 0:
-                # New user - encourage them to rate
-                if fresh_picks > 0:
-                    return f"Welcome! This {context.style} outfit is designed for {context.occasion}. Rate it to help us learn your unique taste! ✨"
-                else:
-                    return f"Your first {context.occasion} outfit! We've selected pieces that work well together. Rate it to train your personal AI stylist! 🎨"
-            
-            elif total_outfits < 5:
-                # Learning phase - show we're adapting
-                if favorites_in_outfit > 0:
-                    return f"Learning your style! Based on your {total_outfits} ratings, this includes {favorites_in_outfit} items similar to what you've liked before. 📊"
-                else:
-                    return f"Exploring your taste! After {total_outfits} ratings, we're trying new {context.style} combinations to understand your preferences better. 🔍"
-            
-            else:
-                # Experienced user - show sophistication
-                if fresh_picks > 0 and favorites_in_outfit > 0:
-                    return f"Personalized mix! From {total_outfits} outfits we learned you love {context.style} - mixing {favorites_in_outfit} proven favorites with {fresh_picks} fresh pieces. 🎯"
-                elif fresh_picks > 0:
-                    return f"Keeping it fresh! Based on {total_outfits} ratings, introducing {fresh_picks} items you haven't worn recently for {context.occasion}. 🔄"
-                elif favorites_in_outfit > 0:
-                    return f"Your favorites! After {total_outfits} ratings, we know these {favorites_in_outfit} pieces match your {context.style} preferences perfectly. ⭐"
-                else:
-                    return f"AI-optimized! Using insights from {total_outfits} ratings to create the perfect {context.style} look for {context.occasion}. 🤖"
-                    
-        except Exception as e:
-            logger.warning(f"Failed to generate learning insight: {e}")
-            return f"Personalized outfit for {context.occasion} - Rate it to improve future suggestions! 💡"
-    
+        return f"Selected from your wardrobe for {context.occasion}. Your feedback helps shape future suggestions."
+
     def _get_item_selection_reason(self, item, item_score_data, diversity_score):
-        """Generate a reason why this specific item was selected - REAL DATA version"""
-        try:
-            # Get actual scores
-            user_feedback_score = item_score_data.get('user_feedback_score', 0.5)
-            weather_score = item_score_data.get('weather_score', 0.5)
-            style_score = item_score_data.get('style_profile_score', 0.5)
-            body_score = item_score_data.get('body_type_score', 0.5)
-            composite_score = item_score_data.get('composite_score', 0)
-            
-            # PRIORITY 0: Never worn before = brand new discovery
-            wear_count = getattr(item, 'wearCount', None)
-            if wear_count is not None and wear_count == 0:
-                return "Brand new to your rotation! Let's give this a try 🆕"
-            
-            # PRIORITY 1: High diversity score = fresh pick (most interesting to user)
-            if diversity_score > 1.15:
-                days_since_worn = int((diversity_score - 1.0) * 30)  # Rough estimate
-                return f"Fresh choice! Haven't worn in ~{days_since_worn} days - time to give it another chance! 🔄"
-            
-            # PRIORITY 2: High user feedback score = proven favorite
-            if user_feedback_score > 0.7:
-                # More specific based on score
-                if user_feedback_score > 0.85:
-                    return "One of your top-rated pieces from past outfits! ⭐"
-                else:
-                    return "You've rated this positively before - reliable choice! 👍"
-            
-            # PRIORITY 3: Perfect weather match
-            if weather_score > 0.85:
-                return "Ideal for today's temperature and conditions! 🌤️"
-            
-            # PRIORITY 4: Style/body type match
-            if style_score > 0.8:
-                color_name = safe_get(item, 'color', 'this color')
-                return f"{color_name} matches your style preferences! 🎨"
-            
-            if body_score > 0.8:
-                fit = safe_get(item.metadata, 'visualAttributes.fit', 'This fit') if hasattr(item, 'metadata') else 'This fit'
-                return f"{fit} fit works great for your profile! 👔"
-            
-            # PRIORITY 5: High composite score (general AI confidence)
-            if composite_score > 6.5:
-                return "Top-scored item across all our AI dimensions! 🤖"
-            
-            # Default - be honest
-            return "Balanced choice for this outfit's overall harmony 🎯"
-            
-        except Exception as e:
-            logger.warning(f"Failed to get item reason: {e}")
-            return "Selected by AI stylist 🤖"
-    
+        # Internal scores cannot establish fit, favorites or elapsed wear time.
+        if self.safe_get_item_attr(item, 'favorite', False):
+            return "Saved as a favorite in your wardrobe"
+        return "Selected from your wardrobe"
+
     def _generate_diversity_message(self, diversity_result, session_tracker, session_id):
-        """Generate a message about outfit diversity and freshness"""
-        try:
-            diversity_score = safe_get(diversity_result, 'diversity_score', 0.8)
-            
-            if diversity_score > 0.9:
-                return "🎯 Super fresh! This outfit introduces new combinations you haven't tried before."
-            elif diversity_score > 0.7:
-                return "✨ Balanced mix - combining familiar favorites with fresh elements."
-            else:
-                return "💎 Classic combo - featuring reliable pieces from your style profile."
-        except Exception as e:
-            logger.warning(f"Failed to generate diversity message: {e}")
-            return "We're keeping your wardrobe rotation fresh and varied!"
+        return "Try another combination to explore your wardrobe."

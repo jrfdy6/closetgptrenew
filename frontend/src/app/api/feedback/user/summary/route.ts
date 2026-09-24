@@ -1,23 +1,5 @@
 import { NextResponse } from 'next/server';
-
-export async function GET(request: Request) {
-  try {
-    // For now, return empty data since this is a new user
-    return NextResponse.json({
-      success: true,
-      summary: {
-        totalFeedback: 0,
-        positiveFeedback: 0,
-        negativeFeedback: 0,
-        averageRating: 0,
-        recentFeedback: []
-      }
-    });
-  } catch (error) {
-    console.error('🔍 DEBUG: Error in feedback user summary:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch feedback summary', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
-  }
-} 
+export const dynamic = 'force-dynamic';
+export async function GET() {
+  return NextResponse.json({ success: false, error: 'This legacy feedback endpoint is no longer available.' }, { status: 410, headers: { 'Cache-Control': 'private, no-store' } });
+}

@@ -12,6 +12,110 @@ Use it for:
 
 If OpenClaw workspace docs and the product repo disagree, this file wins for EasyOutfit runtime and deployment truth.
 
+## Goal 6 Boundary — Controlled Rollout in Progress
+
+The accepted integrated base is `801b6679062e0ad1df6c0f5e085ddeac5c4d8724`;
+the paused Railway API now runs accepted recommendation repair `9c17e694`.
+Protected Firestore rules are live; the frontend remains on
+its earlier production build. Worker repair `f371ff43` passed a bounded production
+run with three persisted garment completions and was then stopped as agreed.
+Flatlay admission remains paused; its authenticated 503/no-reservation behavior
+is verified. One live Casual / Minimalist / Subtle result supports the bounded
+recommendation repair; it is not statistical quality proof. Keep dispatch and
+frontend release held. Before reopening paid flatlay admission, review and deploy
+the narrow POST change to the existing strict verified-user dependency. It is
+local only; the live API still uses the legacy dependency on that POST. See the
+Goal 6 handoff for actual
+artifact IDs and evidence; local cutouts are not premium flatlay quality proof.
+
+- Vercel runs the frontend and thin API proxies. The candidate has no Firebase
+  Admin runtime/package and needs no Firebase Admin credentials in Vercel. Do not
+  add `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL` or `FIREBASE_PRIVATE_KEY` to
+  Vercel to make these routes work. Browser Firebase configuration remains public
+  client configuration and does not confer Admin access.
+- Railway owns privileged profile, onboarding, quiz, garment and image writes.
+  The migrated endpoints verify bearer tokens with revocation checks, reject
+  disabled/anonymous users and conflicting identity headers/query/body fields,
+  and preserve server-owned account fields, completion receipts and private job
+  state. Fresh profile edits cannot establish quiz completion through style
+  preference aliases; only previously completed or legacy profiles can edit those
+  aliases. Direct legacy profile GET/PUT clients use the same protected contract.
+- Proxies choose a fixed configured Railway origin and application path. They
+  forward bearer identity and the required content type/body, never cookies or
+  UID/role assertions, reject redirects and unexpected non-JSON responses, and
+  return private, no-store responses. The upstream request deadline is 50 seconds
+  by default; multipart photo upload preserves its fields/files and uses a
+  45-second upstream deadline. A timeout is an uncertain outcome, not proof that
+  a write failed; confirm through retry/readback.
+- Unused legacy Admin/Clerk/migration routes return `410`. Do not restore them as
+  a fallback. Supported uploads use `/api/image/upload`; supported profile edits
+  use `/api/user/profile` or the retained Railway `/api/auth/profile` alias.
+- Release `frontend/firestore.rules`, including protected user fields and private
+  job/receipt collections. The additional nested wardrobe grant in the backend
+  rules copy is outside this release. Deploying rules must not also deploy Storage
+  rules or indexes.
+- Raw image-URL admission retains its prior policy. The worker's
+  `original_source` check is a check at use time; this candidate does not establish
+  a new blanket admission or fetch-safety guarantee.
+
+Parent review must independently accept the final candidate, tests, build,
+typecheck, rules hash and recovery procedure before any production action.
+Refresh the existing release inventory immediately before release. With flatlay
+admission paused and worker dispatch stopped, apply the protected rules, deploy
+and verify the matching API, then deliberately replace the worker from
+`backend/worker` (`python main.py`, one replica). Verify an authenticated frontend
+preview before deploying a build made with Production variables; confirm every
+canonical domain. Keep intermediate Git-triggered deployments from publishing
+mixed versions. Record exact source and platform artifact IDs after acceptance.
+
+The Goal 5 source archive is now historical evidence only, not a compatible
+complete fallback for this boundary change. Containment and forward repair must
+retain Railway Admin ownership, protected rules, versioned asset readers, private
+ledgers and receipts. `EASYOUTFIT_FLATLAY_REQUESTS_PAUSED=true` stops API admission
+only; stop the worker deployment to stop dispatch. Do not blindly restore old
+source, old rules or Vercel Admin keys. A rebuilt recovery candidate needs its own
+review and verification. When changing the admission flag before `main` contains
+the accepted candidate, use `--skip-deploys`, then explicitly deploy the reviewed
+commit. A normal variable update can rebuild the older linked `main`; do not
+regress the new API while restoring admission.
+
+Accepted base `801b6679` verification: frontend 720 tests in 57 suites passed; backend 534 tests
+ran with 533 passed and one macOS skip; Firestore rules 263 checks passed against
+SHA-256 `eafa27b3270d6906835309c68a10b13b71822852d8a35f8b501e36da9f9811ca`.
+The production frontend build passed with the existing public Firebase client
+configuration and no server Firebase credentials; all 134 compiled server-route
+traces exclude Firebase Admin. Typecheck still reports 115 existing diagnostics,
+compared with 124 at the preceding candidate, with no new diagnostic positions
+or diagnostics in changed files. Build configuration still skips type/lint gates;
+a successful build is not a clean repository-wide typecheck. Frozen TypeScript
+oracles verify 189 quiz cases and 241 onboarding cases. The parent's frozen-source
+real local Firestore service checks passed 25/25. Both Linux CI runs on the
+accepted source passed. Live API health/auth-denial checks and a signed-in
+profile save/reload passed; full authenticated frontend/provider-image and
+physical-device checks remain pending. The three canonical backend URL values
+were verified. See [the Goal 6 handoff](ONBOARDING_RELEASE_GOAL6_HANDOFF.md) for
+release artifacts, subsequent worker diagnostic candidates and checks, the remaining
+gates and recovery restrictions.
+
+The bounded `763220d8` worker diagnostic run identified SIGKILL during both
+removal modes, each overlapping a container `oom_kill` increment. The worker
+was stopped again; this is OOM-associated evidence, not exact-process attribution
+or proof that the configured 8 GB limit was reached. The build resolved rembg
+2.0.85, whose sessionless default changed to BRIA. Historical repository intent
+was U2NET under rembg 2.0.50/2.0.67. The local compatibility candidate pins only
+worker rembg to 2.0.85 and explicitly selects U2NET inside each disposable
+inference child. This changes the observed model back to historical intent;
+it does not establish which model every older deployment ran. Preserve the
+existing hosted flatlay provider/model, image bounds, alpha parameters, deadlines,
+thread setting, attempt budgets and readiness definition. Keep dispatch stopped
+and admission paused until source, public-photo quality and runtime evidence
+are accepted separately. Full details and outstanding checks are in the handoff.
+The local public-photo run completed all ten garments and preserved every
+protected original. It still shows retained background inside some garment gaps
+and loss of thin lace details. Treat this as functional compatibility evidence,
+not premium cutout or hosted-flatlay quality acceptance. Local Mac timing/RSS
+cannot establish production Linux capacity.
+
 ## Canonical Surfaces
 
 - Product repo: `/Users/neo/Desktop/closetgptrenew`

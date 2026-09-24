@@ -7,6 +7,7 @@ declare const it: jest.It;
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import CreateOutfitPage from './page';
+import outfitService from '@/lib/services/outfitService_proper';
 
 const mockCreateOutfit = jest.fn();
 const mockPush = jest.fn();
@@ -34,7 +35,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.spyOn(console, 'error').mockImplementation(() => {});
-  global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+  global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'saved-1', user_id: 'user-1', items: [], flat_lay_request_allowed: true }) });
 });
 afterEach(() => { jest.restoreAllMocks(); });
 
@@ -114,4 +115,43 @@ it('does not sell an upgrade when the balance lookup fails', async () => {
   expect(await screen.findByRole('button', { name: 'Check balance again' })).toBeEnabled();
   expect(screen.queryByRole('link', { name: /Upgrade/ })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Balance unavailable' })).toBeDisabled();
+});
+
+it('keeps the draft and links to the existing onboarding after server admission rejects creation', async () => {
+  const { ApiRequestError } = await import('@/lib/apiRequestError');
+  mockCreateOutfit.mockRejectedValue(new ApiRequestError('Finish setup', 409, 'onboarding_required'));
+  await fillDraft();
+  expect(await screen.findByRole('link', { name: 'Continue my setup' })).toHaveAttribute('href', '/onboarding');
+  expect(screen.getByDisplayValue('My manual look')).toBeVisible();
+  expect(screen.getByDisplayValue('Keep the exact blue shirt')).toBeVisible();
+  expect(mockPush).not.toHaveBeenCalled();
+  expect(mockRequestFlatLay).not.toHaveBeenCalled();
+});
+
+it('keeps a newly saved look while flat-lay admission is globally paused', async () => {
+  mockCreateOutfit.mockResolvedValue({ id: 'saved-1' });
+  (fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ id: 'saved-1', user_id: 'user-1', items: [], flat_lay_request_allowed: false, flat_lay_admission_paused: true, flat_lay_admission_reason: 'Flat-lay requests are temporarily paused. No credit was used.' }) });
+  await fillDraft();
+  expect(await screen.findByRole('button', { name: 'Temporarily unavailable' })).toBeDisabled();
+  expect(mockRequestFlatLay).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Not right now' }));
+  expect(mockPush).toHaveBeenCalledWith('/outfits?refresh=1');
+});
+
+
+it('sends the actual manual form through the service without ownership fields and keeps optional defaults', async () => {
+  mockCreateOutfit.mockImplementation(payload => outfitService.createOutfit(payload, 'test-token'));
+  await fillDraft();
+  await waitFor(() => expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Outfit created!' })));
+  expect(mockCreateOutfit).toHaveBeenCalledWith({
+    name: 'My manual look', occasion: 'Casual', style: 'Classic',
+    description: undefined, notes: 'Keep the exact blue shirt', items: [{ id: 'shirt-1' }],
+  });
+  const createRequest = (fetch as jest.Mock).mock.calls.find(([url, options]) => url === '/api/outfits' && options?.method === 'POST');
+  expect(createRequest).toBeDefined();
+  expect(JSON.parse(createRequest![1].body)).toEqual({
+    name: 'My manual look', occasion: 'Casual', style: 'Classic',
+    notes: 'Keep the exact blue shirt', items: [{ id: 'shirt-1' }],
+  });
+  expect(createRequest![1].headers.Authorization).toBe('Bearer test-token');
 });

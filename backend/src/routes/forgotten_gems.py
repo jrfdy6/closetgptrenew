@@ -2,11 +2,12 @@ from fastapi import APIRouter, HTTPException, Depends
 import logging
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from ..auth.auth_service import get_current_user
 from ..custom_types.wardrobe import ClothingItem
 from ..services.item_analytics_service import ItemAnalyticsService
 from ..services.wardrobe_analysis_service import WardrobeAnalysisService
+from ..services.wear_statistics import parse_wear_timestamp
 
 # Note: app.py mounts this under /api/wardrobe. We add a secondary
 # namespace here to avoid collisions with dynamic wardrobe routes
@@ -23,7 +24,7 @@ class ForgottenItem(BaseModel):
     color: str
     style: List[str]
     lastWorn: Optional[int] = None
-    daysSinceWorn: int
+    daysSinceWorn: Optional[int] = None
     usageCount: int
     favoriteScore: float
     suggestedOutfits: List[str]
@@ -34,6 +35,18 @@ class ForgottenGemsResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
     message: str
+
+
+def _wear_recency(item: Dict[str, Any], now: datetime):
+    """Unknown wear dates remain unknown; never expose ranking sentinels as age."""
+    raw = item.get('lastWorn')
+    if raw is None:
+        raw = item.get('last_worn')
+    last = parse_wear_timestamp(raw)
+    if last is None or last < datetime(2000, 1, 1, tzinfo=timezone.utc) or last > now:
+        return None, None
+    return int(last.timestamp() * 1000), max(0, (now - last).days)
+
 
 @router.get("/forgotten-gems", response_model=ForgottenGemsResponse)
 async def get_forgotten_gems(
@@ -102,42 +115,15 @@ async def get_forgotten_gems(
             )
         
         # Implement basic scoring to return real forgotten items
-        now = datetime.now()
-
-        def compute_days_since_worn(item_dict: Dict[str, Any]) -> int:
-            ts = (item_dict.get('lastWorn') if item_dict else None)
-            if ts is None:
-                return 999 if item_dict.get('wearCount', 0) == 0 else 365
-            try:
-                # Handle different timestamp formats
-                if hasattr(ts, 'timestamp'):
-                    # Firestore DatetimeWithNanoseconds object
-                    seconds = ts.timestamp()
-                elif isinstance(ts, (int, float)):
-                    # Already a timestamp
-                    seconds = ts / 1000.0 if ts > 1e12 else ts
-                else:
-                    # Try to convert to datetime first
-                    if hasattr(ts, 'timestamp'):
-                        seconds = ts.timestamp()
-                    else:
-                        seconds = float(ts)
-                
-                if 946684800 <= seconds <= 4102444800:
-                    last = datetime.fromtimestamp(seconds)
-                    return max(0, (now - last).days)
-                return 365
-            except Exception as e:
-                # print(f"🔍 DEBUG: Error processing lastWorn timestamp: {e}, type: {type(ts)}")
-                return 365
+        now = datetime.now(timezone.utc)
 
         scored: List[ForgottenItem] = []
         total_unworn = 0
         potential_savings = 0.0
 
         for it in wardrobe:
-            days_since_worn = compute_days_since_worn(it)
-            if days_since_worn < days_threshold:
+            last_worn_ts, days_since_worn = _wear_recency(it, now)
+            if days_since_worn is not None and days_since_worn < days_threshold:
                 continue
             total_unworn += 1
             wear_count = int((it.get('wearCount', 0) if it else 0) or 0)
@@ -146,7 +132,9 @@ async def get_forgotten_gems(
             # Basic rediscovery potential: 
             # more days since worn -> higher, fewer wears -> higher, favorite -> small boost
             score = 40.0
-            score += min(days_since_worn / 7.0, 40.0)       # up to +40 for very old items
+            # Preserve the existing priority for items without a recorded wear
+            # date without claiming that they were worn 999/365 days ago.
+            score += 40.0 if days_since_worn is None else min(days_since_worn / 7.0, 40.0)
             score -= min(wear_count * 5.0, 25.0)            # up to -25 for commonly worn
             if is_fav:
                 score += 5.0                                 # small nudge for favorites
@@ -154,20 +142,6 @@ async def get_forgotten_gems(
 
             if score < min_rediscovery_potential:
                 continue
-
-            # Convert lastWorn to timestamp if it's a datetime object
-            last_worn_ts = it.get('lastWorn')
-            if last_worn_ts is not None:
-                try:
-                    if hasattr(last_worn_ts, 'timestamp'):
-                        # Firestore DatetimeWithNanoseconds object
-                        last_worn_ts = int(last_worn_ts.timestamp() * 1000)  # Convert to milliseconds
-                    elif not isinstance(last_worn_ts, int):
-                        # Try to convert to int
-                        last_worn_ts = int(last_worn_ts)
-                except Exception as e:
-                    # print(f"🔍 DEBUG: Error converting lastWorn to timestamp: {e}")
-                    last_worn_ts = None
 
             fi = ForgottenItem(
                 id=(it.get('id', '') if it else ''),
@@ -191,25 +165,12 @@ async def get_forgotten_gems(
         if not scored:
             fallback_candidates: List[ForgottenItem] = []
             for it in wardrobe:
-                dsw = compute_days_since_worn(it)
-                if dsw < days_threshold:
+                last_worn_ts, dsw = _wear_recency(it, now)
+                if dsw is not None and dsw < days_threshold:
                     continue
                 wc = int((it.get('wearCount', 0) if it else 0) or 0)
                 fav = bool((it.get('isFavorite', False) if it else False))
-                basic_score = 30.0 + min(dsw / 10.0, 30.0) - min(wc * 3.0, 15.0) + (5.0 if fav else 0.0)
-                # Convert lastWorn to timestamp if it's a datetime object
-                last_worn_ts = it.get('lastWorn')
-                if last_worn_ts is not None:
-                    try:
-                        if hasattr(last_worn_ts, 'timestamp'):
-                            # Firestore DatetimeWithNanoseconds object
-                            last_worn_ts = int(last_worn_ts.timestamp() * 1000)  # Convert to milliseconds
-                        elif not isinstance(last_worn_ts, int):
-                            # Try to convert to int
-                            last_worn_ts = int(last_worn_ts)
-                    except Exception as e:
-                        # print(f"🔍 DEBUG: Error converting lastWorn to timestamp in fallback: {e}")
-                        last_worn_ts = None
+                basic_score = 30.0 + (30.0 if dsw is None else min(dsw / 10.0, 30.0)) - min(wc * 3.0, 15.0) + (5.0 if fav else 0.0)
 
                 fi = ForgottenItem(
                     id=(it.get('id', '') if it else ''),
@@ -227,7 +188,7 @@ async def get_forgotten_gems(
                     rediscoveryPotential=max(0.0, min(100.0, basic_score)),
                 )
                 fallback_candidates.append(fi)
-            fallback_candidates.sort(key=lambda x: x.daysSinceWorn, reverse=True)
+            fallback_candidates.sort(key=lambda x: (x.daysSinceWorn is None, x.daysSinceWorn or 0), reverse=True)
             scored = fallback_candidates[:10]
 
         scored.sort(key=lambda x: x.rediscoveryPotential, reverse=True)
@@ -448,4 +409,4 @@ async def declutter_item(
         
     except Exception as e:
         # print(f"❌ Declutter Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to mark item for decluttering: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to mark item for decluttering: {str(e)}")

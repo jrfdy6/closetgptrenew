@@ -1,19 +1,12 @@
 """Original-reference preparation checks without credentials, HTTP or Firebase."""
-import importlib.util
 from io import BytesIO
-from pathlib import Path
 import struct
 import unittest
 from unittest.mock import patch
 import zlib
 
 from PIL import Image
-
-
-MODULE = Path(__file__).resolve().parents[1] / "worker" / "flatlay_reference_images.py"
-spec = importlib.util.spec_from_file_location("flatlay_reference_images_under_test", MODULE)
-references = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(references)
+from worker import flatlay_reference_images as references
 
 
 def png(mode="RGB", size=(20, 30), color=None):
@@ -95,6 +88,41 @@ class ReferencePreparationTests(unittest.TestCase):
         self.blobs["items/shoes-2/processed.png"] = FakeBlob(self.second)
         self.assert_code("original_image_missing", references.prepare_original_references, self.items, self.bucket)
         self.assertEqual(self.bucket.requested_paths, ["items/shirt_1/original.png", "items/shoes-2/original.png"])
+
+    def test_reserved_attempt_original_is_read_even_when_legacy_pixels_differ(self):
+        path = "items/shirt_1/attempts/attempt-one/original.png"
+        self.items[0]["originalStoragePath"] = path
+        self.blobs[path] = FakeBlob(self.second)
+        result = references.prepare_original_references(self.items, self.bucket)
+        self.assertEqual(self.bucket.requested_paths, [path, "items/shoes-2/original.png"])
+        self.assertEqual(result[0]["image_bytes"], self.second)
+
+    def test_untrusted_original_paths_cannot_escape_item_or_use_processed_pixels(self):
+        for path in ("items/shoes-2/attempts/a/original.png", "items/shirt_1/attempts/a/nobg.png",
+                     "items/shirt_1/attempts/../original.png", "https://attacker.invalid/photo",
+                     "items/shirt_1/attempts/a/original.png?key=value", 12, ""):
+            with self.subTest(path=path):
+                self.assert_code("invalid_original_path", references.prepare_original_references,
+                                 [{"id": "shirt_1", "originalStoragePath": path}], self.bucket)
+        self.assertEqual(self.bucket.requested_paths, [])
+
+    def test_missing_reserved_original_never_falls_back_to_legacy_object(self):
+        self.assert_code("original_image_missing", references.prepare_original_references,
+                         [{"id": "shirt_1", "originalStoragePath": "items/shirt_1/attempts/missing/original.png"}],
+                         self.bucket)
+        self.assertEqual(self.bucket.requested_paths, ["items/shirt_1/attempts/missing/original.png"])
+
+    def test_prepared_original_is_bound_to_item_and_current_flatlay_request(self):
+        path = "items/shirt_1/flatlay-requests/request-one/original.png"
+        item = {"id": "shirt_1", "originalStoragePath": path}
+        self.blobs[path] = FakeBlob(self.second)
+        result = references.prepare_original_references([item], self.bucket, request_id="request-one")
+        self.assertEqual(result[0]["image_bytes"], self.second)
+        for request_id in (None, "request-two", "../request-one"):
+            with self.subTest(request_id=request_id):
+                with self.assertRaises(references.ReferenceImageError) as caught:
+                    references.prepare_original_references([item], self.bucket, request_id=request_id)
+                self.assertEqual(caught.exception.code, "invalid_original_path")
 
     def test_invalid_ids_duplicates_and_scalar_items_fail_before_storage_access(self):
         cases = [

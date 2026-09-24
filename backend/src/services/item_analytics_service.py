@@ -10,6 +10,7 @@ from ..models.item_analytics import (
 )
 from ..custom_types.wardrobe import ClothingItem
 from ..custom_types.profile import UserProfile
+from .app_data_privacy import AppDataDeletionError, optional_policy, require_app_data_writable, write_optional_record
 import logging
 
 logger = logging.getLogger(__name__)
@@ -30,9 +31,15 @@ class ItemAnalyticsService:
         was_base_item: Optional[bool] = None,
         feedback_rating: Optional[int] = None,
         feedback_type: Optional[str] = None
-    ) -> str:
+    ) -> Optional[str]:
         """Track a user interaction with an item."""
         try:
+            if not optional_policy(self.db, user_id, 'telemetry'):
+                return None
+            try:
+                epoch = require_app_data_writable(self.db, user_id)
+            except Exception:
+                return None
             analytics_data = ItemAnalytics(
                 item_id=item_id,
                 user_id=user_id,
@@ -45,10 +52,11 @@ class ItemAnalyticsService:
             )
             
             doc_ref = self.db.collection(self.analytics_collection).document()
-            doc_ref.set(analytics_data.dict())
+            if not write_optional_record(self.db, user_id, doc_ref, analytics_data.model_dump(), kind="telemetry", expected_epoch=epoch):
+                return None
             
             # Update the item's favorite score
-            await self._update_item_favorite_score(user_id, item_id)
+            await self._update_item_favorite_score(user_id, item_id, expected_epoch=epoch)
             
             logger.info(f"Tracked {interaction_type} interaction for item {item_id}")
             return doc_ref.id
@@ -77,7 +85,7 @@ class ItemAnalyticsService:
                     interaction_type=ItemInteractionType.OUTFIT_GENERATED,
                     metadata={"outfit_id": outfit_id, "occasion": "outfit_generation"},
                     outfit_id=outfit_id,
-                    was_base_item=was
+                    was_base_item=was_base
                 )
                 
                 if was_base:
@@ -123,9 +131,12 @@ class ItemAnalyticsService:
             logger.error(f"Error tracking outfit feedback: {e}")
             raise
     
-    async def _update_item_favorite_score(self, user_id: str, item_id: str):
+    async def _update_item_favorite_score(self, user_id: str, item_id: str, *, expected_epoch=None):
         """Calculate and update the favorite score for an item."""
         try:
+            if not optional_policy(self.db, user_id, "personalization"):
+                return
+            epoch = require_app_data_writable(self.db, user_id, expected_epoch)
             # Get all analytics for this item and user
             analytics_refs = self.db.collection(self.analytics_collection).where(
                 "user_id", "==", user_id
@@ -172,10 +183,13 @@ class ItemAnalyticsService:
             
             # Save to Firestore
             score_ref = self.db.collection(self.scores_collection).document(f"{user_id}_{item_id}")
-            score_ref.set(score_data.dict(), merge=True)
+            if not write_optional_record(self.db, user_id, score_ref, score_data.model_dump(), kind="personalization", expected_epoch=epoch, merge=True):
+                return
             
             logger.info(f"Updated favorite score for item {item_id}: {total_score:.3f}")
             
+        except AppDataDeletionError:
+            return
         except Exception as e:
             logger.error(f"Error updating favorite score: {e}")
             raise
@@ -254,6 +268,8 @@ class ItemAnalyticsService:
             return 0.5  # Neutral score if no profile
         
         try:
+            if not optional_policy(self.db, user_profile.id, "personalization"):
+                return 0.5
             # Get item details
             item_ref = self.db.collection("wardrobe").document(item_id)
             item_doc = item_ref.get() if item_ref else None
@@ -328,6 +344,8 @@ class ItemAnalyticsService:
     async def _get_user_profile(self, user_id: str) -> Optional[UserProfile]:
         """Get user profile for style preference calculations."""
         try:
+            if not optional_policy(self.db, user_id, "personalization"):
+                return None
             profile_ref = self.db.collection("users").document(user_id)
             profile_doc = profile_ref.get() if profile_ref else None
             
@@ -348,6 +366,9 @@ class ItemAnalyticsService:
     ) -> List[ItemUsageSummary]:
         """Get user's favorite items, optionally filtered by type."""
         try:
+            if not optional_policy(self.db, user_id, "personalization"):
+                return []
+            epoch = require_app_data_writable(self.db, user_id)
             # Query favorite scores
             query = self.db.collection(self.scores_collection).where("user_id", "==", user_id)
             score_docs = query.order_by("total_score", direction="DESCENDING").limit(limit).stream()
@@ -355,6 +376,8 @@ class ItemAnalyticsService:
             favorites = []
             for doc in score_docs:
                 score_data = doc.to_dict()
+                if not score_data or score_data.get('app_data_epoch', 0) != epoch:
+                    continue
                 
                 # Get item details
                 item_ref = self.db.collection("wardrobe").document(score_data["item_id"])
@@ -391,7 +414,8 @@ class ItemAnalyticsService:
             for i, favorite in enumerate(favorites):
                 favorite.rank = i + 1
             
-            return favorites
+            require_app_data_writable(self.db, user_id, epoch)
+            return favorites if optional_policy(self.db, user_id, "personalization") else []
             
         except Exception as e:
             logger.error(f"Error getting user favorites: {e}")
@@ -400,4 +424,4 @@ class ItemAnalyticsService:
     async def get_favorite_by_type(self, user_id: str, item_type: str) -> Optional[ItemUsageSummary]:
         """Get the user's favorite item of a specific type."""
         favorites = await self.get_user_favorites(user_id, item_type, limit=1)
-        return favorites[0] if favorites else None 
+        return favorites[0] if favorites else None

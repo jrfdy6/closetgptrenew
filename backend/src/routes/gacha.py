@@ -3,7 +3,7 @@ Gacha & Style Tokens API Routes
 Endpoints for spending Style Tokens on variable rewards (Variable Ratio Reinforcement)
 """
 
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import Body, APIRouter, HTTPException, Depends, status
 from typing import Dict, Any
 import logging
 from ..auth.auth_service import get_current_user
@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 @router.post("/pull")
 async def style_gacha_pull(
+    payload: Dict[str, Any] = Body(default={}),
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
@@ -34,7 +35,7 @@ async def style_gacha_pull(
                 detail="Gacha system is currently unavailable. Please try again later."
             )
         
-        pull_result = await addiction_service.perform_style_gacha_pull(user_id=user_id)
+        pull_result = await addiction_service.perform_style_gacha_pull(user_id=user_id, idempotency_key=payload.get("idempotency_key"))
         
         if pull_result.get("error") == "Insufficient tokens":
             balance = pull_result.get("balance", 0)
@@ -80,7 +81,7 @@ async def style_gacha_pull(
                 "description": reward_data.get("description", "")
             },
             "tokens": {
-                "spent": 500,
+                "spent": 0 if pull_result.get("already_recorded") else 500,
                 "remaining": pull_result.get("remaining_tokens", 0),
                 "balance": pull_result.get("remaining_tokens", 0)
             },

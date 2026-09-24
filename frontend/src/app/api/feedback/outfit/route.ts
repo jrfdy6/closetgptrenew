@@ -1,38 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getBackendUrl } from '@/lib/server/backendUrl';
-
-// Force dynamic rendering since we use request.headers
+import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    
-    // Forward the request to the backend
-    const response = await fetch(`${getBackendUrl()}/api/feedback/outfit`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': request.headers.get('Authorization') || '',
-      },
-      body: JSON.stringify(body),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: data.detail || 'Failed to submit feedback' },
-        { status: response.status }
-      );
-    }
-
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error('Error in feedback API route:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-} 
+export async function POST() {
+  return NextResponse.json({ success: false, error: 'This legacy feedback endpoint is no longer available.' }, { status: 410, headers: { 'Cache-Control': 'private, no-store' } });
+}

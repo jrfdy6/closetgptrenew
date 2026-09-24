@@ -260,102 +260,16 @@ class AddictionService:
             logger.error(f"Error updating streak for user {user_id}: {e}", exc_info=True)
             return {"current_streak": 0, "multiplier": 1.0, "was_broken": True}
     
-    async def process_outfit_log(
-        self, 
-        user_id: str, 
-        log_timestamp: int
-    ) -> Dict[str, Any]:
-        """
-        Processes outfit log: calculates tokens, XP, updates streak, and performs DB updates.
-        Returns the metrics awarded.
-        """
-        try:
-            # 1. Check if first log today
-            is_first_log = await self.is_first_outfit_today(user_id, log_timestamp)
-            
-            # 2. Get user role and token multiplier from local config
-            user_ref = self.db.collection('users').document(user_id)
-            user_doc = user_ref.get()
-            
-            if not user_doc.exists:
-                return {"error": "User not found", "tokens_awarded": 0, "xp_awarded": 0}
-            
-            user_data = user_doc.to_dict()
-            role_data = user_data.get('role', {})
-            current_role_str = role_data.get('current_role', 'starter')
-            
-            try:
-                current_role = UserRole(current_role_str)
-                role_config = self.ROLE_CONFIG.get(current_role, self.ROLE_CONFIG[UserRole.STARTER])
-                token_multiplier = role_config['perks']['token_multiplier']
-            except:
-                token_multiplier = 1.0  # Default if role is invalid/not set
-            
-            # 3. Calculate base rewards
-            base_tokens = 50 if is_first_log else 5
-            base_xp = 10
-            
-            # 4. Update streak and get multiplier
-            streak_data = await self.check_and_update_streak(
-                user_id=user_id,
-                log_timestamp=log_timestamp,
-                is_first_log_today=is_first_log
-            )
-            xp_multiplier = streak_data.get('multiplier', 1.0)
-            
-            # 5. Check for pending XP bonus from gacha pull
-            pending_xp_bonus = user_data.get('pending_xp_bonus', 0)
-            if pending_xp_bonus > 0:
-                # Apply bonus and clear it
-                awarded_xp = int((base_xp + pending_xp_bonus) * xp_multiplier)
-                user_ref.update({
-                    'pending_xp_bonus': 0,
-                    'pending_xp_bonus_source': None,
-                    'pending_xp_bonus_earned_at': None
-                })
-                logger.info(f"✅ Applied pending XP bonus of {pending_xp_bonus} to outfit log")
-            else:
-                # Calculate final XP (XP is multiplied by streak)
-                awarded_xp = int(base_xp * xp_multiplier)
-            
-            # 6. Award tokens (pass base amount - award_style_tokens applies role multiplier)
-            tokens_result = await self.award_style_tokens(
-                user_id=user_id,
-                action_type="outfit_logged",
-                amount=base_tokens  # Method will apply role multiplier internally
-            )
-            
-            # 7. Award XP (use gamification service)
-            from .gamification_service import gamification_service
-            xp_result = await gamification_service.award_xp(
-                user_id=user_id,
-                amount=awarded_xp,  # Already multiplied by streak
-                reason="outfit_logged",
-                metadata={
-                    "log_timestamp": log_timestamp,
-                    "is_first_log_today": is_first_log,
-                    "streak_multiplier": xp_multiplier
-                }
-            )
-            
-            # 8. Return metrics
-            return {
-                "tokens_awarded": tokens_result.get('tokens_awarded', 0),
-                "base_tokens": base_tokens,
-                "xp_awarded": awarded_xp,
-                "base_xp": base_xp,
-                "is_first_log_today": is_first_log,
-                "current_streak": streak_data.get('current_streak', 0),
-                "streak_multiplier": xp_multiplier,
-                "role_multiplier": token_multiplier,
-                "level_up": xp_result.get('level_up', False),
-                "new_level": xp_result.get('level', 1)
-            }
-            
-        except Exception as e:
-            logger.error(f"Error processing outfit log for user {user_id}: {e}", exc_info=True)
-            return {"error": "Gamification processing failed", "tokens_awarded": 0, "xp_awarded": 0}
-    
+    async def process_outfit_log(self, user_id: str, log_timestamp: int, event_id: Optional[str] = None) -> Dict[str, Any]:
+        """Read a committed canonical reward; never create a second wear award."""
+        if not event_id:
+            raise ValueError("A canonical wear event is required")
+        snapshot = self.db.collection("reward_ledger").document(event_id).get()
+        receipt = snapshot.to_dict() if snapshot.exists else None
+        if not receipt or receipt.get("user_id") != user_id:
+            raise ValueError("Wear reward receipt unavailable")
+        return {**receipt.get("rewards", {}), "xp_awarded": 0, "tokens_awarded": 0, "already_recorded": True}
+
     async def award_style_tokens(
         self,
         user_id: str,
@@ -365,210 +279,65 @@ class AddictionService:
         """
         Award style tokens to user. Applies role multiplier.
         """
-        try:
-            # Get base amount from rates if not provided
-            if amount is None:
-                amount = self.TOKEN_EARN_RATES.get(action_type, 0)
-            
-            # Get user role to apply multiplier
-            user_ref = self.db.collection('users').document(user_id)
-            user_doc = user_ref.get()
-            
-            if not user_doc.exists:
-                return {"error": "User not found"}
-            
-            user_data = user_doc.to_dict()
-            role_data = user_data.get('role', {})
-            current_role_str = role_data.get('current_role', 'starter')
-            
+        from .reward_ledger import award
+        from uuid import uuid4
+        value = self.TOKEN_EARN_RATES.get(action_type, 0) if amount is None else amount
+        return award(self.db, user_id, "legacy-tokens-" + str(uuid4()), tokens=value, apply_role_multiplier=True, metadata={"action_type": action_type})
+
+    async def perform_style_gacha_pull(self, user_id: str, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+        """One token debit, stored result and reward per explicit action key."""
+        from uuid import uuid4
+        from firebase_admin import firestore
+        from .reward_ledger import read, key_for, WriteEpochFence
+        from .app_data_privacy import require_app_data_writable
+        from .outfit_wear import KEY
+        key = idempotency_key or str(uuid4())
+        if not isinstance(key, str) or not KEY.fullmatch(key):
+            raise ValueError("Invalid pull request identifier")
+        user_ref = self.db.collection("users").document(user_id)
+        pull_ref = user_ref.collection("gacha_pulls").document(key_for(user_id, key))
+        # Stable random draw across Firestore contention retries.
+        roll = random.random()
+        timestamp = datetime.now(tz.utc)
+        epoch_fence = WriteEpochFence(self.db, user_id)
+        @firestore.transactional
+        def pull(transaction):
+            epoch_fence.check(transaction)
+            user = read(user_ref, transaction)
+            previous = read(pull_ref, transaction)
+            if previous:
+                return {**previous["result"], "already_recorded": True}
+            balance = user.get("style_tokens") or {}
+            current = int(balance.get("balance", 0))
+            if current < self.GACHA_PULL_COST:
+                return {"error": "Insufficient tokens", "balance": current, "required": self.GACHA_PULL_COST}
             try:
-                current_role = UserRole(current_role_str)
-                role_config = self.ROLE_CONFIG.get(current_role, self.ROLE_CONFIG[UserRole.STARTER])
-                token_multiplier = role_config['perks']['token_multiplier']
-            except:
-                token_multiplier = 1.0
-            
-            # Apply multiplier
-            final_amount = int(amount * token_multiplier)
-            
-            # Get current token balance
-            tokens_data = user_data.get('style_tokens', {})
-            current_balance = tokens_data.get('balance', 0)
-            total_earned = tokens_data.get('total_earned', 0)
-            
-            # Update tokens
-            updated_tokens_data = {
-                'balance': current_balance + final_amount,
-                'total_earned': total_earned + final_amount,
-                'total_spent': tokens_data.get('total_spent', 0),
-                'last_earned_at': datetime.now().isoformat()
-            }
-            
-            user_ref.update({'style_tokens': updated_tokens_data})
-            
-            logger.info(f"🪙 Awarded {final_amount} tokens ({amount} base × {token_multiplier}x role multiplier) to user {user_id}")
-            
-            return {
-                "tokens_awarded": final_amount,
-                "base_amount": amount,
-                "multiplier": token_multiplier,
-                "new_balance": updated_tokens_data['balance']
-            }
-            
-        except Exception as e:
-            logger.error(f"Error awarding tokens to user {user_id}: {e}", exc_info=True)
-            return {"error": str(e)}
-    
-    async def perform_style_gacha_pull(self, user_id: str) -> Dict[str, Any]:
-        """
-        Perform a gacha pull. User spends tokens for variable reward.
-        """
-        try:
-            # Check token balance
-            user_ref = self.db.collection('users').document(user_id)
-            user_doc = user_ref.get()
-            
-            if not user_doc.exists:
-                return {"error": "User not found"}
-            
-            user_data = user_doc.to_dict()
-            tokens_data = user_data.get('style_tokens', {})
-            current_balance = tokens_data.get('balance', 0)
-            
-            if current_balance < self.GACHA_PULL_COST:
-                return {
-                    "error": "Insufficient tokens",
-                    "balance": current_balance,
-                    "required": self.GACHA_PULL_COST
-                }
-            
-            # Get user role for luck boost
-            role_data = user_data.get('role', {})
-            current_role_str = role_data.get('current_role', 'starter')
-            
-            try:
-                current_role = UserRole(current_role_str)
-                role_config = self.ROLE_CONFIG.get(current_role, self.ROLE_CONFIG[UserRole.STARTER])
-                luck_boost = role_config['perks'].get('gacha_luck_boost', 0.0)
-            except:
-                luck_boost = 0.0
-            
-            # Roll for rarity (with role boost)
-            roll = random.random()
-            
-            # Adjust drop rates with luck boost
-            legendary_rate = self.DROP_RATES[GachaRarity.LEGENDARY] + luck_boost
-            rare_rate = self.DROP_RATES[GachaRarity.RARE] + (luck_boost * 0.5)
-            
-            if roll < legendary_rate:
-                rarity = GachaRarity.LEGENDARY
-                reward_type = "style_recipe"
-                reward_data = {
-                    "type": "Avant-Garde Style Recipe",
-                    "description": "Exclusive AI-generated outfit template for your wardrobe",
-                    "rarity": "legendary"
-                }
-                visual_effect = "GOLD_CONFETTI"
-            elif roll < (legendary_rate + rare_rate):
-                rarity = GachaRarity.RARE
-                reward_type = "style_insight"
-                reward_data = {
-                    "type": "Advanced Styling Insight",
-                    "description": "Unlock new color combination or pattern mixing technique",
-                    "rarity": "rare"
-                }
-                visual_effect = "PURPLE_SPARKLE"
+                role = UserRole((user.get("role") or {}).get("current_role", "starter"))
+            except ValueError:
+                role = UserRole.STARTER
+            luck = self.ROLE_CONFIG[role]["perks"].get("gacha_luck_boost", 0)
+            if roll < self.DROP_RATES[GachaRarity.LEGENDARY] + luck:
+                rarity, kind, effect = "LEGENDARY", "style_recipe", "GOLD_CONFETTI"
+                reward = {"type": "Avant-Garde Style Recipe", "description": "Exclusive AI-generated outfit template for your wardrobe", "rarity": "legendary"}
+            elif roll < self.DROP_RATES[GachaRarity.LEGENDARY] + luck + self.DROP_RATES[GachaRarity.RARE] + luck * .5:
+                rarity, kind, effect = "RARE", "style_insight", "PURPLE_SPARKLE"
+                reward = {"type": "Advanced Styling Insight", "description": "Unlock new color combination or pattern mixing technique", "rarity": "rare"}
             else:
-                rarity = GachaRarity.COMMON
-                reward_type = "xp_boost"
-                reward_data = {
-                    "type": "XP Bonus",
-                    "description": "+50 XP bonus for your next outfit log",
-                    "rarity": "common",
-                    "xp_amount": 50
-                }
-                visual_effect = "BLUE_TICK"
-            
-            # Deduct tokens
-            new_balance = current_balance - self.GACHA_PULL_COST
-            total_spent = tokens_data.get('total_spent', 0) + self.GACHA_PULL_COST
-            
-            updated_tokens_data = {
-                'balance': new_balance,
-                'total_earned': tokens_data.get('total_earned', 0),
-                'total_spent': total_spent,
-                'last_earned_at': tokens_data.get('last_earned_at')
-            }
-            
-            user_ref.update({'style_tokens': updated_tokens_data})
-            
-            # Store pull history
-            pull_data = {
-                'user_id': user_id,
-                'rarity': rarity.value,
-                'reward_type': reward_type,
-                'reward_data': reward_data,
-                'visual_effect': visual_effect,
-                'cost': self.GACHA_PULL_COST,
-                'pulled_at': datetime.now()
-            }
-            
-            self.db.collection('users').document(user_id).collection('gacha_pulls').add(pull_data)
-            
-            # Store actual rewards based on rarity
-            if rarity == GachaRarity.COMMON:
-                # Store pending XP bonus in user profile
-                user_ref.update({
-                    'pending_xp_bonus': reward_data.get('xp_amount', 50),
-                    'pending_xp_bonus_source': 'gacha_pull',
-                    'pending_xp_bonus_earned_at': datetime.now().isoformat()
-                })
-                logger.info(f"✅ Stored pending XP bonus of {reward_data.get('xp_amount', 50)} for user {user_id}")
-                
-            elif rarity == GachaRarity.RARE:
-                # Create style insight record
-                insight_data = {
-                    'user_id': user_id,
-                    'type': 'gacha_reward',
-                    'insight': reward_data.get('description', 'Advanced styling insight'),
-                    'category': 'color_combination',  # or 'pattern_mixing' based on reward
-                    'earned_at': datetime.now(),
-                    'rarity': 'rare',
-                    'applied': False
-                }
-                self.db.collection('users').document(user_id).collection('style_insights').add(insight_data)
-                logger.info(f"✅ Created style insight record for user {user_id}")
-                
-            elif rarity == GachaRarity.LEGENDARY:
-                # Unlock badge via gamification service
-                try:
-                    from .gamification_service import gamification_service
-                    badge_result = await gamification_service.unlock_badge(
-                        user_id=user_id,
-                        badge_id="gacha_legendary"
-                    )
-                    if badge_result.get('success'):
-                        logger.info(f"✅ Unlocked legendary badge for user {user_id}")
-                    else:
-                        logger.warning(f"⚠️ Failed to unlock badge: {badge_result.get('error')}")
-                except Exception as badge_error:
-                    logger.error(f"Error unlocking badge: {badge_error}", exc_info=True)
-            
-            logger.info(f"🎰 User {user_id} pulled {rarity.value} reward: {reward_type}")
-            
-            return {
-                "rarity": rarity.value,
-                "reward_type": reward_type,
-                "reward_data": reward_data,
-                "visual_effect": visual_effect,
-                "remaining_tokens": new_balance,
-                "dopamine_trigger": True
-            }
-            
-        except Exception as e:
-            logger.error(f"Error performing gacha pull for user {user_id}: {e}", exc_info=True)
-            return {"error": str(e)}
-    
+                rarity, kind, effect = "COMMON", "xp_boost", "BLUE_TICK"
+                reward = {"type": "XP Bonus", "description": "+50 XP bonus for your next outfit log", "rarity": "common", "xp_amount": 50}
+            patch = {"style_tokens": {**balance, "balance": current - self.GACHA_PULL_COST, "total_spent": int(balance.get("total_spent", 0)) + self.GACHA_PULL_COST}}
+            if rarity == "COMMON":
+                patch.update({"pending_xp_bonus": 50, "pending_xp_bonus_source": "gacha_pull", "pending_xp_bonus_earned_at": timestamp.isoformat()})
+            elif rarity == "LEGENDARY":
+                patch["badges"] = list(dict.fromkeys([*(user.get("badges") or []), "gacha_legendary"]))
+            else:
+                transaction.set(user_ref.collection("style_insights").document(pull_ref.id), {"user_id": user_id, "type": "gacha_reward", "insight": reward["description"], "category": "color_combination", "earned_at": timestamp, "rarity": "rare", "applied": False})
+            result = {"rarity": rarity, "reward_type": kind, "reward_data": reward, "visual_effect": effect, "remaining_tokens": current - self.GACHA_PULL_COST, "dopamine_trigger": True, "already_recorded": False}
+            transaction.update(user_ref, patch)
+            transaction.set(pull_ref, {"user_id": user_id, "rarity": rarity, "reward_type": kind, "reward_data": reward, "visual_effect": effect, "cost": self.GACHA_PULL_COST, "pulled_at": timestamp, "result": result})
+            return result
+        return pull(self.db.transaction())
+
     async def check_and_update_role(self, user_id: str) -> Dict[str, Any]:
         """
         Check if user qualifies for role promotion or demotion.

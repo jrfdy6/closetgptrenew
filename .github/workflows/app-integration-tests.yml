@@ -1,0 +1,53 @@
+name: App integration contracts
+on:
+  pull_request:
+    paths: ['backend/**', 'frontend/**', '.github/workflows/app-integration-tests.yml']
+  push:
+    paths: ['backend/**', 'frontend/**', '.github/workflows/app-integration-tests.yml']
+permissions:
+  contents: read
+jobs:
+  backend-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Install contract-test dependencies without provider credentials
+        run: pip install firebase-admin==6.2.0 fastapi==0.104.1 httpx==0.25.2 pydantic==2.5.0 Pillow==10.0.1 requests==2.32.5 python-dotenv==1.0.0 Unidecode==1.3.7 python-multipart==0.0.6
+      - name: Verify onboarding, ownership, wear, privacy and route contracts
+        env:
+          PYTHONPATH: '.:tests'
+        run: >-
+          python -m unittest
+          test_outfit_wear test_wear_reward_integration test_wear_statistics
+          test_onboarding_state test_quiz_profile test_user_profile
+          test_outfit_creation_admission test_outfit_persistence test_saved_outfit
+          test_app_data_privacy test_privacy_routes test_privacy_lifecycle_fences
+          test_wardrobe_create_contract test_wardrobe_mutations test_root_integration_review
+          test_badge_response test_forgotten_gems_recency
+          test_route_registry test_privileged_route_registration -q
+  frontend-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm test -- --runInBand

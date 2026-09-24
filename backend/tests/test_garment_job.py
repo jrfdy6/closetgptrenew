@@ -1,0 +1,445 @@
+"""Bounded garment stages with injected storage and no model/provider invocation."""
+import base64
+from contextlib import redirect_stderr
+from io import BytesIO
+from io import StringIO
+import json
+import os
+import signal
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+from types import SimpleNamespace
+from unittest.mock import Mock, mock_open, patch
+
+from PIL import Image
+from worker import garment_job
+from worker.garment_job import (
+    ALPHA_TIMEOUT_SECONDS, FALLBACK_TIMEOUT_SECONDS, WHOLE_JOB_TIMEOUT_SECONDS,
+    GarmentJobError, _run_inference, download_image,
+    firebase_uploader, infer, isolated_remove, normalize_source, png_bytes, process_garment,
+)
+from worker.process_supervisor import JobProcess
+
+
+class GarmentJobTests(unittest.TestCase):
+    def setUp(self):
+        self.original = Image.new('RGBA', (20, 15), (35, 65, 95, 255))
+        self.original_bytes = png_bytes(self.original)
+        self.payload = {'item_id': 'tee', 'attempt_id': 'attempt-id', 'image_url': 'https://assets.invalid/tee.jpg'}
+        self.uploads = []
+        self.progress = []
+        memory = patch.object(garment_job, '_memory_events', return_value=None)
+        memory.start()
+        self.addCleanup(memory.stop)
+
+    def upload(self, image, path):
+        self.uploads.append((path, image.copy()))
+        return 'https://assets.invalid/' + path
+
+    def test_original_is_uploaded_once_and_acknowledged_before_inference_failure(self):
+        def fail(_source):
+            self.assertEqual(len(self.uploads), 1)
+            self.assertEqual(self.progress, [{'originalStoragePath': 'items/tee/attempts/attempt-id/original.png',
+                                             'originalUrl': 'https://assets.invalid/items/tee/attempts/attempt-id/original.png'}])
+            raise GarmentJobError('fallback_inference_failed')
+        with self.assertRaisesRegex(GarmentJobError, 'fallback_inference_failed'):
+            process_garment(self.payload, upload=self.upload, progress=self.progress.append,
+                             download=lambda _: self.original_bytes, remove_background=fail)
+        self.assertEqual(len(self.uploads), 1)
+        self.assertEqual(self.uploads[0][1].tobytes(), self.original.tobytes())
+
+    def test_alpha_and_fallback_production_budgets_and_fresh_attempts(self):
+        self.assertEqual((ALPHA_TIMEOUT_SECONDS, FALLBACK_TIMEOUT_SECONDS, WHOLE_JOB_TIMEOUT_SECONDS),
+                         (240, 60, 360))
+        calls = []
+        def inference(mode, source, output, timeout):
+            calls.append((mode, timeout))
+            self.assertEqual(source.read_bytes(), self.original_bytes)
+            if mode == 'alpha':
+                output.write_bytes(b'partial output must not leak into fallback')
+                raise GarmentJobError('alpha_inference_failed', diagnostics=[{
+                    'stage': 'alpha_removal', 'category': 'runtime_error'}])
+            self.assertFalse(output.exists())
+            return self.original_bytes
+        output, mode = isolated_remove(self.original_bytes, run_inference=inference)
+        self.assertEqual(output, self.original_bytes)
+        self.assertEqual(mode, 'fast')
+        self.assertEqual(calls, [('alpha', 240), ('fallback', 60)])
+
+    def test_corrupt_and_empty_alpha_trigger_fallback_but_invalid_fallback_fails(self):
+        invalids = (b'not a png', png_bytes(Image.new('RGBA', (10, 10), (0, 0, 0, 0))))
+        for invalid in invalids:
+            with self.subTest(invalid=invalid[:10]):
+                inference = Mock(side_effect=[invalid, self.original_bytes])
+                self.assertEqual(isolated_remove(self.original_bytes, run_inference=inference),
+                                 (self.original_bytes, 'fast'))
+                self.assertEqual(inference.call_args.args[0], 'fallback')
+                self.assertEqual(inference.call_args.args[3], 60)
+                with self.assertRaisesRegex(GarmentJobError, 'background_removal_invalid'):
+                    isolated_remove(self.original_bytes, run_inference=Mock(return_value=invalid))
+
+    def test_alpha_and_fallback_hangs_really_terminate_then_later_job_runs(self):
+        children = []
+        def factory(payload, **kwargs):
+            # Short test budgets only. Production stage selection still supplies
+            # 240/60; the factory substitutes deterministic sleeping processes.
+            child = JobProcess(payload, command=[sys.executable, '-c', 'import time; time.sleep(30)'],
+                               timeout_seconds=.15, env=kwargs['env'])
+            children.append(child)
+            return child
+        def inference(mode, source, output, timeout):
+            self.assertEqual(timeout, 240 if mode == 'alpha' else 60)
+            return _run_inference(mode, source, output, timeout, job_factory=factory)
+        with self.assertRaisesRegex(GarmentJobError, 'fallback_inference_failed'):
+            isolated_remove(self.original_bytes, run_inference=inference)
+        self.assertEqual(len(children), 2)
+        for child in children:
+            self.assertIsNotNone(child.process.returncode)
+            self.assertFalse(child.workdir.exists())
+            with self.assertRaises(ProcessLookupError):
+                os.kill(child.pid, 0)
+        followup = JobProcess({}, command=[sys.executable, '-c', 'pass'], timeout_seconds=2)
+        try:
+            followup.process.wait(timeout=2)
+            self.assertEqual(followup.poll()['status'], 'succeeded')
+        finally:
+            followup.close()
+
+    def test_inference_child_does_not_receive_provider_key(self):
+        child = Mock()
+        child.poll.return_value = {'status': 'failed'}
+        factory = Mock(return_value=child)
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'OPENAI_API_KEY': 'private-test-marker'}):
+            with self.assertRaises(GarmentJobError):
+                _run_inference('alpha', Path(directory) / 'in', Path(directory) / 'out', 240, job_factory=factory)
+        self.assertNotIn('OPENAI_API_KEY', factory.call_args.kwargs['env'])
+        child.close.assert_called_once()
+
+    def test_inference_import_removal_and_output_failures_have_safe_distinct_stages(self):
+        secret = 'https://private.invalid/model?token=secret'
+        with tempfile.TemporaryDirectory() as directory:
+            source, output = Path(directory) / 'source.png', Path(directory) / 'output.png'
+            source.write_bytes(self.original_bytes)
+            with patch.dict(sys.modules, {'rembg': None}), self.assertRaises(GarmentJobError) as caught:
+                infer('alpha', str(source), str(output))
+            self.assertEqual(caught.exception.diagnostics, [{'stage': 'alpha_import', 'category': 'dependency_missing'}])
+            rembg = SimpleNamespace(new_session=Mock(return_value=object()),
+                                    remove=Mock(side_effect=RuntimeError(secret)))
+            with patch.dict(sys.modules, {'rembg': rembg}), self.assertRaises(GarmentJobError) as caught:
+                infer('fallback', str(source), str(output))
+            self.assertEqual(caught.exception.diagnostics, [{'stage': 'fallback_removal', 'category': 'runtime_error'}])
+            rembg.remove = Mock(return_value=self.original_bytes)
+            with patch.dict(sys.modules, {'rembg': rembg}), patch.object(Path, 'write_bytes', side_effect=PermissionError(secret)), self.assertRaises(GarmentJobError) as caught:
+                infer('alpha', str(source), str(output))
+            self.assertEqual(caught.exception.diagnostics, [{'stage': 'alpha_output', 'category': 'permission_denied'}])
+            self.assertNotIn(secret, str(caught.exception.diagnostics))
+
+    def test_each_inference_creates_explicit_u2net_session_for_both_modes(self):
+        sessions, removals = [], []
+
+        def new_session(model='library-default-model'):
+            self.assertEqual(model, 'u2net')
+            session = object()
+            sessions.append(session)
+            return session
+
+        def remove(source, session=None, **kwargs):
+            self.assertIs(session, sessions[-1])
+            self.assertEqual(source, self.original_bytes)
+            removals.append((session, kwargs))
+            return self.original_bytes
+
+        rembg = SimpleNamespace(new_session=Mock(side_effect=new_session), remove=Mock(side_effect=remove))
+        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules, {'rembg': rembg}):
+            source, output = Path(directory) / 'source.png', Path(directory) / 'output.png'
+            source.write_bytes(self.original_bytes)
+            for mode in ('alpha', 'fallback', 'alpha'):
+                infer(mode, str(source), str(output))
+                self.assertEqual(output.read_bytes(), self.original_bytes)
+
+        self.assertEqual(len(sessions), 3)
+        self.assertEqual(len({id(session) for session in sessions}), 3)
+        self.assertEqual([call.args for call in rembg.new_session.call_args_list], [('u2net',)] * 3)
+        alpha_kwargs = {'alpha_matting': True, 'alpha_matting_foreground_threshold': 240,
+                        'alpha_matting_background_threshold': 10, 'alpha_matting_erode_size': 10}
+        self.assertEqual([kwargs for _, kwargs in removals], [alpha_kwargs, {}, alpha_kwargs])
+
+    def test_invalid_input_never_initializes_session(self):
+        rembg = SimpleNamespace(new_session=Mock(), remove=Mock())
+        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules, {'rembg': rembg}):
+            source, output = Path(directory) / 'source.png', Path(directory) / 'output.png'
+            with self.assertRaises(GarmentJobError):
+                infer('alpha', str(source), str(output))
+            source.write_bytes(self.original_bytes)
+            with patch.object(garment_job, 'MAX_REFERENCE_IMAGE_BYTES', len(self.original_bytes)), \
+                    self.assertRaisesRegex(GarmentJobError, 'inference_input_too_large'):
+                infer('fallback', str(source), str(output))
+            self.assertFalse(output.exists())
+        rembg.new_session.assert_not_called()
+        rembg.remove.assert_not_called()
+
+    def test_session_failure_never_removes_or_publishes_output_and_keeps_safe_stage(self):
+        secret = 'https://private.invalid/model?token=secret'
+        with tempfile.TemporaryDirectory() as directory:
+            source, output, progress = (Path(directory) / name for name in ('source.png', 'output.png', 'progress'))
+            source.write_bytes(self.original_bytes)
+            for mode in ('alpha', 'fallback'):
+                rembg = SimpleNamespace(new_session=Mock(side_effect=RuntimeError(secret)), remove=Mock())
+                with self.subTest(mode=mode), patch.dict(sys.modules, {'rembg': rembg}), \
+                        self.assertRaises(GarmentJobError) as caught:
+                    infer(mode, str(source), str(output), progress_path=str(progress))
+                rembg.new_session.assert_called_once_with('u2net')
+                rembg.remove.assert_not_called()
+                self.assertFalse(output.exists())
+                self.assertEqual(json.loads(progress.read_text()), {'stage': f'{mode}_session'})
+                self.assertEqual(str(caught.exception), 'processing_failed')
+                self.assertEqual(caught.exception.diagnostics, [{'stage': f'{mode}_session', 'category': 'runtime_error'}])
+                self.assertNotIn(secret, str(caught.exception.diagnostics))
+
+    def test_real_session_hang_keeps_existing_stage_deadline_and_safe_marker(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'rembg.py').write_text(
+                'import time\n'
+                'def new_session(model):\n'
+                '    assert model == "u2net"\n'
+                '    time.sleep(30)\n'
+                'def remove(source, **kwargs):\n'
+                '    raise AssertionError("session did not finish")\n')
+            source = root / 'source.png'
+            source.write_bytes(self.original_bytes)
+            children = []
+
+            def factory(payload, **options):
+                self.assertEqual(options['timeout_seconds'], 240 if options['command'][3] == 'alpha' else 60)
+                options['env']['PYTHONPATH'] = str(root)
+                # Only the test process gets a short wall-clock budget.
+                options['timeout_seconds'] = 2
+                child = JobProcess(payload, **options)
+                children.append(child)
+                return child
+
+            for mode, budget in (('alpha', ALPHA_TIMEOUT_SECONDS), ('fallback', FALLBACK_TIMEOUT_SECONDS)):
+                with self.subTest(mode=mode), self.assertRaises(GarmentJobError) as caught:
+                    _run_inference(mode, source, root / 'output.png', budget, job_factory=factory)
+                self.assertEqual(caught.exception.diagnostics,
+                                 [{'stage': f'{mode}_session', 'category': 'process_timeout'}])
+                self.assertFalse((root / 'output.png').exists())
+                self.assertIsNotNone(children[-1].process.returncode)
+                self.assertFalse(children[-1].workdir.exists())
+
+    def test_inference_supervisor_failures_are_classified_without_child_logs(self):
+        cases = (({'status': 'timed_out', 'returncode': -9}, 'process_timeout'),
+                 ({'status': 'failed', 'returncode': -9}, 'process_sigkill'),
+                 ({'status': 'failed', 'returncode': 0}, 'process_no_result'),
+                 ({'status': 'failed', 'returncode': 0, 'result': {'status': 'failed'}}, 'process_failed'),
+                 ({'status': 'succeeded', 'returncode': 0, 'result': {'status': 'succeeded'}}, 'output_missing'),
+                 ({'status': 'failed', 'returncode': 'private'}, 'process_exit_unknown'),
+                 ({'status': 'failed', 'returncode': True}, 'process_exit_unknown'))
+        with tempfile.TemporaryDirectory() as directory:
+            for summary, category in cases:
+                with self.subTest(category=category):
+                    child = Mock()
+                    child.poll.return_value = summary
+                    with self.assertRaises(GarmentJobError) as caught:
+                        _run_inference('fallback', Path(directory) / 'in', Path(directory) / 'out',
+                                       60, job_factory=Mock(return_value=child))
+                    self.assertEqual(str(caught.exception), 'fallback_inference_failed')
+                    self.assertEqual(caught.exception.diagnostics,
+                                     [{'stage': 'fallback_process', 'category': category}])
+                    child.close.assert_called_once()
+
+    def test_real_signal_and_nonzero_exits_keep_finite_category_and_last_safe_stage(self):
+        cases = ((f'os.kill(os.getpid(), {int(signal.SIGKILL)})', 'process_sigkill', 'alpha_removal'),
+                 ('os._exit(1)', 'process_exit_nonzero', 'alpha_removal'),
+                 (None, 'process_exit_74', 'alpha_process'))
+        with tempfile.TemporaryDirectory() as directory:
+            for termination, category, stage in cases:
+                with self.subTest(category=category):
+                    children = []
+                    def factory(payload, **options):
+                        command = ([sys.executable, str(Path(garment_job.__file__).with_name('process_supervisor.py')),
+                                    '--launch', str(Path(directory) / 'never-registered'), sys.executable, '-c', 'pass']
+                                   if termination is None else [sys.executable, '-c',
+                                    'import os,sys; from worker.process_supervisor import atomic_json; '
+                                    'atomic_json(sys.argv[1], {"stage":"alpha_removal", "secret":"private-token"}); '
+                                    + termination, '{progress}'])
+                        child = JobProcess({}, command=command, timeout_seconds=4, env=options['env'])
+                        children.append(child)
+                        return child
+                    with self.assertRaises(GarmentJobError) as caught:
+                        _run_inference('alpha', Path(directory) / 'in', Path(directory) / 'out',
+                                       240, job_factory=factory)
+                    self.assertEqual(str(caught.exception), 'alpha_inference_failed')
+                    self.assertEqual(caught.exception.diagnostics, [{'stage': stage, 'category': category}])
+                    self.assertFalse(children[0].workdir.exists())
+                    self.assertIsNotNone(children[0].process.returncode)
+
+    def test_inference_progress_markers_are_best_effort_and_leave_results_unchanged(self):
+        secret = 'https://private.invalid/model?token=secret'
+        with tempfile.TemporaryDirectory() as directory:
+            source, output = Path(directory) / 'in', Path(directory) / 'out'
+            source.write_bytes(self.original_bytes)
+            rembg = SimpleNamespace(new_session=Mock(return_value=object()),
+                                    remove=Mock(return_value=self.original_bytes))
+            with patch.dict(sys.modules, {'rembg': rembg}), patch.object(garment_job, 'atomic_json', side_effect=OSError(secret)) as write:
+                infer('alpha', str(source), str(output), progress_path='progress')
+            self.assertEqual(output.read_bytes(), self.original_bytes)
+            self.assertEqual([call.args[1] for call in write.call_args_list], [
+                {'stage': 'alpha_import'}, {'stage': 'alpha_input'}, {'stage': 'alpha_session'},
+                {'stage': 'alpha_removal'}, {'stage': 'alpha_output'}])
+            rembg.remove = Mock(side_effect=RuntimeError(secret))
+            with patch.dict(sys.modules, {'rembg': rembg}), patch.object(garment_job, 'atomic_json', side_effect=OSError(secret)), self.assertRaises(GarmentJobError) as caught:
+                infer('fallback', str(source), str(output), progress_path='progress')
+            self.assertEqual(str(caught.exception), 'processing_failed')
+            self.assertEqual(caught.exception.diagnostics, [{'stage': 'fallback_removal', 'category': 'runtime_error'}])
+            self.assertNotIn(secret, str(caught.exception.diagnostics))
+
+    def test_cgroup_deltas_omit_missing_reset_overflow_and_malformed_snapshots(self):
+        from worker.garment_job import _memory_event_deltas
+        values = {b'oom': 4, b'oom_kill': 2}
+        self.assertEqual(_memory_event_deltas(values, {b'oom': 6, b'oom_kill': 3}),
+                         {'container_oom_delta': 2, 'container_oom_kill_delta': 1})
+        for after in (None, {}, {b'oom': 3, b'oom_kill': 2}, {b'oom': True, b'oom_kill': 2},
+                      {b'oom': 2**63, b'oom_kill': 2}, {b'oom': 2**31 + 4, b'oom_kill': 2}):
+            self.assertEqual(_memory_event_deltas(values, after), {})
+
+    def test_counter_deltas_are_optional_correlation_without_changing_exit_classification(self):
+        child = Mock()
+        child.poll.return_value = {'status': 'failed', 'returncode': -int(signal.SIGKILL),
+                                   'progress': {'stage': 'fallback_removal'}}
+        snapshots = [{b'oom': 4, b'oom_kill': 2}, {b'oom': 5, b'oom_kill': 3}]
+        with tempfile.TemporaryDirectory() as directory, patch.object(garment_job, '_memory_events', side_effect=snapshots):
+            with self.assertRaises(GarmentJobError) as caught:
+                _run_inference('fallback', Path(directory) / 'in', Path(directory) / 'out',
+                               60, job_factory=Mock(return_value=child))
+        self.assertEqual(caught.exception.diagnostics, [{'stage': 'fallback_removal', 'category': 'process_sigkill',
+                         'container_oom_delta': 1, 'container_oom_kill_delta': 1}])
+        self.assertEqual(str(caught.exception), 'fallback_inference_failed')
+
+    def test_raising_exception_accessors_cannot_replace_safe_job_failure_envelope(self):
+        secret = 'https://private.invalid/model?token=secret'
+        class HTTPError(Exception):
+            @property
+            def response(self):
+                raise RuntimeError(secret)
+
+            @property
+            def diagnostics(self):
+                raise RuntimeError(secret)
+
+        with tempfile.TemporaryDirectory() as directory:
+            manifest, result, progress = (Path(directory) / name for name in ('manifest', 'result', 'progress'))
+            manifest.write_text(json.dumps(self.payload))
+            stderr = StringIO()
+            argv = ['job', '--manifest', str(manifest), '--result', str(result), '--progress', str(progress)]
+            with patch.object(sys, 'argv', argv), patch.object(garment_job, 'firebase_uploader', side_effect=HTTPError(secret)), redirect_stderr(stderr):
+                self.assertEqual(garment_job.main(), 1)
+            envelope = json.loads(result.read_text())
+            self.assertEqual(envelope['error_code'], 'processing_failed')
+            self.assertEqual(envelope['diagnostics'], [{'stage': 'storage_setup', 'category': 'http_error'}])
+            self.assertEqual(stderr.getvalue().strip(), 'processing_failed')
+            self.assertNotIn(secret, str(envelope))
+
+    def test_optional_inference_manifest_io_failure_preserves_success_and_failure_exit(self):
+        secret = 'https://private.invalid/model?token=secret'
+        argv = ['job', '--infer', 'alpha', 'input', 'output', 'result']
+        for failure in (None, RuntimeError(secret)):
+            stderr = StringIO()
+            with self.subTest(failure=bool(failure)), patch.object(sys, 'argv', argv), \
+                    patch.object(garment_job, 'infer', side_effect=failure), \
+                    patch.object(garment_job, 'atomic_json', side_effect=OSError(secret)), redirect_stderr(stderr):
+                self.assertEqual(garment_job.main(), 1 if failure else 0)
+            self.assertNotIn(secret, stderr.getvalue())
+            self.assertNotIn('Traceback', stderr.getvalue())
+
+    def test_job_module_import_never_initializes_rembg_or_firebase(self):
+        result = subprocess.run([sys.executable, '-c',
+                                 'import sys; from worker import garment_job; '
+                                 'assert "rembg" not in sys.modules; assert "firebase_admin" not in sys.modules'],
+                                capture_output=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr.decode())
+
+    def test_attempt_paths_cannot_escape_item_and_attempt_namespace(self):
+        for key in ('item_id', 'attempt_id'):
+            for value in ('../other', 'x/y', '', '..', '/root'):
+                with self.subTest(key=key, value=value), self.assertRaises(GarmentJobError):
+                    process_garment({**self.payload, key: value}, upload=self.upload)
+        self.assertEqual(self.uploads, [])
+
+    def test_source_download_has_finite_timeouts_streaming_and_byte_limit(self):
+        response = Mock()
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=False)
+        response.headers = {}
+        response.iter_content.return_value = iter([b'x' * 6, b'y' * 6])
+        with patch('requests.get', return_value=response) as get, patch('worker.garment_job.MAX_DOWNLOAD_BYTES', 10):
+            with self.assertRaisesRegex(GarmentJobError, 'source_too_large'):
+                download_image('https://assets.invalid/private?token=secret')
+        self.assertEqual(get.call_args.kwargs, {'timeout': (5, 20), 'stream': True})
+
+    def test_download_failure_does_not_leak_source_url_or_secret(self):
+        with patch('requests.get', side_effect=RuntimeError('https://private.invalid?token=secret')):
+            with self.assertRaises(GarmentJobError) as caught:
+                download_image('https://private.invalid?token=secret')
+        self.assertEqual(str(caught.exception), 'source_download_failed')
+
+    def test_data_uri_and_dimension_validation_are_bounded(self):
+        source = 'data:image/png;base64,' + base64.b64encode(self.original_bytes).decode()
+        self.assertEqual(download_image(source), self.original_bytes)
+        for bad in ('data:image/png;base64,!!!!', 'file:///etc/passwd', 'data:image/png,abc'):
+            with self.assertRaises(GarmentJobError):
+                download_image(bad)
+        with patch('worker.garment_job.MAX_SOURCE_PIXELS', 100):
+            with self.assertRaisesRegex(GarmentJobError, 'source_dimensions_too_large'):
+                normalize_source(self.original_bytes)
+
+    def test_exif_orientation_is_normalized_before_original_is_saved(self):
+        image = Image.new('RGB', (7, 11), (10, 20, 30))
+        exif = image.getexif()
+        exif[274] = 6
+        buffer = BytesIO()
+        image.save(buffer, format='JPEG', exif=exif)
+        normalized = normalize_source(buffer.getvalue())
+        self.assertEqual(normalized.size, (11, 7))
+        self.assertEqual(normalized.mode, 'RGBA')
+
+    def test_storage_is_immutable_and_operations_have_no_unbounded_retry(self):
+        blob = Mock()
+        blob.public_url = 'https://assets.invalid/safe.png'
+        bucket = Mock()
+        bucket.blob.return_value = blob
+        firebase = SimpleNamespace(get_app=lambda: 'app', storage=SimpleNamespace(bucket=Mock(return_value=bucket)),
+                                   credentials=Mock())
+        with patch.dict(sys.modules, {'firebase_admin': firebase}):
+            uploader = firebase_uploader('test-bucket')
+            result = uploader(self.original, 'items/tee/attempts/a/original.png')
+        self.assertEqual(result, blob.public_url)
+        self.assertEqual(blob.upload_from_string.call_args.kwargs,
+                         {'content_type': 'image/png', 'if_generation_match': 0, 'timeout': 20, 'retry': None})
+        blob.make_public.assert_called_once_with(timeout=20, retry=None)
+
+
+class CgroupDiagnosticTests(unittest.TestCase):
+    def test_fixed_counter_read_is_bounded_and_ignores_unrelated_contents(self):
+        with patch('builtins.open', mock_open(read_data=b'low 9\noom 4\noom_kill 2\nprivate token\n')) as opened:
+            self.assertEqual(garment_job._memory_events(), {b'oom': 4, b'oom_kill': 2})
+        opened.assert_called_once_with('/sys/fs/cgroup/memory.events', 'rb')
+        opened().read.assert_called_once_with(4097)
+
+    def test_counter_read_omits_missing_malformed_duplicate_and_oversized_values(self):
+        for raw in (b'', b'oom 1\n', b'oom -1\noom_kill 0\n', b'oom 1 extra\noom_kill 0\n',
+                    b'oom 1\noom 2\noom_kill 0\n', b'oom nope\noom_kill 0\n',
+                    b'oom 9223372036854775808\noom_kill 0\n', b'x' * 4097):
+            with self.subTest(raw=raw[:30]), patch('builtins.open', mock_open(read_data=raw)):
+                self.assertIsNone(garment_job._memory_events())
+        for error in (FileNotFoundError('private'), PermissionError('private'), OSError('private')):
+            with patch('builtins.open', side_effect=error):
+                self.assertIsNone(garment_job._memory_events())
+
+
+if __name__ == '__main__':
+    unittest.main()
