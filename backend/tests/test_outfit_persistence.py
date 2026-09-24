@@ -1,6 +1,7 @@
 """Credential-free HTTP/datastore regressions for manual saves and favorites."""
 
 import copy
+import functools
 import logging
 import sys
 import unittest
@@ -9,6 +10,7 @@ from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 from fastapi import FastAPI
+from firebase_admin import firestore
 from fastapi.testclient import TestClient
 
 from src.routes.outfits.routes import get_current_user, get_current_user_id, router
@@ -57,7 +59,11 @@ class FakeDocument:
     def exists(self):
         return self.id in self.store.records.get(self.collection, {})
 
-    def get(self):
+    def get(self, transaction=None):
+        if self.store.fail_reads:
+            raise RuntimeError('simulated read failure')
+        if transaction is not None and transaction.pending:
+            raise AssertionError('Firestore does not allow reads after transactional writes')
         return self
 
     def to_dict(self):
@@ -87,7 +93,9 @@ class FakeQuery:
     def document(self, document_id):
         return FakeDocument(self.store, self.collection, document_id)
 
-    def where(self, key, operator, value):
+    def where(self, key=None, operator=None, value=None, *, filter=None):
+        if filter is not None:
+            key, operator, value = filter.field_path, filter.op_string, filter.value
         return FakeQuery(self.store, self.collection, (*self.filters, (key, operator, value)), self.ordering, self.count)
 
     def order_by(self, key, direction=None):
@@ -96,7 +104,9 @@ class FakeQuery:
     def limit(self, count):
         return FakeQuery(self.store, self.collection, self.filters, self.ordering, count)
 
-    def stream(self):
+    def stream(self, transaction=None):
+        if transaction is not None and transaction.pending:
+            raise AssertionError('Firestore does not allow reads after transactional writes')
         # This is a generator: errors happen on iteration like Firestore.
         if self.store.fail_reads:
             raise RuntimeError('simulated read failure')
@@ -120,9 +130,45 @@ class FakeQuery:
             yield FakeDocument(self.store, self.collection, key)
 
 
+class FakeTransaction:
+    def __init__(self, store):
+        self.store = store
+        self.pending = []
+
+    def set(self, reference, data):
+        self.pending.append(('set', reference, copy.deepcopy(data)))
+
+    def update(self, reference, data):
+        self.pending.append(('update', reference, copy.deepcopy(data)))
+
+    def commit(self):
+        # Fail before applying buffered mutations, like an uncommitted write.
+        if self.pending and self.store.fail_writes:
+            raise RuntimeError('simulated transaction commit failure')
+        for method, reference, data in self.pending:
+            getattr(reference, method)(data)
+        self.pending.clear()
+
+
+def transactional(function):
+    @functools.wraps(function)
+    def run(transaction):
+        result = function(transaction)
+        transaction.commit()
+        return result
+    return run
+
+
 class FakeFirestore:
     def __init__(self):
-        self.records = {'outfits': {}, 'wardrobe': {}}
+        self.records = {
+            'outfits': {},
+            'users': {'owner-1': {'app_data_epoch': 0}},
+            'onboarding_states': {'owner-1': {'milestones': {'capsuleCompletedAt': '2026-09-21T10:00:00Z'}}},
+            'wardrobe': {f'item-{index}': {'userId': 'owner-1', 'name': f'Saved garment {index}',
+                'type': kind, 'imageUrl': f'https://example.test/original-{index}.jpg'}
+                for index, kind in enumerate(('shirt', 'pants'))},
+        }
         self.writes = []
         self.reads = []
         self.queries = []
@@ -134,6 +180,9 @@ class FakeFirestore:
     def collection(self, name):
         return FakeQuery(self, name)
 
+    def transaction(self):
+        return FakeTransaction(self)
+
 
 class OutfitPersistenceTests(unittest.TestCase):
     def setUp(self):
@@ -141,6 +190,9 @@ class OutfitPersistenceTests(unittest.TestCase):
         logging.disable(logging.CRITICAL)
         self.addCleanup(logging.disable, previous_logging)
         self.store = FakeFirestore()
+        transactions = patch.object(firestore, 'transactional', transactional)
+        transactions.start()
+        self.addCleanup(transactions.stop)
         self.firebase = ModuleType('src.config.firebase')
         self.firebase.db = self.store
         self.firebase.firebase_initialized = True
@@ -154,7 +206,7 @@ class OutfitPersistenceTests(unittest.TestCase):
         self.client = TestClient(self.app)
         self.addCleanup(self.client.close)
 
-    def create(self, item_count=1):
+    def create(self, item_count=1, **overrides):
         return self.client.post('/api/outfits/', json={
             'name': f'Manual {item_count}',
             'occasion': 'Casual',
@@ -162,9 +214,7 @@ class OutfitPersistenceTests(unittest.TestCase):
             'notes': 'Keep this note',
             'description': 'A manually selected combination',
             'items': [{'id': f'item-{index}', 'name': 'Garment'} for index in range(item_count)],
-            # Ownership is derived from authentication, never the request.
-            'user_id': 'foreign-owner',
-            'userId': 'foreign-owner',
+            **overrides,
         })
 
     def seed(self, document_id, **data):
@@ -204,6 +254,14 @@ class OutfitPersistenceTests(unittest.TestCase):
             self.assertFalse(record['isFavorite'])
             self.assertEqual(record['wearCount'], 0)
             self.assertIsNotNone(record['updatedAt'])
+
+    def test_manual_save_rejects_owner_assertions_before_writing(self):
+        for field in ('user_id', 'userId'):
+            with self.subTest(field=field):
+                response = self.create(**{field: 'foreign-owner'})
+                self.assertEqual(response.status_code, 422, response.text)
+        self.assertEqual(self.store.writes, [])
+        self.assertEqual(self.store.records['outfits'], {})
 
     def test_lists_legacy_records_deduplicates_and_hides_conflicting_owners(self):
         self.seed('legacy', userId='owner-1', favorite=True, notes='Legacy note', wearCount=4)
@@ -380,6 +438,22 @@ class OutfitPersistenceTests(unittest.TestCase):
             after = self.store.records['outfits']['legacy']
             self.assertEqual({key: after[key] for key in before}, before)
             self.assertEqual(set(self.store.writes[-1][3]), {'isFavorite', 'updatedAt'})
+
+    def test_library_excludes_every_soft_delete_alias_before_pagination(self):
+        self.seed('active', user_id='owner-1')
+        for index, field in enumerate(('deleted', 'isDeleted', 'deletedAt', 'deleted_at')):
+            self.seed(f'deleted-{index}', user_id='owner-1', **{field: True})
+        self.assertEqual([outfit['id'] for outfit in self.listed()], ['active'])
+        self.assertEqual(len(self.store.records['outfits']), 5)
+
+    def test_favorite_respects_soft_delete_and_pending_app_data_clear(self):
+        self.seed('deleted', user_id='owner-1', deleted=True)
+        self.assertEqual(self.client.put('/api/outfits/deleted/favorite', json={'isFavorite': True}).status_code, 404)
+        self.seed('active', user_id='owner-1')
+        self.store.records['users']['owner-1']['app_data_deletion'] = {'status': 'running', 'epoch': 0}
+        response = self.client.put('/api/outfits/active/favorite', json={'isFavorite': True})
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertEqual(self.store.writes, [])
 
     def test_favorite_rejects_foreign_unowned_and_conflicting_records(self):
         for document_id, owners in {

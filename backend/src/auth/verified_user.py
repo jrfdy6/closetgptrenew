@@ -20,7 +20,8 @@ def verify_bearer_claims(authorization: str | None) -> dict:
         logger.warning("Saved outfit sign-in verification is unavailable")
         raise HTTPException(status_code=503, detail="Sign-in verification is temporarily unavailable") from None
     user_id = claims.get("uid") if isinstance(claims, dict) else None
-    if not isinstance(user_id, str) or not user_id.strip():
+    if (not isinstance(user_id, str) or not user_id or user_id != user_id.strip()
+            or '/' in user_id or len(user_id) > 128):
         raise HTTPException(status_code=401, detail="A valid sign-in is required")
     firebase_claims = claims.get("firebase")
     if isinstance(firebase_claims, dict) and firebase_claims.get("sign_in_provider") == "anonymous":

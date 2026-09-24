@@ -1,6 +1,7 @@
 """Small, provider-free admission rules for generated (not manually saved) looks."""
 from collections.abc import Mapping
 import re
+from src.services.wardrobe_reads import wardrobe_owned_by, canonical_owned_garment, DELETED_FIELDS
 
 
 class InvalidGeneratedOutfit(ValueError):
@@ -35,12 +36,11 @@ def has_complete_combination(items):
 
 
 def owns_garment(item, user_id):
-    owners = [item.get(key) for key in ('userId', 'user_id') if item.get(key) is not None]
-    return bool(owners) and all(owner == user_id for owner in owners)
+    return wardrobe_owned_by(item, user_id)
 
 
 def usable_garment(item):
-    if item.get('deleted') is True or item.get('isDeleted') is True or item.get('deletedAt'):
+    if any(item.get(key) for key in DELETED_FIELDS):
         return False
     return any(isinstance(item.get(key), str) and item[key].strip()
                for key in ('imageUrl', 'image_url', 'originalImageUrl'))
@@ -62,7 +62,7 @@ def load_owned_wardrobe(db, supplied_items, user_id):
         # The request is a candidate pool. Old incomplete records must not block
         # a complete combination from the remaining saved garments.
         if usable_garment(stored) and classify_garment(stored) != 'unknown':
-            items.append({**stored, 'id': item_id})
+            items.append(canonical_owned_garment(stored, user_id, item_id))
     if not has_complete_combination(items):
         raise InvalidGeneratedOutfit('Add a top, bottom and shoes, or a one-piece and shoes, to generate a complete outfit.')
     return items

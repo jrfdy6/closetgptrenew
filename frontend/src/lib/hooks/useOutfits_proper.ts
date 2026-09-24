@@ -1,3 +1,5 @@
+import { publishWearReceipt } from '@/lib/wardrobeActivity';
+import { isOnboardingRequired } from '@/lib/apiRequestError';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import OutfitService from '@/lib/services/outfitService_proper';
@@ -326,6 +328,7 @@ export function useOutfits(): UseOutfitsReturn {
 
     } catch (error) {
       if (active()) handleMutationError('create', error);
+      if (active() && isOnboardingRequired(error)) throw error;
       return null;
     } finally {
       if (active()) finishMutation('create');
@@ -437,18 +440,12 @@ export function useOutfits(): UseOutfitsReturn {
 
       clearWearOperation(user.uid, id);
 
-      // Show XP notification only after the current account receives confirmation.
-      if (result && result.xp_earned && result.xp_earned > 0) {
-        console.log('✅ XP awarded from wearing outfit (grid):', result.xp_earned, 'Dispatching xpAwarded event...');
-        window.dispatchEvent(new CustomEvent('xpAwarded', {
-          detail: {
-            xp: result.xp_earned,
-            reason: 'Outfit worn',
-            level_up: result.level_up || false,
-            new_level: result.new_level
-          }
-        }));
+      if (result.undone === true) {
+        publishWearReceipt(user.uid, result);
+        throw new Error('This wear was undone. Choose Wear again to record a new wear.');
       }
+
+      publishWearReceipt(user.uid, result);
 
       // Update local state
       setOutfits(prev => prev.map(o => {

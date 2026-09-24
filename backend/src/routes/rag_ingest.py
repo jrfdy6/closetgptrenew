@@ -5,9 +5,13 @@ This extends the basic ingest_drive functionality with proper chunking and embed
 import logging
 import os
 import time
+from uuid import uuid4
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, BackgroundTasks, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict, Field
+from src.auth.operator import require_operator
+from src.services.app_data_privacy import require_app_data_writable, write_app_record, AppDataDeletionError
+from src.auth.verified_identity import reject_identity_overrides
 
 logger = logging.getLogger(__name__)
 
@@ -87,9 +91,11 @@ except ImportError:
 
 
 class IngestDriveRequest(BaseModel):
-    user_id: str
-    folder_id: str
-    max_files: Optional[int] = 10
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: Optional[str] = None
+    folder_id: str = Field(min_length=1, pattern=r"^[A-Za-z0-9_-]+$")
+    max_files: int = Field(default=10, ge=1, le=100)
 
 
 def _chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[str]:
@@ -124,7 +130,8 @@ async def _process_and_store_chunks(
     file_name: str,
     folder_id: str,
     text: str,
-    mime_type: str
+    mime_type: str,
+    app_data_epoch: Optional[int] = None,
 ) -> int:
     """Chunk text, generate embeddings, and store in Firestore"""
     if not db or not firebase_initialized:
@@ -132,6 +139,7 @@ async def _process_and_store_chunks(
         return 0
     
     try:
+        epoch = require_app_data_writable(db, user_id, expected_epoch=app_data_epoch)
         # Chunk the text
         chunks = _chunk_text(text, chunk_size=1000, overlap=200)
         stored_count = 0
@@ -163,8 +171,8 @@ async def _process_and_store_chunks(
                 chunk_doc["embedding"] = embedding
             
             # Store in Firestore
-            chunk_ref = db.collection("knowledge_chunks").document()
-            chunk_ref.set(chunk_doc)
+            chunk_ref = db.collection("knowledge_chunks").document(uuid4().hex)
+            write_app_record(db, user_id, chunk_ref, chunk_doc, expected_epoch=epoch)
             stored_count += 1
         
         logger.info(f"Stored {stored_count} chunks for file {file_name}")
@@ -178,10 +186,12 @@ async def _process_and_store_chunks(
 async def _ingest_drive_background_rag(
     user_id: str,
     folder_id: str,
-    max_files: int
+    max_files: int,
+    app_data_epoch: Optional[int] = None,
 ) -> None:
     """Enhanced background ingestion with chunking and embedding"""
     try:
+        epoch = require_app_data_writable(db, user_id, expected_epoch=app_data_epoch)
         if not google_drive_ready:
             raise RuntimeError("Google Drive client not available")
         
@@ -215,7 +225,7 @@ async def _ingest_drive_background_rag(
                 
                 # Process and store chunks with embeddings
                 chunks_stored = await _process_and_store_chunks(
-                    user_id, file_id, name, folder_id, text, mime_type
+                    user_id, file_id, name, folder_id, text, mime_type, epoch
                 )
                 
                 if chunks_stored > 0:
@@ -239,7 +249,7 @@ async def _ingest_drive_background_rag(
         # Store job status
         if db and firebase_initialized:
             try:
-                db.collection("ingest_jobs").add({
+                write_app_record(db, user_id, db.collection("ingest_jobs").document(uuid4().hex), {
                     "user_id": user_id,
                     "folder_id": folder_id,
                     "status": "completed",
@@ -250,7 +260,7 @@ async def _ingest_drive_background_rag(
                         "errors": errors
                     },
                     "ts": time.time()
-                })
+                }, expected_epoch=epoch)
             except Exception as e:
                 logger.warning(f"Failed to log ingest job: {e}")
     
@@ -258,13 +268,13 @@ async def _ingest_drive_background_rag(
         logger.exception(f"[RAG ingest] Fatal error: {e}")
         if db and firebase_initialized:
             try:
-                db.collection("ingest_jobs").add({
+                write_app_record(db, user_id, db.collection("ingest_jobs").document(uuid4().hex), {
                     "user_id": user_id,
                     "folder_id": folder_id,
                     "status": "failed",
                     "details": {"error": str(e)},
                     "ts": time.time()
-                })
+                }, expected_epoch=epoch)
             except Exception:
                 pass
 
@@ -272,7 +282,8 @@ async def _ingest_drive_background_rag(
 @router.post("/ingest_drive")
 async def ingest_drive_rag(
     req: IngestDriveRequest,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    claims: dict = Depends(require_operator),
 ):
     """
     Ingest a Google Drive folder with full RAG pipeline:
@@ -284,22 +295,29 @@ async def ingest_drive_rag(
     
     Returns 202 immediately, processing happens in background.
     """
+    reject_identity_overrides(claims, req.model_dump(exclude_unset=True))
+    user_id = claims["uid"]
     logger.info(
-        f"[RAG ingest] Triggered for user={req.user_id} "
+        f"[RAG ingest] Triggered for user={user_id} "
         f"folder={req.folder_id} max_files={req.max_files}"
     )
     
+    try:
+        epoch = require_app_data_writable(db, user_id)
+    except AppDataDeletionError as error:
+        raise HTTPException(error.status_code, error.detail) from error
     background_tasks.add_task(
         _ingest_drive_background_rag,
-        req.user_id,
+        user_id,
         req.folder_id,
-        int(req.max_files or 10)
+        int(req.max_files or 10),
+        epoch,
     )
     
     return {
         "accepted": True,
         "message": "Ingestion started in background. Files will be chunked, embedded, and stored.",
-        "user_id": req.user_id,
+        "user_id": user_id,
         "folder_id": req.folder_id,
         "max_files": req.max_files or 10,
         "status": "pending"

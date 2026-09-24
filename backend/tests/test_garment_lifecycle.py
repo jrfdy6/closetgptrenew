@@ -92,7 +92,7 @@ class Collection:
 
 class Database:
     def __init__(self):
-        self.records = {"wardrobe": {"shirt": {
+        self.records = {"users": {"owner": {"app_data_epoch": 0}}, "wardrobe": {"shirt": {
             "userId": "owner", "imageUrl": "https://example.test/my-shirt.jpg", "name": "Favorite shirt",
             "category": "Tops", "updatedAt": 50, "processing_status": "pending", "tags": ["work"],
         }}}

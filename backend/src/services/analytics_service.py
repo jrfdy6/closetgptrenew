@@ -6,6 +6,7 @@ import math
 from ..models.analytics_event import AnalyticsEvent, ItemInteractionType
 from ..custom_types.wardrobe import ClothingItem
 from ..custom_types.profile import UserProfile
+from .app_data_privacy import optional_policy, require_app_data_writable, write_optional_record
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,18 +14,25 @@ logger = logging.getLogger(__name__)
 ANALYTICS_COLLECTION = "analytics_events"
 FAVORITE_SCORES_COLLECTION = "item_favorite_scores"
 
-def log_analytics_event(event: AnalyticsEvent) -> str:
+def log_analytics_event(event: AnalyticsEvent, *, expected_epoch=None) -> Optional[str]:
     """Log an analytics event to the data lake."""
     # Import Firebase inside function to prevent import-time crashes
     try:
         from ..config.firebase import db
     except ImportError as e:
         logger.warning(f"⚠️ Firebase import failed: {e}")
-        return "mock-event-id"
+        return None
+    if not event.user_id:
+        return None
+    if not optional_policy(db, event.user_id, 'telemetry'):
+        return None
+    try:
+        epoch = require_app_data_writable(db, event.user_id, expected_epoch)
+    except Exception:
+        return None
     
     doc_ref = db.collection(ANALYTICS_COLLECTION).document()
-    doc_ref.set(event.dict())
-    return doc_ref.id
+    return doc_ref.id if write_optional_record(db, event.user_id, doc_ref, event.model_dump(), kind="telemetry", expected_epoch=epoch) else None
 
 def log_item_interaction(
     user_id: str,
@@ -35,9 +43,16 @@ def log_item_interaction(
     was_base_item: Optional[bool] = None,
     feedback_rating: Optional[int] = None,
     feedback_type: Optional[str] = None
-) -> str:
+) -> Optional[str]:
     """Log an item interaction event and update favorite scores."""
     try:
+        from ..config.firebase import db
+        if not optional_policy(db, user_id, 'telemetry'):
+            return None
+        try:
+            epoch = require_app_data_writable(db, user_id)
+        except Exception:
+            return None
         # Create analytics event
         event = AnalyticsEvent(
             user_id=user_id,
@@ -52,10 +67,11 @@ def log_item_interaction(
         )
         
         # Log to analytics collection
-        event_id = log_analytics_event(event)
+        event_id = log_analytics_event(event, expected_epoch=epoch)
         
         # Update favorite score in background
-        update_item_favorite_score_async(user_id, item_id)
+        if event_id:
+            update_item_favorite_score_async(user_id, item_id, expected_epoch=epoch)
         
         logger.info(f"Logged item interaction: {interaction_type} for item {item_id}")
         return event_id
@@ -84,7 +100,7 @@ def log_outfit_generation(
                 interaction_type=ItemInteractionType.OUTFIT_GENERATED,
                 metadata={"outfit_id": outfit_id, "occasion": "outfit_generation"},
                 outfit_id=outfit_id,
-                was_base_item=was
+                was_base_item=was_base
             )
             
             # If this was a base item, log additional base item event
@@ -130,9 +146,13 @@ def log_outfit_feedback(
         logger.error(f"Error logging outfit feedback: {e}")
         raise
 
-def update_item_favorite_score_async(user_id: str, item_id: str):
+def update_item_favorite_score_async(user_id: str, item_id: str, *, expected_epoch=None):
     """Calculate and update favorite score for an item (async)."""
     try:
+        from ..config.firebase import db
+        if not optional_policy(db, user_id, "personalization"):
+            return
+        epoch = require_app_data_writable(db, user_id, expected_epoch)
         # Get all analytics events for this item and user
         events_ref = db.collection(ANALYTICS_COLLECTION).where(
             "user_id", "==", user_id
@@ -178,7 +198,8 @@ def update_item_favorite_score_async(user_id: str, item_id: str):
         
         # Save to Firestore
         score_ref = db.collection(FAVORITE_SCORES_COLLECTION).document(f"{user_id}_{item_id}")
-        score_ref.set(score_data, merge=True)
+        if not write_optional_record(db, user_id, score_ref, score_data, kind="personalization", expected_epoch=epoch, merge=True):
+            return
         
         logger.info(f"Updated favorite score for item {item_id}: {total_score:.3f}")
         
@@ -256,6 +277,9 @@ def calculate_style_preference_score(item_id: str, user_profile: Optional[UserPr
         return 0.5  # Neutral score if no profile
     
     try:
+        from ..config.firebase import db
+        if not optional_policy(db, user_profile.id, "personalization"):
+            return 0.5
         # Get item details
         item_ref = db.collection("wardrobe").document(item_id)
         item_doc = item_ref.get() if item_ref else None
@@ -330,6 +354,9 @@ def calculate_usage_statistics(analytics_data: List[Dict]) -> Dict[str, Any]:
 def get_user_profile(user_id: str) -> Optional[UserProfile]:
     """Get user profile for style preference calculations."""
     try:
+        from ..config.firebase import db
+        if not optional_policy(db, user_id, "personalization"):
+            return None
         profile_ref = db.collection("users").document(user_id)
         profile_doc = profile_ref.get() if profile_ref else None
         
@@ -349,6 +376,10 @@ def get_user_favorites(
 ) -> List[Dict[str, Any]]:
     """Get user's favorite items, optionally filtered by type."""
     try:
+        from ..config.firebase import db
+        if not optional_policy(db, user_id, "personalization"):
+            return []
+        epoch = require_app_data_writable(db, user_id)
         # Query favorite scores - use simpler query to avoid index requirement
         query = db.collection(FAVORITE_SCORES_COLLECTION).where("user_id", "==", user_id)
         score_docs = query.stream()  # Remove ordering from query
@@ -357,6 +388,8 @@ def get_user_favorites(
         score_data_list = []
         for doc in score_docs:
             score_data = doc.to_dict()
+            if not score_data or score_data.get('app_data_epoch', 0) != epoch:
+                continue
             score_data_list.append(score_data)
         
         # Sort by total_score in descending order
@@ -404,7 +437,8 @@ def get_user_favorites(
             logger.debug(f"Added favorite item: {item_id} ({(item_data.get('type') if item_data else None)})")
         
         logger.info(f"Found {len(favorites)} favorite items for user {user_id}, type {item_type}")
-        return favorites
+        require_app_data_writable(db, user_id, epoch)
+        return favorites if optional_policy(db, user_id, "personalization") else []
         
     except Exception as e:
         logger.error(f"Error getting user favorites: {e}")
@@ -413,4 +447,4 @@ def get_user_favorites(
 def get_favorite_by_type(user_id: str, item_type: str) -> Optional[Dict[str, Any]]:
     """Get the user's favorite item of a specific type."""
     favorites = get_user_favorites(user_id, item_type, limit=1)
-    return favorites[0] if favorites else None 
+    return favorites[0] if favorites else None

@@ -317,3 +317,14 @@ describe('Flat lay presentation', () => {
   });
 
 });
+
+it('keeps original pieces visible and disables new requests during the global pause', () => {
+  const request = jest.fn();
+  render(<FlatLayViewer outfitItems={pieces} status="awaiting_consent" onRequestFlatLay={request}
+    requestAllowed={false} admissionPaused admissionReason="Flat-lay requests are temporarily paused. No credit was used."
+    flatLayUsage={credits} hasFlatLayCredits />);
+  expect(screen.getByRole('button', { name: 'Temporarily unavailable' })).toBeDisabled();
+  expect(screen.getByText(/requests are temporarily paused/)).toBeVisible();
+  expect(screen.getByRole('img', { name: 'Linen shirt' })).toBeVisible();
+  expect(request).not.toHaveBeenCalled();
+});

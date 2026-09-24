@@ -19,21 +19,26 @@ class RetryConflict(Exception):
 
 
 class Document:
-    def __init__(self, db, key):
-        self.db, self.key = db, key
+    def __init__(self, db, key, collection="wardrobe"):
+        self.db, self.key, self.collection = db, key, collection
 
     def get(self, transaction=None):
-        value = deepcopy(self.db.records.get(self.key))
-        transaction.version = self.db.version
+        store = self.db.records if self.collection == "wardrobe" else self.db.users if self.collection == "users" else self.db.asset_owners
+        value = deepcopy(store.get(self.key))
+        if transaction is not None:
+            transaction.version = self.db.version
         return SimpleNamespace(exists=value is not None, to_dict=lambda: value)
 
 
 class Transaction:
     def __init__(self, db):
-        self.db, self.version, self.pending = db, None, None
+        self.db, self.version, self.pending = db, None, []
 
     def create(self, reference, value):
-        self.pending = (reference.key, deepcopy(value))
+        self.pending.append(('create', reference, deepcopy(value)))
+
+    def update(self, reference, value):
+        self.pending.append(('update', reference, deepcopy(value)))
 
     def commit(self):
         if self.db.before_commit:
@@ -41,23 +46,28 @@ class Transaction:
             callback()
         if self.db.version != self.version:
             raise RetryConflict()
-        if self.pending:
-            key, value = self.pending
-            if key in self.db.records:
-                raise AssertionError('Create cannot overwrite')
-            self.db.records[key] = value
+        for kind, reference, value in self.pending:
+            store = self.db.records if reference.collection == 'wardrobe' else self.db.users if reference.collection == 'users' else self.db.asset_owners
+            if kind == 'create':
+                if reference.key in store:
+                    raise AssertionError('Create cannot overwrite')
+                store[reference.key] = value
+            else:
+                store[reference.key].update(value)
             self.db.version += 1
-            self.db.writes += 1
+            self.db.writes += int(reference.collection == 'wardrobe')
 
 
 class Database:
     def __init__(self, records=None):
         self.records, self.version, self.writes = deepcopy(records or {}), 0, 0
         self.before_commit = None
+        self.asset_owners = {}
+        self.users = {'owner': {'app_data_epoch': 0, 'wardrobeItemCount': 0}, 'other': {'app_data_epoch': 0}}
 
     def collection(self, name):
-        assert name == 'wardrobe'
-        return SimpleNamespace(document=lambda key: Document(self, key))
+        assert name in ('wardrobe', 'wardrobe_asset_owners', 'users')
+        return SimpleNamespace(document=lambda key: Document(self, key, name))
 
     def transaction(self):
         return Transaction(self)
@@ -93,6 +103,37 @@ class CreationTests(unittest.TestCase):
         self.assertEqual(saved['userId'], 'owner')
         self.assertNotIn('user_id', saved)
         self.assertEqual(db.writes, 1)
+
+    def test_asset_owner_reservation_prevents_foreign_reuse_after_item_delete(self):
+        db = Database()
+        persistence.create_owned_wardrobe_item(db, 'owner', ITEM)
+        self.assertEqual(db.asset_owners['upload-1'], {'user_id': 'owner'})
+        del db.records['upload-1']
+        with self.assertRaises(persistence.WardrobeOwnershipConflict):
+            persistence.create_owned_wardrobe_item(db, 'other', ITEM)
+        self.assertNotIn('upload-1', db.records)
+        self.assertEqual(db.asset_owners['upload-1'], {'user_id': 'owner'})
+        self.assertEqual(persistence.create_owned_wardrobe_item(db, 'owner', ITEM)['userId'], 'owner')
+
+    def test_first_create_increments_count_once_and_replay_preserves_it(self):
+        db = Database()
+        persistence.create_owned_wardrobe_item(db, 'owner', ITEM)
+        self.assertEqual(db.users['owner']['wardrobeItemCount'], 1)
+        persistence.create_owned_wardrobe_item(db, 'owner', ITEM)
+        self.assertEqual(db.users['owner']['wardrobeItemCount'], 1)
+
+    def test_completed_deletion_during_transaction_retry_cannot_adopt_new_epoch(self):
+        db = Database()
+        def clear_during_commit():
+            db.users['owner']['app_data_epoch'] = 1
+            db.version += 1
+        db.before_commit = clear_during_commit
+        from src.services.app_data_privacy import AppDataDeletionError
+        with self.assertRaises(AppDataDeletionError):
+            persistence.create_owned_wardrobe_item(db, 'owner', ITEM)
+        self.assertNotIn('upload-1', db.records)
+        self.assertEqual(db.asset_owners, {})
+        self.assertEqual(db.users['owner']['wardrobeItemCount'], 0)
 
     def test_owned_retry_does_not_reset_worker_results_or_edit_history(self):
         original = {**ITEM, 'userId': 'owner', 'name': 'Edited shirt', 'wearCount': 8, 'backgroundRemovedUrl': '/cutout.png', 'processing_status': 'completed'}

@@ -1,3 +1,4 @@
+import { apiRequestError } from '@/lib/apiRequestError';
 /**
  * Existing Data Personalization Service
  * ====================================
@@ -241,7 +242,7 @@ export class ExistingDataPersonalizationService {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to generate personalized outfit: ${response.status}`);
+        throw await apiRequestError(response);
       }
 
       const data = await response.json();

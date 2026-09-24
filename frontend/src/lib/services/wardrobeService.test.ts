@@ -8,7 +8,7 @@ declare const afterEach: jest.Lifecycle;
 import { WardrobeService } from './wardrobeService';
 
 jest.mock('@/lib/firebase/config', () => ({
-  auth: { currentUser: { getIdToken: jest.fn().mockResolvedValue('test-token') } },
+  auth: { currentUser: { uid: 'wardrobe-owner', getIdToken: jest.fn().mockResolvedValue('test-token') } },
 }));
 
 const fetchMock = jest.fn();
@@ -60,5 +60,22 @@ describe('Wardrobe service update contract', () => {
   it('sends favorite independently of editor metadata', async () => {
     await WardrobeService.toggleFavorite('shirt-1', true);
     expect(readPayload()).toEqual({ favorite: true });
+  });
+});
+
+
+describe('wardrobe wear retries', () => {
+  beforeEach(() => { global.fetch = fetchMock; fetchMock.mockReset(); sessionStorage.clear(); });
+  it('reuses the operation key after an uncertain response and returns the canonical count', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('connection lost')).mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { itemId: 'wardrobe-retry', newWearCount: 4, lastWorn: 1700000000 } }) });
+    await expect(WardrobeService.incrementWearCount('wardrobe-retry')).rejects.toThrow('connection lost');
+    await expect(WardrobeService.incrementWearCount('wardrobe-retry')).resolves.toMatchObject({ newWearCount: 4 });
+    const firstKey = new Headers(fetchMock.mock.calls[0][1].headers).get('Idempotency-Key');
+    expect(firstKey).toBeTruthy();
+    expect(new Headers(fetchMock.mock.calls[1][1].headers).get('Idempotency-Key')).toBe(firstKey);
+  });
+  it('rejects a success flag without the matching wear receipt', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
+    await expect(WardrobeService.incrementWearCount('wardrobe-invalid')).rejects.toThrow('could not confirm');
   });
 });

@@ -358,9 +358,12 @@ function OutfitGridContent({
       debouncedRefresh();
     };
 
+    const onReturn = () => { if (document.visibilityState === 'visible') void debouncedRefresh(); };
+    document.addEventListener('visibilitychange', onReturn);
     window.addEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
 
     return () => {
+      document.removeEventListener('visibilitychange', onReturn);
       window.removeEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
     };
   }, [debouncedRefresh]);

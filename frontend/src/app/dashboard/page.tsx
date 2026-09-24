@@ -299,9 +299,12 @@ export default function Dashboard() {
       pendingRefreshes.add(timer);
     };
 
+    const onReturn = () => { if (document.visibilityState === 'visible') void fetchDashboardDataFresh(); };
+    document.addEventListener('visibilitychange', onReturn);
     window.addEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
     
     return () => {
+      document.removeEventListener('visibilitychange', onReturn);
       window.removeEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
       pendingRefreshes.forEach(clearTimeout);
     };
@@ -344,13 +347,7 @@ export default function Dashboard() {
     // If there's a suggestionId, use the backend endpoint
     const suggestionId = (dashboardData.todaysOutfit as any)?.suggestionId;
     if (!suggestionId) {
-      // If no suggestionId, we can't mark it as worn via backend
-      // But we can still show feedback to the user
-      toast({
-        title: "Outfit saved",
-        description: "This outfit has been noted in your history.",
-        variant: "default",
-      });
+      setError('This suggestion could not be confirmed. Open a saved look to record a wear.');
       return;
     }
     
@@ -609,7 +606,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-xs sm:text-sm font-medium component-text-secondary mb-1">This week</p>
                   <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#C9956F] to-[#D4A574] bg-clip-text text-transparent">
-                    {dashboardData?.outfitsThisWeek || 0}
+                    {dashboardData?.outfitsThisWeek ?? 'Unavailable'}
                   </p>
                 </div>
           </div>
@@ -656,7 +653,7 @@ export default function Dashboard() {
                       <div>
                         <p className="text-xs font-medium component-text-secondary mb-1">This week</p>
                         <p className="text-2xl font-bold bg-gradient-to-r from-[#C9956F] to-[#D4A574] bg-clip-text text-transparent">
-                          {dashboardData?.outfitsThisWeek || 0}
+                          {dashboardData?.outfitsThisWeek ?? 'Unavailable'}
                         </p>
                       </div>
                     </div>
@@ -816,7 +813,7 @@ export default function Dashboard() {
                         </p>
                       </div>
                       <Button
-                        onClick={() => router.push('/pricing')}
+                        onClick={() => router.push('/upgrade')}
                         className="w-full gradient-copper-gold hover:opacity-90"
                         size="lg"
                       >

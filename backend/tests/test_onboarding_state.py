@@ -19,7 +19,7 @@ class Document(BaseDocument):
         else:
             if self.db.fail_read:
                 raise RuntimeError('private storage failure')
-            result = Snapshot(self.db.rows.get(self.collection, {}).get(self.id))
+            result = Snapshot(self.db.rows.get(self.collection_name, {}).get(self.id))
         result.id = self.id
         return result
 
@@ -117,7 +117,8 @@ class OnboardingStateTests(Fixture, unittest.TestCase):
         before = copy.deepcopy(self.db.rows)
         self.assertEqual(state.read_onboarding_state(self.db, 'owner')['capsule']['usableCount'], 2)
         self.assertEqual(self.db.rows, before)
-        self.assertEqual(set(self.db.queries), {('wardrobe', 'userId'), ('wardrobe', 'user_id'), ('outfits', 'userId'), ('outfits', 'user_id')})
+        self.assertEqual(set(self.db.queries), {('wardrobe', field) for field in
+            ('userId', 'user_id', 'firebase_uid', 'uid', 'ownerId')} | {('outfits', 'userId'), ('outfits', 'user_id')})
 
     def test_ten_items_require_style_and_coverage_and_milestone_is_durable(self):
         self.capsule()

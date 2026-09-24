@@ -11,7 +11,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 from uuid import uuid4
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.testclient import TestClient
@@ -121,8 +121,12 @@ class ActiveGenerationAdmissionTests(unittest.TestCase):
             items=copy.deepcopy(self.wardrobe), confidence=.8, metadata={})))
         self.engine = SimpleNamespace(get_user_preference_from_existing_data=AsyncMock(
             return_value=SimpleNamespace(total_interactions=0, data_source='test')))
+        self.readiness = Mock(return_value={'ready': True, 'app_data_epoch': 4})
+        self.persist = Mock(side_effect=self.persist_record)
         patched = patch.dict(sys.modules, {
             'src.config.firebase': module('src.config.firebase', db=self.store),
+            'src.services.outfit_creation_admission': module('src.services.outfit_creation_admission',
+                require_outfit_creation_ready=self.readiness, persist_created_outfit=self.persist),
             'src.services.robust_outfit_generation_service': module('src.services.robust_outfit_generation_service',
                 RobustOutfitGenerationService=lambda: self.robust, GenerationContext=SimpleNamespace),
             'src.custom_types.wardrobe': module('src.custom_types.wardrobe', ClothingItem=Item, ClothingType=ClothingType),
@@ -147,6 +151,15 @@ class ActiveGenerationAdmissionTests(unittest.TestCase):
         app.include_router(self.ns['router'])
         self.client = TestClient(app)
 
+    def persist_record(self, db, user_id, outfit_id, record, readiness, *, require_complete=True):
+        # The shared service owns transactional admission; these route tests
+        # verify its contract, error propagation and authoritative response.
+        record = copy.deepcopy(record)
+        wardrobe = admission.load_owned_wardrobe(db, record['items'], user_id)
+        record['items'] = admission.validate_generated_items(record['items'], wardrobe, record.get('baseItemId'))
+        db.collection('outfits').document(outfit_id).set(record)
+        return record
+
     def seed(self, items):
         self.store.rows['wardrobe'] = {item['id']: copy.deepcopy(item) for item in items}
 
@@ -155,6 +168,44 @@ class ActiveGenerationAdmissionTests(unittest.TestCase):
                 'weather': {'temperature': 72}, 'wardrobe': copy.deepcopy(self.wardrobe), **overrides}
         with redirect_stdout(io.StringIO()):
             return self.client.post('/generate-personalized', json=body)
+
+    def test_onboarding_gate_rejects_before_provider_or_wardrobe_reads(self):
+        detail = {'code': 'onboarding_required', 'resume': '/onboarding', 'stage': 'capsule',
+                  'profile_complete': True, 'capsule': {'usable_count': 9}}
+        self.readiness.side_effect = HTTPException(status_code=409, detail=detail)
+        self.store.fail_reads = True
+        response = self.generate()
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertEqual(response.json()['detail'], detail)
+        self.readiness.assert_called_once_with(self.store, 'owner')
+        self.robust.generate_outfit.assert_not_called()
+        self.engine.get_user_preference_from_existing_data.assert_not_called()
+        self.persist.assert_not_called()
+
+    def test_accepted_legacy_readiness_and_epoch_are_passed_to_final_fence(self):
+        self.readiness.return_value = {'ready': True, 'legacy': True, 'app_data_epoch': 7}
+        response = self.generate()
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIs(self.persist.call_args.args[4], self.readiness.return_value)
+        self.assertTrue(self.persist.call_args.kwargs['require_complete'])
+
+    def test_concurrent_deletion_fence_is_not_wrapped_as_save_failure(self):
+        detail = {'code': 'app_data_changed', 'resume': '/onboarding'}
+        self.persist.side_effect = HTTPException(status_code=409, detail=detail)
+        response = self.generate()
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertEqual(response.json()['detail'], detail)
+        self.assertEqual(self.store.writes, [])
+
+    def test_response_uses_items_returned_by_final_transaction(self):
+        def persist_after_edit(*args, **kwargs):
+            self.store.rows['wardrobe']['shirt']['name'] = 'Updated saved shirt'
+            return self.persist_record(*args, **kwargs)
+        self.persist.side_effect = persist_after_edit
+        response = self.generate()
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()['items'][0]['name'], 'Updated saved shirt')
+        self.assertEqual(response.json()['items'], self.store.writes[0]['items'])
 
     def test_empty_and_incomplete_wardrobe_never_generate_or_save(self):
         for items in ([], self.wardrobe[:2]):

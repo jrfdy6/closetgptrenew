@@ -39,32 +39,33 @@ from fastapi.routing import APIRouter
 import json
 from pathlib import Path
 
-# Import authentication
-try:
-    from src.auth.auth_service import get_current_user_id
-except ImportError:
-    # Fallback for when running as module
-    try:
-        from auth.auth_service import get_current_user_id
-    except ImportError:
-        def get_current_user_id():
-            return "fallback-user-id"
+# Authentication must never degrade to a fabricated user.
+from src.auth.auth_service import get_current_user_id, get_current_user
 
 # Create the app first
 app = FastAPI(
     title="Easy Outfit API",
     description="AI-powered wardrobe management and outfit generation API",
-    version="1.0.0"
+    version="1.0.0",
+    docs_url=None, redoc_url=None, openapi_url=None,
 )
 
 TRUTHY_ENV_VALUES = {"1", "true", "yes", "on"}
 INTERNAL_BACKEND_ROUTE_EXACT_PATHS = {
     "/api/outfits/check-outfits-db",
     "/api/wardrobe/initialize-my-wardrobe-count",
+    "/api/wardrobe/backfill-processing-status",
+    "/health/health/reset",
     "/openapi.json",
     "/docs",
     "/docs/oauth2-redirect",
     "/redoc",
+    "/api/health/dependencies",
+    "/health/health/detailed",
+    "/health/health/metrics",
+    "/api/image/create-firebase-bucket",
+    "/api/image/test-firebase-upload",
+    "/api/image/debug-firebase",
 }
 INTERNAL_BACKEND_ROUTE_PREFIXES = (
     "/__",
@@ -72,6 +73,8 @@ INTERNAL_BACKEND_ROUTE_PREFIXES = (
     "/api/monitoring",
     "/api/backfill",
     "/api/reprocess",
+    "/api/wardrobe/check-item-public",
+    "/api/wardrobe/check-item",
 )
 INTERNAL_BACKEND_ROUTE_SEGMENTS = {
     "admin",
@@ -100,13 +103,7 @@ def env_flag_enabled(name: str) -> bool:
 
 
 def internal_backend_routes_enabled() -> bool:
-    if env_flag_enabled("ENABLE_INTERNAL_DEBUG_ROUTES"):
-        return True
-
-    if any(os.getenv(name) for name in ("RAILWAY_PROJECT_ID", "RAILWAY_PUBLIC_DOMAIN", "RAILWAY_STATIC_URL")):
-        return False
-
-    return os.getenv("ENVIRONMENT", "development").strip().lower() != "production"
+    return env_flag_enabled("ENABLE_INTERNAL_DEBUG_ROUTES")
 
 
 def is_internal_backend_path(path: str) -> bool:
@@ -131,11 +128,20 @@ def is_internal_backend_path(path: str) -> bool:
 
 @app.middleware("http")
 async def block_internal_backend_routes(request: Request, call_next):
-    if not internal_backend_routes_enabled() and is_internal_backend_path(request.url.path):
-        logger.warning("Blocked internal backend route in protected environment: %s", request.url.path)
-        return Response(content="Not Found", status_code=404)
-
-    return await call_next(request)
+    if is_internal_backend_path(request.url.path):
+        if not internal_backend_routes_enabled():
+            return Response(content="Not Found", status_code=404)
+        from src.auth.operator import require_operator
+        from starlette.concurrency import run_in_threadpool
+        from fastapi.responses import JSONResponse
+        try:
+            await run_in_threadpool(require_operator, request, Response())
+        except HTTPException as error:
+            return JSONResponse(status_code=error.status_code, content={"detail": error.detail})
+    response = await call_next(request)
+    if is_internal_backend_path(request.url.path):
+        response.headers["Cache-Control"] = "private, no-store"
+    return response
 
 # Configure CORS first
 allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://localhost:3000,https://easyoutfit-clean.vercel.app")
@@ -309,8 +315,6 @@ ROUTERS = [
     # ("src.routes.monitoring", "/monitoring"),       # System monitoring router - FIXED PREFIX
     # ("src.routes.public_diagnostics", "/public_diagnostics"), # Public health diagnostics - FIXED PREFIX
     ("src.routes.production_monitoring", "/api/monitoring"),  # NEW: Production monitoring dashboard
-    ("src.routes.gamification", "/api"),  # Gamification system - XP, levels, badges
-    ("src.routes.challenges", "/api"),  # Challenge management
     ("src.routes.admin_migration", "/api"),  # Admin migration endpoint
     ("src.routes.gacha", "/api"),  # Gacha & Style Tokens (Variable Ratio Reinforcement)
     ("src.routes.roles", "/api"),  # Internal Status Roles (Status & Power)
@@ -319,43 +323,9 @@ ROUTERS = [
 ]
 
 def include_router_safe(module_name: str, prefix: str):
-    try:
-        # Importing module
-        module = importlib.import_module(module_name)
-        # Module imported
-        
-        router = getattr(module, "router", None)
-        if router is None:
-            print(f"❌ {module_name}: No `router` object found")
-            return
-            
-        # Log router details before mounting
-        # Mounting router
-        # Router loaded successfully
-        
-        # Log all routes in the router
-        if ROUTER_DEBUG:
-            print(f"🔍 DEBUG: Router {module_name} has {len(router.routes)} routes")
-            if hasattr(router, 'routes'):
-                for route in router.routes:
-                    if hasattr(route, 'path') and hasattr(route, 'methods'):
-                        print(f"🔍 DEBUG: Route {route.path} with methods {route.methods}")
-            print(f"🔍 DEBUG: About to mount router {module_name} with prefix '{prefix}'")
-        app.include_router(router, prefix=prefix)
-        if ROUTER_DEBUG:
-            print(f"✅ DEBUG: Successfully mounted router {module_name}")
-        # Router mounted
-        
-    except Exception as e:
-        print(f"🔥 Failed to mount {module_name}")
-        print(f"🔥 Error type: {type(e).__name__}")
-        print(f"🔥 Error message: {str(e)}")
-        print(f"🔥 Full traceback:")
-        traceback.print_exc()
-        # Also log to logger for Railway logs
-        import logging
-        logging.error(f"Failed to mount {module_name}: {e}")
-        logging.error(f"Full traceback: {traceback.format_exc()}")
+    """Required routers fail startup rather than silently disappearing."""
+    from src.core.route_registry import mount_router
+    return mount_router(app, module_name, prefix, importer=importlib.import_module)
 
 # Router loading
 # Router loading process
@@ -402,36 +372,13 @@ async def startup_event():
     """Startup event handler - re-enabled now that Uvicorn startup is stable"""
     # Startup event triggered
     
-    # Initialize Firebase with proper credentials
-    try:
-        from src.config.firebase import firebase_initialized, db
-        if firebase_initialized:
-            print("🔥 Firebase already initialized via config")
-        else:
-            print("⚠️ Firebase not initialized via config - this may cause auth issues")
-            
-        # Test database connection if available
-        if db:
-            print("🔥 Firebase database connected")
-        else:
-            print("⚠️ Firebase database not available")
-        
-        # Test storage connection (optional)
-        try:
-            from firebase_admin import storage
-            bucket = storage.bucket()
-            print("🔥 Firebase storage connected")
-        except ValueError as e:
-            print(f"⚠️ Firebase storage not configured: {e}")
-            print("⚠️ Image upload functionality may not work without storage bucket")
-        
-    except Exception as e:
-        print(f"❌ Firebase initialization failed: {e}")
-        traceback.print_exc()
-    
-    # Routes table removed to reduce Railway rate limiting
-    
-    # Startup complete
+    from src.core.route_registry import validate_route_table
+    validate_route_table(app)
+    from src.config.firebase import firebase_initialized, db
+    if not firebase_initialized or db is None:
+        raise RuntimeError("Authenticated storage is unavailable; refusing unhealthy startup")
+    from firebase_admin import storage
+    storage.bucket()  # Validate configuration, without an external object fetch.
 
 # ---------------- SELF-DIAGNOSTICS ----------------
 # Add diagnostics endpoints to see exactly what's working
@@ -645,6 +592,7 @@ def root():
 # ---------------- INLINE TEST ROUTES ----------------
 @app.post("/api/image/upload-inline")
 async def upload_image_inline():
+    raise HTTPException(status_code=410, detail="Use the authenticated image upload endpoint")
     """Inline test route to verify FastAPI routing is working"""
     return {"message": "Inline upload route is working", "status": "success"}
 
@@ -657,125 +605,6 @@ async def get_outfits_inline():
 # REMOVED: Inline outfit test route that was interfering with real generation
 # The real outfit generation is handled by the outfits router at /api/outfit/generate
 
-@app.post("/analyze-image")
-async def analyze_image_real(request: dict):
-    """Real AI-powered image analysis endpoint using GPT-4 Vision"""
-    temp_file_path = None
-    try:
-        if not request.get("image") or not request["image"].get("url"):
-            return {"error": "No image provided"}
-        
-        # Extract image URL (can be base64 OR Firebase Storage URL)
-        image_url = request["image"]["url"]
-        
-        import base64
-        import tempfile
-        import os
-        import requests
-        
-        # Handle both base64 data URLs and Firebase Storage URLs
-        if image_url.startswith("data:image/"):
-            # Parse the data URL to get the base64 data
-            header, base64_data = image_url.split(",", 1)
-            
-            # Decode base64 to bytes
-            image_bytes = base64.b64decode(base64_data)
-        elif image_url.startswith("http://") or image_url.startswith("https://"):
-            # Download image from Firebase Storage URL
-            print(f"🔍 Downloading image from Firebase Storage: {image_url[:100]}...")
-            response = requests.get(image_url, timeout=30)
-            if not response.ok:
-                return {"error": f"Failed to download image from URL: {response.status_code}"}
-            image_bytes = response.content
-            print(f"✅ Downloaded {len(image_bytes)} bytes from Firebase Storage")
-        else:
-            return {"error": "Invalid image format. Expected base64 data URL or HTTP(S) URL."}
-        
-        # Create a temporary file to save the image
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
-            temp_file.write(image_bytes)
-            temp_file_path = temp_file.name
-        
-        try:
-            # Test OpenAI client initialization first
-            from openai import OpenAI
-            import os
-            
-            api_key = os.getenv("OPENAI_API_KEY")
-            if not api_key:
-                return {"error": "OPENAI_API_KEY not set in environment"}
-            
-            # Strip Railway proxy vars if they exist (they cause issues with new OpenAI client)
-            for proxy_var in ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"]:
-                os.environ.pop(proxy_var, None)
-            
-            # Initialize OpenAI client with clean environment
-            import httpx
-            
-            # Create a custom httpx client without proxy configuration
-            http_client = httpx.Client(
-                timeout=30.0,
-                limits=httpx.Limits(max_keepalive_connections=5, max_connections=10)
-            )
-            
-            client = OpenAI(
-                api_key=api_key,
-                http_client=http_client
-            )
-            
-            # Use the real AI analysis service
-            from src.services.openai_service import analyze_image_with_gpt4
-            
-            # Analyze the image with GPT-4 Vision
-            print(f"🔍 Starting real GPT-4 Vision analysis for image: {temp_file_path}")
-            analysis_result = await analyze_image_with_gpt4(temp_file_path)
-            # GPT-4 Vision analysis completed
-            
-            # Ensure all array fields are actually arrays
-            style_array = analysis_result.get("style", [])
-            if not isinstance(style_array, list):
-                style_array = [style_array] if style_array else []
-            
-            occasion_array = analysis_result.get("occasion", [])
-            if not isinstance(occasion_array, list):
-                occasion_array = [occasion_array] if occasion_array else []
-            
-            season_array = analysis_result.get("season", [])
-            if not isinstance(season_array, list):
-                season_array = [season_array] if season_array else []
-            
-            # Convert the analysis to the format expected by the frontend
-            clothing_item = {
-                "type": analysis_result.get("type", "other"),
-                "color": analysis_result.get("dominantColors", [{}])[0].get("name", "unknown") if analysis_result.get("dominantColors") else "unknown",
-                "brand": analysis_result.get("brand", ""),
-                "style": style_array,
-                "material": analysis_result.get("metadata", {}).get("visualAttributes", {}).get("material", "unknown"),
-                "season": season_array,
-                "occasion": occasion_array,
-                "name": analysis_result.get("name", "Unnamed Item"),
-                "description": f"A {analysis_result.get('type', 'item')} in {analysis_result.get('dominantColors', [{}])[0].get('name', 'unknown') if analysis_result.get('dominantColors') else 'unknown'} color",
-                "subType": analysis_result.get("subType", ""),
-                "dominantColors": analysis_result.get("dominantColors", []),
-                "matchingColors": analysis_result.get("matchingColors", []),
-                "metadata": analysis_result.get("metadata", {}),
-                "tags": style_array + occasion_array
-            }
-            
-            return {
-                "success": True,
-                "analysis": clothing_item,
-                "message": "AI analysis completed successfully with GPT-4 Vision"
-            }
-            
-        finally:
-            # Clean up the temporary file
-            if temp_file_path and os.path.exists(temp_file_path):
-                os.unlink(temp_file_path)
-        
-    except Exception as e:
-        print(f"Error in AI analysis: {str(e)}")
-        return {"error": f"Image analysis failed: {str(e)}"}
 
 @app.get("/api/test-inline")
 async def test_inline():
@@ -783,36 +612,12 @@ async def test_inline():
     return {"message": "Inline test route is working", "status": "success"}
 
 @app.get("/health")
-async def health_check():
-    """Health check endpoint for Railway deployment"""
-    try:
-        return {
-            "status": "healthy",
-            "timestamp": "2024-01-01T00:00:00Z",
-            "environment": os.getenv("ENVIRONMENT", "development"),
-            "version": "1.0.0"
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": str(e),
-            "timestamp": "2024-01-01T00:00:00Z"
-        }
-
 @app.get("/health/simple")
-async def simple_health_check():
-    """Simple health check for Railway"""
-    return {
-        "status": "healthy",
-        "message": "Full app is working",
-        "port": os.getenv("PORT", "8080")
-    }
-
-# Removed duplicate root route
-
 @app.get("/api/health")
-async def api_health():
-    return {"status": "ok", "api": "working", "features": ["gpt4_vision", "wardrobe", "outfits", "weather", "analytics"]}
+async def health_check():
+    """Minimal liveness after required routers and Firebase passed startup."""
+    from datetime import timezone
+    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 @app.get("/debug/routes")
 async def debug_routes():
@@ -954,82 +759,9 @@ async def debug_environment():
     }
 
 # Add Railway health check endpoints
-@app.get("/api/outfits-existing-data/health")
-async def railway_health_check():
-    """Railway health check endpoint"""
-    print("🔍 DEBUG: Railway health check endpoint called")
-    return {"status": "ok", "message": "Railway health check"}
 
-@app.get("/api/outfits-existing-data/analytics")
-async def railway_analytics_check():
-    """Railway analytics endpoint"""
-    print("🔍 DEBUG: Railway analytics endpoint called")
-    return {"status": "ok", "message": "Railway analytics check", "analytics": []}
 
-@app.get("/api/wardrobe/test")
-async def test_wardrobe_direct():
-    """Direct test endpoint to verify wardrobe functionality."""
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info("🧪 TEST: /api/wardrobe/test endpoint called - NO AUTH REQUIRED")
-    return {
-        "success": True,
-        "message": "Direct wardrobe test endpoint is working - updated",
-        "backend": "closetgptrenew-production",
-        "timestamp": "2024-01-01T00:00:00Z"
-    }
 
-@app.get("/api/wardrobe/")
-async def get_wardrobe(request: Request):
-    """Get wardrobe items for authenticated user."""
-    import time
-    route_start = time.time()
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    # Log immediately - this should appear in Railway logs if request reaches backend
-    logger.info(f"🚀 DIRECT ROUTE: GET /api/wardrobe/ called at {time.time()}")
-    logger.info(f"🚀 DIRECT ROUTE: Request method: {request.method}")
-    logger.info(f"🚀 DIRECT ROUTE: Request URL: {request.url}")
-    logger.info(f"🚀 DIRECT ROUTE: Request headers: {dict(request.headers)}")
-    print(f"🚀 DIRECT ROUTE: GET /api/wardrobe/ called - PRINT STATEMENT")
-    
-    try:
-        # Import auth utils
-        from src.utils.auth_utils import extract_uid_from_request
-        from firebase_admin import firestore
-        
-        logger.info(f"⏱️ DIRECT ROUTE: Imports complete ({time.time() - route_start:.2f}s)")
-        
-        # 1) Get uid or return explicit 401
-        logger.info(f"⏱️ DIRECT ROUTE: Extracting UID... ({time.time() - route_start:.2f}s)")
-        uid = extract_uid_from_request(request)
-        
-        # 2) Debug: log uid
-        logger.info(f"⏱️ DIRECT ROUTE: UID extracted: {uid} ({time.time() - route_start:.2f}s)")
-        
-        # 3) Run Firestore query using the exact field name (userId)
-        db = firestore.client()
-        if not db:
-            return {"success": False, "error": "Database not available"}
-        
-        q = db.collection("wardrobe").where("userId", "==", uid)
-        docs = q.stream()
-        items = []
-        for doc in docs:
-            data = doc.to_dict() or {}
-            data["id"] = doc.id
-            items.append(data)
-        
-        logger.info("Found %d wardrobe items for uid=%s", len(items), uid)
-        return {"success": True, "items": items, "count": len(items), "user_id": uid}
-        
-    except HTTPException as e:
-        # Re-raise HTTP exceptions (like 401)
-        raise e
-    except Exception as e:
-        logger.exception("Error querying Firestore for wardrobe for uid=%s", getattr(request, 'uid', 'unknown'))
-        return {"success": False, "items": [], "count": 0, "user_id": getattr(request, 'uid', 'unknown'), "error": "server_query_error"}
 
 @app.get("/api/debug/whoami")
 async def debug_whoami(request: Request):
@@ -1041,189 +773,7 @@ async def debug_whoami(request: Request):
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-@app.post("/api/wardrobe/")
-async def test_wardrobe_post(request: dict, current_user_id: str = Depends(get_current_user_id)):
-    """Test wardrobe POST endpoint directly in app.py."""
-    try:
-        from firebase_admin import firestore
-        import uuid
-        import time
-        db = firestore.client()
-        
-        if not db:
-            return {"error": "Database not available"}
-        
-        # Validate required fields
-        required_fields = ['name', 'type', 'color']
-        for field in required_fields:
-            if field not in request:
-                return {"error": f"Missing required field: {field}"}
-        
-        # Create item ID
-        item_id = str(uuid.uuid4())
-        
-        # Ensure style and other array fields are always arrays
-        style_array = request.get("style", [])
-        if not isinstance(style_array, list):
-            style_array = [style_array] if style_array else []
-        
-        occasion_array = request.get("occasion", [])
-        if not isinstance(occasion_array, list):
-            occasion_array = [occasion_array] if occasion_array else []
-        
-        season_array = request.get("season", ["all"])
-        if not isinstance(season_array, list):
-            season_array = [season_array] if season_array else ["all"]
-        
-        tags_array = request.get("tags", [])
-        if not isinstance(tags_array, list):
-            tags_array = [tags_array] if tags_array else []
-        
-        # Extract AI analysis results if available
-        analysis = request.get("analysis", {})
-        metadata_analysis = analysis.get("metadata", {})
-        visual_attrs = metadata_analysis.get("visualAttributes", {})
-        
-        # Use AI analysis results or fallback to defaults
-        # Extract ALL visual attributes that GPT-4 Vision provides
-        visual_attributes = {
-            # Core fields
-            "pattern": visual_attrs.get("pattern", "solid"),
-            "formalLevel": visual_attrs.get("formalLevel", "casual"),
-            "fit": visual_attrs.get("fit", "regular"),
-            "material": visual_attrs.get("material", "cotton"),
-            "fabricWeight": visual_attrs.get("fabricWeight", "medium"),
-            "sleeveLength": visual_attrs.get("sleeveLength", "unknown"),
-            "silhouette": visual_attrs.get("silhouette", "regular"),
-            "genderTarget": visual_attrs.get("genderTarget", "unisex"),
-            # Critical fields for layering
-            "wearLayer": visual_attrs.get("wearLayer", "Mid"),
-            "textureStyle": visual_attrs.get("textureStyle", "smooth"),
-            "length": visual_attrs.get("length", "regular"),
-            # New Phase 1 fields
-            "neckline": visual_attrs.get("neckline", "none"),
-            "transparency": visual_attrs.get("transparency", "opaque"),
-            "collarType": visual_attrs.get("collarType", "none"),
-            "embellishments": visual_attrs.get("embellishments", "none"),
-            "printSpecificity": visual_attrs.get("printSpecificity", "none"),
-            "rise": visual_attrs.get("rise", "none"),
-            "legOpening": visual_attrs.get("legOpening", "none"),
-            "heelHeight": visual_attrs.get("heelHeight", "none"),
-            "statementLevel": visual_attrs.get("statementLevel", 5),
-            # Additional fields
-            "waistbandType": visual_attrs.get("waistbandType", "none"),
-            "backgroundRemoved": visual_attrs.get("backgroundRemoved", False),
-            "hangerPresent": visual_attrs.get("hangerPresent", False)
-        }
-        
-        # VERIFICATION LOGGING - Confirm material and description are extracted
-        extracted_material = visual_attrs.get("material", "cotton")
-        extracted_description = metadata_analysis.get("naturalDescription", "")
-        print(f"🔍 METADATA EXTRACTION VERIFICATION:")
-        print(f"  ✅ Material extracted: {extracted_material}")
-        print(f"  ✅ Description extracted: {extracted_description}")
-        print(f"  📊 Total visualAttributes fields: {len(visual_attributes)}")
-        print(f"  🎯 Will save to: metadata.visualAttributes.material = {extracted_material}")
-        print(f"  🎯 Will save to: metadata.naturalDescription = {extracted_description}")
-        
-        # Extract dominant colors from AI analysis if available
-        dominant_colors = analysis.get("dominantColors", [])
-        if not dominant_colors:
-            # Fallback to basic color analysis
-            dominant_colors = [{"name": request["color"], "hex": "#000000", "rgb": [0, 0, 0]}]
-        
-        # Extract matching colors from AI analysis if available
-        matching_colors = analysis.get("matchingColors", [])
-        
-        # Prepare item data
-        wardrobe_item = {
-            "id": item_id,
-            "userId": current_user_id,  # Use authenticated user's ID
-            "name": request["name"],
-            "type": request["type"],
-            "color": request["color"],
-            "style": style_array,
-            "occasion": occasion_array,
-            "season": season_array,
-            "imageUrl": request.get("imageUrl", ""),
-            "dominantColors": dominant_colors,
-            "matchingColors": matching_colors,
-            "tags": tags_array,
-            "createdAt": int(time.time()),
-            "updatedAt": int(time.time()),
-            "metadata": {
-                "analysisTimestamp": int(time.time()),
-                "originalType": request["type"],
-                "styleTags": style_array,
-                "occasionTags": occasion_array,
-                "colorAnalysis": {
-                    "dominant": [color.get("name", request["color"]) for color in dominant_colors],
-                    "matching": [color.get("name", "") for color in matching_colors]
-                },
-                "visualAttributes": visual_attributes,
-                "naturalDescription": metadata_analysis.get("naturalDescription", ""),
-                "itemMetadata": {
-                    "tags": tags_array,
-                    "careInstructions": "Check care label"
-                },
-                # Store the full AI analysis for reference
-                "aiAnalysis": analysis if analysis else None
-            },
-            "favorite": False,
-            "wearCount": 0,
-            "lastWorn": None,
-            
-            # Worker-processed fields for stealth-mode background removal
-            "backgroundRemovedUrl": None,  # Will be filled by worker
-            "thumbnailUrl": None,  # Will be filled by worker
-            "processing_status": "pending"  # Triggers worker to process this item
-        }
-        
-        # Save to Firestore
-        doc_ref = db.collection('wardrobe').document(item_id)
-        doc_ref.set(wardrobe_item)
-        
-        # VERIFICATION - Confirm what was saved to Firestore
-        print(f"✅ SAVED TO FIRESTORE:")
-        print(f"  Item ID: {item_id}")
-        print(f"  Item Name: {wardrobe_item['name']}")
-        print(f"  metadata.visualAttributes.material: {wardrobe_item['metadata']['visualAttributes']['material']}")
-        print(f"  metadata.naturalDescription: {wardrobe_item['metadata']['naturalDescription']}")
-        print(f"  metadata.visualAttributes keys: {list(wardrobe_item['metadata']['visualAttributes'].keys())}")
-        
-        # Item added successfully
-        
-        return {
-            "success": True,
-            "message": "Item added successfully",
-            "item_id": item_id,
-            "item": wardrobe_item
-        }
-    except Exception as e:
-        # Error adding wardrobe item
-        return {"error": f"Failed to add item: {str(e)}"}
 
-@app.get("/api/wardrobe/count")
-async def count_wardrobe_direct():
-    """Direct count endpoint to check wardrobe items."""
-    try:
-        from src.config.firebase import firebase_initialized, db
-        
-        if not firebase_initialized or db is None:
-            return {"error": "Firebase not initialized"}
-        
-        # Count all items
-        all_docs = db.collection('wardrobe').stream()
-        total_count = len(list(all_docs))
-        
-        return {
-            "success": True,
-            "total_items": total_count,
-            "message": f"Found {total_count} items in wardrobe collection"
-        }
-        
-    except Exception as e:
-        return {"error": str(e)}
 
 @app.get("/api/wardrobe/firebase-debug")
 async def firebase_debug():
@@ -1526,12 +1076,14 @@ async def check_wardrobe_item(item_name: str, current_user_id: str = Depends(get
 from src.auth.verified_identity import verified_identity as verified_wardrobe_identity, reject_identity_overrides as reject_wardrobe_identity_overrides
 
 
+@app.post("/api/wardrobe/")
 @app.post("/api/wardrobe/add-direct")
 async def add_wardrobe_item_direct(item_data: dict, claims: dict = Depends(verified_wardrobe_identity)):
     """Create an owned garment, or acknowledge an already-persisted owned retry."""
     reject_wardrobe_identity_overrides(claims, item_data)
     current_user_id = claims['uid']
     from src.config.firebase import db
+    from src.services.app_data_privacy import AppDataDeletionError
     from src.services.wardrobe_persistence import create_owned_wardrobe_item, WardrobeOwnershipConflict, WardrobeInputError
     from starlette.concurrency import run_in_threadpool
 
@@ -1545,6 +1097,8 @@ async def add_wardrobe_item_direct(item_data: dict, claims: dict = Depends(verif
             "item_id": wardrobe_item["id"],
             "item": wardrobe_item,
         }
+    except AppDataDeletionError as error:
+        raise HTTPException(error.status_code, error.detail) from None
     except WardrobeOwnershipConflict:
         raise HTTPException(status_code=409, detail="This item ID is already in use")
     except WardrobeInputError as error:
@@ -1604,206 +1158,15 @@ async def backfill_processing_status(current_user_id: str = Depends(get_current_
         }
 
 @app.get("/api/today-suggestion")
-async def get_todays_outfit_suggestion(current_user_id: str = Depends(get_current_user_id)):
-    """Generate today's outfit suggestion using existing outfit generation logic"""
-    print("⚡ HIT: today-suggestion from app.py")
-    try:
-        from firebase_admin import firestore
-        from datetime import datetime, timezone
-        import uuid
-        
-        # Use authenticated user's ID
-        user_id = current_user_id
-        
-        # Get today's date
-        today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-        
-        # Check if Firebase is available
-        try:
-            db = firestore.client()
-        except Exception as e:
-            return {
-                "success": True,
-                "suggestion": None,
-                "isWorn": False,
-                "message": "Service temporarily unavailable"
-            }
-        
-        # Check if we already have a suggestion for today
-        suggestions_ref = db.collection('daily_outfit_suggestions')
-        query = suggestions_ref.where('user_id', '==', user_id).where('date', '==', today_str)
-        existing_docs = list(query.stream())
-        
-        if existing_docs:
-            # Return existing suggestion
-            doc = existing_docs[0]
-            suggestion_data = doc.to_dict()
-            return {
-                "success": True,
-                "suggestion": {
-                    "id": doc.id,
-                    "outfitData": suggestion_data.get('outfit_data', {}),
-                    "generatedAt": suggestion_data.get('generated_at'),
-                    "date": suggestion_data.get('date')
-                },
-                "isWorn": suggestion_data.get('is_worn', False),
-                "wornAt": suggestion_data.get('worn_at'),
-                "message": "Today's outfit suggestion"
-            }
-        
-        # Generate new suggestion for today
-        try:
-            # Get user's wardrobe
-            wardrobe_ref = db.collection('wardrobe')
-            wardrobe_docs = wardrobe_ref.where('userId', '==', user_id).stream()
-            
-            wardrobe_items = []
-            for doc in wardrobe_docs:
-                item_data = doc.to_dict()
-                wardrobe_items.append(item_data)
-            
-            
-            if not wardrobe_items:
-                return {
-                    "success": True,
-                    "suggestion": None,
-                    "isWorn": False,
-                    "message": "No wardrobe items found. Add some items to your wardrobe first!"
-                }
-            
-            # Generate a simple outfit suggestion
-            import random
-            
-            # Pick random items for different categories
-            tops = [item for item in wardrobe_items if item.get('type', '').lower() in ['shirt', 'blouse', 'tank', 'sweater', 'hoodie', 't-shirt']]
-            bottoms = [item for item in wardrobe_items if item.get('type', '').lower() in ['pants', 'jeans', 'shorts', 'skirt', 'trousers']]
-            shoes = [item for item in wardrobe_items if item.get('type', '').lower() in ['shoes', 'sneakers', 'boots', 'sandals', 'heels']]
-            accessories = [item for item in wardrobe_items if item.get('type', '').lower() in ['jacket', 'blazer', 'cardigan', 'scarf', 'hat', 'belt']]
-            
-            selected_items = []
-            if tops:
-                selected_items.append(random.choice(tops))
-            if bottoms:
-                selected_items.append(random.choice(bottoms))
-            if shoes:
-                selected_items.append(random.choice(shoes))
-            if accessories and random.random() > 0.5:  # 50% chance of accessory
-                selected_items.append(random.choice(accessories))
-            
-            
-            if not selected_items:
-                return {
-                    "success": True,
-                    "suggestion": None,
-                    "isWorn": False,
-                    "message": "Not enough items to create an outfit. Add more items to your wardrobe!"
-                }
-            
-            # Create outfit suggestion
-            suggestion_id = str(uuid.uuid4())
-            outfit_data = {
-                "id": suggestion_id,
-                "name": f"Today's Outfit - {today_str}",
-                "occasion": "Daily",
-                "mood": "Confident",
-                "style": "Casual",
-                "items": selected_items,
-                "weather": {
-                    "temperature": 72,
-                    "condition": "Sunny",
-                    "humidity": 50
-                },
-                "notes": "AI-generated daily outfit suggestion",
-                "tags": ["daily", "casual", "ai-suggested"]
-            }
-            
-            # Save suggestion to database
-            suggestion_doc = {
-                "id": suggestion_id,
-                "user_id": user_id,
-                "date": today_str,
-                "outfit_data": outfit_data,
-                "generated_at": datetime.utcnow().isoformat(),
-                "is_worn": False,
-                "worn_at": None
-            }
-            
-            db.collection('daily_outfit_suggestions').document(suggestion_id).set(suggestion_doc)
-            
-            return {
-                "success": True,
-                "suggestion": {
-                    "id": suggestion_id,
-                    "outfitData": outfit_data,
-                    "generatedAt": suggestion_doc["generated_at"],
-                    "date": today_str
-                },
-                "isWorn": False,
-                "wornAt": None,
-                "message": "Today's outfit suggestion generated successfully"
-            }
-            
-        except Exception as e:
-            return {
-                "success": True,
-                "suggestion": None,
-                "isWorn": False,
-                "message": f"Failed to generate suggestion: {str(e)}"
-            }
-    except Exception as e:
-        return {
-            "success": False,
-            "suggestion": None,
-            "isWorn": False,
-            "message": f"Error: {str(e)}"
-        }
+async def get_todays_outfit_suggestion(current_user=Depends(get_current_user)):
+    """Compatibility alias; generation and cache behavior have one owner."""
+    from src.routes.outfit_history import get_todays_outfit_suggestion as canonical_suggestion
+    return await canonical_suggestion(current_user=current_user)
 
 # Flatlay image proxy endpoint to fix CORS issues
 @app.get("/api/flatlay/{outfit_id}")
-async def proxy_flatlay_image(outfit_id: str, request: Request):
-    """
-    Proxy endpoint to serve flatlay images with proper CORS headers.
-    This fixes CORS issues when loading flatlay images from Firebase Storage.
-    """
-    try:
-        from firebase_admin import storage
-        import requests
-        
-        # Construct the Firebase Storage URL
-        bucket_name = "closetgptrenew.firebasestorage.app"
-        path = f"flat_lays/outfit_{outfit_id}.png"
-        
-        # Get the blob
-        bucket = storage.bucket(bucket_name)
-        blob = bucket.blob(path)
-        
-        if not blob.exists():
-            raise HTTPException(status_code=404, detail="Flatlay image not found")
-        
-        # Download the image
-        image_data = blob.download_as_bytes()
-        
-        # Get origin from request for CORS
-        origin = request.headers.get("origin", "*")
-        
-        # Create response with CORS headers
-        from fastapi.responses import Response
-        response = Response(
-            content=image_data,
-            media_type="image/png",
-            headers={
-                "Access-Control-Allow-Origin": origin if origin in allowed_origins else "*",
-                "Access-Control-Allow-Methods": "GET, OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type",
-                "Cache-Control": "public, max-age=3600",  # Cache for 1 hour
-            }
-        )
-        return response
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error proxying flatlay image: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to load flatlay image: {str(e)}")
+async def proxy_flatlay_image(outfit_id: str):
+    """Retired guessed-path reader; current viewer uses verified saved-result URLs."""
+    raise HTTPException(status_code=410, detail="Reopen the saved outfit to view its current flatlay")
 
 # Force Railway redeploy - Wed Sep  3 02:41:38 EDT 2025

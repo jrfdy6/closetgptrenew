@@ -1,11 +1,13 @@
 import { User } from 'firebase/auth';
+import { publishWearReceipt } from '@/lib/wardrobeActivity';
+import { wearOperationKey, clearWearOperation } from '@/lib/savedOutfit';
 
 export interface DashboardData {
   totalItems: number;
   favorites: number;
   styleGoalsCompleted: number;
   totalStyleGoals: number;
-  outfitsThisWeek: number;
+  outfitsThisWeek: number | null;
   overallProgress: number;
   styleCollections: StyleCollection[];
   styleExpansions: StyleExpansion[];
@@ -238,7 +240,7 @@ class DashboardService {
 
       // Optional insights retain their existing bounded fallbacks.
       const [simpleAnalytics, trendingStyles, todaysOutfit, topWornItems] = await Promise.all([
-        fetchWithTimeout(this.getSimpleAnalytics(user, forceFresh), 15000, { success: true, outfits_worn_this_week: 0 }),
+        fetchWithTimeout(this.getSimpleAnalytics(user, forceFresh), 15000, null),
         fetchWithTimeout(this.getTrendingStyles(user), 8000, { success: true, data: { styles: [] } }),
         fetchWithTimeout(this.getTodaysOutfit(user), 8000, { success: true, suggestion: null }),
         fetchWithTimeout(this.getTopWornItems(user, wardrobeItems, hasWardrobeItems), 8000, { success: true, data: { items: [] } }),
@@ -254,7 +256,7 @@ class DashboardService {
         favorites: this.calculateFavorites(wardrobeStats),
         styleGoalsCompleted: styleGoalsData.completed,
         totalStyleGoals: styleGoalsData.total,
-        outfitsThisWeek: simpleAnalytics?.outfits_worn_this_week || 0,
+        outfitsThisWeek: simpleAnalytics?.outfits_worn_this_week ?? null,
         overallProgress: this.calculateOverallProgress(wardrobeStats, trendingStyles, userProfile),
         styleCollections,
         styleExpansions: this.buildStyleExpansions(wardrobeStats, trendingStyles),
@@ -312,81 +314,13 @@ class DashboardService {
 
   // Removed getOutfitHistory - replaced with getSimpleAnalytics
 
-  private async getSimpleAnalytics(user: User, forceFresh: boolean = false) {
-    try {
-      // Import Firestore with getDocsFromServer for fresh data
-      const { db } = await import('@/lib/firebase/config');
-      const { collection, query, where, getDocs, getDocsFromServer } = await import('firebase/firestore');
-      
-      // Calculate week start (Sunday 00:00:00 in user's local timezone)
-      const now = new Date();
-      const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
-      const daysToSubtract = dayOfWeek; // If Sunday (0), subtract 0 days
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - daysToSubtract);
-      weekStart.setHours(0, 0, 0, 0);
-      
-      // Query outfit_history collection for this user, this week
-      const historyRef = collection(db, 'outfit_history');
-      const historyQuery = query(
-        historyRef,
-        where('user_id', '==', user.uid)
-      );
-      
-      // Use getDocsFromServer when forceFresh is true to bypass cache
-      const snapshot = forceFresh 
-        ? await getDocsFromServer(historyQuery)
-        : await getDocs(historyQuery);
-      
-      // Count entries worn this week
-      let wornThisWeek = 0;
-      
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        const dateWorn = data.date_worn;
-        
-        // Handle multiple date formats
-        let wornDate: Date | null = null;
-        if (typeof dateWorn === 'number') {
-          // Unix timestamp in milliseconds
-          wornDate = new Date(dateWorn);
-
-        } else if (dateWorn && dateWorn.toDate && typeof dateWorn.toDate === 'function') {
-          // Firestore Timestamp
-          wornDate = dateWorn.toDate();
-
-        } else if (typeof dateWorn === 'string') {
-          // ISO string
-          wornDate = new Date(dateWorn);
-
-        }
-        
-        // Validate the parsed date
-        const isValidDate = wornDate && !isNaN(wornDate.getTime());
-        const isThisWeek = isValidDate && wornDate >= weekStart;
-        
-        if (isThisWeek) {
-          wornThisWeek++;
-        }
-      });
-      
-      return {
-        success: true,
-        outfits_worn_this_week: wornThisWeek,
-        user_id: user.uid,
-        week_start: weekStart.toISOString(),
-        calculated_at: new Date().toISOString(),
-        source: forceFresh ? 'frontend_firestore_server_fresh' : 'frontend_firestore_direct',
-        version: '2025-10-26-cache-fix-v2'
-      };
-    } catch {
-      // Return fallback data that matches the expected structure
-      return {
-        success: true,
-        outfits_worn_this_week: 0,
-        message: 'Using fallback data due to analytics service unavailable'
-      };
+  private async getSimpleAnalytics(user: User, _forceFresh: boolean = false) {
+    const response = await this.makeAuthenticatedRequest('/simple-analytics/outfits-worn-this-week', user);
+    const count = response?.outfits_worn_this_week ?? response?.worn_this_week;
+    if (response?.success !== true || !Number.isInteger(count) || count < 0) {
+      throw new Error('Your wear history could not be loaded. Please try again.');
     }
+    return { outfits_worn_this_week: count };
   }
 
   private async getTrendingStyles(user: User) {
@@ -550,10 +484,12 @@ class DashboardService {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ suggestionId }),
+        body: JSON.stringify({ suggestionId, idempotency_key: wearOperationKey(user.uid, 'suggestion:' + suggestionId), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' }),
       });
       
-      return response.success || false;
+      publishWearReceipt(user.uid, response);
+      clearWearOperation(user.uid, 'suggestion:' + suggestionId);
+      return response.undone !== true;
     } catch {
       return false;
     }

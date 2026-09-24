@@ -40,6 +40,9 @@ class OriginalUploadContractTests(unittest.TestCase):
         auth_patch = patch('src.auth.verified_user.auth.verify_id_token', return_value={'uid': 'verified-owner'})
         self.verify = auth_patch.start()
         self.addCleanup(auth_patch.stop)
+        privacy_patch = patch.object(self.route, 'require_app_data_writable', return_value=0)
+        self.privacy = privacy_patch.start()
+        self.addCleanup(privacy_patch.stop)
         self.blob = Mock(public_url='https://storage.example/wardrobe/verified-owner/original.jpg')
         self.bucket = Mock(name='fake-bucket')
         self.bucket.blob.return_value = self.blob

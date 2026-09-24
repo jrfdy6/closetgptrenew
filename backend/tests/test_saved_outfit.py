@@ -81,6 +81,23 @@ class SavedOutfitProjectionTests(SavedOutfitFixture):
         self.assertTrue(first["flat_lay_request_allowed"])
         self.assertIsNone(first["flat_lay_url"])
 
+    def test_global_pause_is_projected_without_writes_and_preserves_existing_result(self):
+        self.ledger()
+        for value in ('true', '1', 'yes', 'on', 'malformed'):
+            with self.subTest(value=value), patch.dict('os.environ', {'EASYOUTFIT_FLATLAY_REQUESTS_PAUSED': value}):
+                result = self.read()
+                self.assertFalse(result['flat_lay_request_allowed'])
+                self.assertTrue(result['flat_lay_admission_paused'])
+                self.assertIn('paused', result['flat_lay_admission_reason'])
+                self.assertEqual(result['flat_lay_url'], 'https://example.test/verified-flatlay.png')
+
+    def test_missing_current_photo_disables_active_use_and_new_preview(self):
+        self.db.rows['wardrobe']['dress'].pop('imageUrl')
+        result = self.read()
+        self.assertFalse(result['items_available'])
+        self.assertFalse(result['flat_lay_request_allowed'])
+        self.assertIn('photos', result['flat_lay_admission_reason'])
+
     def test_owned_string_dictionary_and_legacy_item_aliases_resolve_current_allowlisted_garments(self):
         for items in (["dress", "shoes"], [{"id": "dress"}, {"id": "shoes"}],
                       [{"itemId": "dress"}, {"item_id": "shoes"}]):

@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from firebase_admin import firestore
+from ..app_data_privacy import require_app_data_writable, AppDataDeletionError
 
 from .codex_image_analysis import (
     UPLOAD_IMAGE_ANALYSIS_JOB_KIND,
@@ -322,6 +323,8 @@ def _build_job_context(job_kind: str, *, requested_by: str, request_payload: dic
 
 
 def queue_codex_job(*, requested_by: str, job_kind: str, request_payload: dict[str, Any]) -> dict[str, Any]:
+    firestore_db = _require_db()
+    epoch = require_app_data_writable(firestore_db, requested_by)
     normalized_kind = _normalize_job_kind(job_kind)
     context_packet = _build_job_context(normalized_kind, requested_by=requested_by, request_payload=request_payload)
     workspace_slug = _normalize_workspace_slug(
@@ -332,6 +335,7 @@ def queue_codex_job(*, requested_by: str, job_kind: str, request_payload: dict[s
     payload = {
         "workspace_slug": workspace_slug,
         "requested_by": requested_by,
+        "app_data_epoch": epoch,
         "job_kind": normalized_kind,
         "status": "pending",
         "request_payload": _serialize_value(request_payload),
@@ -353,7 +357,11 @@ def queue_codex_job(*, requested_by: str, job_kind: str, request_payload: dict[s
         "created_at_ms": now_ms,
         "updated_at_ms": now_ms,
     }
-    _job_ref(job_id).set(payload)
+    @firestore.transactional
+    def enqueue(txn):
+        require_app_data_writable(firestore_db, requested_by, expected_epoch=epoch, transaction=txn)
+        txn.create(_job_ref(job_id), payload)
+    enqueue(firestore_db.transaction())
     return get_codex_job(job_id)
 
 
@@ -450,7 +458,21 @@ def sync_completed_upload_analysis_to_wardrobe(job_id: str) -> dict[str, Any] | 
     file_name = str(context.get("file_name") or "").strip() or None
     raw_result = job.get("result_payload") if isinstance(job.get("result_payload"), dict) else {}
     analysis = normalize_codex_upload_analysis_result(raw_result, file_name=file_name)
-    item_ref.update(_build_upload_analysis_item_update(item_payload, analysis, job_id=job_id))
+    @firestore.transactional
+    def publish(txn):
+        current_job = _job_ref(job_id).get(transaction=txn)
+        current = current_job.to_dict() or {} if current_job.exists else {}
+        if current.get('status') != 'completed':
+            return
+        require_app_data_writable(firestore_db, current['requested_by'], expected_epoch=current.get('app_data_epoch', 0), transaction=txn)
+        item = item_ref.get(transaction=txn)
+        value = item.to_dict() or {} if item.exists else {}
+        if (value.get('userId') != current['requested_by']
+                or any(value.get(key) not in (None, current['requested_by']) for key in ('user_id', 'firebase_uid', 'uid', 'ownerId'))
+                or any(value.get(key) for key in ('deleted', 'deletedAt', 'isDeleted', 'deleted_at'))):
+            return
+        txn.update(item_ref, _build_upload_analysis_item_update(value, analysis, job_id=job_id))
+    publish(firestore_db.transaction())
     return job
 
 
@@ -468,6 +490,7 @@ def merge_completed_upload_analysis_into_item_data(*, requested_by: str, item_da
     job = get_codex_job(job_id)
     if not job or str(job.get("requested_by") or "") != requested_by:
         return item_data
+    require_app_data_writable(_require_db(), requested_by, expected_epoch=job.get("app_data_epoch", 0))
     if str(job.get("job_kind") or "") != UPLOAD_IMAGE_ANALYSIS_JOB_KIND:
         return item_data
 
@@ -523,8 +546,26 @@ def claim_next_codex_job(*, worker_id: str, workspace_slug: str | None, job_kind
         if not candidates:
             return None
 
-        claimed_snapshot = candidates[0]
+        claimed_snapshot = None
+        retired = []
+        for candidate in candidates:
+            value = candidate.to_dict() or {}
+            try:
+                require_app_data_writable(firestore_db, value.get('requested_by'), expected_epoch=value.get('app_data_epoch', 0), transaction=transaction_obj)
+                claimed_snapshot = candidate
+                break
+            except AppDataDeletionError:
+                retired.append(candidate)
         now_ms = _utc_now_ms()
+        # Retirement occurs after every read and cannot restore a deleted job.
+        for candidate in retired:
+            value = candidate.to_dict() or {}
+            transaction_obj.set(candidate.reference, {key: value[key] for key in (
+                'requested_by', 'job_kind', 'workspace_slug', 'app_data_epoch', 'created_at_ms'
+            ) if key in value} | {'status': 'canceled', 'error_message': 'Account app data changed.',
+                                  'canceled_at_ms': now_ms, 'updated_at_ms': now_ms})
+        if claimed_snapshot is None:
+            return None
         transaction_obj.update(
             claimed_snapshot.reference,
             {
@@ -544,22 +585,30 @@ def claim_next_codex_job(*, worker_id: str, workspace_slug: str | None, job_kind
     return get_codex_job(job_id)
 
 
-def _write_job_artifacts(job_id: str, artifact_specs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    if not artifact_specs:
-        return []
-
+def _fenced_job_update(job_id, fields, *, worker_id=None, requested_by=None, artifacts=None):
     firestore_db = _require_db()
-    job_reference = _job_ref(job_id)
-    batch = firestore_db.batch()
-    metadata_entries: list[dict[str, Any]] = []
-    for artifact_spec in artifact_specs:
-        metadata, document = _normalize_artifact_spec(artifact_spec, job_id=job_id)
-        artifact_ref = job_reference.collection(CODEX_JOB_ARTIFACTS_SUBCOLLECTION).document(metadata["artifact_id"])
-        batch.set(artifact_ref, document)
-        metadata_entries.append(metadata)
-
-    batch.commit()
-    return metadata_entries
+    reference = _job_ref(job_id)
+    normalized = [_normalize_artifact_spec(value, job_id=job_id) for value in (artifacts or [])]
+    if len(normalized) > 100:
+        raise ValueError('Too many job artifacts')
+    @firestore.transactional
+    def update(txn):
+        snapshot = reference.get(transaction=txn)
+        job = snapshot.to_dict() or {} if snapshot.exists else {}
+        if not job or job.get('status') not in {'running', 'pending'}:
+            raise ValueError('Codex job is no longer active')
+        if worker_id and job.get('claimed_by') not in (None, '', worker_id):
+            raise ValueError('Codex job is claimed by a different worker')
+        if requested_by and job.get('requested_by') != requested_by:
+            raise ValueError('Codex job not found')
+        require_app_data_writable(firestore_db, job['requested_by'], expected_epoch=job.get('app_data_epoch', 0), transaction=txn)
+        for metadata, document in normalized:
+            txn.set(reference.collection(CODEX_JOB_ARTIFACTS_SUBCOLLECTION).document(metadata['artifact_id']), document)
+        values = {**fields}
+        if artifacts is not None:
+            values['artifacts'] = [metadata for metadata, _ in normalized]
+        txn.update(reference, values)
+    update(firestore_db.transaction())
 
 
 def complete_codex_job(
@@ -614,7 +663,6 @@ def complete_codex_job(
             }
         )
 
-    metadata_entries = _write_job_artifacts(job_id, artifact_specs)
     now_ms = _utc_now_ms()
     update_payload: dict[str, Any] = {
         "status": "completed",
@@ -624,13 +672,12 @@ def complete_codex_job(
         "updated_at": firestore.SERVER_TIMESTAMP,
         "updated_at_ms": now_ms,
         "error_message": None,
-        "artifacts": metadata_entries,
     }
     if result_payload is not None:
         update_payload["result_payload"] = _serialize_value(result_payload)
     if model:
         update_payload["completed_model"] = model
-    _job_ref(job_id).update(update_payload)
+    _fenced_job_update(job_id, update_payload, worker_id=worker_id, artifacts=artifact_specs)
     if str(job.get("job_kind") or "") == UPLOAD_IMAGE_ANALYSIS_JOB_KIND:
         sync_completed_upload_analysis_to_wardrobe(job_id)
     return get_codex_job(job_id)
@@ -644,7 +691,7 @@ def fail_codex_job(*, job_id: str, worker_id: str, error_message: str) -> dict[s
     if claimed_by and claimed_by != worker_id:
         raise ValueError("Codex job is claimed by a different worker")
     now_ms = _utc_now_ms()
-    _job_ref(job_id).update(
+    _fenced_job_update(job_id,
         {
             "status": "failed",
             "claimed_by": worker_id or claimed_by or None,
@@ -653,7 +700,7 @@ def fail_codex_job(*, job_id: str, worker_id: str, error_message: str) -> dict[s
             "updated_at": firestore.SERVER_TIMESTAMP,
             "updated_at_ms": now_ms,
             "error_message": str(error_message or "Unknown Codex job failure")[:4000],
-        }
+        }, worker_id=worker_id
     )
     return get_codex_job(job_id)
 
@@ -665,14 +712,14 @@ def cancel_codex_job(*, job_id: str, requested_by: str) -> dict[str, Any]:
     if str(job.get("status") or "") in {"completed", "failed", "canceled"}:
         raise ValueError(f"Codex job {job_id} is already terminal")
     now_ms = _utc_now_ms()
-    _job_ref(job_id).update(
+    _fenced_job_update(job_id,
         {
             "status": "canceled",
             "canceled_at": firestore.SERVER_TIMESTAMP,
             "canceled_at_ms": now_ms,
             "updated_at": firestore.SERVER_TIMESTAMP,
             "updated_at_ms": now_ms,
-        }
+        }, requested_by=requested_by
     )
     return get_codex_job(job_id)
 

@@ -42,13 +42,15 @@ export default function ClientOnlyNav() {
     return "Generate outfit";
   };
 
+  const hasOutfitActions = Boolean(pathname && /^\/outfits\/[^/]+$/.test(pathname));
+
   return (
     <>
       <BottomNav />
-      <FloatingActionButton 
-        onClick={handleFabClick} 
-        ariaLabel={getFabLabel()} 
-      />
+      {!hasOutfitActions && <FloatingActionButton
+        onClick={handleFabClick}
+        ariaLabel={getFabLabel()}
+      />}
     </>
   );
 }

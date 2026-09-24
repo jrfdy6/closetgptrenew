@@ -5,6 +5,7 @@
 
 import { handleError, retryWithBackoff, CircuitBreaker } from './errorHandler';
 import { DataValidator } from './dataValidator';
+import { ApiRequestError, apiRequestError } from './apiRequestError';
 import { buildPublicBackendUrl } from './publicBackendUrl';
 
 async function fetchWithTimeout(
@@ -136,6 +137,8 @@ export class RobustApiClient {
       // Update metrics
       this.updateMetrics(false, Date.now() - startTime);
       
+      if (error instanceof ApiRequestError) throw error;
+
       // Handle error with comprehensive logging
       return await handleError(
         error as Error,
@@ -143,7 +146,6 @@ export class RobustApiClient {
         {
           component: 'RobustApiClient',
           retryable: request.retryable !== false,
-          fallbackAction: () => this.getFallbackResponse<T>(request),
           userMessage: this.getUserFriendlyMessage(error as Error)
         }
       );
@@ -198,7 +200,7 @@ export class RobustApiClient {
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw await apiRequestError(response);
     }
 
     const data = await response.json();
@@ -213,59 +215,6 @@ export class RobustApiClient {
       headers: responseHeaders,
       timestamp: Date.now(),
       requestId
-    };
-  }
-
-  /**
-   * Get fallback response for failed requests
-   */
-  private async getFallbackResponse<T>(request: ApiRequest): Promise<ApiResponse<T>> {
-    // Implement fallback logic based on request type
-    if (request.endpoint.includes('/outfit/generate')) {
-      return {
-        data: this.getFallbackOutfit() as T,
-        status: 200,
-        headers: {},
-        timestamp: Date.now(),
-        requestId: 'fallback'
-      };
-    }
-
-    throw new Error('No fallback available for this request');
-  }
-
-  /**
-   * Get fallback outfit data
-   */
-  private getFallbackOutfit(): any {
-    return {
-      id: 'fallback-outfit',
-      name: 'Fallback Outfit',
-      items: [
-        {
-          id: 'fallback-top',
-          name: 'Basic Top',
-          type: 'T_SHIRT',
-          color: 'white',
-          imageUrl: ''
-        },
-        {
-          id: 'fallback-bottom',
-          name: 'Basic Pants',
-          type: 'PANTS',
-          color: 'black',
-          imageUrl: ''
-        },
-        {
-          id: 'fallback-shoes',
-          name: 'Basic Shoes',
-          type: 'SHOES',
-          color: 'white',
-          imageUrl: ''
-        }
-      ],
-      confidence_score: 0.5,
-      reasoning: 'Fallback outfit generated due to service unavailability'
     };
   }
 
@@ -453,7 +402,7 @@ export async function generateOutfit(requestData: any, authToken?: string): Prom
         }, 120000);
         
         if (!directResponse.ok) {
-          throw new Error(`Direct backend call failed: ${directResponse.status} ${directResponse.statusText}`);
+          throw await apiRequestError(directResponse);
         }
         
         const data = await directResponse.json();

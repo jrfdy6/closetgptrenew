@@ -79,8 +79,8 @@ def timestamp(value):
 
 def owned_by(value, user_id):
     item = record(value)
-    owners = [text(item.get(key)) for key in ('userId', 'user_id') if text(item.get(key))]
-    return bool(owners) and all(owner == user_id for owner in owners)
+    owners = [item[key] for key in ('userId', 'user_id', 'firebase_uid', 'uid', 'ownerId') if item.get(key) is not None]
+    return bool(owners) and all(isinstance(owner, str) and owner == user_id for owner in owners)
 
 def has_style_profile(value):
     profile = record(value)
@@ -165,6 +165,7 @@ def derive_onboarding_state(*, stored=None, profile=None, wardrobe, outfits):
                            'capsuleCompletedAt': timestamp(previous.get('capsuleCompletedAt')), 'firstOutfitId': first_id}}
 
 def sources(db, user_id, transaction=None):
+    from .wardrobe_reads import owned_wardrobe_documents, canonical_owned_garment
     options = {'transaction': transaction} if transaction is not None else {}
     def owned_records(collection):
         rows = {}
@@ -177,16 +178,26 @@ def sources(db, user_id, transaction=None):
         return list(rows.values())
     draft = db.collection(ONBOARDING_COLLECTION).document(user_id).get(**options)
     profile = db.collection('users').document(user_id).get(**options)
+    wardrobe = [canonical_owned_garment(document.to_dict(), user_id, document.id)
+                for document in owned_wardrobe_documents(db, user_id, transaction)]
     return {'stored': draft.to_dict() if draft.exists else {}, 'profile': profile.to_dict() if profile.exists else {},
-            'wardrobe': owned_records('wardrobe'), 'outfits': owned_records('outfits')}
+            'wardrobe': wardrobe, 'outfits': owned_records('outfits')}
 
 def read_onboarding_state(db, user_id):
     return derive_onboarding_state(**sources(db, user_id))
 
 def reconcile_onboarding_state(db, user_id):
+    expected_epoch = None
     @firestore.transactional
     def reconcile(transaction):
+        nonlocal expected_epoch
         data = sources(db, user_id, transaction)
+        from .app_data_privacy import app_data_write_allowed, data_epoch
+        from fastapi import HTTPException
+        if not app_data_write_allowed(data['profile'], expected_epoch):
+            raise HTTPException(409, 'Your app data is being cleared. Reload before saving.')
+        if expected_epoch is None:
+            expected_epoch = data_epoch(data['profile'])
         state = derive_onboarding_state(**data)
         now = timestamp(datetime.now(timezone.utc))
         milestones = {**state['milestones'],
@@ -206,8 +217,18 @@ class DraftRevisionConflict(Exception):
         self.state = state
 
 def save_onboarding_draft(db, user_id, expected_revision, draft):
+    expected_epoch = None
     @firestore.transactional
     def save(transaction):
+        nonlocal expected_epoch
+        from .app_data_privacy import app_data_write_allowed, data_epoch
+        from fastapi import HTTPException
+        owner = db.collection('users').document(user_id).get(transaction=transaction)
+        profile = owner.to_dict() or {}
+        if not app_data_write_allowed(profile, expected_epoch):
+            raise HTTPException(409, 'Your app data is being cleared. Reload before saving.')
+        if expected_epoch is None:
+            expected_epoch = data_epoch(profile)
         reference = db.collection(ONBOARDING_COLLECTION).document(user_id)
         snapshot = reference.get(transaction=transaction)
         state = derive_onboarding_state(stored=snapshot.to_dict() if snapshot.exists else {}, wardrobe=[], outfits=[])

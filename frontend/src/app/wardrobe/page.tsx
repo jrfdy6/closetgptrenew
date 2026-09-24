@@ -77,6 +77,9 @@ export default function WardrobePage() {
   } = useWardrobe();
 
   const [activeTab, setActiveTab] = useState("all");
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('view') === 'favorites') setActiveTab('favorites');
+  }, []);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<string>("all");
@@ -107,9 +110,12 @@ export default function WardrobePage() {
       refetch();
     };
 
+    const onReturn = () => { if (document.visibilityState === 'visible') void refetch(); };
+    document.addEventListener('visibilitychange', onReturn);
     window.addEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
     
     return () => {
+      document.removeEventListener('visibilitychange', onReturn);
       window.removeEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
     };
   }, [refetch]);

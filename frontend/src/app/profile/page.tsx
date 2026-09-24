@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -159,6 +159,15 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const preferencesHeading = useRef<HTMLSpanElement>(null);
+  const focusPreferences = useRef(false);
+  useEffect(() => {
+    if (isEditing && focusPreferences.current) {
+      focusPreferences.current = false;
+      preferencesHeading.current?.focus();
+      preferencesHeading.current?.scrollIntoView({ block: 'start' });
+    }
+  }, [isEditing]);
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
   const [signInMethods, setSignInMethods] = useState<string[]>([]);
   const [isLinkingPassword, setIsLinkingPassword] = useState(false);
@@ -256,13 +265,7 @@ export default function ProfilePage() {
         debugProfile('✅ Subscription data loaded:', subData);
       } catch (subError) {
         debugProfileWarn('Could not load subscription:', subError);
-        // Set default free tier if fetch fails
-        setSubscription({
-          role: 'tier1',
-          status: 'active',
-          flatlays_remaining: 1,
-          trial_used: false
-        });
+        setSubscription(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch profile');
@@ -504,7 +507,7 @@ export default function ProfilePage() {
           <CardHeader className="pb-6">
             <CardTitle className="flex items-center text-xl font-display text-card-foreground">
               <Palette className="h-6 w-6 mr-3 text-primary" />
-              Style preferences
+              <span ref={preferencesHeading} tabIndex={-1} className="scroll-mt-24 focus:outline-none">Style preferences</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -738,7 +741,7 @@ export default function ProfilePage() {
                 {subscription?.role === 'tier1' && 'Free'}
                 {subscription?.role === 'tier2' && 'Pro'}
                 {subscription?.role === 'tier3' && 'Premium'}
-                {!subscription && 'Free'}
+                {!subscription && 'Unavailable'}
               </span>
             </div>
             {subscription?.is_trialing && subscription?.days_remaining_in_trial !== undefined && (
@@ -889,11 +892,23 @@ export default function ProfilePage() {
               <Sparkles className="h-4 w-4 mr-2" />
               Style persona
             </Button>
-            <Button variant="outline" className="w-full justify-start border-border/60 dark:border-border/70 text-muted-foreground hover:bg-secondary hover:text-foreground">
+            <Button variant="outline" onClick={() => router.push('/style-inspiration')} className="w-full justify-start border-border/60 dark:border-border/70 text-muted-foreground hover:bg-secondary hover:text-foreground">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Style inspiration
+            </Button>
+            <Button variant="outline" onClick={() => router.push('/wardrobe?view=favorites')} className="w-full justify-start border-border/60 dark:border-border/70 text-muted-foreground hover:bg-secondary hover:text-foreground">
               <Heart className="h-4 w-4 mr-2" />
               Favorite items
             </Button>
-            <Button variant="outline" className="w-full justify-start border-border/60 dark:border-border/70 text-muted-foreground hover:bg-secondary hover:text-foreground">
+            <Button variant="outline" onClick={() => {
+              if (isEditing) {
+                preferencesHeading.current?.focus();
+                preferencesHeading.current?.scrollIntoView({ block: 'start' });
+              } else {
+                focusPreferences.current = true;
+                setIsEditing(true);
+              }
+            }} className="w-full justify-start border-border/60 dark:border-border/70 text-muted-foreground hover:bg-secondary hover:text-foreground">
               <Settings className="h-4 w-4 mr-2" />
               Preferences
             </Button>

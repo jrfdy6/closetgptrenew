@@ -28,42 +28,9 @@ async def initialize_gamification(
     try:
         from ..config.firebase import db
         
-        user_ref = db.collection('users').document(current_user.id)
-        user_doc = user_ref.get()
-        
-        if not user_doc.exists:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        user_data = user_doc.to_dict()
-        
-        # Add gamification fields if missing
-        updates = {}
-        if 'xp' not in user_data:
-            updates['xp'] = 0
-        if 'level' not in user_data:
-            updates['level'] = 1
-        if 'ai_fit_score' not in user_data:
-            updates['ai_fit_score'] = 0.0
-        if 'badges' not in user_data:
-            updates['badges'] = []
-        if 'current_challenges' not in user_data:
-            updates['current_challenges'] = {}
-        if 'spending_ranges' not in user_data:
-            updates['spending_ranges'] = {
-                "annual_total": "unknown",
-                "shoes": "unknown",
-                "jackets": "unknown",
-                "pants": "unknown",
-                "tops": "unknown",
-                "dresses": "unknown",
-                "activewear": "unknown",
-                "accessories": "unknown"
-            }
-        
-        if updates:
-            user_ref.update(updates)
-            logger.info(f"✅ Initialized gamification for user {current_user.id}")
-        
+        from ..services.reward_ledger import initialize_missing
+        updates = initialize_missing(db, current_user.id)
+
         return {
             "success": True,
             "message": "Gamification initialized",
@@ -92,62 +59,9 @@ async def get_gamification_profile(
         from ..config.firebase import db
         from google.cloud.firestore_v1 import SERVER_TIMESTAMP
         
-        # First, ensure user has gamification fields (only set if missing)
-        user_ref = db.collection('users').document(current_user.id)
-        user_doc = user_ref.get()
-        
-        if user_doc.exists:
-            user_data = user_doc.to_dict()
-            # Only initialize fields that don't exist
-            updates = {}
-            if 'xp' not in user_data:
-                updates['xp'] = 0
-            if 'level' not in user_data:
-                updates['level'] = 1
-            if 'ai_fit_score' not in user_data:
-                updates['ai_fit_score'] = 0.0
-            if 'badges' not in user_data:
-                updates['badges'] = []
-            if 'current_challenges' not in user_data:
-                updates['current_challenges'] = {}
-            if 'spending_ranges' not in user_data:
-                updates['spending_ranges'] = {
-                    "annual_total": "unknown",
-                    "shoes": "unknown",
-                    "jackets": "unknown",
-                    "pants": "unknown",
-                    "tops": "unknown",
-                    "dresses": "unknown",
-                    "activewear": "unknown",
-                    "accessories": "unknown"
-                }
-            
-            if updates:
-                updates['updatedAt'] = SERVER_TIMESTAMP
-                user_ref.update(updates)
-                logger.info(f"Initialized missing gamification fields for user {current_user.id}: {list(updates.keys())}")
-        else:
-            # User doesn't exist, create with defaults
-            user_ref.set({
-                'xp': 0,
-                'level': 1,
-                'ai_fit_score': 0.0,
-                'badges': [],
-                'current_challenges': {},
-                'spending_ranges': {
-                    "annual_total": "unknown",
-                    "shoes": "unknown",
-                    "jackets": "unknown",
-                    "pants": "unknown",
-                    "tops": "unknown",
-                    "dresses": "unknown",
-                    "activewear": "unknown",
-                    "accessories": "unknown"
-                },
-                'updatedAt': SERVER_TIMESTAMP
-            })
-            logger.info(f"Created new user with gamification fields for user {current_user.id}")
-        
+        from ..services.reward_ledger import initialize_missing
+        initialize_missing(db, current_user.id)
+
         # Now get the state
         state = await gamification_service.get_user_gamification_state(current_user.id)
         
@@ -262,21 +176,7 @@ async def award_xp_manually(
         amount: XP amount to award
         reason: Reason for XP award
     """
-    try:
-        result = await gamification_service.award_xp(
-            user_id=current_user.id,
-            amount=amount,
-            reason=reason
-        )
-        
-        return {
-            "success": True,
-            "data": result
-        }
-        
-    except Exception as e:
-        logger.error(f"Error awarding XP: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to award XP")
+    raise HTTPException(410, "Rewards are awarded automatically for verified actions.")
 
 
 @router.get("/badges")

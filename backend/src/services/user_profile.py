@@ -150,13 +150,23 @@ def persist_profile(db, claims, body=None, *, now=None):
     updates = editable_updates(body) if body is not None else None
     now = now or datetime.now(timezone.utc)
     reference = db.collection("users").document(claims["uid"])
+    expected_epoch = None
 
     @firestore.transactional
     def apply(transaction):
+        nonlocal expected_epoch
         snapshot = reference.get(transaction=transaction)
         stored = (snapshot.to_dict() or {}) if snapshot.exists else {}
         if snapshot.exists and updates is None:
             return normalize_profile(stored, claims)
+        from .app_data_privacy import app_data_write_allowed, data_epoch
+        from fastapi import HTTPException
+        if not app_data_write_allowed(stored, expected_epoch):
+            raise HTTPException(409, 'Your app data is being cleared. Reload before saving.')
+        # A retry must not replay a pre-clear form into the newly cleared
+        # account after Firestore detects a conflict with the deletion commit.
+        if expected_epoch is None:
+            expected_epoch = data_epoch(stored)
         profile_updates = deepcopy(updates or {})
         # Both aliases count as legacy completion evidence. Only an already
         # completed stored profile may edit them; a new profile must use the

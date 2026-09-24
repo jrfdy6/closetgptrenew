@@ -249,6 +249,11 @@ async def generate_personalized_outfit_from_existing_data(
         # Normalize optional inputs once so robust and fallback generation share the
         # same profile signals and required-item contract.
         from src.config.firebase import db
+        from src.services.outfit_creation_admission import (
+            require_outfit_creation_ready,
+            persist_created_outfit,
+        )
+        creation_admission = require_outfit_creation_ready(db, user_id)
         try:
             wardrobe_data = load_owned_wardrobe(db, req.wardrobe, user_id)
         except InvalidGeneratedOutfit as exc:
@@ -880,9 +885,15 @@ async def generate_personalized_outfit_from_existing_data(
                 'flatLayError': outfit_response.get('flatLayError')
             }
             
-            db.collection('outfits').document(outfit_response['id']).set(outfit_for_firestore)
+            saved_outfit = persist_created_outfit(
+                db, user_id, outfit_response['id'], outfit_for_firestore, creation_admission,
+                require_complete=True,
+            )
+            outfit_response.update(saved_outfit)
             logger.warning(f"✅ DIVERSITY: Saved outfit {outfit_response['id']} to Firestore for diversity tracking")
             
+        except HTTPException:
+            raise
         except Exception as save_error:
             logger.error(f"Failed to save outfit to Firestore: {save_error}")
             raise HTTPException(status_code=503, detail="Your outfit couldn't be saved. Please try again.") from save_error

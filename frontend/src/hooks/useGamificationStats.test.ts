@@ -6,7 +6,7 @@ declare const afterEach: jest.Lifecycle;
 declare const expect: jest.Expect;
 declare const it: jest.It;
 
-const mockUser = { getIdToken: jest.fn() };
+const mockUser = { uid: 'owner', getIdToken: jest.fn() };
 const mockAuth = { user: mockUser as typeof mockUser | null };
 jest.mock('@/contexts/AuthContext', () => ({ useAuthContext: () => mockAuth }));
 
@@ -115,7 +115,7 @@ it('preserves timeout completion as unavailable instead of zero stats', async ()
   const { result } = renderHook(useGamificationStats);
 
   await waitFor(() => expect(result.current.loading).toBe(false));
-  expect(result.current).toMatchObject({ stats: null, error: null });
+  expect(result.current).toMatchObject({ stats: null, error: 'Your progress could not be refreshed. Please try again.' });
   expect(fetch).toHaveBeenCalledTimes(1);
 });
 
@@ -131,4 +131,18 @@ it('refreshes through the same proxy on outfit ratings and removes the listener 
   unmount();
   window.dispatchEvent(new Event('outfitRated'));
   expect(fetch).toHaveBeenCalledTimes(2);
+});
+
+
+it('refreshes after a same-account wear receipt and return to the tab, ignoring another account', async () => {
+  (fetch as jest.Mock).mockResolvedValue(success());
+  const { result } = renderHook(useGamificationStats);
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  await act(async () => { window.dispatchEvent(new CustomEvent('outfitMarkedAsWorn', { detail: { uid: 'other' } })); });
+  expect(fetch).toHaveBeenCalledTimes(1);
+  await act(async () => { window.dispatchEvent(new CustomEvent('outfitMarkedAsWorn', { detail: { uid: 'owner', event_revision: 2, undone: true } })); });
+  expect(fetch).toHaveBeenCalledTimes(2);
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
+  expect(fetch).toHaveBeenCalledTimes(3);
 });

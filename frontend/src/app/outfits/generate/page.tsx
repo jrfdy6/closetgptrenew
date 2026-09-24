@@ -1,5 +1,7 @@
 'use client';
 
+import { isOnboardingRequired } from '@/lib/apiRequestError';
+import Link from 'next/link';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -230,6 +232,7 @@ export default function OutfitGenerationPage() {
   const [generating, setGenerating] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<GeneratedOutfit | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [onboardingRequired, setOnboardingRequired] = useState(false);
   const [showRevealAnimation, setShowRevealAnimation] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -643,7 +646,10 @@ export default function OutfitGenerationPage() {
       setGeneratedOutfit(data);
       router.push('/outfits/' + encodeURIComponent(data.id));
     } catch (err) {
-      if (activeUser.current === requestUserId) setError(err instanceof Error ? err.message : 'Failed to generate outfit');
+      if (activeUser.current === requestUserId) {
+        setOnboardingRequired(isOnboardingRequired(err));
+        setError(err instanceof Error ? err.message : 'Failed to generate outfit');
+      }
     } finally {
       generationInFlight.current = false;
       setGenerating(false);
@@ -711,6 +717,7 @@ export default function OutfitGenerationPage() {
             className="max-w-md mx-auto mb-6 rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200"
           >
             {error}
+            {onboardingRequired && <Link href="/onboarding" className="mt-2 block underline underline-offset-4">Continue my setup</Link>}
           </div>
         )}
 

@@ -182,3 +182,11 @@ it('does not display cached data without matching account ownership', async () =
   expect(screen.queryByText('Plain tee')).not.toBeInTheDocument();
   expect(mockGenerate).not.toHaveBeenCalled();
 });
+
+it('uses the existing onboarding destination when the server blocks new-user generation', async () => {
+  const { ApiRequestError } = await import('@/lib/apiRequestError');
+  mockGenerate.mockRejectedValue(new ApiRequestError('Finish your style profile and ten-item capsule.', 409, 'onboarding_required'));
+  render(<SmartWeatherOutfitGenerator generationEnabled />);
+  expect(await screen.findByRole('link', { name: 'Continue my setup' })).toHaveAttribute('href', '/onboarding');
+  expect(mockGenerate).toHaveBeenCalledTimes(1);
+});

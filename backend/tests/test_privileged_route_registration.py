@@ -89,12 +89,11 @@ class PrivilegedRouteRegistrationTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("six real endpoints registered", result.stdout)
 
-    def test_swallowed_import_failure_is_detected_as_a_missing_real_http_endpoint(self):
+    def test_required_import_failure_prevents_startup(self):
         for name in REGISTRATIONS:
             with self.subTest(module=name), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()), patch("logging.error"):
-                app = registered_app(failing_import=name)
-                with self.assertRaisesRegex(AssertionError, "Expected exactly one live registration"):
-                    assert_registered(app)
+                with self.assertRaisesRegex(RuntimeError, "Required application router unavailable"):
+                    registered_app(failing_import=name)
 
     def test_every_registered_endpoint_requires_the_real_verified_bearer_dependency(self):
         app = registered_app(); assert_registered(app)

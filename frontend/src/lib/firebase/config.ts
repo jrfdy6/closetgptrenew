@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 // Suppress harmless Cross-Origin-Opener-Policy warnings from Firebase OAuth popup
 if (typeof window !== 'undefined') {
@@ -63,5 +63,15 @@ export const auth = getAuth(app);
 
 // Initialize Cloud Firestore and get a reference to the service
 export const db = getFirestore(app);
+
+// Local acceptance only: never direct a production build or real project to emulators.
+if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true' && typeof window !== 'undefined') {
+  if (process.env.NODE_ENV !== 'development' || !firebaseConfig.projectId.startsWith('demo-') ||
+      !['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)) {
+    throw new Error('Firebase emulators require a local development server and a demo- project.');
+  }
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+  connectFirestoreEmulator(db, '127.0.0.1', 8202);
+}
 
 export default app;

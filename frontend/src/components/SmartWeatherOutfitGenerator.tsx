@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { isOnboardingRequired } from '@/lib/apiRequestError';
 import { buildOutfitGenerationUserProfile } from '@/lib/outfitGenerationContract';
 import { claimDailyOutfitAttempt, dailyOutfitKey, hasCompleteDailyOutfit } from '@/lib/dailyOutfitAttempt';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -89,6 +90,7 @@ export function SmartWeatherOutfitGenerator({
   const [isGeneratingOutfit, setIsGeneratingOutfit] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<GeneratedOutfit | null>(null);
   const [outfitError, setOutfitError] = useState<string | null>(null);
+  const [onboardingRequired, setOnboardingRequired] = useState(false);
   const [lastGenerated, setLastGenerated] = useState<Date | null>(null);
   const [todayKey, setTodayKey] = useState<string>('');
   const generationInFlightRef = useRef(false);
@@ -366,6 +368,7 @@ export function SmartWeatherOutfitGenerator({
       console.error('❌ Error generating today\'s weather outfit:', error);
       
       if (activeRef.current && currentUserIdRef.current === requestUserId) {
+        setOnboardingRequired(isOnboardingRequired(error));
         setOutfitError(error instanceof Error ? error.message : "Your outfit couldn't be generated. Please try again.");
       }
     } finally {
@@ -545,7 +548,7 @@ export function SmartWeatherOutfitGenerator({
 
   const content = (
     <div className={`space-y-2 sm:space-y-3 ${noCard ? '' : ''}`}>
-        {generatedOutfit && outfitError && <p role="alert" className="text-red-600 dark:text-red-400">{outfitError}</p>}
+        {generatedOutfit && outfitError && <div role="alert" className="text-red-600 dark:text-red-400"><p>{outfitError}</p>{onboardingRequired && <Link href="/onboarding" className="inline-flex min-h-11 items-center underline">Continue my setup</Link>}</div>}
         {/* Today's Outfit Section - Collapsible on Mobile */}
         <Collapsible open={isOutfitExpanded} onOpenChange={setIsOutfitExpanded}>
           <div className="space-y-2">
@@ -757,6 +760,7 @@ export function SmartWeatherOutfitGenerator({
                 <div className="space-y-3">
                   <AlertCircle className="h-10 w-10 text-red-500 mx-auto" />
                   <p role="alert" className="text-red-600 dark:text-red-400 font-medium">{outfitError}</p>
+                  {onboardingRequired && <Link href="/onboarding" className="inline-flex min-h-11 items-center underline">Continue my setup</Link>}
                 </div>
               ) : isGeneratingOutfit ? (
                 <div className="space-y-4">

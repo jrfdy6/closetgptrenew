@@ -6,6 +6,7 @@ type ProxyOptions = {
   body?: BodyInit | null;
   headers?: Record<string, string>;
   timeoutMs?: number;
+  forwardIdempotencyKey?: boolean;
 };
 
 const failure = (status: number, error: string) => Response.json({ success: false, error }, {
@@ -36,6 +37,10 @@ export async function proxyToBackend(request: Request, path: string, options: Pr
     const headers = new Headers({ Authorization: authorization, Accept: 'application/json' });
     const contentType = options.headers?.['Content-Type'] || options.headers?.['content-type'] || request.headers.get('content-type');
     if (contentType) headers.set('Content-Type', contentType);
+    if (options.forwardIdempotencyKey) {
+      const key = request.headers.get('Idempotency-Key');
+      if (key && /^[a-zA-Z0-9:_-]{8,200}$/.test(key)) headers.set('Idempotency-Key', key);
+    }
     // Never forward cookies, forwarded-host, UID, role or Admin assertion headers.
     const body = ['GET', 'HEAD'].includes(method) ? undefined :
       options.body !== undefined ? options.body : await request.arrayBuffer();

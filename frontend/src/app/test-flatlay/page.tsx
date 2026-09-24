@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase/config';
-import { doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { requestFlatLay } from '@/lib/services/flatLayService';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Image, RefreshCw, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import Navigation from '@/components/Navigation';
@@ -25,6 +26,7 @@ interface Outfit {
   flat_lay_requested?: boolean;
   flatLayRequested?: boolean;
   metadata?: {
+    createdAt?: string | number;
     flat_lay_status?: string;
     flatLayStatus?: string;
     flat_lay_url?: string;
@@ -133,25 +135,7 @@ export default function TestFlatLayPage() {
 
     setRequesting(true);
     try {
-      const outfitRef = doc(db, 'outfits', selectedOutfit.id);
-      await updateDoc(outfitRef, {
-        flat_lay_requested: true,
-        flatLayRequested: true,
-        'metadata.flat_lay_requested': true,
-        'metadata.flatLayRequested': true,
-        flat_lay_status: 'pending',
-        flatLayStatus: 'pending',
-        'metadata.flat_lay_status': 'pending',
-        'metadata.flatLayStatus': 'pending',
-        flat_lay_error: null,
-        flatLayError: null,
-        'metadata.flat_lay_error': null,
-        'metadata.flatLayError': null,
-        'metadata.flat_lay_worker': 'premium_v1',
-        'metadata.flatLayWorker': 'premium_v1',
-        'metadata.test_mode': true,  // Bypass limit for test page
-        test_mode: true,
-      });
+      await requestFlatLay(selectedOutfit.id, await user.getIdToken());
 
       toast({
         title: 'Flat lay requested!',

@@ -32,6 +32,24 @@ export interface PrivacySummary {
   last_updated: string | null;
 }
 
+export interface DataClearStatus {
+  success: boolean;
+  status: 'idle' | 'pending' | 'running' | 'failed' | 'complete';
+  completed: boolean;
+  job_id?: string;
+  scope?: 'all' | 'outfits' | 'wardrobe' | 'analytics';
+  deleted?: number;
+  retryable?: boolean;
+  error?: string | null;
+  retained?: string[];
+}
+
+function confirmClearStatus(result: DataClearStatus): DataClearStatus {
+  if (result?.success !== true || !['idle', 'pending', 'running', 'failed', 'complete'].includes(result.status) ||
+      result.completed !== (result.status === 'complete')) throw new Error('The data-clear status could not be confirmed.');
+  return result;
+}
+
 class PrivacyService {
   private async getAuthToken(user: User | null): Promise<string> {
     if (!user) {
@@ -103,7 +121,7 @@ class PrivacyService {
   async deleteUserData(
     user: User | null,
     dataType?: 'all' | 'outfits' | 'wardrobe' | 'analytics'
-  ): Promise<{ success: boolean; message: string; deleted: string[] }> {
+  ): Promise<DataClearStatus> {
     const token = await this.getAuthToken(user);
     
     const url = dataType 
@@ -123,8 +141,18 @@ class PrivacyService {
       throw new Error(error.detail || 'Failed to delete data');
     }
 
-    return response.json();
+    return confirmClearStatus(await response.json());
   }
+
+  async getDataClearStatus(user: User | null): Promise<DataClearStatus> {
+    const token = await this.getAuthToken(user);
+    const response = await fetch(buildPublicBackendUrl('/api/privacy-data/status'), {
+      cache: 'no-store', headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error('The data-clear status is unavailable. Please check again.');
+    return confirmClearStatus(await response.json());
+  }
+
 }
 
 export const privacyService = new PrivacyService();

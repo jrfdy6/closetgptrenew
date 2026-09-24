@@ -85,7 +85,9 @@ class WardrobeVerifiedHttpTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['user_id'], 'owner')
         self.assertEqual(response.json()['items'][0]['imageUrl'], 'https://assets.example/original.jpg')
-        self.query.assert_called_once_with('userId', '==', 'owner')
+        predicates = [call.kwargs['filter'] for call in self.query.call_args_list]
+        self.assertEqual({predicate.field_path for predicate in predicates}, {'userId', 'user_id', 'firebase_uid', 'uid', 'ownerId'})
+        self.assertTrue(all(predicate.op_string == '==' and predicate.value == 'owner' for predicate in predicates))
         self.verify.assert_called_once_with('signed-token', check_revoked=True)
 
     def test_save_uses_verified_owner_and_returns_existing_persisted_acknowledgement(self):

@@ -271,11 +271,18 @@ def save_quiz_profile(db, identity, submission, *, now=None):
     answers = validate_submission(submission, identity)
     digest = submission_hash(submission, answers)
     reference = db.collection("users").document(identity["uid"])
+    expected_epoch = None
 
     @firestore.transactional
     def save(transaction):
+        nonlocal expected_epoch
         snapshot = reference.get(transaction=transaction)
         existing = snapshot.to_dict() or {} if snapshot.exists else {}
+        from .app_data_privacy import app_data_write_allowed, data_epoch
+        if not app_data_write_allowed(existing, expected_epoch):
+            raise QuizSubmissionError(409, 'APP_DATA_CLEARING', 'Your app data is being cleared. Reload before saving.')
+        if expected_epoch is None:
+            expected_epoch = data_epoch(existing)
         if existing.get("styleQuizSubmissionHash") == digest and has_style_profile(existing):
             return existing
         if has_style_profile(existing) and submission.get("retake") is not True:

@@ -174,3 +174,15 @@ it('does not navigate after leaving the generator before the saved response retu
   expect(mockPush).not.toHaveBeenCalled();
   expectNoAdditionalWrites();
 });
+
+it('links a blocked new-user creation to the existing setup without losing required items', async () => {
+  const { ApiRequestError } = await import('@/lib/apiRequestError');
+  mockGenerate.mockRejectedValue(new ApiRequestError('Finish your style profile and ten-item capsule.', 409, 'onboarding_required'));
+  window.history.replaceState({}, '', '/outfits/generate?baseItemId=shirt');
+  const { create } = await openConfiguredPage();
+  fireEvent.click(create);
+  expect(await screen.findByRole('link', { name: 'Continue my setup' })).toHaveAttribute('href', '/onboarding');
+  expect(screen.getByText('Plain shirt')).toBeVisible();
+  expect(mockGenerate).toHaveBeenCalledTimes(1);
+  expectNoAdditionalWrites();
+});

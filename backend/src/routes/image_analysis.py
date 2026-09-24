@@ -72,15 +72,7 @@ except Exception as e:
     # print statement
     pass
     log_analytics_event = None
-# Import auth dependency
-try:
-    from ..auth.auth_service import get_current_user, get_current_user_id
-    AUTH_AVAILABLE = True
-except ImportError:
-    AUTH_AVAILABLE = False
-    get_current_user = None
-    get_current_user_id = None
-    logger.warning("Auth service not available, analysis will be anonymous")
+from ..auth.auth_service import get_current_user, get_current_user_id
 
 try:
     from ..services.ai_runtime import (
@@ -124,7 +116,32 @@ class AnalyzeImagePayload(BaseModel):
 
 
 def _current_user_id(current_user: Any) -> str:
-    return str(getattr(current_user, "id", "") or "anonymous")
+    user_id = getattr(current_user, "id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return str(user_id)
+
+
+async def _analyze_or_unavailable(analyzer: Any, image_path: str) -> dict[str, Any]:
+    """Do not turn a failed provider call into a saveable wardrobe item."""
+    detail = "Image analysis is temporarily unavailable. Please try again."
+    if not callable(analyzer):
+        raise HTTPException(status_code=503, detail=detail)
+    try:
+        analysis = await analyzer(image_path)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning("Image analysis provider failed (%s)", type(exc).__name__)
+        raise HTTPException(status_code=503, detail=detail) from exc
+    if (
+        not isinstance(analysis, dict)
+        or not analysis
+        or analysis.get("error")
+        or str(analysis.get("name") or "").lower().startswith("analysis failed")
+    ):
+        raise HTTPException(status_code=503, detail=detail)
+    return analysis
 
 
 def _current_user_email(current_user: Any) -> str:
@@ -287,7 +304,7 @@ def convert_to_jpeg(image_url: str) -> str:
 @router.post("/analyze")
 async def analyze_image(
     file: UploadFile = File(...),
-    current_user: Any = Depends(get_current_user) if AUTH_AVAILABLE and get_current_user else None
+    current_user: Any = Depends(get_current_user)
 ):
     """
     Enhanced image analysis using both GPT-4 Vision and CLIP style analysis
@@ -332,29 +349,9 @@ async def analyze_image(
         
         # Use enhanced analysis (GPT-4 + CLIP)
         print("Starting enhanced analysis with GPT-4 Vision and CLIP")
-        if simple_analyzer:
-            analysis = await simple_analyzer.analyze_clothing_item(processed_image)
-        else:
-            # print statement
-            pass
-            analysis = {
-                "name": "Analysis Failed - Service Unavailable",
-                "type": "clothing",
-                "subType": "unknown",
-                "dominantColors": [{"name": "unknown", "hex": "#000000"}],
-                "matchingColors": [{"name": "unknown", "hex": "#000000"}],
-                "style": ["casual"],
-                "season": ["all-season"],
-                "occasion": ["everyday"],
-                "metadata": {
-                    "visualAttributes": {
-                        "material": "unknown",
-                        "pattern": "unknown",
-                        "fit": "unknown",
-                        "sleeveLength": "unknown"
-                    }
-                }
-            }
+        analysis = await _analyze_or_unavailable(
+            getattr(simple_analyzer, "analyze_clothing_item", None), processed_image
+        )
         
         # Log analytics event
         if AnalyticsEvent and log_analytics_event:
@@ -402,6 +399,9 @@ async def analyze_image(
             except:
                 pass
         
+        if isinstance(e, HTTPException):
+            raise
+
         # Log error analytics event
         analytics_event = AnalyticsEvent(
             user_id=current_user_id,
@@ -421,7 +421,7 @@ async def analyze_image(
 @router.post("/analyze-image")
 async def analyze_single_image(
     payload: AnalyzeImagePayload,
-    current_user: Any = Depends(get_current_user) if AUTH_AVAILABLE and get_current_user else None
+    current_user: Any = Depends(get_current_user)
 ):
     """
     Enhanced single image analysis using GPT-4 Vision + CLIP
@@ -478,45 +478,7 @@ async def analyze_single_image(
             # print(f"🔍 Image file exists: {os.path.exists(temp_path)}")
             # print(f"🔍 Image file size: {os.path.getsize(temp_path)} bytes")
             
-            try:
-                if analyze_image_with_gpt4:
-                    analysis = await analyze_image_with_gpt4(temp_path)
-                    # print(f"✅ AI analysis completed successfully")
-                    # print(f"🔍 Full analysis result: {analysis}")
-                    # print(f"🔍 Generated name: {(analysis.get('name', 'No name') if analysis else 'No name')}")
-                    # print(f"🔍 Analysis type: {(analysis.get('type', 'No type') if analysis else 'No type')}")
-                    # print(f"🔍 Analysis subType: {(analysis.get('subType', 'No subType') if analysis else 'No subType')}")
-                else:
-                    # print statement
-                    pass
-                    raise Exception("GPT-4 service not available")
-            except Exception as gpt_error:
-                # print(f"❌ GPT-4 analysis failed: {gpt_error}")
-                # print(f"❌ GPT-4 error type: {type(gpt_error).__name__}")
-                import traceback
-                # print(f"❌ GPT-4 traceback: {traceback.format_exc()}")
-                
-                # Fallback to basic analysis
-                analysis = {
-                    "name": "Analysis Failed",
-                    "type": "clothing",
-                    "subType": "unknown",
-                    "dominantColors": [{"name": "unknown", "hex": "#000000"}],
-                    "matchingColors": [{"name": "unknown", "hex": "#000000"}],
-                    "style": ["casual"],
-                    "season": ["all-season"],
-                    "occasion": ["everyday"],
-                    "metadata": {
-                        "visualAttributes": {
-                            "material": "unknown",
-                            "pattern": "unknown",
-                            "fit": "unknown",
-                            "sleeveLength": "unknown"
-                        }
-                    },
-                    "error": str(gpt_error)
-                }
-                # print(f"🔍 Using fallback analysis: {analysis}")
+            analysis = await _analyze_or_unavailable(analyze_image_with_gpt4, temp_path)
             
             normalized_analysis = _normalize_direct_analysis(analysis)
             
@@ -543,6 +505,8 @@ async def analyze_single_image(
             # Clean up temporary file
             os.unlink(temp_path)
             
+    except HTTPException:
+        raise
     except Exception as e:
         # print(f"❌ Error in analyze_single_image: {str(e)}")
         # print(f"❌ Error type: {type(e).__name__}")
@@ -571,7 +535,7 @@ async def analyze_single_image(
 @router.post("/analyze-image-legacy")
 async def analyze_single_image_legacy(
     image: dict,
-    current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
+    current_user_id: str = Depends(get_current_user_id)
 ):
     """
     Legacy single image analysis using only GPT-4 Vision
@@ -591,7 +555,7 @@ async def analyze_single_image_legacy(
         
         try:
             # Use legacy analysis (GPT-4 only)
-            analysis = await analyze_image_with_gpt4(temp_path)
+            analysis = await _analyze_or_unavailable(analyze_image_with_gpt4, temp_path)
             
             # Log analytics event
             file_size = len(response.content) if response else 0
@@ -613,6 +577,8 @@ async def analyze_single_image_legacy(
             # Clean up temporary file
             os.unlink(temp_path)
             
+    except HTTPException:
+        raise
     except Exception as e:
         # Log error analytics event
         analytics_event = AnalyticsEvent(
@@ -632,7 +598,7 @@ async def analyze_single_image_legacy(
 @router.post("/analyze-image-clip-only")
 async def analyze_single_image_clip_only(
     image: dict,
-    current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
+    current_user_id: str = Depends(get_current_user_id)
 ):
     """
     Simple image analysis using GPT-4 Vision only
@@ -652,7 +618,9 @@ async def analyze_single_image_clip_only(
         
         try:
             # Use simple analysis (GPT-4 Vision only)
-            analysis = await simple_analyzer.analyze_clothing_item(temp_path)
+            analysis = await _analyze_or_unavailable(
+                getattr(simple_analyzer, "analyze_clothing_item", None), temp_path
+            )
             
             # Log analytics event
             file_size = len(response.content) if response else 0
@@ -673,6 +641,8 @@ async def analyze_single_image_clip_only(
             # Clean up temporary file
             os.unlink(temp_path)
             
+    except HTTPException:
+        raise
     except Exception as e:
         # Log error analytics event
         analytics_event = AnalyticsEvent(
@@ -692,7 +662,7 @@ async def analyze_single_image_clip_only(
 @router.post("/analyze-batch")
 async def analyze_batch_images(
     images: List[dict],
-    current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
+    current_user_id: str = Depends(get_current_user_id)
 ):
     """
     Enhanced batch image analysis using GPT-4 Vision + CLIP
@@ -721,7 +691,9 @@ async def analyze_batch_images(
                 
                 try:
                     # Use enhanced analysis (GPT-4 + CLIP)
-                    analysis = await simple_analyzer.analyze_clothing_item(temp_path)
+                    analysis = await _analyze_or_unavailable(
+                        getattr(simple_analyzer, "analyze_clothing_item", None), temp_path
+                    )
                     results.append({
                         "index": i,
                         "url": image_url,
@@ -765,6 +737,8 @@ async def analyze_batch_images(
             }
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         # Log error analytics event
         analytics_event = AnalyticsEvent(
@@ -784,7 +758,7 @@ async def analyze_batch_images(
 @router.post("/analyze-batch-legacy")
 async def analyze_batch_images_legacy(
     images: List[dict],
-    current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
+    current_user_id: str = Depends(get_current_user_id)
 ):
     """
     Legacy batch image analysis using only GPT-4 Vision
@@ -813,7 +787,7 @@ async def analyze_batch_images_legacy(
                 
                 try:
                     # Use legacy analysis (GPT-4 only)
-                    analysis = await analyze_image_with_gpt4(temp_path)
+                    analysis = await _analyze_or_unavailable(analyze_image_with_gpt4, temp_path)
                     results.append({
                         "index": i,
                         "url": image_url,
@@ -857,6 +831,8 @@ async def analyze_batch_images_legacy(
             }
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         # Log error analytics event
         analytics_event = AnalyticsEvent(
@@ -879,7 +855,7 @@ class ImageHashRequest(BaseModel):
 @router.post("/generate-image-hash")
 async def generate_image_hash(
     request: ImageHashRequest,
-    current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
+    current_user_id: str = Depends(get_current_user_id)
 ):
     """
     Generate image hash and metadata for duplicate detection
@@ -946,6 +922,8 @@ async def generate_image_hash(
             # Clean up temporary file
             os.unlink(temp_path)
             
+    except HTTPException:
+        raise
     except Exception as e:
         # print statement
         pass

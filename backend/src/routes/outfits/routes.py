@@ -105,9 +105,13 @@ class OutfitRequest(BaseModel):
 
 class CreateOutfitRequest(BaseModel):
     """Request model for outfit creation."""
+    model_config = ConfigDict(extra='forbid')
+    id: Optional[str] = None
     name: str
     occasion: str
     style: str
+    mood: Optional[str] = None
+    season: Optional[str | List[str]] = None
     description: Optional[str] = None
     notes: Optional[str] = None
     items: List[Dict[str, Any]]
@@ -121,10 +125,11 @@ class OutfitFavoriteRequest(BaseModel):
 class OutfitRatingRequest(BaseModel):
     """Request model for outfit rating."""
     outfitId: str
-    rating: Optional[int] = None  # 1-5 stars
-    isLiked: Optional[bool] = False
-    isDisliked: Optional[bool] = False
-    feedback: Optional[str] = None
+    model_config = ConfigDict(extra='forbid')
+    rating: Optional[int] = Field(None, strict=True, ge=1, le=5)
+    isLiked: Optional[StrictBool] = False
+    isDisliked: Optional[StrictBool] = False
+    feedback: Optional[str] = Field(None, max_length=2000)
 
 class LearningConfirmation(BaseModel):
     """Learning confirmation data returned to user."""
@@ -546,45 +551,47 @@ async def create_custom_outfit(
         if db is None or not firebase_initialized:
             raise HTTPException(status_code=503, detail="Database unavailable")
         
-        # Create outfit document
-        outfit_id = f"outfit_{uuid4().hex}"
-        now = datetime.now(timezone.utc).isoformat()
-        outfit_data = {
-            "id": outfit_id,
-            "name": req.name,
-            "occasion": req.occasion,
-            "style": req.style,
-            "description": req.description or "",
-            "notes": req.notes,
-            "items": req.items,
-            "user_id": current_user_id,
-            "userId": current_user_id,
-            "createdAt": now,
-            "updatedAt": now,
-            "wearCount": 0,
-            "isFavorite": False,
-            "metadata": {
-                "creation_type": "manual",
-                "item_count": len(req.items)
-            }
-        }
-        
-        # Save to Firestore
-        db.collection('outfits').document(outfit_id).set(outfit_data)
-        logger.info(f"✅ Custom outfit saved: {outfit_id}")
-        
-        return {
-            **outfit_data,
-            "success": True,
-            "outfit_id": outfit_id,
-            "message": "Outfit created successfully"
-        }
-        
+        from ...services.outfit_creation_admission import require_outfit_creation_ready, persist_created_outfit
+        from ...services.saved_outfit import read_saved_outfit
+        admission = await asyncio.to_thread(require_outfit_creation_ready, db, current_user_id)
+        outfit_id = req.id or f"outfit_{uuid4().hex}"
+        payload = req.model_dump(exclude={'id', 'createdAt'}, exclude_none=True)
+        payload['metadata'] = {'creation_type': 'manual'}
+        await asyncio.to_thread(persist_created_outfit, db, current_user_id, outfit_id, payload, admission, require_complete=False)
+        saved = await asyncio.to_thread(read_saved_outfit, db, outfit_id, current_user_id)
+        return {**saved, 'success': True, 'userId': current_user_id, 'outfit_id': outfit_id}
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"❌ Failed to create outfit: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create outfit: {str(e)}")
+
+@router.put("/{outfit_id}", response_model=dict)
+async def update_owned_outfit(outfit_id: str, payload: Dict[str, Any], user_id: str = Depends(verified_user_id)):
+    from ...config.firebase import db
+    from ...services.outfit_mutations import edit_owned_outfit
+    from ...services.saved_outfit import read_saved_outfit
+    if db is None:
+        raise HTTPException(503, 'Database unavailable')
+    await asyncio.to_thread(edit_owned_outfit, db, outfit_id, user_id, payload)
+    result = await asyncio.to_thread(read_saved_outfit, db, outfit_id, user_id)
+    return {**result, 'success': True, 'id': outfit_id, 'outfit_id': outfit_id, 'outfit': result}
+
+
+@router.delete("/{outfit_id}", response_model=dict)
+async def delete_owned_outfit_route(outfit_id: str, user_id: str = Depends(verified_user_id)):
+    from ...config.firebase import db
+    from ...services.outfit_mutations import delete_owned_outfit
+    if db is None:
+        raise HTTPException(503, 'Database unavailable')
+    try:
+        return await asyncio.to_thread(delete_owned_outfit, db, outfit_id, user_id)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(503, 'We could not confirm deletion. Please retry.') from None
+
 
 @router.post("/{outfit_id}/flat-lay-request", response_model=dict)
 async def request_outfit_flat_lay(
@@ -594,18 +601,10 @@ async def request_outfit_flat_lay(
     """Atomically record explicit consent and reserve one credit for this outfit."""
     if not current_user_id:
         raise HTTPException(status_code=401, detail="Authentication required")
-    # Read at admission so a rollout pause never reserves or queues a new job.
-    import os
-    pause_setting = os.environ.get("EASYOUTFIT_FLATLAY_REQUESTS_PAUSED", "false").strip().lower()
-    if pause_setting not in {"true", "1", "yes", "on", "false", "0", "no", "off"}:
-        logger.error("Invalid EASYOUTFIT_FLATLAY_REQUESTS_PAUSED setting; requests remain paused")
-        pause_setting = "true"
-    if pause_setting in {"true", "1", "yes", "on"}:
-        raise HTTPException(
-            status_code=503,
-            detail="Flat-lay requests are temporarily paused. No credit was used. Please try again shortly.",
-            headers={"Retry-After": "60"},
-        )
+    from ...services.flatlay_admission import flatlay_admission_state
+    admission = flatlay_admission_state()
+    if admission['flat_lay_admission_paused']:
+        raise HTTPException(503, admission['flat_lay_admission_reason'], headers={'Retry-After': '60'})
     from ...services.flatlay_lifecycle import FlatlayRequestError, reserve_request
     try:
         from ...config.firebase import db, firebase_initialized
@@ -642,8 +641,9 @@ async def set_outfit_favorite(
         if not outfit_belongs_to_user(outfit_doc.to_dict() or {}, current_user_id):
             raise HTTPException(status_code=403, detail="Access denied")
 
-        updated_at = datetime.now(timezone.utc).isoformat()
-        outfit_ref.update({'isFavorite': req.isFavorite, 'updatedAt': updated_at})
+        from ...services.outfit_mutations import edit_owned_outfit
+        updated = await asyncio.to_thread(edit_owned_outfit, db, outfit_id, current_user_id, {'isFavorite': req.isFavorite})
+        updated_at = updated['updatedAt']
         # The list endpoint reads Firestore directly; it has no backend list
         # cache to invalidate. Do not evict unrelated generation results.
         return {
@@ -678,71 +678,43 @@ async def rate_outfit(
         if not current_user_id:
             raise HTTPException(status_code=401, detail="Authentication required")
         
-        # Import services
-        from ...config.firebase import db
+        from ...config.firebase import db, firebase_initialized
+        from ...services.outfit_mutations import record_outfit_rating
         from ...services.user_preference_service import user_preference_service
-        
-        # Get outfit
-        outfit_ref = db.collection('outfits').document(rating_request.outfitId)
-        outfit_doc = outfit_ref.get()
-        
-        if not outfit_doc.exists:
-            raise HTTPException(status_code=404, detail="Outfit not found")
-        
-        outfit_data = outfit_doc.to_dict()
-        
-        # Verify ownership
-        if outfit_data.get('user_id') != current_user_id and outfit_data.get('userId') != current_user_id:
-            raise HTTPException(status_code=403, detail="Access denied")
-        
-        logger.info(f"⭐ Rating outfit {rating_request.outfitId}: rating={rating_request.rating}, liked={rating_request.isLiked}, disliked={rating_request.isDisliked}")
-        
-        # Update outfit with rating
-        update_data = {
-            'updatedAt': datetime.now(timezone.utc)
-        }
-        
-        if rating_request.rating is not None:
-            update_data['rating'] = rating_request.rating
-        
-        if rating_request.isLiked is not None:
-            update_data['isLiked'] = rating_request.isLiked
-        
-        if rating_request.isDisliked is not None:
-            update_data['isDisliked'] = rating_request.isDisliked
-        
-        if rating_request.feedback:
-            update_data['userFeedback'] = rating_request.feedback
-        
-        outfit_ref.update(update_data)
-        logger.info(f"✅ Updated outfit {rating_request.outfitId} with rating data")
-        
-        # Update user preferences (Spotify-style learning)
-        learning_result = await user_preference_service.update_from_rating(
-            user_id=current_user_id,
-            outfit=outfit_data,
-            rating=rating_request.rating,
-            is_liked=rating_request.isLiked or False,
-            is_disliked=rating_request.isDisliked or False,
-            feedback_text=rating_request.feedback
-        )
-        
-        logger.info(f"✨ Updated user preferences: {len(learning_result.get('messages', learning_result.get('learning_messages', [])))} insights generated")
-        
-        # ✅ Award XP for rating outfit
         from ...services.gamification_service import gamification_service
-        xp_result = await gamification_service.award_xp(
-            user_id=current_user_id,
-            amount=5,
-            reason="outfit_rated"
-        )
-        logger.info(f"🎮 Awarded {xp_result['xp_awarded']} XP for rating outfit")
-        
+        if db is None or not firebase_initialized:
+            raise HTTPException(503, 'Database unavailable')
+        saved = await asyncio.to_thread(record_outfit_rating, db, current_user_id,
+            rating_request.outfitId, rating_request.model_dump(exclude={'outfitId'}))
+        learning_result = None
+        if saved['changed']:
+            # Learning is optional; a delayed preference write is fenced by its
+            # own privacy/epoch transaction and must not hide the saved rating.
+            try:
+                learning_result = await user_preference_service.update_from_rating(
+                    user_id=current_user_id, outfit=saved['outfit'],
+                    rating=rating_request.rating, is_liked=rating_request.isLiked or False,
+                    is_disliked=rating_request.isDisliked or False, feedback_text=rating_request.feedback,
+                    expected_epoch=saved['app_data_epoch'])
+            except Exception:
+                logger.exception('Rating saved; preference update remains unavailable')
+        xp_result = {}
+        try:
+            xp_result = await gamification_service.award_xp(
+                user_id=current_user_id, amount=5, reason='outfit_rated',
+                metadata={'outfit_id': rating_request.outfitId,
+                          'app_data_epoch': saved['app_data_epoch'],
+                          'reward_operation_id': saved['reward_operation_id']})
+        except Exception:
+            # A retry uses the same reward operation and can safely settle a
+            # reward interrupted after the rating transaction committed.
+            logger.exception('Rating saved; its reward could not be confirmed')
+
         # Return response with learning confirmation and XP
         return OutfitRatingResponse(
             status="success",
-            message="Rating submitted and preferences updated",
-            learning=LearningConfirmation(**learning_result),
+            message="Rating saved",
+            learning=LearningConfirmation(**learning_result) if learning_result else None,
             xp_earned=xp_result.get('xp_awarded', 0),  # ✅ FIX: Changed from xp_earned to xp_awarded
             level_up=xp_result.get('level_up', False),
             new_level=xp_result.get('level', None)  # ✅ FIX: Changed from new_level to level
@@ -783,6 +755,22 @@ async def generate_outfit(
             logger.error("❌ Authentication failed: No current user ID")
             raise HTTPException(status_code=401, detail="Authentication required")
         
+        from ...config.firebase import db, firebase_initialized
+        from ...services.outfit_creation_admission import require_outfit_creation_ready, persist_created_outfit
+        from ...utils.outfit_admission import load_owned_wardrobe, validate_generated_items, InvalidGeneratedOutfit
+        if db is None or not firebase_initialized:
+            raise HTTPException(503, 'Database unavailable')
+        admission = await asyncio.to_thread(require_outfit_creation_ready, db, current_user_id)
+        try:
+            authoritative_wardrobe = await asyncio.to_thread(load_owned_wardrobe, db, req.resolved_wardrobe, current_user_id)
+        except InvalidGeneratedOutfit as error:
+            raise HTTPException(422, str(error)) from None
+        req.wardrobe, req.wardrobeItems = authoritative_wardrobe, authoritative_wardrobe
+        if req.baseItemId:
+            req.baseItem = next((item for item in authoritative_wardrobe if item['id'] == req.baseItemId), None)
+            if req.baseItem is None:
+                raise HTTPException(422, 'Your required piece is unavailable.')
+
         logger.info(f"🎯 Starting robust outfit generation for user: {current_user_id}")
         logger.info(f"📋 Request details: {req.occasion}, {req.style}, {req.mood}")
         
@@ -1056,7 +1044,7 @@ async def generate_outfit(
         
         # Import validation pipeline
         try:
-            from ..services.outfit_validation_pipeline import validation_pipeline, ValidationContext
+            from ...services.outfit_validation_pipeline import validation_pipeline, ValidationContext
             validation_available = True
             logger.info("✅ Validation pipeline imported successfully")
         except ImportError as e:
@@ -1293,15 +1281,20 @@ async def generate_outfit(
         logger.info(f"🔄 About to save generated outfit {outfit_id}")
         
         # Clean for Firestore
-        from ..config.firebase import clean_for_firestore
+        from ...config.firebase import clean_for_firestore
         clean_outfit_record = clean_for_firestore(outfit_record)
         logger.info(f"🧹 Cleaned outfit record")
         
         final_strategy = safe_get_metadata(clean_outfit_record, 'generation_strategy', 'unknown')
         logger.info(f"🔍 DEBUG FINAL SAVE: strategy = {final_strategy}")
         
-        save_result = await save_outfit(current_user_id, outfit_id, clean_outfit_record)
-        logger.info(f"💾 Save operation result: {save_result}")
+        try:
+            clean_outfit_record['items'] = validate_generated_items(clean_outfit_record.get('items'), authoritative_wardrobe, req.baseItemId)
+        except InvalidGeneratedOutfit as error:
+            raise HTTPException(422, str(error)) from None
+        clean_outfit_record['baseItemId'] = req.baseItemId
+        outfit_record = await asyncio.to_thread(persist_created_outfit, db, current_user_id, outfit_id, clean_outfit_record, admission)
+        clean_outfit_record = outfit_record
         
         # Track usage
         try:
@@ -1603,147 +1596,13 @@ async def get_outfits_worn_this_week_simple(
         if not current_user:
             raise HTTPException(status_code=401, detail="Authentication required")
         
-        # Import Firebase inside function to avoid startup issues
-        try:
-            from ..config.firebase import db, firebase_initialized
-        except ImportError as e:
-            logger.error(f"⚠️ Firebase import failed: {e}")
-            raise HTTPException(status_code=503, detail="Firebase service unavailable")
-        
-        if not db:
-            logger.error("⚠️ Firebase not available")
-            raise HTTPException(status_code=503, detail="Firebase service unavailable")
-        
-        # Calculate start of week (Sunday)
-        from datetime import datetime, timezone, timedelta
-        now = datetime.now(timezone.utc)
-        # weekday() returns 0=Monday, 6=Sunday
-        # For Sunday start: if today is Sunday (6), days_since_sunday = 0
-        # if today is Monday (0), days_since_sunday = 1, etc.
-        days_since_sunday = (now.weekday() + 1) % 7
-        week_start = now - timedelta(days=days_since_sunday)
-        week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
-        
-        logger.info(f"📊 Counting outfits worn since {week_start.isoformat()} for user {current_user.id}")
-        
-        worn_count = 0
-        processed_count = 0
-        
-        # Count individual wear events from outfit_history collection
-        logger.info("📊 Counting individual wear events from outfit_history collection")
-        
-        # Query outfit_history to count individual wear events
-        from google.cloud.firestore import Query
-        history_ref = db.collection('outfit_history').where('user_id', '==', current_user.id).order_by('date_worn', direction=Query.DESCENDING).limit(1000)
-        
-        for history_doc in history_ref.stream():
-            history_data = history_doc.to_dict()
-            processed_count += 1
-            date_worn = (history_data.get('date_worn') if history_data else None)
-            
-            if date_worn:
-                # Parse date_worn safely - handle multiple formats
-                try:
-                    worn_date = None
-                    
-                    if isinstance(date_worn, str):
-                        # Handle ISO string formats
-                        worn_date = datetime.fromisoformat(date_worn.replace('Z', '+00:00'))
-                    elif hasattr(date_worn, 'timestamp'):
-                        # Firestore Timestamp object - convert to datetime
-                        if hasattr(date_worn, 'timestamp'):
-                            worn_date = datetime.fromtimestamp(date_worn.timestamp(), tz=timezone.utc)
-                        else:
-                            worn_date = date_worn
-                    elif isinstance(date_worn, datetime):
-                        # Already a datetime object
-                        worn_date = date_worn
-                    elif isinstance(date_worn, (int, float)):
-                        # Unix timestamp (seconds or milliseconds)
-                        if date_worn > 1e12:  # Likely milliseconds
-                            worn_date = datetime.fromtimestamp(date_worn / 1000.0, tz=timezone.utc)
-                        else:
-                            worn_date = datetime.fromtimestamp(date_worn, tz=timezone.utc)
-                    else:
-                        logger.warning(f"Unknown date_worn type: {type(date_worn)} - {date_worn}")
-                        continue
-                    
-                    # Ensure timezone aware
-                    if worn_date and worn_date.tzinfo is None:
-                        worn_date = worn_date.replace(tzinfo=timezone.utc)
-                    
-                    # Check if this wear event is within the current week
-                    if worn_date and worn_date >= week_start:
-                        worn_count += 1
-                        logger.info(f"📅 Wear event {history_doc.id} this week: {worn_date}")
-                        
-                except Exception as parse_error:
-                    logger.warning(f"Error parsing date_worn {date_worn}: {parse_error}")
-                    continue
-        
-        logger.info(f"✅ Found {worn_count} wear events this week for user {current_user.id}")
-        
-        # If no outfit_history records found, fall back to lastWorn dates from outfits collection
-        if worn_count == 0 and processed_count == 0:
-            logger.info("📊 No outfit_history records found, falling back to lastWorn dates from outfits collection")
-            
-            # Query outfits collection for lastWorn dates
-            outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id)
-            
-            for outfit_doc in outfits_ref.stream():
-                outfit_data = outfit_doc.to_dict()
-                last_worn = (outfit_data.get('lastWorn') if outfit_data else None)
-                
-                if last_worn:
-                    try:
-                        # Parse lastWorn date
-                        if isinstance(last_worn, str):
-                            last_worn_date = datetime.fromisoformat(last_worn.replace('Z', '+00:00'))
-                        elif hasattr(last_worn, 'timestamp'):
-                            last_worn_date = datetime.fromtimestamp(last_worn.timestamp(), tz=timezone.utc)
-                        elif isinstance(last_worn, datetime):
-                            last_worn_date = last_worn
-                        else:
-                            continue
-                        
-                        # Ensure timezone aware
-                        if last_worn_date.tzinfo is None:
-                            last_worn_date = last_worn_date.replace(tzinfo=timezone.utc)
-                        
-                        # Check if this outfit was worn this week
-                        if last_worn_date >= week_start:
-                            worn_count += 1
-                            logger.info(f"📅 Outfit {outfit_doc.id} worn this week (lastWorn fallback): {last_worn_date}")
-                            
-                    except Exception as parse_error:
-                        logger.warning(f"Error parsing lastWorn {last_worn}: {parse_error}")
-                        continue
-            
-            logger.info(f"✅ Fallback found {worn_count} outfits worn this week from lastWorn dates")
-            
-            return {
-                "success": True,
-                "user_id": current_user.id,
-                "outfits_worn_this_week": worn_count,
-                "source": "lastWorn_fallback",
-                "version": "2025-09-23",
-                "api_version": "v2.0",
-                "week_start": week_start.isoformat(),
-                "calculated_at": datetime.now(timezone.utc).isoformat(),
-                "note": "Using lastWorn dates as fallback - outfit_history is empty"
-            }
-        
-        return {
-            "success": True,
-            "user_id": current_user.id,
-            "outfits_worn_this_week": worn_count,
-            "source": "outfit_history_individual_events",
-            "version": "2025-09-23",
-            "api_version": "v2.0",
-            "week_start": week_start.isoformat(),
-            "calculated_at": datetime.now(timezone.utc).isoformat()
-        }
-        
+        from ...config.firebase import db, firebase_initialized
+        from ...services.wear_statistics import weekly_wear_summary
+        if db is None or not firebase_initialized:
+            raise HTTPException(503, 'Firebase service unavailable')
+        summary = await asyncio.to_thread(weekly_wear_summary, db, current_user.id)
+        return {**summary, 'version': '2026-09-23', 'api_version': 'v2.0'}
+
     except HTTPException:
         raise
     except Exception as e:

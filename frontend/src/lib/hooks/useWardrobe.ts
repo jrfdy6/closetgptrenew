@@ -67,7 +67,7 @@ export function useWardrobe() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Use real API call to backend directly
       const wardrobeItems = await WardrobeService.getWardrobeItems();
       setItems(wardrobeItems);
@@ -99,10 +99,10 @@ export function useWardrobe() {
     try {
       // Use real API call to backend
       await WardrobeService.updateWardrobeItem(id, updates);
-      
+
       // Update local state
-      setItems(prev => prev.map(item => 
-        item.id === id 
+      setItems(prev => prev.map(item =>
+        item.id === id
           ? { ...item, ...updates, updatedAt: new Date() }
           : item
       ));
@@ -116,19 +116,19 @@ export function useWardrobe() {
   const deleteItem = useCallback(async (id: string) => {
     try {
       console.log(`🗑️ [useWardrobe] Starting delete for item ${id}`);
-      
+
       // Use real API call to backend
       await WardrobeService.deleteWardrobeItem(id);
-      
+
       console.log(`✅ [useWardrobe] Successfully deleted item ${id} from backend`);
-      
+
       // Update local state
       setItems(prev => {
         const newItems = prev.filter(item => item.id !== id);
         console.log(`🔄 [useWardrobe] Updated local state. Items before: ${prev.length}, after: ${newItems.length}`);
         return newItems;
       });
-      
+
       console.log(`✅ [useWardrobe] Item ${id} successfully deleted and removed from UI`);
     } catch (err) {
       console.error(`❌ [useWardrobe] Error deleting item ${id}:`, err);
@@ -141,7 +141,7 @@ export function useWardrobe() {
   const toggleFavorite = useCallback(async (id: string) => {
     try {
       console.log(`🔍 [useWardrobe] Starting toggle favorite for item ${id}`);
-      
+
       // Use functional update to avoid dependency on items
       setItems(prev => {
         const currentItem = prev.find(item => item.id === id);
@@ -149,10 +149,10 @@ export function useWardrobe() {
           console.error(`🔍 [useWardrobe] Item ${id} not found in current items`);
           return prev;
         }
-        
+
         const newFavoriteValue = !currentItem.favorite;
         console.log(`🔍 [useWardrobe] Current favorite: ${currentItem.favorite}, new value: ${newFavoriteValue}`);
-        
+
         // Use real API call to backend
         WardrobeService.toggleFavorite(id, newFavoriteValue).then(() => {
           console.log(`✅ [useWardrobe] Successfully toggled favorite for item ${id}`);
@@ -160,16 +160,16 @@ export function useWardrobe() {
           console.error(`❌ [useWardrobe] Error toggling favorite:`, err);
           setError(err instanceof Error ? err.message : 'Failed to toggle favorite');
         });
-        
-        const updated = prev.map(item => 
-          item.id === id 
+
+        const updated = prev.map(item =>
+          item.id === id
             ? { ...item, favorite: newFavoriteValue, updatedAt: new Date() }
             : item
         );
         console.log(`🔍 [useWardrobe] Updated items state, item ${id} favorite: ${newFavoriteValue}`);
         return updated;
       });
-      
+
     } catch (err) {
       console.error(`❌ [useWardrobe] Error toggling favorite:`, err);
       setError(err instanceof Error ? err.message : 'Failed to toggle favorite');
@@ -181,16 +181,16 @@ export function useWardrobe() {
   const incrementWearCount = useCallback(async (id: string) => {
     try {
       // Use real API call to backend
-      await WardrobeService.incrementWearCount(id);
-      
+      const receipt = await WardrobeService.incrementWearCount(id);
+
       // Update local state
-      setItems(prev => prev.map(item => 
-        item.id === id 
-          ? { 
-              ...item, 
-              wearCount: item.wearCount + 1, 
-              lastWorn: new Date(),
-              updatedAt: new Date() 
+      setItems(prev => prev.map(item =>
+        item.id === id
+          ? {
+              ...item,
+              wearCount: receipt.newWearCount,
+              lastWorn: new Date(receipt.lastWorn < 1e11 ? receipt.lastWorn * 1000 : receipt.lastWorn),
+              updatedAt: new Date()
             }
           : item
       ));
@@ -213,26 +213,26 @@ export function useWardrobe() {
     }
 
     if (filters.season && filters.season !== 'all') {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         item.season?.includes(filters.season!)
       );
     }
 
     if (filters.style && filters.style !== 'all') {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         item.style?.includes(filters.style!)
       );
     }
 
     if (filters.occasion && filters.occasion !== 'all') {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         item.occasion?.includes(filters.occasion!)
       );
     }
 
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         item.name.toLowerCase().includes(searchLower) ||
         item.type.toLowerCase().includes(searchLower) ||
         item.color.toLowerCase().includes(searchLower)

@@ -74,74 +74,12 @@ class GamificationService:
         Returns:
             Dict containing new_xp, level, level_up (bool), and optional new_badge
         """
-        try:
-            user_ref = self.db.collection('users').document(user_id)
-            user_doc = user_ref.get()
-            
-            if not user_doc.exists:
-                logger.error(f"User {user_id} not found")
-                return {"error": "User not found"}
-            
-            user_data = user_doc.to_dict()
-            current_xp = user_data.get('xp', 0)
-            current_level = self.calculate_level(current_xp)
-            
-            # Add XP
-            new_xp = current_xp + amount
-            new_level = self.calculate_level(new_xp)
-            
-            level_up = new_level > current_level
-            
-            # Update user document
-            update_data = {
-                'xp': new_xp,
-                'level': new_level,
-                'updatedAt': int(datetime.now().timestamp() * 1000)
-            }
-            user_ref.update(update_data)
-            
-            # Log XP event to analytics
-            await self.log_gamification_event(
-                user_id=user_id,
-                event_type="xp_earned",
-                xp_amount=amount,
-                metadata={
-                    "reason": reason,
-                    "new_xp": new_xp,
-                    "new_level": new_level,
-                    **(metadata or {})
-                }
-            )
-            
-            result = {
-                "xp_awarded": amount,
-                "new_xp": new_xp,
-                "level": new_level,
-                "level_up": level_up,
-                "reason": reason
-            }
-            
-            # If level up, log that event too
-            if level_up:
-                await self.log_gamification_event(
-                    user_id=user_id,
-                    event_type="level_up",
-                    metadata={
-                        "old_level": current_level,
-                        "new_level": new_level,
-                        "tier": self.get_level_tier(new_level).value
-                    }
-                )
-                result["tier"] = self.get_level_tier(new_level).value
-                logger.info(f"🎉 User {user_id} leveled up! {current_level} → {new_level}")
-            
-            logger.info(f"✅ Awarded {amount} XP to user {user_id} for '{reason}'. New XP: {new_xp}")
-            return result
-            
-        except Exception as e:
-            logger.error(f"Error awarding XP to user {user_id}: {e}", exc_info=True)
-            return {"error": str(e)}
-    
+        from .reward_ledger import award
+        from uuid import uuid4
+        operation_id = (metadata or {}).get("reward_operation_id") or "legacy-xp-" + str(uuid4())
+        result = award(self.db, user_id, operation_id, xp=amount, metadata={"reason": reason, **(metadata or {})}, expected_epoch=(metadata or {}).get("app_data_epoch"))
+        return {**result, "reason": reason}
+
     async def unlock_badge(
         self,
         user_id: str,
@@ -153,52 +91,11 @@ class GamificationService:
         Returns:
             Dict with success status and badge info
         """
-        try:
-            user_ref = self.db.collection('users').document(user_id)
-            user_doc = user_ref.get()
-            
-            if not user_doc.exists:
-                logger.error(f"User {user_id} not found")
-                return {"success": False, "error": "User not found"}
-            
-            user_data = user_doc.to_dict()
-            current_badges = user_data.get('badges', [])
-            
-            # Check if badge already unlocked
-            if badge_id in current_badges:
-                logger.info(f"Badge {badge_id} already unlocked for user {user_id}")
-                return {"success": False, "already_unlocked": True}
-            
-            # Add badge
-            current_badges.append(badge_id)
-            user_ref.update({
-                'badges': current_badges,
-                'updatedAt': int(datetime.now().timestamp() * 1000)
-            })
-            
-            # Log badge unlock event
-            badge_info = BADGE_DEFINITIONS.get(BadgeType(badge_id))
-            await self.log_gamification_event(
-                user_id=user_id,
-                event_type="badge_unlocked",
-                metadata={
-                    "badge_id": badge_id,
-                    "badge_name": badge_info.name if badge_info else badge_id,
-                    "rarity": badge_info.rarity if badge_info else "common"
-                }
-            )
-            
-            logger.info(f"🏆 Badge {badge_id} unlocked for user {user_id}")
-            return {
-                "success": True,
-                "badge_id": badge_id,
-                "badge_info": badge_info.dict() if badge_info else None
-            }
-            
-        except Exception as e:
-            logger.error(f"Error unlocking badge for user {user_id}: {e}", exc_info=True)
-            return {"success": False, "error": str(e)}
-    
+        from .reward_ledger import award
+        result = award(self.db, user_id, "badge-" + badge_id, badge=badge_id)
+        definition = BADGE_DEFINITIONS.get(badge_id)
+        return {**result, "success": bool(result.get("badge_unlocked")), "already_unlocked": not bool(result.get("badge_unlocked")), "badge_info": definition.dict() if definition else {"id": badge_id}}
+
     async def get_user_gamification_state(self, user_id: str) -> Optional[GamificationState]:
         """Get complete gamification state for a user"""
         try:
@@ -273,7 +170,10 @@ class GamificationService:
                 event_data["xp_amount"] = xp_amount
             
             # Add to analytics_events collection
-            self.db.collection('analytics_events').add(event_data)
+            from .app_data_privacy import write_optional_record
+            reference = self.db.collection('analytics_events').document()
+            if not write_optional_record(self.db, user_id, reference, event_data, kind="telemetry", expected_epoch=(metadata or {}).get("app_data_epoch")):
+                return False
             
             logger.debug(f"Logged gamification event: {event_type} for user {user_id}")
             return True

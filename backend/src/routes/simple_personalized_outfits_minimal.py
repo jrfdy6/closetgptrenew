@@ -19,12 +19,24 @@ import time
 import json
 import hashlib
 import math
+from uuid import uuid4
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from dataclasses import dataclass, asdict
 from enum import Enum
 from ..auth.auth_service import get_current_user_id
+from ..auth.operator import require_operator
+from .outfit_generation_contract import (
+    RequiredBaseItemNotFound,
+    enforce_required_base_item,
+    resolve_required_base_item,
+)
+from ..utils.outfit_admission import (
+    InvalidGeneratedOutfit,
+    load_owned_wardrobe,
+    validate_generated_items,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -252,6 +264,7 @@ class OutfitResponse(BaseModel):
     personalization_applied: bool = False
     user_interactions: int = 0
     metadata: Dict[str, Any]
+    baseItemId: Optional[str] = None
 
 @router.get("/health")
 async def health_check():
@@ -310,12 +323,27 @@ async def generate_personalized_outfit(
         user_id = current_user_id
         logger.info(f"🎯 Generating personalized outfit for user {user_id}")
         
-        # Initialize preference early to prevent variable scope errors
+        from src.config.firebase import db
+        from src.services.outfit_creation_admission import (
+            require_outfit_creation_ready,
+            persist_created_outfit,
+        )
+        creation_admission = require_outfit_creation_ready(db, user_id)
+        requested_base_item_id = str(req.baseItemId).strip() if req.baseItemId else ""
+        try:
+            # Request fields identify candidates; only stored garments supply
+            # their ownership, images, categories, and recommendation metadata.
+            wardrobe_data = load_owned_wardrobe(db, req.wardrobe, user_id)
+            resolve_required_base_item(wardrobe_data, requested_base_item_id)
+        except (InvalidGeneratedOutfit, RequiredBaseItemNotFound) as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="We couldn't load your wardrobe. Please try again.") from exc
+        req.wardrobe = wardrobe_data
+        req.baseItemId = requested_base_item_id or None
+
+        # Preference work starts only after account and garment admission.
         preference = personalization_engine.get_user_preference(user_id)
-        
-        # Use real wardrobe items from the request instead of mock data
-        if not req.wardrobe or len(req.wardrobe) == 0:
-            raise HTTPException(status_code=400, detail="No wardrobe items provided")
         
         # Define hard requirements per occasion
         occasion_requirements = {
@@ -601,7 +629,7 @@ async def generate_personalized_outfit(
         
         # Create outfit from real wardrobe items
         existing_result = {
-            "id": f"outfit_{int(time.time())}",
+            "id": f"outfit_{uuid4().hex}",
             "name": f"{req.style} {req.occasion} Outfit",
             "items": [
                 {
@@ -659,15 +687,29 @@ async def generate_personalized_outfit(
                 existing_result = personalized_outfits[0]
                 logger.info(f"✅ Applied personalization for user {user_id}")
         
+        # Preserve the exact required garment through personalization and
+        # validate the complete result using authoritative saved records.
+        try:
+            final_items, base_item_contract = enforce_required_base_item(
+                existing_result.get("items", []), wardrobe_data, requested_base_item_id
+            )
+            existing_result["items"] = validate_generated_items(
+                final_items, wardrobe_data, requested_base_item_id
+            )
+            existing_result.setdefault("metadata", {}).update(base_item_contract)
+        except (InvalidGeneratedOutfit, RequiredBaseItemNotFound) as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
         # Create response
         outfit_response = {
-            "id": (existing_result.get("id", f"personalized_{int(time.time())}") if existing_result else f"personalized_{int(time.time())}"),
+            "id": (existing_result.get("id", f"personalized_{uuid4().hex}") if existing_result else f"personalized_{uuid4().hex}"),
             "name": (existing_result.get("name", "Personalized Outfit") if existing_result else "Personalized Outfit"),
             "items": (existing_result.get("items", []) if existing_result else []),
             "style": req.style,
             "occasion": req.occasion,
             "mood": req.mood,
             "weather": req.weather or {},
+            "baseItemId": requested_base_item_id or None,
             "confidence": (existing_result.get("confidence", 0.8) if existing_result else 0.8),
             "personalization_score": (existing_result.get("personalization_score") if existing_result else None) if preference.interaction_count >= 3 else None,
             "personalization_applied": (existing_result.get("personalization_applied", False) if existing_result else False),
@@ -681,6 +723,21 @@ async def generate_personalized_outfit(
             }
         }
         
+        try:
+            saved_outfit = persist_created_outfit(
+                db,
+                user_id,
+                outfit_response["id"],
+                {**outfit_response, "user_id": user_id, "createdAt": int(time.time() * 1000)},
+                creation_admission,
+                require_complete=True,
+            )
+            outfit_response.update(saved_outfit)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="Your outfit couldn't be saved. Please try again.") from exc
+
         logger.info(f"✅ Generated personalized outfit (personalization: {(existing_result.get('personalization_applied', False) if existing_result else False)})")
         return OutfitResponse(**outfit_response)
     
@@ -849,7 +906,7 @@ async def get_user_preferences(
         )
 
 @router.get("/analytics")
-async def get_system_analytics():
+async def get_system_analytics(operator: dict = Depends(require_operator)):
     """Get system-wide analytics"""
     try:
         total_users = len(user_preferences)

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { publishWearReceipt } from '@/lib/wardrobeActivity';
 import { useRouter } from 'next/navigation';
 import type { User } from 'firebase/auth';
 import OutfitResultsDisplay from '@/components/ui/outfit-results-display';
@@ -119,7 +120,7 @@ export default function SavedOutfitView({ id, user, authLoading = false }: { id:
   const refresh = () => { setVersion(value => value + 1); setUsageVersion(value => value + 1); };
   const begin = (name: string) => { if (actions.current.has(name)) return false; actions.current.add(name); return true; };
   const requestPreview = async () => {
-    if (!user || !outfit || !begin('flatlay')) return;
+    if (!user || !outfit || !extractFlatLayState(outfit).requestAllowed || !begin('flatlay')) return;
     setFlatPending(true); setFlatError(null);
     try {
       const token = await user.getIdToken();
@@ -142,10 +143,16 @@ export default function SavedOutfitView({ id, user, authLoading = false }: { id:
       if (!current(key)) return;
       mutationRevision.current += 1;
       clearWearOperation(user.uid, id);
+      if (result.undone === true) {
+        setWearNotice('This wear was undone. Tap Wear this outfit to record a new wear.');
+        setVersion(value => value + 1);
+        publishWearReceipt(user.uid, result);
+        return;
+      }
       setSaved(previous => previous?.key === key ? { key, outfit: { ...previous.outfit, wearCount: result.wear_count, lastWorn: result.last_worn, lastWearDate: result.last_wear_date, lastWearTimezone: result.last_wear_timezone } } : previous);
-      setWearNotice('Wear recorded for ' + result.wear_date + '.');
+      setWearNotice('Wear recorded for ' + result.wear_date + '.' + (result.projection_status === 'pending' ? ' Your progress is still updating.' : ''));
       setVersion(value => value + 1);
-      window.dispatchEvent(new CustomEvent('outfitWorn', { detail: { outfitId: id, wearCount: result.wear_count } }));
+      publishWearReceipt(user.uid, result);
     } catch (err) { if (current(key)) setWearError(message(err, 'We could not confirm the wear record. Retry to check the same action.')); }
     finally { if (current(key)) { actions.current.delete('wear'); setWearPending(false); } }
   };

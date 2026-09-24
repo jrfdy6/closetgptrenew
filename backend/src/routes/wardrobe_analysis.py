@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any
 from ..services.wardrobe_analysis_service import WardrobeAnalysisService
 from ..auth.auth_service import get_current_user_id, get_current_user
+from ..auth.operator import require_internal_operator
 from ..custom_types.profile import UserProfile
 from ..services.subscription_feature_access import check_feature_access
 from datetime import datetime
@@ -361,7 +362,7 @@ async def get_wardrobe_stats(current_user_id: str = Depends(get_current_user_id)
         )
 
 @router.post("/force-refresh-trends")
-async def force_refresh_trends() -> Dict[str, Any]:
+async def force_refresh_trends(operator: dict = Depends(require_internal_operator)) -> Dict[str, Any]:
     """
     Force refresh fashion trends by bypassing the daily fetch check.
     This will fetch fresh data from Google Trends regardless of when it was last fetched.

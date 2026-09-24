@@ -13,6 +13,21 @@ from uuid import uuid4
 from firebase_admin import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 
+try:
+    from .app_data_privacy import require_app_data_writable, AppDataDeletionError
+except ImportError:
+    from app_data_privacy import require_app_data_writable, AppDataDeletionError
+
+
+def _writable_epoch(db, txn, uid, expected=None):
+    if not uid:
+        return None
+    try:
+        return require_app_data_writable(db, uid, expected_epoch=expected, transaction=txn)
+    except AppDataDeletionError:
+        return None
+
+
 JOBS_COLLECTION = "garment_processing_jobs"
 MAX_ATTEMPTS = 3
 LEASE_SECONDS = 360
@@ -46,8 +61,9 @@ def _now():
 
 
 def _owner(item):
-    owners = [item.get(key) for key in ("user_id", "userId") if item.get(key)]
-    return owners[0] if owners and isinstance(owners[0], str) and IDENTIFIER.fullmatch(owners[0]) and all(owner == owners[0] for owner in owners) else None
+    owners = [item[key] for key in ("user_id", "userId", "firebase_uid", "uid", "ownerId") if item.get(key) is not None]
+    return owners[0] if (owners and isinstance(owners[0], str) and owners[0] and owners[0].strip() == owners[0]
+                         and "/" not in owners[0] and len(owners[0]) <= 128 and all(owner == owners[0] for owner in owners)) else None
 
 
 def _source_url(item):
@@ -219,6 +235,9 @@ def claim_garment(db, garment_id, worker_id, *, now=None):
         job_doc = job_ref.get(transaction=txn)
         item = garment_doc.to_dict() or {} if garment_doc.exists else {}
         job = job_doc.to_dict() or {} if job_doc.exists else {}
+        epoch = _writable_epoch(db, txn, job.get("user_id") or _owner(item), job.get("app_data_epoch", 0) if job else None)
+        if epoch is None:
+            return None
         source_asset_reset = {}
         if not IDENTIFIER.fullmatch(garment_id):
             if _available(item) and (not job or job.get("user_id") == _owner(item)):
@@ -289,7 +308,7 @@ def claim_garment(db, garment_id, worker_id, *, now=None):
             return None
         if job.get("next_attempt_at", 0) > now:
             return None
-        claimed = {**job, "attempt_id": attempt_id, "attempt_count": count + 1,
+        claimed = {**job, "app_data_epoch": epoch, "attempt_id": attempt_id, "attempt_count": count + 1,
                    "worker_id": worker_id, "status": "processing", "claimed_at": now,
                    "expires_at": now + LEASE_SECONDS, "lease_expires_at": now + LEASE_SECONDS,
                    "next_attempt_at": None, "source_revision": _revision(item), "error_code": None,
@@ -302,12 +321,14 @@ def claim_garment(db, garment_id, worker_id, *, now=None):
     return claim(db.transaction())
 
 
-def _read_attempt(txn, job_ref, garment_ref, attempt_id, now):
+def _read_attempt(db, txn, job_ref, garment_ref, attempt_id, now):
     job_doc = job_ref.get(transaction=txn)
     garment_doc = garment_ref.get(transaction=txn)
     job = job_doc.to_dict() or {} if job_doc.exists else {}
     item = garment_doc.to_dict() or {} if garment_doc.exists else {}
     if job.get("status") != "processing" or job.get("attempt_id") != attempt_id:
+        return None, None
+    if _writable_epoch(db, txn, job.get("user_id"), job.get("app_data_epoch", 0)) is None:
         return None, None
     code = _fence_error(job, item)
     if code:
@@ -338,7 +359,7 @@ def publish_original(db, garment_id, attempt_id, original, *, now=None):
 
     @firestore.transactional
     def publish(txn):
-        job, _ = _read_attempt(txn, job_ref, garment_ref, attempt_id, now)
+        job, _ = _read_attempt(db, txn, job_ref, garment_ref, attempt_id, now)
         if job is None:
             return False
         fields = {key: original[key] for key in ("originalStoragePath", "originalUrl")}
@@ -365,7 +386,7 @@ def finish_garment(db, garment_id, attempt_id, *, result=None, error_code=None, 
 
     @firestore.transactional
     def finish(txn):
-        job, _ = _read_attempt(txn, job_ref, garment_ref, attempt_id, now)
+        job, _ = _read_attempt(db, txn, job_ref, garment_ref, attempt_id, now)
         if job is None:
             return False
         if error_code is not None:
@@ -410,6 +431,8 @@ def recover_expired_garments(db, *, now=None, limit=20):
             item = garment_doc.to_dict() or {} if garment_doc.exists else {}
             if job.get("status") != "processing" or job.get("lease_expires_at", now + 1) > now:
                 return None
+            if _writable_epoch(db, txn, job.get("user_id"), job.get("app_data_epoch", 0)) is None:
+                return None
             code = _fence_error(job, item)
             if code:
                 stale = _invalidate(txn, job_ref, job, item, now, code, garment_ref)
@@ -446,6 +469,10 @@ def retry_garment(db, garment_id, user_id, expected_attempt_id, *, now=None):
         item = garment_doc.to_dict() or {} if garment_doc.exists else {}
         if not _available(item) or _owner(item) != user_id or (job and job.get("user_id") != user_id):
             raise GarmentRetryError(404, "Wardrobe item not found.")
+        try:
+            epoch = require_app_data_writable(db, user_id, expected_epoch=job.get("app_data_epoch", 0), transaction=txn)
+        except AppDataDeletionError as error:
+            raise GarmentRetryError(error.status_code, error.detail) from error
         if not expected_attempt_id:
             raise GarmentRetryError(409, "Reload this item before retrying photo preparation.")
         if job.get("retry_of_attempt_id") == expected_attempt_id and job.get("source_fingerprint") == _source(item):
@@ -457,6 +484,7 @@ def retry_garment(db, garment_id, user_id, expected_attempt_id, *, now=None):
         if job.get("error_code") == "invalid_image":
             raise GarmentRetryError(409, "We could not read this photo. Choose another photo of this item before retrying.")
         queued = _fresh_job(garment_id, item, now, manual_retry_count=job.get("manual_retry_count", 0) + 1)
+        queued["app_data_epoch"] = epoch
         queued.update(_preserved_original(job, item))
         queued["retry_of_attempt_id"] = expected_attempt_id
         txn.set(job_ref, queued)

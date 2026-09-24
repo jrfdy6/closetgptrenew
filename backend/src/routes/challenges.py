@@ -161,13 +161,17 @@ async def get_challenge_progress(
         doc = active_ref.get()
         
         if not doc.exists:
-            raise HTTPException(status_code=404, detail="Challenge not found or not active")
-        
+            from google.cloud.firestore_v1 import FieldFilter
+            candidates = list(challenge_service.db.collection("user_challenges").document(current_user.id).collection("active").where(filter=FieldFilter("challenge_id", "==", challenge_id)).stream())
+            candidates = [snapshot for snapshot in candidates if snapshot.to_dict().get("status") == "in_progress"]
+            if not candidates:
+                raise HTTPException(status_code=404, detail="Challenge not found or not active")
+            doc = max(candidates, key=lambda snapshot: str(snapshot.to_dict().get("started_at", "")))
         challenge_data = doc.to_dict()
         
         # Add challenge definition details
         from ..custom_types.gamification import CHALLENGE_CATALOG
-        challenge_def = CHALLENGE_CATALOG.get(challenge_id)
+        challenge_def = CHALLENGE_CATALOG.get(challenge_data.get("challenge_id", challenge_id))
         if challenge_def:
             challenge_data['title'] = challenge_def.title
             challenge_data['description'] = challenge_def.description

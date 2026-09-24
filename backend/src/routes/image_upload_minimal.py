@@ -7,6 +7,9 @@ import tempfile
 import os
 from PIL import Image
 from src.auth.verified_identity import verified_identity, reject_identity_overrides, IDENTITY_KEYS
+from src.auth.operator import require_internal_operator
+from src.config.firebase import db
+from src.services.app_data_privacy import require_app_data_writable, AppDataDeletionError
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +139,7 @@ def process_image_file(contents: bytes, filename: str, content_type: str) -> tup
 
 router = APIRouter()
 
-@router.get("/create-firebase-bucket")
+@router.get("/create-firebase-bucket", dependencies=[Depends(require_internal_operator)])
 async def create_firebase_bucket():
     """Try to create a Firebase Storage bucket"""
     try:
@@ -177,7 +180,7 @@ async def create_firebase_bucket():
             "error_type": type(e).__name__
         }
 
-@router.get("/test-firebase-upload")
+@router.get("/test-firebase-upload", dependencies=[Depends(require_internal_operator)])
 async def test_firebase_upload():
     """Test Firebase Storage upload with different bucket name formats"""
     try:
@@ -246,7 +249,7 @@ async def test_firebase_upload():
             "error_type": type(e).__name__
         }
 
-@router.get("/debug-firebase")
+@router.get("/debug-firebase", dependencies=[Depends(require_internal_operator)])
 async def debug_firebase():
     """Debug Firebase Storage configuration"""
     try:
@@ -301,6 +304,7 @@ async def upload_image(
             reject_identity_overrides(claims, {key: value})
     user_id = claims['uid']
     try:
+        epoch = require_app_data_writable(db, user_id)
         logger.info(f"Starting image upload for user: {user_id}")
         logger.info(f"File: {file.filename}, Content-Type: {file.content_type}")
         
@@ -363,14 +367,16 @@ async def upload_image(
             logger.info(f"Blob created successfully")
             
             logger.info(f"Uploading {len(contents)} bytes to Firebase Storage...")
+            require_app_data_writable(db, user_id, expected_epoch=epoch)
             blob.upload_from_string(contents, content_type=processed_content_type)
+            require_app_data_writable(db, user_id, expected_epoch=epoch)
             logger.info("Successfully uploaded to Firebase Storage")
             
             # Make public and get URL
             logger.info("Making blob public...")
             blob.make_public()
             public_url = blob.public_url
-            logger.info(f"Public URL: {public_url}")
+            require_app_data_writable(db, user_id, expected_epoch=epoch)
             
             return JSONResponse(content={
                 "success": True, 
@@ -379,6 +385,13 @@ async def upload_image(
                 "size": len(contents)
             }, headers={"Cache-Control": "private, no-store"})
             
+        except AppDataDeletionError as error:
+            if 'blob' in locals():
+                try:
+                    blob.delete(if_generation_match=blob.generation)
+                except Exception:
+                    logger.warning("Interrupted upload cleanup will be retried by data deletion")
+            raise HTTPException(error.status_code, error.detail) from error
         except Exception:
             # An upload or visibility failure is not a saved original. Never
             # return a substitute photo that downstream analysis could count.
@@ -396,6 +409,8 @@ async def upload_image(
             
     except HTTPException:
         raise
+    except AppDataDeletionError as error:
+        raise HTTPException(error.status_code, error.detail) from error
     except Exception as e:
         logger.error(f"Unexpected error in upload_image: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to upload image")

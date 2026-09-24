@@ -12,6 +12,7 @@ from typing import Any, Dict
 import unittest
 
 from fastapi import HTTPException
+from firebase_admin import firestore
 from src.routes.wardrobe_update_contract import build_wardrobe_update
 
 
@@ -41,7 +42,7 @@ class FakeDocument:
         self.data = deepcopy(data)
         self.writes = []
 
-    def get(self):
+    def get(self, transaction=None):
         return self
 
     def to_dict(self):
@@ -57,6 +58,24 @@ class FakeDocument:
             target[leaf] = deepcopy(value)
 
 
+class EditTransaction:
+    def __init__(self):
+        self.writes = []
+    def update(self, reference, value):
+        self.writes.append((reference, deepcopy(value)))
+    def commit(self):
+        for reference, value in self.writes:
+            reference.update(value)
+
+
+def edit_transactional(callback):
+    def run(transaction):
+        result = callback(transaction)
+        transaction.commit()
+        return result
+    return run
+
+
 def load_update_route(document, route_name='update_wardrobe_item', overrides=None):
     # Compile the actual route body without importing its unrelated AI/Firebase
     # initialization. This tests auth, persistence, and error mapping entirely offline.
@@ -67,7 +86,9 @@ def load_update_route(document, route_name='update_wardrobe_item', overrides=Non
     route.decorator_list = []
     route.args.defaults = []
     namespace = {
-        'db': SimpleNamespace(collection=lambda _name: SimpleNamespace(document=lambda _id: document)),
+        'db': SimpleNamespace(collection=lambda name: SimpleNamespace(document=lambda _id:
+            SimpleNamespace(get=lambda **_: SimpleNamespace(exists=True, to_dict=lambda: {'app_data_epoch': 0}))
+            if name == 'users' else document), transaction=EditTransaction),
         'build_wardrobe_update': build_wardrobe_update, 'time': time,
         'ANALYTICS_AVAILABLE': False, 'HTTPException': HTTPException,
         'logger': logging.getLogger(__name__), 'Dict': Dict, 'Any': Any,
@@ -76,7 +97,10 @@ def load_update_route(document, route_name='update_wardrobe_item', overrides=Non
     namespace.update(overrides or {})
     owned = next(node for node in nodes if isinstance(node, ast.FunctionDef) and node.name == '_owned_wardrobe_item')
     exec(compile(ast.Module(body=[owned, route], type_ignores=[]), str(source), 'exec'), namespace)
-    return namespace[route_name]
+    async def invoke(*args, **kwargs):
+        with patch.object(firestore, 'transactional', edit_transactional):
+            return await namespace[route_name](*args, **kwargs)
+    return invoke
 
 
 class WardrobeUpdateTests(unittest.IsolatedAsyncioTestCase):
@@ -136,7 +160,7 @@ class WardrobeUpdateTests(unittest.IsolatedAsyncioTestCase):
     async def test_reload_returns_purchase_price_size_and_legacy_materials(self):
         doc = FakeDocument({**RICH_ITEM, 'purchasePrice': 0, 'size': 'M'})
         query = SimpleNamespace(stream=lambda: [doc])
-        fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args: query))
+        fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args, **_kwargs: query))
         firebase = SimpleNamespace(firebase_initialized=True, db=fake_db)
         with patch.dict('sys.modules', {'src.config.firebase': firebase}):
             result = await load_update_route(doc, 'get_wardrobe_items_with_slash')(SimpleNamespace(id='owner'))
@@ -170,7 +194,7 @@ class WardrobeUpdateTests(unittest.IsolatedAsyncioTestCase):
         duplicate.id = 'shirt-2'
         docs.append(duplicate)
         query = SimpleNamespace(stream=lambda: docs)
-        fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args: query))
+        fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args, **_kwargs: query))
         firebase = SimpleNamespace(firebase_initialized=True, db=fake_db)
         with patch.dict('sys.modules', {'src.config.firebase': firebase}):
             result = await load_update_route(docs[0], 'get_wardrobe_items_with_slash')(SimpleNamespace(id='owner'))
@@ -193,7 +217,7 @@ class WardrobeUpdateTests(unittest.IsolatedAsyncioTestCase):
                             'processing_expires_at': '1970-01-01T00:30:00Z',
                             'processing_updated_at': 1000})
         query = SimpleNamespace(stream=lambda: [doc])
-        fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args: query))
+        fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args, **_kwargs: query))
         firebase = SimpleNamespace(firebase_initialized=True, db=fake_db)
         with patch.dict('sys.modules', {'src.config.firebase': firebase}):
             result = await load_update_route(doc, 'get_wardrobe_items_with_slash')(SimpleNamespace(id='owner'))
@@ -215,7 +239,7 @@ class WardrobeUpdateTests(unittest.IsolatedAsyncioTestCase):
                             'processing_error_code': 'internal-provider-payload',
                             'processing_error': 'secret worker exception'})
         query = SimpleNamespace(stream=lambda: [doc])
-        fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args: query))
+        fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args, **_kwargs: query))
         firebase = SimpleNamespace(firebase_initialized=True, db=fake_db)
         with patch.dict('sys.modules', {'src.config.firebase': firebase}):
             result = await load_update_route(doc, 'get_wardrobe_items_with_slash')(SimpleNamespace(id='owner'))
@@ -231,7 +255,7 @@ class WardrobeUpdateTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(source=source):
                 doc = FakeDocument({**RICH_ITEM, **source})
                 query = SimpleNamespace(stream=lambda: [doc])
-                fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args: query))
+                fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args, **_kwargs: query))
                 firebase = SimpleNamespace(firebase_initialized=True, db=fake_db)
                 with patch.dict('sys.modules', {'src.config.firebase': firebase}):
                     result = await load_update_route(doc, 'get_wardrobe_items_with_slash')(SimpleNamespace(id='owner'))
@@ -251,7 +275,7 @@ class WardrobeUpdateTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(source=source):
                 doc = FakeDocument({**RICH_ITEM, **source})
                 query = SimpleNamespace(stream=lambda: [doc])
-                fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args: query))
+                fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args, **_kwargs: query))
                 firebase = SimpleNamespace(firebase_initialized=True, db=fake_db)
                 with patch.dict('sys.modules', {'src.config.firebase': firebase}):
                     result = await load_update_route(doc, 'get_wardrobe_items_with_slash')(SimpleNamespace(id='owner'))
@@ -261,18 +285,21 @@ class WardrobeUpdateTests(unittest.IsolatedAsyncioTestCase):
                     if alias in source:
                         self.assertEqual(item[alias], source[alias])
 
-    async def test_reload_preserves_soft_delete_fields_including_false_and_null(self):
+    async def test_reload_hides_soft_deleted_items_and_preserves_false_and_null_markers(self):
         for markers in ({'deleted': True}, {'isDeleted': True}, {'deletedAt': '2026-09-22T12:00:00Z'},
                         {'deleted': False, 'isDeleted': False, 'deletedAt': None}):
             with self.subTest(markers=markers):
                 doc = FakeDocument({**RICH_ITEM, 'imageUrl': 'https://images.example/photo.jpg', **markers})
                 query = SimpleNamespace(stream=lambda: [doc])
-                fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args: query))
+                fake_db = SimpleNamespace(collection=lambda _name: SimpleNamespace(where=lambda *_args, **_kwargs: query))
                 firebase = SimpleNamespace(firebase_initialized=True, db=fake_db)
                 with patch.dict('sys.modules', {'src.config.firebase': firebase}):
                     result = await load_update_route(doc, 'get_wardrobe_items_with_slash')(SimpleNamespace(id='owner'))
-                item = result['items'][0]
-                self.assertEqual({field: item[field] for field in markers}, markers)
+                if any(markers.values()):
+                    self.assertEqual(result['items'], [])
+                else:
+                    item = result['items'][0]
+                    self.assertEqual({field: item[field] for field in markers}, markers)
 
     async def test_analytics_failure_does_not_turn_successful_save_into_error(self):
         doc = FakeDocument(RICH_ITEM)

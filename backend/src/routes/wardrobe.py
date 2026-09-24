@@ -168,8 +168,9 @@ async def get_top_worn_items(
             raise HTTPException(status_code=401, detail="Authentication required")
         
         # Query all wardrobe items for the user, ordered by wear count
-        query = db.collection('wardrobe').where('userId', '==', current_user.id)
-        docs = query.stream()
+        from src.services.wardrobe_reads import owned_wardrobe_documents
+        from starlette.concurrency import run_in_threadpool
+        docs = await run_in_threadpool(owned_wardrobe_documents, db, current_user.id)
         
         items = []
         for doc in docs:
@@ -189,34 +190,16 @@ async def get_top_worn_items(
         # Get items with no wear (unworn items)
         unworn_items = [item for item in items if safe_get(item, 'wearCount', 0) == 0]
         
-        # Get items worn this week (last 7 days)
+        # Legacy item actions use seconds; canonical outfit wears use
+        # milliseconds. Apply the shared parser before comparing recency.
         from datetime import datetime, timedelta, timezone
-        week_ago = datetime.now(timezone.utc) - timedelta(days=7)
-        recent_items = []
-        for item in items:
-            last_worn = safe_get(item, 'lastWorn')
-            if last_worn:
-                try:
-                    if isinstance(last_worn, datetime):
-                        item_date = last_worn
-                    elif isinstance(last_worn, str):
-                        item_date = datetime.fromisoformat(last_worn.replace('Z', '+00:00'))
-                    elif isinstance(last_worn, (int, float)):
-                        item_date = datetime.fromtimestamp(last_worn, tz=timezone.utc)
-                    else:
-                        continue
-                    
-                    # Ensure both dates are timezone-aware
-                    if item_date.tzinfo is None:
-                        item_date = item_date.replace(tzinfo=timezone.utc)
-                    if week_ago.tzinfo is None:
-                        week_ago = week_ago.replace(tzinfo=timezone.utc)
-                    
-                    if item_date > week_ago:
-                        recent_items.append(item)
-                except (ValueError, TypeError):
-                    continue
-        
+        from src.services.wear_statistics import parse_wear_timestamp
+        now = datetime.now(timezone.utc)
+        week_ago = now - timedelta(days=7)
+        recent_items = [item for item in items
+                        if (worn_at := parse_wear_timestamp(item.get('lastWorn'))) is not None
+                        and week_ago <= worn_at <= now]
+
         stats = {
             "total_items": total_items,
             "total_wear_count": total_wear_count,
@@ -262,8 +245,9 @@ async def get_most_worn_by_category(
             raise HTTPException(status_code=401, detail="Authentication required")
         
         # Query all wardrobe items for the user
-        query = db.collection('wardrobe').where('userId', '==', current_user.id)
-        docs = query.stream()
+        from src.services.wardrobe_reads import owned_wardrobe_documents
+        from starlette.concurrency import run_in_threadpool
+        docs = await run_in_threadpool(owned_wardrobe_documents, db, current_user.id)
         
         items = []
         for doc in docs:
@@ -352,10 +336,11 @@ async def get_trending_styles(
             raise HTTPException(status_code=401, detail="Authentication required")
         
         # Query user's wardrobe items
-        query = db.collection('wardrobe').where('userId', '==', current_user.id)
-        docs = query.stream()
+        from src.services.wardrobe_reads import owned_wardrobe_documents
+        from starlette.concurrency import run_in_threadpool
+        docs = await run_in_threadpool(owned_wardrobe_documents, db, current_user.id)
         
-        items = [doc.to_dict() for doc in docs]
+        items = [{**doc.to_dict(), 'id': doc.id} for doc in docs]
         
         # Analyze style patterns
         style_counts = {}
@@ -390,28 +375,14 @@ async def get_trending_styles(
             if item.get('wearCount', 0) > 0:
                 score = item.get('wearCount', 0)
                 if item.get('lastWorn'):
-                    # Add bonus for recent wear
-                    try:
-                        last_worn = (item.get('lastWorn', 0) if item else 0)
-                        if isinstance(last_worn, (int, float)):
-                            # Already a timestamp
-                            days_since_worn = (int(time.time()) - last_worn) / (24 * 60 * 60)
-                        else:
-                            # Convert datetime to timestamp
-                            from datetime import datetime, timezone
-                            if hasattr(last_worn, 'timestamp'):
-                                days_since_worn = (int(time.time()) - int(last_worn.timestamp())) / (24 * 60 * 60)
-                            else:
-                                # Skip if we can't convert
-                                continue
-                        
-                        if days_since_worn < 7:
+                    from src.services.wear_statistics import parse_wear_timestamp
+                    worn_at = parse_wear_timestamp(item['lastWorn'])
+                    if worn_at is not None:
+                        days_since_worn = (time.time() - worn_at.timestamp()) / (24 * 60 * 60)
+                        if 0 <= days_since_worn < 7:
                             score += 2
-                        elif days_since_worn < 30:
+                        elif 0 <= days_since_worn < 30:
                             score += 1
-                    except (ValueError, TypeError, AttributeError):
-                        # Skip if we can't process the date
-                        pass
                 trending_items.append({
                     'id': (item.get('id') if item else None),
                     'name': (item.get('name') if item else None),
@@ -454,248 +425,19 @@ async def add_wardrobe_item(
     item_data: Dict[str, Any],
     current_user: UserProfile = Depends(verified_wardrobe_user)
 ) -> Dict[str, Any]:
-    """
-    Add a new wardrobe item for the current user.
-    
-    Expected fields:
-    - name: str
-    - type: str (clothing type)
-    - color: str
-    - style: str or List[str]
-    - occasion: str or List[str]
-    - season: str or List[str]
-    - imageUrl: str (optional)
-    """
-    start_time = time.time()
+    """Compatibility alias for the canonical transactional upload writer."""
+    from src.services.wardrobe_persistence import create_owned_wardrobe_item, WardrobeOwnershipConflict, WardrobeInputError
+    from src.services.app_data_privacy import AppDataDeletionError
+    from starlette.concurrency import run_in_threadpool
     try:
-        item_data = merge_completed_upload_analysis_into_item_data(
-            requested_by=current_user.id,
-            item_data=item_data,
-        )
-
-        # Validate required fields
-        required_fields = ['name', 'type', 'color']
-        for field in required_fields:
-            if field not in item_data:
-                raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
-        
-        incoming_metadata = item_data.get("metadata") if isinstance(item_data.get("metadata"), dict) else {}
-        codex_tracking = incoming_metadata.get("codex_analysis") if isinstance(incoming_metadata.get("codex_analysis"), dict) else {}
-        preserve_client_id = (
-            bool(item_data.get("processing_status") == "codex_pending")
-            or bool(item_data.get("codex_job_id"))
-            or bool(incoming_metadata.get("codex_job_id"))
-            or bool(codex_tracking.get("job_id"))
-        )
-        requested_item_id = str(item_data.get("id") or "").strip()
-        item_id = requested_item_id if preserve_client_id and requested_item_id else str(uuid.uuid4())
-        existing_snapshot = db.collection('wardrobe').document(item_id).get()
-        if existing_snapshot.exists:
-            raise HTTPException(status_code=409, detail="Wardrobe item ID already exists")
-        
-        # Extract AI analysis results if available
-        analysis = (item_data.get("analysis", {}) if item_data else {})
-        metadata_analysis = (analysis.get("metadata", {}) if analysis else {})
-        visual_attrs = (metadata_analysis.get("visualAttributes", {}) if metadata_analysis else {})
-        
-        # Use AI analysis results or fallback to defaults (ALL 21 fields - including Phase 1)
-        visual_attributes = {
-            "wearLayer": (visual_attrs.get("wearLayer", "Mid") if visual_attrs else "Mid"),
-            "sleeveLength": (visual_attrs.get("sleeveLength", "Unknown") if visual_attrs else "Unknown"),
-            "material": (visual_attrs.get("material", "cotton") if visual_attrs else "cotton"),
-            "pattern": (visual_attrs.get("pattern", "solid") if visual_attrs else "solid"),
-            "textureStyle": (visual_attrs.get("textureStyle", "smooth") if visual_attrs else "smooth"),
-            "fabricWeight": (visual_attrs.get("fabricWeight", "Medium") if visual_attrs else "Medium"),
-            "fit": (visual_attrs.get("fit", "regular") if visual_attrs else "regular"),
-            "silhouette": (visual_attrs.get("silhouette", "regular") if visual_attrs else "regular"),
-            "length": (visual_attrs.get("length", "regular") if visual_attrs else "regular"),
-            "formalLevel": (visual_attrs.get("formalLevel", "Casual") if visual_attrs else "Casual"),
-            "genderTarget": (visual_attrs.get("genderTarget", "Unisex") if visual_attrs else "Unisex"),
-            "backgroundRemoved": (visual_attrs.get("backgroundRemoved", False) if visual_attrs else False),
-            "hangerPresent": (visual_attrs.get("hangerPresent", False) if visual_attrs else False),
-            # Phase 1 new attributes for gender-inclusive outfit generation
-            "neckline": (visual_attrs.get("neckline", "") if visual_attrs else ""),
-            "transparency": (visual_attrs.get("transparency", "opaque") if visual_attrs else "opaque"),
-            "collarType": (visual_attrs.get("collarType", "") if visual_attrs else ""),
-            "embellishments": (visual_attrs.get("embellishments", "none") if visual_attrs else "none"),
-            "printSpecificity": (visual_attrs.get("printSpecificity", "none") if visual_attrs else "none"),
-            "rise": (visual_attrs.get("rise", "") if visual_attrs else ""),
-            "legOpening": (visual_attrs.get("legOpening", "") if visual_attrs else ""),
-            "heelHeight": (visual_attrs.get("heelHeight", "") if visual_attrs else ""),
-            "statementLevel": (visual_attrs.get("statementLevel", 0) if visual_attrs else 0),
-            "waistbandType": (visual_attrs.get("waistbandType", "") if visual_attrs else "")
-        }
-        
-        # Extract dominant colors from AI analysis if available
-        dominant_colors = (analysis.get("dominantColors", []) if analysis else [])
-        if not dominant_colors:
-            # Fallback to basic color analysis
-            dominant_colors = [{"name": item_data["color"], "hex": "#000000", "rgb": [0, 0, 0]}]
-        
-        # Extract matching colors from AI analysis if available
-        matching_colors = (analysis.get("matchingColors", []) if analysis else [])
-        
-        # Prepare item data with ROOT-level AI fields
-        wardrobe_item = {
-            "id": item_id,
-            "userId": current_user.id,
-            "name": item_data["name"],
-            "type": item_data["type"],
-            "color": item_data["color"],
-            "style": (item_data.get("style", []) if item_data else []),
-            "occasion": (item_data.get("occasion", []) if item_data else []),
-            "season": (item_data.get("season", ["all"]) if item_data else ["all"]),
-            "imageUrl": (item_data.get("imageUrl", "") if item_data else ""),
-            "dominantColors": dominant_colors,
-            "matchingColors": matching_colors,
-            "tags": (item_data.get("tags", []) if item_data else []),
-            "mood": (analysis.get("mood", []) if analysis else []),
-            # ROOT-level fields from AI analysis
-            "bodyTypeCompatibility": (analysis.get("bodyTypeCompatibility", []) if analysis else []),
-            "weatherCompatibility": (analysis.get("weatherCompatibility", []) if analysis else []),
-            "gender": (analysis.get("gender", "unisex") if analysis else "unisex"),
-            "backgroundRemoved": (analysis.get("backgroundRemoved", False) if analysis else False),
-            "backgroundRemovedUrl": None,  # Will be filled by worker in background
-            "processing_status": (item_data.get("processing_status", "pending") if item_data else "pending"),
-            "createdAt": int(time.time()),
-            "updatedAt": int(time.time()),
-            "metadata": {
-                "analysisTimestamp": int(time.time()),
-                "originalType": item_data["type"],
-                "styleTags": (item_data.get("style", []) if item_data else []),
-                "occasionTags": (item_data.get("occasion", []) if item_data else []),
-                "colorAnalysis": {
-                    "dominant": [(color.get("name", item_data["color"]) if color else item_data["color"]) for color in dominant_colors],
-                    "matching": [(color.get("name", "") if color else "") for color in matching_colors]
-                },
-                "visualAttributes": visual_attributes,
-                "naturalDescription": (metadata_analysis.get("naturalDescription", "") if metadata_analysis else ""),
-                "itemMetadata": {
-                    "tags": (item_data.get("tags", []) if item_data else []),
-                    "careInstructions": "Check care label",
-                    "brand": (analysis.get("brand") if analysis else None),
-                    "priceEstimate": None
-                },
-                # Store the full AI analysis for reference
-                "aiAnalysis": analysis if analysis else None
-            }
-        }
-
-        if incoming_metadata:
-            wardrobe_item["metadata"].update(incoming_metadata)
-        
-        # Normalize the item metadata before saving
-        from ..utils.semantic_normalization import normalize_item_metadata
-        normalized_item = normalize_item_metadata(wardrobe_item)
-        
-        # Save to Firestore
-        doc_ref = db.collection('wardrobe').document(item_id)
-        doc_ref.set(normalized_item)
-        
-        # Atomically increment wardrobe item count in user profile
-        try:
-            user_ref = db.collection('users').document(current_user.id)
-            user_ref.update({
-                'wardrobeItemCount': firestore.Increment(1)
-            })
-            logger.info(f"✅ Incremented wardrobeItemCount for user {current_user.id}")
-        except Exception as count_error:
-            logger.warning(f"⚠️ Failed to increment wardrobeItemCount: {count_error}")
-        
-        # Track usage (async, don't fail if it errors)
-        try:
-            from ..services.usage_tracking_service import UsageTrackingService
-            usage_service = UsageTrackingService()
-            await usage_service.track_item_upload(current_user.id)
-            logger.info(f"📊 Tracked item upload usage for user {current_user.id}")
-        except Exception as usage_error:
-            logger.warning(f"Usage tracking failed: {usage_error}")
-        
-        # Log analytics event
-        if ANALYTICS_AVAILABLE:
-            analytics_event = AnalyticsEvent(
-                user_id=current_user.id,
-                event_type="wardrobe_item_added",
-                metadata={
-                    "item_id": item_id,
-                    "item_type": item_data["type"],
-                    "has_image": bool((item_data.get("imageUrl") if item_data else None)),
-                    "style_count": len((item_data.get("style", []) if item_data else [])),
-                    "occasion_count": len((item_data.get("occasion", []) if item_data else []))
-                }
-            )
-            log_analytics_event(analytics_event)
-        
-        logger.info(f"Wardrobe item added: {item_id} for user {current_user.id}")
-        
-        # 🚀 PRODUCTION MONITORING: Track successful wardrobe add
-        if MONITORING_AVAILABLE and monitoring_service:
-            try:
-                duration_ms = (time.time() - start_time) * 1000
-                await monitoring_service.track_operation(
-                    operation=OperationType.WARDROBE_ADD,
-                    user_id=current_user.id,
-                    status="success",
-                    duration_ms=duration_ms,
-                    context={
-                        "item_type": item_data["type"],
-                        "has_image": bool(item_data.get("imageUrl")),
-                        "has_ai_analysis": bool(item_data.get("analysis"))
-                    }
-                )
-                
-                # Track first item added milestone
-                await monitoring_service.track_user_journey(
-                    user_id=current_user.id,
-                    step=UserJourneyStep.FIRST_ITEM_ADDED,
-                    metadata={"item_type": item_data["type"]}
-                )
-            except Exception as monitoring_error:
-                logger.warning(f"Production monitoring failed: {monitoring_error}")
-        
-        return {
-            "success": True,
-            "message": "Wardrobe item added successfully",
-            "item": normalized_item
-        }
-        
-    except HTTPException:
-        # Track HTTP exceptions
-        if MONITORING_AVAILABLE and monitoring_service:
-            try:
-                duration_ms = (time.time() - start_time) * 1000
-                await monitoring_service.track_operation(
-                    operation=OperationType.WARDROBE_ADD,
-                    user_id=current_user.id if current_user else 'unknown',
-                    status="failure",
-                    duration_ms=duration_ms,
-                    error="HTTP Exception",
-                    error_type="HTTPException"
-                )
-            except:
-                pass
-        raise
-    except Exception as e:
-        logger.error(f"Error adding wardrobe item: {e}")
-        
-        # 🚀 PRODUCTION MONITORING: Track failure
-        if MONITORING_AVAILABLE and monitoring_service:
-            try:
-                duration_ms = (time.time() - start_time) * 1000
-                await monitoring_service.track_operation(
-                    operation=OperationType.WARDROBE_ADD,
-                    user_id=current_user.id if current_user else 'unknown',
-                    status="failure",
-                    duration_ms=duration_ms,
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    stack_trace=traceback.format_exc(),
-                    context={"item_type": item_data.get("type") if item_data else "unknown"}
-                )
-            except Exception as monitoring_error:
-                logger.warning(f"Production monitoring failed during error handling: {monitoring_error}")
-        
-        raise HTTPException(status_code=500, detail=f"Error adding wardrobe item: {str(e)}")
+        item = await run_in_threadpool(create_owned_wardrobe_item, db, current_user.id, item_data)
+        return {"success": True, "item_id": item['id'], "item": item, "message": "Item saved"}
+    except AppDataDeletionError as error:
+        raise HTTPException(error.status_code, error.detail) from None
+    except WardrobeOwnershipConflict:
+        raise HTTPException(409, 'This item ID is already in use') from None
+    except WardrobeInputError as error:
+        raise HTTPException(422, str(error)) from None
 
 @router.get("/test", include_in_schema=False)
 async def test_wardrobe_endpoint() -> Dict[str, Any]:
@@ -708,26 +450,19 @@ async def test_wardrobe_endpoint() -> Dict[str, Any]:
     }
 
 @router.get("/count", include_in_schema=False)
-async def count_wardrobe_items() -> Dict[str, Any]:
-    """Count all items in wardrobe collection."""
+async def count_wardrobe_items(current_user: UserProfile = Depends(verified_wardrobe_user)) -> Dict[str, Any]:
+    """Count only the signed-in account's active saved garments."""
+    from src.services.wardrobe_reads import owned_wardrobe_documents
+    from src.config.firebase import db, firebase_initialized
+    from starlette.concurrency import run_in_threadpool
+    if db is None or not firebase_initialized:
+        raise HTTPException(503, 'Wardrobe temporarily unavailable')
     try:
-        from src.config.firebase import firebase_initialized, db
-        
-        if not firebase_initialized or db is None:
-            return {"error": "Firebase not initialized"}
-        
-        # Count all items
-        all_docs = db.collection('wardrobe').stream()
-        total_count = len(list(all_docs))
-        
-        return {
-            "success": True,
-            "total_items": total_count,
-            "message": f"Found {total_count} items in wardrobe collection"
-        }
-        
-    except Exception as e:
-        return {"error": str(e)}
+        documents = await run_in_threadpool(owned_wardrobe_documents, db, current_user.id)
+        count = len(documents)
+        return {'success': True, 'total_items': count, 'message': f'Found {count} items in your wardrobe'}
+    except Exception:
+        raise HTTPException(503, 'Wardrobe count could not be confirmed') from None
 
 @router.get("/debug", include_in_schema=False)
 async def debug_wardrobe_data() -> Dict[str, Any]:
@@ -804,37 +539,10 @@ async def get_wardrobe_items_with_slash(
         
         logger.info(f"⏱️ WARDROBE: Starting Firestore query for user: {current_user.id} ({time.time() - start_time:.2f}s)")
         
-        # OPTIMIZED: Use Firestore query instead of fetching all items
-        # This is 100x faster - only fetches user's items from database
-        try:
-            query_start = time.time()
-            logger.info(f"⏱️ WARDROBE: Executing Firestore query... ({time.time() - start_time:.2f}s)")
-            # Try userId first (most common field name)
-            query = db.collection('wardrobe').where('userId', '==', current_user.id)
-            docs = query.stream()
-            
-            logger.info(f"⏱️ WARDROBE: Query stream created, converting to list... ({time.time() - start_time:.2f}s)")
-            # Fallback: if no results, try other field names (for legacy data)
-            items_list = list(docs)
-            logger.info(f"⏱️ WARDROBE: Query complete - found {len(items_list)} items ({time.time() - start_time:.2f}s)")
-            if not items_list:
-                # Try alternative field names
-                for field_name in ['uid', 'ownerId', 'user_id']:
-                    try:
-                        alt_query = db.collection('wardrobe').where(field_name, '==', current_user.id)
-                        items_list = list(alt_query.stream())
-                        if items_list:
-                            break
-                    except:
-                        continue
-            
-        except Exception as db_error:
-            logger.error(f"Firestore query failed: {db_error}")
-            raise HTTPException(
-                status_code=500, 
-                detail=f"Database query failed: {str(db_error)}"
-            )
-        
+        from src.services.wardrobe_reads import owned_wardrobe_documents
+        from starlette.concurrency import run_in_threadpool
+        items_list = await run_in_threadpool(owned_wardrobe_documents, db, current_user.id)
+
         # OPTIMIZED: Process items in single pass with efficient defaults
         from src.services.garment_lifecycle import ERRORS as garment_processing_errors
 
@@ -1050,6 +758,8 @@ async def get_wardrobe_item(
         # Check if user owns this item
         if not _owned_wardrobe_item(item_data, current_user.id):
             raise HTTPException(status_code=403, detail="Access denied")
+        if any(item_data.get(key) for key in ('deleted', 'isDeleted', 'deletedAt', 'deleted_at')):
+            raise HTTPException(404, 'Wardrobe item not found')
         
         # Log analytics event
         if ANALYTICS_AVAILABLE:
@@ -1104,7 +814,8 @@ async def update_wardrobe_item(
         # Nested field paths preserve metadata siblings and concurrent worker output.
         # Never accept identity, owner, or server-owned timestamps from the client.
         update_data["updatedAt"] = int(time.time())
-        doc_ref.update(update_data)
+        from src.services.wardrobe_mutations import mutate_wardrobe
+        mutate_wardrobe(db, current_user.id, item_id, 'edit', update_data)
         
         # Log analytics event
         if ANALYTICS_AVAILABLE:
@@ -1161,57 +872,10 @@ async def delete_wardrobe_item(
     item_id: str,
     current_user: UserProfile = Depends(verified_wardrobe_user)
 ) -> Dict[str, Any]:
-    """Delete a wardrobe item."""
-    try:
-        # Check if item exists and belongs to user
-        doc_ref = db.collection('wardrobe').document(item_id)
-        doc = doc_ref.get() if doc_ref else None
-        
-        if not doc.exists:
-            raise HTTPException(status_code=404, detail="Wardrobe item not found")
-        
-        item = doc.to_dict()
-        if not _owned_wardrobe_item(item, current_user.id):
-            raise HTTPException(status_code=403, detail="Not authorized to delete this item")
-        
-        # Log analytics event before deletion
-        if ANALYTICS_AVAILABLE:
-            analytics_event = AnalyticsEvent(
-                user_id=current_user.id,
-                event_type="wardrobe_item_deleted",
-                metadata={
-                    "item_id": item_id,
-                    "item_type": (item.get("type") if item else None),
-                    "item_name": (item.get("name") if item else None)
-                }
-            )
-            log_analytics_event(analytics_event)
-        
-        # Delete from Firestore
-        doc_ref.delete()
-        
-        # Atomically decrement wardrobe item count in user profile
-        try:
-            user_ref = db.collection('users').document(current_user.id)
-            user_ref.update({
-                'wardrobeItemCount': firestore.Increment(-1)
-            })
-            logger.info(f"✅ Decremented wardrobeItemCount for user {current_user.id}")
-        except Exception as count_error:
-            logger.warning(f"⚠️ Failed to decrement wardrobeItemCount: {count_error}")
-        
-        logger.info(f"Wardrobe item deleted: {item_id}")
-        
-        return {
-            "success": True,
-            "message": "Wardrobe item deleted successfully"
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error deleting wardrobe item: {e}")
-        raise HTTPException(status_code=500, detail=f"Error deleting wardrobe item: {str(e)}")
+    """Delete once, preserving the receipt required for safe retries and cleanup."""
+    from src.services.wardrobe_mutations import mutate_wardrobe
+    mutate_wardrobe(db, current_user.id, item_id, 'delete')
+    return {"success": True, "message": "Wardrobe item deleted successfully"}
 
 @router.post("/enhance-metadata")
 async def enhance_wardrobe_metadata(
@@ -1219,6 +883,12 @@ async def enhance_wardrobe_metadata(
 ) -> Dict[str, Any]:
     """Enhance metadata for all user's wardrobe items."""
     try:
+        from src.services.app_data_privacy import require_app_data_writable, AppDataDeletionError
+        from src.services.wardrobe_mutations import mutate_wardrobe
+        try:
+            epoch = require_app_data_writable(db, current_user.id)
+        except AppDataDeletionError as error:
+            raise HTTPException(error.status_code, error.detail) from None
         # Get user's wardrobe items
         docs = db.collection('wardrobe').where('userId', '==', current_user.id).stream()
         
@@ -1248,10 +918,8 @@ async def enhance_wardrobe_metadata(
                 
                 # Update item in Firestore
                 doc_ref = db.collection('wardrobe').document(item['id'])
-                doc_ref.update({
-                    'metadata': enhanced_metadata,
-                    'updatedAt': int(time.time())
-                })
+                mutate_wardrobe(db, current_user.id, item['id'], 'edit',
+                    {'metadata': enhanced_metadata}, expected_epoch=epoch)
                 
                 enhanced_count += 1
                 
@@ -1288,65 +956,11 @@ async def enhance_wardrobe_metadata(
 @router.post("/{item_id}/increment-wear")
 async def increment_wardrobe_item_wear_count(
     item_id: str,
+    request: Request,
     current_user: UserProfile = Depends(verified_wardrobe_user)
 ) -> Dict[str, Any]:
-    """Increment the wear count for a specific wardrobe item."""
-    try:
-        # Check if item exists and belongs to user
-        doc_ref = db.collection('wardrobe').document(item_id)
-        doc = doc_ref.get() if doc_ref else None
-        
-        if not doc.exists:
-            raise HTTPException(status_code=404, detail="Wardrobe item not found")
-        
-        item = doc.to_dict()
-        if not _owned_wardrobe_item(item, current_user.id):
-            raise HTTPException(status_code=403, detail="Not authorized to update this item")
-        
-        # Get current wear count and increment it
-        current_wear_count = (item.get('wearCount', 0) if item else 0)
-        new_wear_count = current_wear_count + 1
-        current_timestamp = int(time.time())
-        
-        # Update wear count and last worn timestamp
-        update_data = {
-            'wearCount': new_wear_count,
-            'lastWorn': current_timestamp,
-            'updatedAt': current_timestamp
-        }
-        
-        doc_ref.update(update_data)
-        
-        # Log analytics event
-        if ANALYTICS_AVAILABLE:
-            analytics_event = AnalyticsEvent(
-                user_id=current_user.id,
-                event_type="wardrobe_item_wear_incremented",
-                metadata={
-                    "item_id": item_id,
-                    "item_type": (item.get("type") if item else None),
-                    "previous_wear_count": current_wear_count,
-                    "new_wear_count": new_wear_count
-                }
-            )
-            log_analytics_event(analytics_event)
-        
-        logger.info(f"Wear count incremented for item {item_id}: {current_wear_count} -> {new_wear_count}")
-        
-        return {
-            "success": True,
-            "message": "Wear count incremented successfully",
-            "data": {
-                "itemId": item_id,
-                "previousWearCount": current_wear_count,
-                "newWearCount": new_wear_count,
-                "lastWorn": current_timestamp
-            }
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error incrementing wear count for item {item_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Error incrementing wear count: {str(e)}")
- 
+    """Log a standalone garment wear with a stable retry receipt."""
+    from src.services.wardrobe_mutations import mutate_wardrobe
+    result = mutate_wardrobe(db, current_user.id, item_id, 'wear',
+                            idempotency_key=request.headers.get('Idempotency-Key'))
+    return {"success": True, "message": "Wear count saved", "data": result}

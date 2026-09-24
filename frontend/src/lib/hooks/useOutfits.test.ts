@@ -1,0 +1,24 @@
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { useOutfits } from './useOutfits';
+declare const beforeEach: jest.Lifecycle;
+declare const afterEach: jest.Lifecycle;
+declare const it: jest.It;
+declare const expect: jest.Expect;
+const mockUser = { uid: 'legacy-owner', getIdToken: async () => 'token' };
+const mockWear = jest.fn();
+const look = { id: 'look-1', name: 'Saved look', items: [], wearCount: 2 };
+jest.mock('@/contexts/AuthContext', () => ({ useAuthContext: () => ({ user: mockUser, loading: false }) }));
+jest.mock('@/lib/services/outfitService', () => ({ __esModule: true, default: { getUserOutfits: async () => [look] } }));
+jest.mock('@/lib/services/outfitService_proper', () => ({ __esModule: true, default: { markOutfitAsWorn: (...args: unknown[]) => mockWear(...args) } }));
+beforeEach(() => { jest.clearAllMocks(); jest.spyOn(console, 'log').mockImplementation(() => {}); jest.spyOn(window, 'dispatchEvent'); });
+afterEach(() => jest.restoreAllMocks());
+it('uses the canonical receipt once without another local increment or duplicate event', async () => {
+  mockWear.mockResolvedValue({ success: true, outfit_id: 'look-1', event_id: 'wear-v1-' + 'b'.repeat(64), wear_count: 3, last_worn: 1700000000, rewards: { xp_awarded: 0 } });
+  const { result } = renderHook(useOutfits);
+  await waitFor(() => expect(result.current.outfits).toHaveLength(1));
+  await act(async () => result.current.markAsWorn('look-1'));
+  expect(result.current.error).toBeNull();
+  expect(result.current.outfits[0].wearCount).toBe(3);
+  expect(mockWear).toHaveBeenCalledTimes(1);
+  expect((window.dispatchEvent as jest.Mock).mock.calls.filter(([event]) => event.type === 'outfitMarkedAsWorn')).toHaveLength(1);
+});

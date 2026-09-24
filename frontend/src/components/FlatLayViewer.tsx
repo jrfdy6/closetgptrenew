@@ -38,6 +38,8 @@ interface FlatLayViewerProps {
   flatLayActionLoading?: boolean;
   hasFlatLayCredits?: boolean;
   requestAllowed?: boolean;
+  admissionPaused?: boolean;
+  admissionReason?: string | null;
 }
 
 export default function FlatLayViewer({
@@ -58,6 +60,8 @@ export default function FlatLayViewer({
   flatLayActionLoading = false,
   hasFlatLayCredits = false,
   requestAllowed = true,
+  admissionPaused = false,
+  admissionReason = null,
 }: FlatLayViewerProps) {
   const normalizedStatus = (status ?? '').toLowerCase();
   const isComplete = ['done', 'completed', 'ready'].includes(normalizedStatus) || (!normalizedStatus && Boolean(flatLayUrl));
@@ -97,8 +101,8 @@ export default function FlatLayViewer({
   const showingImage = hasImage && (currentView === 'flat-lay' || !canShowPieces);
   const balanceKnown = Boolean(flatLayUsage) && !flatLayLoading && !flatLayError;
   const creditsExhausted = balanceKnown && flatLayUsage?.remaining !== null && Number.isFinite(flatLayUsage?.remaining) && (flatLayUsage?.remaining ?? 0) <= 0;
-  const requestDisabled = flatLayActionLoading || !balanceKnown || !hasFlatLayCredits || creditsExhausted;
-  const canRequest = requestAllowed && !flatLayUrl && !isPending && !isDelayed && !isUnknown && !isComplete && Boolean(onRequestFlatLay);
+  const requestDisabled = admissionPaused || flatLayActionLoading || !balanceKnown || !hasFlatLayCredits || creditsExhausted;
+  const canRequest = (requestAllowed || admissionPaused) && !flatLayUrl && !isPending && !isDelayed && !isUnknown && !isComplete && Boolean(onRequestFlatLay);
   const imageSource = flatLayUrl && /(?:storage\.googleapis\.com|firebasestorage\.googleapis\.com)/.test(flatLayUrl)
     ? `/api/flatlay-proxy?url=${encodeURIComponent(flatLayUrl)}`
     : flatLayUrl;
@@ -126,6 +130,9 @@ export default function FlatLayViewer({
   if (imageError) {
     statusHeading = 'Your flat lay could not be loaded';
     statusDescription = 'Your outfit pieces are still here. Retry loading this image. This does not create another flat lay or use a credit.';
+  } else if (admissionPaused && !isPending && !isDelayed && !isComplete) {
+    statusHeading = 'Flat lays are temporarily unavailable';
+    statusDescription = admissionReason || 'Your outfit is saved. Please check again later; no credit has been used.';
   } else if (isStale || (awaitingConsent && Boolean(error))) {
     statusHeading = 'Your outfit has changed';
     statusDescription = error || 'The earlier flat lay no longer matches these pieces. Create a new one only when you are ready.';
@@ -145,7 +152,7 @@ export default function FlatLayViewer({
       : 'Your outfit pieces are still here. Please contact support before making another request.');
   } else if (!requestAllowed) {
     statusHeading = 'This flat lay request needs review';
-    statusDescription = error || 'Your outfit pieces are still here. Please contact support before making another request.';
+    statusDescription = admissionReason || error || 'Your outfit pieces are still here. Please contact support before making another request.';
   } else if (flatLayActionLoading) {
     statusHeading = 'Requesting your flat lay…';
   }
@@ -314,10 +321,10 @@ export default function FlatLayViewer({
                 <div className="flex flex-wrap items-center gap-2">
                   <Button variant="outline" size="sm" className="border-stone-300 bg-transparent text-stone-800 shadow-none dark:border-stone-600 dark:text-stone-100" onClick={onRequestFlatLay} disabled={requestDisabled}>
                     {flatLayActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />}
-                    {flatLayActionLoading ? 'Requesting…' : isFailed ? 'Request a new flat lay' : 'Create flat lay'}
+                    {admissionPaused ? 'Temporarily unavailable' : flatLayActionLoading ? 'Requesting…' : isFailed ? 'Request a new flat lay' : 'Create flat lay'}
                   </Button>
                   {awaitingConsent && onSkipFlatLay && <Button variant="ghost" size="sm" onClick={onSkipFlatLay} disabled={flatLayActionLoading}>Maybe later</Button>}
-                  {creditsExhausted && <Link href="/upgrade" className="rounded-md px-2 py-3 text-sm text-stone-600 underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-stone-300">View plans</Link>}
+                  {!admissionPaused && creditsExhausted && <Link href="/upgrade" className="rounded-md px-2 py-3 text-sm text-stone-600 underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-stone-300">View plans</Link>}
                 </div>
                 <p className="text-xs text-stone-500 dark:text-stone-400">Uses 1 flat lay credit. <span>{balanceText}</span></p>
                 {flatLayError && <p role="alert" className="text-sm text-destructive">{flatLayError}</p>}

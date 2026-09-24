@@ -1,78 +1,44 @@
-import { NextRequest, NextResponse } from 'next/server';
-
 export const dynamic = 'force-dynamic';
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+const privateHeaders = { 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' };
+const fail = (status: number, error: string) => Response.json({ error }, { status, headers: privateHeaders });
 
-/**
- * Proxy endpoint for flat lay images to fix CORS issues
- * Fetches images from Google Cloud Storage and serves them with proper CORS headers
- */
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
+  const bucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim();
+  if (!bucket || !/^[a-z0-9][a-z0-9._-]*$/.test(bucket)) return fail(503, 'Image service is unavailable.');
+  let source: URL;
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const imageUrl = searchParams.get('url');
+    source = new URL(new URL(request.url).searchParams.get('url') || '');
+    if (source.protocol !== 'https:' || source.username || source.password || source.port || source.hash ||
+        !['storage.googleapis.com', 'firebasestorage.googleapis.com'].includes(source.hostname)) throw new Error();
+    const path = decodeURIComponent(source.pathname);
+    const prefix = source.hostname === 'storage.googleapis.com' ? `/${bucket}/` : `/v0/b/${bucket}/o/`;
+    if (!path.startsWith(prefix) || path.length <= prefix.length || /[\\\x00-\x1f]/.test(path) || path.split('/').includes('..')) throw new Error();
+  } catch { return fail(400, 'Invalid image URL.'); }
 
-    if (!imageUrl) {
-      return NextResponse.json(
-        { error: 'Image URL is required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate that the URL is from Google Cloud Storage
-    if (!imageUrl.includes('storage.googleapis.com') && !imageUrl.includes('firebasestorage.googleapis.com')) {
-      return NextResponse.json(
-        { error: 'Invalid image URL' },
-        { status: 400 }
-      );
-    }
-
-    // Fetch the image from Google Cloud Storage
-    const response = await fetch(imageUrl, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-      },
-    });
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: 'Failed to fetch image' },
-        { status: response.status }
-      );
-    }
-
-    // Get the image blob
-    const blob = await response.blob();
-    const contentType = response.headers.get('content-type') || 'image/png';
-
-    // Return the image with proper CORS headers
-    return new NextResponse(blob, {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Cache-Control': 'public, max-age=31536000, immutable',
-      },
-    });
-  } catch (error) {
-    console.error('Error proxying flat lay image:', error);
-    return NextResponse.json(
-      { error: 'Failed to proxy image' },
-      { status: 500 }
-    );
-  }
+  try {
+    const response = await fetch(source.toString(), { cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(15_000) });
+    if (!response.ok) return fail(response.status === 404 ? 404 : 502, 'The image could not be loaded. Please try again.');
+    const type = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+    if (!type || !['image/png', 'image/jpeg', 'image/webp', 'image/avif'].includes(type)) return fail(502, 'The image response was invalid.');
+    if (Number(response.headers.get('content-length')) > MAX_IMAGE_BYTES) { await response.body?.cancel(); return fail(413, 'The image is too large to download here.'); }
+    if (!response.body) return fail(502, 'The image response was empty.');
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > MAX_IMAGE_BYTES) { await reader.cancel(); return fail(413, 'The image is too large to download here.'); }
+        chunks.push(value);
+      }
+    } finally { reader.releaseLock(); }
+    if (!size) return fail(502, 'The image response was empty.');
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    return new Response(bytes, { headers: { ...privateHeaders, 'Content-Type': type, 'Content-Length': String(size) } });
+  } catch { return fail(502, 'The image could not be loaded. Please try again.'); }
 }
-
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
-}
-

@@ -25,12 +25,26 @@ class FlatlayRequestError(Exception):
         self.detail = detail
 
 
+try:
+    from .app_data_privacy import require_app_data_writable, app_data_write_allowed, AppDataDeletionError
+except ImportError:
+    from app_data_privacy import require_app_data_writable, app_data_write_allowed, AppDataDeletionError
+
+
+def _request_writable(db, txn, request):
+    try:
+        require_app_data_writable(db, request.get("user_id"), expected_epoch=request.get("app_data_epoch", 0), transaction=txn)
+        return True
+    except AppDataDeletionError:
+        return False
+
+
 def _now():
     return int(datetime.now(timezone.utc).timestamp())
 
 
 def _owner_matches(data, user_id):
-    owners = [data[key] for key in ("user_id", "userId") if data.get(key)]
+    owners = [data[key] for key in ("user_id", "userId", "firebase_uid", "uid", "ownerId") if data.get(key) is not None]
     return bool(user_id and owners) and all(owner == user_id for owner in owners)
 
 
@@ -197,6 +211,7 @@ def reserve_request(db, outfit_id, user_id, *, now=None, request_id=None):
     """Reserve one credit and queue one explicit request in the same commit."""
     now = _now() if now is None else now
     request_id = request_id or uuid4().hex
+    captured_epoch = [None]
     outfit_ref = db.collection("outfits").document(outfit_id)
     ledger_ref = db.collection(REQUESTS_COLLECTION).document(outfit_id)
     user_ref = db.collection("users").document(user_id)
@@ -209,6 +224,14 @@ def reserve_request(db, outfit_id, user_id, *, now=None, request_id=None):
         outfit = outfit_doc.to_dict() or {}
         if not _owner_matches(outfit, user_id):
             raise FlatlayRequestError(403, "Access denied")
+        if not _available_garment(outfit, user_id):
+            raise FlatlayRequestError(404, "Outfit not found")
+        try:
+            epoch = require_app_data_writable(db, user_id, expected_epoch=captured_epoch[0], transaction=txn)
+            if captured_epoch[0] is None:
+                captured_epoch[0] = epoch
+        except AppDataDeletionError as error:
+            raise FlatlayRequestError(error.status_code, error.detail) from error
         ledger_doc = ledger_ref.get(transaction=txn)
         previous = (ledger_doc.to_dict() or {}) if ledger_doc.exists else {}
         if previous:
@@ -275,7 +298,7 @@ def reserve_request(db, outfit_id, user_id, *, now=None, request_id=None):
             reference = _reserved_reference(item_id, garment, job, user_id, request_id)
             items.append({"id": item_id, **{key: garment[key] for key in asset_fields if key in garment}, **reference})
         request = {
-            "request_id": request_id, "outfit_id": outfit_id, "user_id": user_id,
+            "request_id": request_id, "outfit_id": outfit_id, "user_id": user_id, "app_data_epoch": epoch,
             "status": "pending", "credit_status": "reserved", "quota_period_start": period_start,
             "requested_at": now, "queued_at": now, "expires_at": now + PENDING_TIMEOUT_SECONDS,
             "items": items, "outfit_context": {key: outfit.get(key) for key in ("name", "style", "occasion", "mood")},
@@ -301,15 +324,17 @@ def claim_request(db, outfit_id, *, now=None, allow_claim=True):
         outfit_doc = outfit_ref.get(transaction=txn)
         outfit = (outfit_doc.to_dict() or {}) if outfit_doc.exists else {}
         if not ledger_doc.exists:
-            if _status(outfit) in ("pending", "processing"):
-                txn.update(outfit_ref, _projection("failed", None, now, error=LEGACY_ERROR,
-                                                  error_code="legacy_request_needs_review"))
             return None
         request = ledger_doc.to_dict() or {}
         if request.get("outfit_id") != outfit_id:
             # A misplaced private record is not authority for this outfit, its
             # projection, or a credit settlement. Leave it untouched for review.
             return None
+        writable = _request_writable(db, txn, request)
+        available_outfit = outfit_doc.exists and _available_garment(outfit, request.get("user_id"))
+        if not writable or not available_outfit:
+            # Coordinator settles a pending reservation without provider work.
+            return {**request, "preflight_error": "app_data_deleted" if not writable else "outfit_unavailable"} if request.get("status") == "pending" and request.get("credit_status") == "reserved" else None
         if request.get("status") != "pending" or request.get("credit_status") != "reserved":
             legacy_completed = request.get("status") == "done" and not _has_source_identity(request)
             changed_completed = (request.get("status") == "done"
@@ -427,6 +452,8 @@ def admit_provider_request(db, outfit_id, request_id, prepared_originals, *, now
                 or not math.isfinite(expires_at) or expires_at <= now
                 or not _available_garment(outfit, request.get("user_id")) or not _same_item_set(request, outfit)):
             return False
+        if not _request_writable(db, txn, request):
+            return False
         reports = _preparation_reports(request, prepared_originals)
         if reports is None:
             return False
@@ -466,7 +493,13 @@ def finish_request(db, outfit_id, request_id, *, url=None, error=None,
             return False
         outfit_doc = outfit_ref.get(transaction=txn)
         outfit = (outfit_doc.to_dict() or {}) if outfit_doc.exists else {}
+        user_ref = db.collection("users").document(request["user_id"])
+        user_doc = user_ref.get(transaction=txn)
+        user = user_doc.to_dict() or {} if user_doc.exists else {}
+        writable = user_doc.exists and app_data_write_allowed(user, request.get("app_data_epoch", 0))
         result_url, result_error, result_code, can_offer_retry = url, error, error_code, retryable
+        if not writable:
+            result_url, result_error, result_code, can_offer_retry = None, "App data was cleared.", "app_data_deleted", False
         owned_outfit = outfit_doc.exists and _owner_matches(outfit, request["user_id"])
         same_items = (owned_outfit and _available_garment(outfit, request["user_id"])
                       and _same_item_set(request, outfit) and _same_owned_sources(db, txn, request))
@@ -477,14 +510,12 @@ def finish_request(db, outfit_id, request_id, *, url=None, error=None,
             if result_url:
                 can_offer_retry = True  # confirmed output, so no ambiguous attempt remains
             result_url = None
-            if error_code not in ("provider_outcome_unknown", "worker_outcome_unknown"):
+            if writable and error_code not in ("provider_outcome_unknown", "worker_outcome_unknown"):
                 result_error = "This outfit changed before its preview was ready. Request a new preview for the updated items."
                 result_code = "outfit_changed" if owned_outfit else "outfit_unavailable"
                 if not _has_source_identity(request):
                     result_error, result_code = LEGACY_ERROR, "legacy_request_needs_review"
                     can_offer_retry = False
-        user_ref = db.collection("users").document(request["user_id"])
-        user_doc = user_ref.get(transaction=txn) if not result_url else None
         credit_status = "consumed" if result_url else "refund_needs_review"
         if not result_url and user_doc.exists:
             user = user_doc.to_dict() or {}
@@ -502,7 +533,7 @@ def finish_request(db, outfit_id, request_id, *, url=None, error=None,
                    "credit_status": credit_status, "retryable": bool(can_retry),
                    "finished_at": now, "queued_at": None, "expires_at": None}
         txn.update(ledger_ref, changes)
-        if owned_outfit:
+        if owned_outfit and writable and _available_garment(outfit, request["user_id"]):
             txn.update(outfit_ref, _projection(status, request_id, now, url=result_url, error=result_error,
                                               retryable=can_retry, error_code=result_code,
                                               credit_status=credit_status))

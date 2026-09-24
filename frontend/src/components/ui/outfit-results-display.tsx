@@ -94,8 +94,8 @@ export default function OutfitResultsDisplay({
   const [waitingLonger, setWaitingLonger] = useState(false);
 
   useEffect(() => {
-    setFlatLay({ url: initial.url, status: initial.status, error: initial.error, requestAllowed: initial.requestAllowed });
-  }, [outfit.id, initial.url, initial.status, initial.error, initial.requestAllowed]);
+    setFlatLay(initial);
+  }, [outfit.id, initial.url, initial.status, initial.error, initial.requestAllowed, initial.admissionPaused, initial.admissionReason]);
 
   useEffect(() => {
     setUpdatesUnavailable(false);
@@ -178,7 +178,7 @@ export default function OutfitResultsDisplay({
           <FlatLayViewer
             key={outfit.id} outfitId={outfit.id} flatLayUrl={flatLay.url} outfitName={outfit.name} outfitItems={outfit.items}
             status={waitingLonger ? 'delayed' : flatLay.status} error={flatLay.error}
-            requestAllowed={flatLay.requestAllowed} onRefresh={onRefresh} refreshPending={refreshPending}
+            requestAllowed={flatLay.requestAllowed} admissionPaused={flatLay.admissionPaused} admissionReason={flatLay.admissionReason} onRefresh={onRefresh} refreshPending={refreshPending}
             flatLayUsage={flatLayUsage} flatLayLoading={flatLayLoading} flatLayError={flatLayError}
             onRequestFlatLay={onRequestFlatLay} onSkipFlatLay={onSkipFlatLay}
             flatLayActionLoading={flatLayActionLoading} hasFlatLayCredits={hasFlatLayCredits}

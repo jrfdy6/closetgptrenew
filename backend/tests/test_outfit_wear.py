@@ -36,22 +36,61 @@ class Snapshot:
 
 class Document:
     def __init__(self, db, collection, item_id):
-        self.db, self.collection, self.id = db, collection, item_id
+        self.db, self.collection_name, self.id = db, collection, item_id
         self.path = (collection, item_id)
 
-    def get(self, transaction):
-        if transaction.writes:
+    def collection(self, name):
+        return Collection(self.db, self.collection_name + "/" + self.id + "/" + name)
+
+    def get(self, transaction=None):
+        if transaction and transaction.writes:
             raise AssertionError("Read after write violates Firestore transaction ordering")
         with self.db.lock:
             if self.db.fail_read:
                 raise RuntimeError("private read failure")
-            transaction.versions[self.path] = self.db.versions.get(self.path, 0)
-            return Snapshot(self.db.rows.get(self.collection, {}).get(self.id))
+            if transaction:
+                transaction.versions[self.path] = self.db.versions.get(self.path, 0)
+            snapshot = Snapshot(self.db.rows.get(self.collection_name, {}).get(self.id))
+            snapshot.id, snapshot.reference = self.id, self
+            return snapshot
 
 
-class Collection:
-    def __init__(self, db, name):
+class FakeQuery:
+    def __init__(self, db, name, filters=None, ordering=None, cap=None, cursor=None):
         self.db, self.name = db, name
+        self.filters, self.ordering, self.cap, self.cursor = filters or [], ordering, cap, cursor
+    def where(self, *args, filter=None):
+        predicate = (filter.field_path, filter.op_string, filter.value) if filter else args
+        return FakeQuery(self.db, self.name, self.filters + [predicate], self.ordering, self.cap, self.cursor)
+    def order_by(self, field, direction=None):
+        return FakeQuery(self.db, self.name, self.filters, (field, direction), self.cap, self.cursor)
+    def limit(self, number):
+        return FakeQuery(self.db, self.name, self.filters, self.ordering, number, self.cursor)
+    def start_after(self, cursor):
+        value = cursor.get("__name__") if isinstance(cursor, dict) else cursor
+        return FakeQuery(self.db, self.name, self.filters, self.ordering, self.cap, value.id)
+    def stream(self, transaction=None):
+        found = []
+        for key in self.db.rows.get(self.name, {}):
+            snap = Document(self.db, self.name, key).get(transaction)
+            value = snap.to_dict()
+            if self.cursor and key <= self.cursor:
+                continue
+            ok = True
+            for field, op, expected in self.filters:
+                actual = value.get(field)
+                ok = ok and ({"==": lambda: actual == expected, "array_contains": lambda: expected in (actual or []), "in": lambda: actual in expected, "<": lambda: actual is not None and actual < expected, "<=": lambda: actual is not None and actual <= expected, ">=": lambda: actual is not None and actual >= expected}[op]())
+            if ok:
+                found.append(snap)
+        if self.ordering:
+            field, direction = self.ordering
+            found.sort(key=lambda snap: snap.id if field == "__name__" else snap.to_dict().get(field, 0), reverse=direction == "DESCENDING")
+        return iter(found[:self.cap] if self.cap else found)
+
+
+class Collection(FakeQuery):
+    def __init__(self, db, name):
+        super().__init__(db, name)
 
     def document(self, item_id):
         return Document(self.db, self.name, item_id)
@@ -76,7 +115,7 @@ class Transaction:
             for index, (kind, reference, data) in enumerate(self.writes):
                 if index == self.db.fail_at_write:
                     raise RuntimeError("private partial commit failure")
-                collection = staged.setdefault(reference.collection, {})
+                collection = staged.setdefault(reference.collection_name, {})
                 if kind == "set":
                     collection[reference.id] = data
                 else:
@@ -132,6 +171,7 @@ class WearTestFixture(unittest.TestCase):
     def setUp(self):
         self.db = Database()
         self.now = datetime(2026, 9, 22, 2, 30, tzinfo=timezone.utc)
+        self.db.seed("users", "owner", {"xp": 0})
         self.items = [self.garment("dress", "dress"), self.garment("shoes", "shoes")]
         for item in self.items:
             self.db.seed("wardrobe", item["id"], item)
@@ -168,7 +208,7 @@ class OutfitWearTests(WearTestFixture):
         self.assertEqual({item["id"] for item in history["items"]}, {"dress", "shoes"})
         self.assertEqual(self.db.rows["outfits"]["look"]["lastWearDate"], "2026-09-21")
         self.assertEqual(self.db.rows["outfits"]["look"]["lastWorn"], result["last_worn"])
-        self.assertEqual(set(self.db.rows), {"wardrobe", "outfits", "outfit_history", wear.RECEIPTS_COLLECTION})
+        self.assertEqual(set(self.db.rows), {"wardrobe", "outfits", "outfit_history", "users", "wear_engagement_days", "reward_ledger", "wear_projection_jobs", wear.RECEIPTS_COLLECTION})
 
     def test_repeated_key_and_new_key_same_day_share_one_event(self):
         first, retry, second_key = self.record(), self.record(), self.record("request-2")
@@ -476,65 +516,47 @@ class OutfitWearApiTests(WearTestFixture):
         self.assertEqual(len(self.db.rows["outfit_history"]), 1)
 
 
-class WearHistoryCompatibilityTests(unittest.TestCase):
+class WearHistoryCompatibilityTests(WearTestFixture):
     def setUp(self):
+        super().setUp()
         path = Path(__file__).resolve().parents[1] / "src/routes/outfit_history.py"
-        selected = {"parse_last_worn", "calculate_worn_outfits_this_week", "update_outfit_history_entry", "delete_outfit_history_entry"}
-        nodes = [node for node in ast.parse(path.read_text()).body
-                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in selected]
-        self.reference = Mock()
-        self.reference.get.return_value = Snapshot({"user_id": "owner", "wear_operation_version": 1})
-        self.database = Mock()
-        self.database.collection.return_value.document.return_value = self.reference
-        self.namespace = {
-            "__package__": "src.routes", "router": APIRouter(), "Depends": Depends,
-            "get_current_user": lambda: SimpleNamespace(id="owner"), "UserProfile": Any,
-            "Dict": Dict, "Any": Any, "HTTPException": HTTPException,
-            "datetime": datetime, "timedelta": timedelta, "timezone": timezone,
-            "logger": logging.getLogger("history-compatibility"), "get_db": lambda: self.database,
-        }
+        selected = {"parse_last_worn", "update_outfit_history_entry", "delete_outfit_history_entry"}
+        nodes = [node for node in ast.parse(path.read_text()).body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in selected]
+        self.namespace = {"__package__": "src.routes", "router": APIRouter(), "Depends": Depends, "get_current_user": lambda: SimpleNamespace(id="owner"), "UserProfile": Any, "Dict": Dict, "Any": Any, "HTTPException": HTTPException, "datetime": datetime, "timedelta": timedelta, "timezone": timezone, "get_db": lambda: self.db}
         exec(compile(ast.Module(body=nodes, type_ignores=[]), str(path), "exec"), self.namespace)
-        app = FastAPI()
-        app.include_router(self.namespace["router"], prefix="/api/outfit-history")
+        app = FastAPI(); app.include_router(self.namespace["router"], prefix="/api/outfit-history")
         self.client = TestClient(app)
 
     def test_numeric_milliseconds_seconds_and_existing_dates_parse_as_utc(self):
         timestamp = datetime(2026, 9, 22, 16, tzinfo=timezone.utc)
-        for value in (int(timestamp.timestamp() * 1000), timestamp.timestamp(), timestamp,
-                      timestamp.isoformat(), "2026-09-22T16:00:00Z"):
-            with self.subTest(value=value):
-                self.assertEqual(self.namespace["parse_last_worn"](value), timestamp)
+        for value in (int(timestamp.timestamp() * 1000), timestamp.timestamp(), timestamp, timestamp.isoformat(), "2026-09-22T16:00:00Z"):
+            self.assertEqual(self.namespace["parse_last_worn"](value), timestamp)
         for value in (float("nan"), float("inf"), True, "invalid"):
             self.assertIsNone(self.namespace["parse_last_worn"](value))
 
-    def test_existing_week_reader_counts_numeric_new_events(self):
-        recent = int(datetime.now(timezone.utc).timestamp() * 1000)
-        doc = SimpleNamespace(id="wear-v1-event", to_dict=lambda: {"outfit_id": "look", "date_worn": recent})
-        self.database.collection.return_value.where.return_value.stream.return_value = [doc]
-        firebase = ModuleType("src.config.firebase")
-        firebase.db = self.database
-        with patch.dict("sys.modules", {"src.config.firebase": firebase}):
-            self.assertEqual(asyncio.run(self.namespace["calculate_worn_outfits_this_week"]("owner")), 1)
+    def test_managed_history_metadata_edit_and_undo_keep_rewards(self):
+        result = self.record(); eid = result["event_id"]
+        user = copy.deepcopy(self.db.rows["users"]["owner"])
+        response = self.client.patch("/api/outfit-history/" + eid, json={"notes": "changed"})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(self.db.rows["outfit_history"][eid]["notes"], "changed")
+        response = self.client.delete("/api/outfit-history/" + eid)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertTrue(response.json()["undone"])
+        self.assertEqual(self.db.rows["users"]["owner"], user)
+        self.assertEqual(self.db.rows["outfits"]["look"]["wearCount"], 4)
 
-    def test_managed_history_cannot_be_edited_or_deleted_through_legacy_api(self):
-        for record, entry_id in (({"user_id": "owner", "wear_operation_version": 1}, "arbitrary"),
-                                 ({"user_id": "owner"}, "wear-v1-event")):
-            self.reference.get.return_value = Snapshot(record)
-            for method in ("patch", "delete"):
-                with self.subTest(method=method, entry_id=entry_id):
-                    kwargs = {"json": {"notes": "changed"}} if method == "patch" else {}
-                    response = getattr(self.client, method)("/api/outfit-history/" + entry_id, **kwargs)
-                    self.assertEqual(response.status_code, 409, response.text)
-        self.reference.update.assert_not_called()
-        self.reference.delete.assert_not_called()
+    def test_history_missing_or_foreign_is_not_found(self):
+        for record in (None, {"user_id": "foreign"}):
+            if record:
+                self.db.seed("outfit_history", "entry", record)
+            self.assertEqual(self.client.patch("/api/outfit-history/entry", json={}).status_code, 404)
+            self.assertEqual(self.client.delete("/api/outfit-history/entry").status_code, 404)
 
-    def test_history_missing_or_foreign_errors_stay_errors_without_mutation(self):
-        for record, expected in ((None, 404), ({"user_id": "foreign"}, 403)):
-            self.reference.get.return_value = Snapshot(record)
-            self.assertEqual(self.client.patch("/api/outfit-history/entry", json={}).status_code, expected)
-            self.assertEqual(self.client.delete("/api/outfit-history/entry").status_code, expected)
-        self.reference.update.assert_not_called()
-        self.reference.delete.assert_not_called()
+    def test_legacy_delete_hides_without_invented_counter_reversal(self):
+        self.db.seed("outfit_history", "legacy", {"user_id": "owner", "outfit_id": "look"})
+        self.assertEqual(self.client.delete("/api/outfit-history/legacy").status_code, 200)
+        self.assertEqual(self.db.rows["outfits"]["look"]["wearCount"], 4)
 
 
 if __name__ == "__main__":

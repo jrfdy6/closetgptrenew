@@ -15,6 +15,10 @@ from fastapi import HTTPException
 logger = logging.getLogger(__name__)
 
 
+def active_outfit(data):
+    return not any(data.get(key) for key in ('deleted', 'isDeleted', 'deletedAt', 'deleted_at'))
+
+
 def outfit_belongs_to_user(outfit: Dict[str, Any], user_id: str) -> bool:
     """Accept either historical owner field, but never conflicting owners."""
     owners = [outfit[key] for key in ('user_id', 'userId') if outfit.get(key) is not None]
@@ -64,7 +68,7 @@ def _get_owned_outfit_documents(db, user_id: str, required_count: int):
                     'createdAt', direction=firestore.Query.DESCENDING
                 ).limit(_OUTFIT_COHORT_LIMIT).stream())
                 owned = [document for document in results
-                         if outfit_belongs_to_user(document.to_dict() or {}, user_id)]
+                         if outfit_belongs_to_user(document.to_dict() or {}, user_id) and active_outfit(document.to_dict() or {})]
                 if len(results) == _OUTFIT_COHORT_LIMIT:
                     # Overscan is bounded. If conflicting owners, timestamp
                     # ties, or ISO spelling differences prevent establishing
@@ -101,6 +105,7 @@ def _get_owned_outfit_documents(db, user_id: str, required_count: int):
                 document.id: document for document in results
                 if (document.to_dict() or {}).get('createdAt') is not None
                 and outfit_belongs_to_user(document.to_dict() or {}, user_id)
+                and active_outfit(document.to_dict() or {})
             }
         documents.update(owner_documents)
     return documents.values()

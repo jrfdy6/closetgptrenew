@@ -5,7 +5,6 @@ Follows the exact pattern used by working wardrobe.py and outfits.py
 
 from fastapi import APIRouter, Depends, Request
 import logging
-import time
 from src.auth.verified_identity import verified_identity
 from src.routes.user_profile import get_profile, save_profile_response
 
@@ -41,58 +40,3 @@ def get_user_profile(request: Request, claims: dict = Depends(verified_identity)
 async def update_user_profile(request: Request, claims: dict = Depends(verified_identity)):
     """Compatibility alias; account and quiz authority follow the main writer."""
     return await save_profile_response(request, claims, wardrobe_aliases=True)
-
-
-async def recalculate_tve_for_user(user_id: str) -> None:
-    """
-    Background TVE recalculation when spending ranges change.
-    Runs after the response is returned so onboarding stays fast.
-    """
-    try:
-        from ..config.firebase import db
-        from ..services.tve_service import tve_service
-
-        user_ref = db.collection("users").document(user_id)
-        user_ref.set(
-            {
-                "tveRecalcStatus": "running",
-                "tveRecalcStartedAt": int(time.time()),
-            },
-            merge=True,
-        )
-
-        wardrobe_ref = db.collection("wardrobe").where("userId", "==", user_id)
-        items = list(wardrobe_ref.stream())
-
-        recalculated_count = 0
-        for doc in items:
-            try:
-                success = await tve_service.initialize_item_tve_fields(user_id, doc.id)
-                if success:
-                    recalculated_count += 1
-            except Exception:
-                # Keep going; one bad item shouldn't kill the batch
-                continue
-
-        user_ref.set(
-            {
-                "tveRecalcStatus": "completed",
-                "tveRecalcCompletedAt": int(time.time()),
-                "tveRecalcUpdatedCount": recalculated_count,
-            },
-            merge=True,
-        )
-    except Exception as e:
-        try:
-            from ..config.firebase import db
-
-            db.collection("users").document(user_id).set(
-                {
-                    "tveRecalcStatus": "error",
-                    "tveRecalcCompletedAt": int(time.time()),
-                    "tveRecalcError": str(e)[:500],
-                },
-                merge=True,
-            )
-        except Exception:
-            pass

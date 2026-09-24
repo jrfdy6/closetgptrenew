@@ -1,5 +1,6 @@
 """Read-only, owned saved-result projection. A read never creates paid work."""
 from copy import deepcopy
+from .flatlay_admission import flatlay_admission_state
 from firebase_admin import firestore
 from .flatlay_lifecycle import _owner_matches, _same_item_set, _available_garment, _source_fingerprint, _has_source_identity
 
@@ -59,7 +60,19 @@ def public_preview(outfit, ledger, garments, user_id, outfit_id):
         for key in ('flat_lay_status', 'flatLayStatus')):
         status, allowed, code = 'failed', False, 'legacy_request_needs_review'
         error = 'This earlier preview needs review before another request. Your original pieces are still available.'
+    admission = flatlay_admission_state()
+    available = bool(outfit.get('items')) and all(
+        _available_garment(garments.get(item_id(item)), user_id)
+        and any(isinstance((garments.get(item_id(item)) or {}).get(field), str)
+                and (garments.get(item_id(item)) or {})[field].strip()
+                for field in ('imageUrl', 'image_url', 'originalImageUrl'))
+        for item in outfit.get('items', []))
+    if admission['flat_lay_admission_paused'] or not available:
+        allowed = False
+    if not available and not admission['flat_lay_admission_paused']:
+        admission['flat_lay_admission_reason'] = 'One or more original photos are unavailable. Update your wardrobe before creating a flatlay.'
     return {
+        **admission,
         'flat_lay_status': status, 'flatLayStatus': status,
         'flat_lay_url': url, 'flatLayUrl': url,
         'flat_lay_error': error, 'flatLayError': error,
@@ -101,7 +114,10 @@ def read_saved_outfit(db, outfit_id, user_id):
                 fallback = {key: value for key, value in item.items()
                             if key in ('name', 'type', 'category', 'color', 'reason')} if isinstance(item, dict) else {}
                 source = {**fallback, **current}
-                items.append({'id': garment_id, **{key: deepcopy(source[key]) for key in ITEM_FIELDS if key in source}})
+                display_item = {'id': garment_id, **{key: deepcopy(source[key]) for key in ITEM_FIELDS if key in source}}
+                if not any(isinstance(source.get(field), str) and source[field].strip() for field in ('imageUrl', 'image_url', 'originalImageUrl')):
+                    display_item['unavailable'] = True
+                items.append(display_item)
             else:
                 items.append({'id': garment_id, 'name': 'Unavailable piece', 'type': '', 'color': '', 'unavailable': True})
         preview = public_preview(outfit, ledger, garments, user_id, outfit_id)
