@@ -28,6 +28,8 @@ jobs:
         run: >-
           python -m unittest
           test_outfit_wear test_wear_reward_integration test_wear_statistics
+          test_gamification_catalog test_gamification_automation test_feedback_reward_recovery test_badge_eligibility
+          test_tve_epoch_hooks test_derived_epoch_hooks test_wardrobe_verified_api
           test_onboarding_state test_quiz_profile test_user_profile
           test_outfit_creation_admission test_outfit_persistence test_saved_outfit
           test_app_data_privacy test_privacy_routes test_privacy_lifecycle_fences

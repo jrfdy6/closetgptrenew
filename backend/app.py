@@ -1091,6 +1091,11 @@ async def add_wardrobe_item_direct(item_data: dict, claims: dict = Depends(verif
         raise HTTPException(status_code=503, detail="Wardrobe storage is unavailable")
     try:
         wardrobe_item = await run_in_threadpool(create_owned_wardrobe_item, db, current_user_id, item_data)
+        try:
+            from src.services.challenge_actions import refresh_action_rewards
+            await refresh_action_rewards(current_user_id, expected_epoch=wardrobe_item.get('app_data_epoch', 0), include_upload_milestones=True)
+        except Exception:
+            logger.exception('Item saved; wardrobe rewards will be reconciled by maintenance')
         return {
             "success": True,
             "message": "Item saved",

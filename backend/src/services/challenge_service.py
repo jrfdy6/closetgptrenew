@@ -41,11 +41,13 @@ class ChallengeService:
                 current_user=type('obj', (object,), {'id': user_id})
             )
             
+            if hasattr(gems_response, 'model_dump'):
+                gems_response = gems_response.model_dump()
             if not gems_response or not gems_response.get('success'):
                 logger.warning(f"Could not get forgotten gems for user {user_id}")
                 return None
             
-            forgotten_items = gems_response['data'].get('forgottenItems', [])
+            forgotten_items = [item for item in gems_response['data'].get('forgottenItems', []) if isinstance(item.get('daysSinceWorn'), (int, float)) and item['daysSinceWorn'] >= 60 and item.get('lastWorn')]
             
             if len(forgotten_items) < 2:
                 logger.info(f"Not enough dormant items for user {user_id} to create challenge")
@@ -96,29 +98,58 @@ class ChallengeService:
             return {"success": False, "error": "Challenge not found"}
         if challenge_id == "annual_wardrobe_master":
             return await self.auto_start_annual_challenge(user_id)
-        now = datetime.now(timezone.utc)
+        from .wear_rewards import reward_timezone
+        from .app_data_privacy import require_app_data_writable
+        from zoneinfo import ZoneInfo
+        initial_epoch = require_app_data_writable(self.db, user_id)
+        profile = self.db.collection('users').document(user_id).get().to_dict() or {}
+        now = datetime.now(ZoneInfo(reward_timezone(profile, 'UTC')))
         year, week, _ = now.isocalendar()
-        instance_id = challenge_id + (f"-{year}-W{week:02d}" if definition.cadence == "weekly" else "")
+        from .challenge_periods import challenge_period
+        suffix, expires = challenge_period(definition.cadence, now)
+        streak_days = definition.rules.get('ratings_days') or definition.rules.get('streak_days') or (definition.rules.get('days_required') if definition.rules.get('consecutive') else None)
+        if streak_days:
+            expires = now + timedelta(days=int(streak_days))
+        if definition.id == 'role_defender':
+            expires = now + timedelta(weeks=int(definition.rules['weeks_required']))
+        if definition.rules.get('time_limit_hours'):
+            deadline = now + timedelta(hours=definition.rules['time_limit_hours'])
+            expires = min(expires, deadline) if expires else deadline
+        instance_id = challenge_id + suffix
         reference = self.db.collection("user_challenges").document(user_id).collection("active").document(instance_id)
         if challenge_id == "forgotten_gems_weekly":
             record = await self.generate_forgotten_gems_challenge(user_id)
             if not record:
                 return {"success": False, "error": "No eligible forgotten pieces yet"}
         else:
-            record = {"challenge_id": challenge_id, "user_id": user_id, "started_at": now, "expires_at": now + timedelta(days=7) if definition.cadence == "weekly" else None, "progress": 0, "target": _target(definition), "status": "in_progress", "items": [], "metadata": {}}
+            record = {"challenge_id": challenge_id, "user_id": user_id, "started_at": now, "expires_at": expires, "progress": 0, "target": _target(definition), "status": "in_progress", "items": [], "metadata": {}}
+        record["expires_at"] = expires
         record["instance_id"] = instance_id
-        epoch_fence = WriteEpochFence(self.db, user_id)
+        epoch_fence = WriteEpochFence(self.db, user_id, initial_epoch)
         @firestore.transactional
         def create(transaction):
             epoch = epoch_fence.check(transaction)
             previous = read(reference, transaction)
+            from google.cloud.firestore_v1.base_query import FieldFilter
+            enrolled = list(self.db.collection('user_challenges').document(user_id).collection('active').where(filter=FieldFilter('challenge_id', '==', challenge_id)).stream(transaction=transaction))
+            archived = list(self.db.collection('user_challenges').document(user_id).collection('completed').where(filter=FieldFilter('challenge_id', '==', challenge_id)).stream(transaction=transaction))
+            from .challenge_periods import completed_in_period
+            if completed_in_period(definition, [r.to_dict() for r in [*enrolled, *archived]], now):
+                return {'success': False, 'error': 'Challenge already completed for this period'}
+            for snapshot in enrolled:
+                current = snapshot.to_dict(); expiry = current.get('expires_at')
+                if current.get('status') == 'in_progress' and (not expiry or (expiry.astimezone(timezone.utc) if expiry.tzinfo else expiry.replace(tzinfo=timezone.utc)) > now):
+                    return {'success': True, 'already_started': True, 'challenge': current}
             legacy_ref = self.db.collection("user_challenges").document(user_id).collection("active").document(challenge_id)
             legacy = read(legacy_ref, transaction) if instance_id != challenge_id else previous
             if previous or legacy and legacy.get("status") == "in_progress" and (not legacy.get("expires_at") or legacy["expires_at"].replace(tzinfo=timezone.utc) > now):
                 return {"success": True, "already_started": True, "challenge": previous or legacy}
             transaction.set(reference, {**record, "app_data_epoch": epoch})
             return {"success": True, "challenge": record}
-        return create(self.db.transaction())
+        result = create(self.db.transaction())
+        from .challenge_actions import reconcile_action_challenges
+        reconcile_action_challenges(self.db, user_id, epoch_fence.expected_epoch)
+        return result
 
     async def check_challenge_progress(self, user_id: str, outfit_data: Dict[str, Any]) -> List[str]:
         """Compatibility adapter accepts only a committed canonical event."""
@@ -151,7 +182,9 @@ class ChallengeService:
             user = read(user_ref, transaction)
             if not instance or not user:
                 return {"success": False, "error": "Challenge not active"}
-            cid = catalog_id or instance.get("challenge_id") or challenge_id
+            cid = instance.get("challenge_id") or challenge_id
+            if catalog_id and catalog_id != cid:
+                return {"success": False, "error": "Challenge identity does not match"}
             definition = CHALLENGE_CATALOG.get(cid)
             if not definition:
                 return {"success": False, "error": "Unknown challenge"}
@@ -160,7 +193,8 @@ class ChallengeService:
             if receipt or instance.get("status") == "completed":
                 return {"success": True, "already_completed": True, "xp_awarded": 0}
             progress = instance.get("progress", 0)
-            achieved = (progress.get("weeks_completed", 0) >= definition.rules.get("weeks_required", 52)) if isinstance(progress, dict) else progress >= instance.get("target", definition.rules.get("outfits_required", definition.rules.get("items_required", 1)))
+            from .wear_projection import _target
+            achieved = (progress.get("weeks_completed", 0) >= definition.rules.get("weeks_required", 52)) if cid == 'annual_wardrobe_master' and isinstance(progress, dict) else isinstance(progress, (int, float)) and progress >= _target(definition)
             if not achieved:
                 return {"success": False, "error": "Challenge target not reached"}
             if instance.get("status") in {"expired", "failed"}:
@@ -217,6 +251,8 @@ class ChallengeService:
 
     async def get_active_challenges(self, user_id: str) -> List[Dict[str, Any]]:
         """Get user's active challenges"""
+        from .challenge_actions import reconcile_action_challenges
+        reconcile_action_challenges(self.db, user_id)
         try:
             active_ref = self.db.collection('user_challenges')\
                 .document(user_id)\
@@ -257,19 +293,34 @@ class ChallengeService:
             logger.info(f"User has {len(active_ids)} active challenges: {active_ids}")
             
             # Get featured challenges
+            from .challenge_periods import challenge_period
+            from .wear_rewards import reward_timezone
+            from zoneinfo import ZoneInfo
+            profile = self.db.collection('users').document(user_id).get().to_dict() or {}
+            now = datetime.now(ZoneInfo(reward_timezone(profile, 'UTC')))
+            instances = {doc.id: doc.to_dict() for doc in self.db.collection('user_challenges').document(user_id).collection('active').stream()}
+            from .challenge_periods import completed_in_period
+            archives = [doc.to_dict() for doc in self.db.collection('user_challenges').document(user_id).collection('completed').stream()]
             available = []
             featured_docs = {doc.id: doc.to_dict().get("featured", False) for doc in self.db.collection("challenges").stream()}
             for challenge_id, challenge_def in CHALLENGE_CATALOG.items():
+                if challenge_id == 'role_defender' or any(k in challenge_def.rules for k in ('pulls_required', 'rarity_required', 'token_balance_required', 'target_role')):
+                    continue  # Dormant controls have no mounted user journey.
                 featured = featured_docs.get(challenge_id, challenge_def.featured)
                 logger.info(f"Checking challenge {challenge_id}: featured={challenge_def.featured}, cadence={challenge_def.cadence}")
                 
+                if completed_in_period(challenge_def, [*instances.values(), *archives], now):
+                    continue
+                suffix, _ = challenge_period(challenge_def.cadence, now)
+                if challenge_id + suffix in instances:
+                    continue
                 # Skip if already active
                 if challenge_id in active_ids:
                     logger.info(f"  -> Skipping {challenge_id}: already active")
                     continue
                 
                 # Only show featured or always-available challenges
-                if featured or challenge_def.cadence == "always":
+                if featured or challenge_def.featured or challenge_def.cadence == "always":
                     logger.info(f"  -> Adding {challenge_id} to available list")
                     # Handle type - could be enum or string
                     challenge_type = challenge_def.type
@@ -300,140 +351,81 @@ class ChallengeService:
         # interface cannot prove a crossing and must not backfill a reward.
         return None
 
-    async def check_cold_start_progress(
-        self,
-        user_id: str,
-        wardrobe_count: int
-    ) -> Optional[Dict[str, Any]]:
-        """
-        Check Cold Start Quest progress and award milestones
-        
-        Args:
-            user_id: User ID
-            wardrobe_count: Current number of wardrobe items
-            
-        Returns:
-            Dict with milestone info if reached, None otherwise
-        """
-        try:
-            # Milestones: 10, 25, 50 items
-            milestones = [
-                {"count": 10, "xp": 50, "badge": BadgeType.STARTER_CLOSET.value, "message": "First 10 items!"},
-                {"count": 25, "xp": 100, "badge": None, "message": "25 items cataloged!"},
-                {"count": 50, "xp": 200, "badge": BadgeType.CLOSET_CATALOGER.value, "message": "50 items - Closet Cataloger!"}
-            ]
-            
-            # Check if user has a cold_start_progress tracking doc
-            progress_ref = self.db.collection('user_challenges')\
-                .document(user_id)\
-                .collection('active')\
-                .document('cold_start_quest')
-            
-            progress_doc = progress_ref.get()
-            
-            if progress_doc.exists:
-                progress_data = progress_doc.to_dict()
-                milestones_reached = progress_data.get('milestones_reached', [])
-            else:
-                # Create progress tracking
-                progress_data = {
-                    "challenge_id": "cold_start_quest",
-                    "user_id": user_id,
-                    "started_at": datetime.now(),
-                    "progress": wardrobe_count,
-                    "target": 50,
-                    "status": "in_progress",
-                    "milestones_reached": []
-                }
-                progress_ref.set(progress_data)
-                milestones_reached = []
-            
-            # Check for new milestones
-            for milestone in milestones:
-                if wardrobe_count >= milestone["count"] and milestone["count"] not in milestones_reached:
-                    # Award milestone
-                    from .gamification_service import gamification_service
-                    
-                    await gamification_service.award_xp(
-                        user_id=user_id,
-                        amount=milestone["xp"],
-                        reason=f"Cold Start Quest: {milestone['message']}",
-                        metadata={"milestone": milestone["count"], "wardrobe_count": wardrobe_count, "reward_operation_id": "cold-start-" + str(milestone["count"])}
-                    )
-                    
-                    # Award badge if specified
-                    if milestone["badge"]:
-                        await gamification_service.unlock_badge(user_id, milestone["badge"])
-                    
-                    # Update progress
-                    milestones_reached.append(milestone["count"])
-                    progress_ref.update({
-                        "milestones_reached": milestones_reached,
-                        "progress": wardrobe_count
-                    })
-                    
-                    logger.info(f"🎉 User {user_id} reached Cold Start milestone: {milestone['count']} items!")
-                    
-                    return {
-                        "milestone_reached": milestone["count"],
-                        "xp_awarded": milestone["xp"],
-                        "badge_awarded": milestone.get("badge"),
-                        "message": milestone["message"]
-                    }
-            
-            # Update progress even if no milestone
-            progress_ref.update({"progress": wardrobe_count})
-            
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error checking Cold Start progress: {e}", exc_info=True)
-            return None
-    
-    async def expire_old_challenges(self, user_id: str) -> int:
-        """
-        Check and expire challenges that have passed their expiration date
-        
-        Returns:
-            Number of challenges expired
-        """
-        try:
-            active_ref = self.db.collection('user_challenges')\
-                .document(user_id)\
-                .collection('active')
-            
-            now = datetime.now(timezone.utc)
-            expired_count = 0
-            
-            for doc in active_ref.stream():
-                challenge_data = doc.to_dict()
-                expires_at = challenge_data.get('expires_at')
-                
-                if expires_at and isinstance(expires_at, datetime):
-                    if expires_at.replace(tzinfo=timezone.utc) < now and challenge_data.get("status") == "in_progress":
-                        # Mark as expired
-                        challenge_data['status'] = ChallengeStatus.EXPIRED.value
-                        
-                        # Move to completed (but as expired)
-                        completed_ref = self.db.collection('user_challenges')\
-                            .document(user_id)\
-                            .collection('completed')\
-                            .document()
-                        
-                        completed_ref.set(challenge_data)
-                        
-                        # Delete from active
-                        doc.reference.delete()
-                        
-                        expired_count += 1
-                        logger.info(f"Expired challenge {challenge_data.get('challenge_id')} for user {user_id}")
-            
-            return expired_count
-            
-        except Exception as e:
-            logger.error(f"Error expiring challenges: {e}", exc_info=True)
-            return 0
-    
+    async def check_cold_start_progress(self, user_id: str, wardrobe_count: int, expected_epoch=None):
+        """Award wardrobe milestones once from owned persisted items, atomically."""
+        from firebase_admin import firestore
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        from .reward_ledger import read, key_for, reward_patch, WriteEpochFence
+        from .challenge_actions import _rows
+        milestones = [(10, 50, 'starter_closet'), (25, 100, None), (50, 200, 'closet_cataloger')]
+        user_ref = self.db.collection('users').document(user_id)
+        progress_ref = self.db.collection('user_challenges').document(user_id).collection('active').document('cold_start_quest')
+        fence = WriteEpochFence(self.db, user_id, expected_epoch)
+        @firestore.transactional
+        def apply(transaction):
+            epoch = fence.check(transaction)
+            user = read(user_ref, transaction)
+            progress = read(progress_ref, transaction) or {'challenge_id': 'cold_start_quest', 'user_id': user_id, 'started_at': datetime.now(timezone.utc), 'status': 'in_progress', 'milestones_reached': []}
+            archives = _rows(self.db.collection('user_challenges').document(user_id).collection('completed').where(filter=FieldFilter('challenge_id', '==', 'cold_start_quest')), transaction)
+            # Legacy completions may predate active tombstones and reward receipts.
+            # Completion is proof of earned entitlement, never permission to backfill.
+            if progress.get('status') == 'completed' or any(row.get('status') == 'completed' for row in archives):
+                return None
+            archived_milestones = {value for row in archives for value in (row.get('milestones_reached') or [])}
+            from .wardrobe_reads import owned_wardrobe_documents
+            actual = len(owned_wardrobe_documents(self.db, user_id, transaction))
+            receipts = [(threshold, xp, badge, self.db.collection('reward_ledger').document(key_for(user_id, 'cold-start-' + str(threshold)))) for threshold, xp, badge in milestones]
+            prior = {threshold: read(ref, transaction) for threshold, _, _, ref in receipts}
+            reached = set(progress.get('milestones_reached') or []) | archived_milestones
+            total = 0; badges = []; new = []
+            for threshold, xp, badge, ref in receipts:
+                if actual >= threshold and threshold not in reached and not prior[threshold]:
+                    from .wear_rewards import TOKEN_MULTIPLIERS
+                    tokens = int(200 * TOKEN_MULTIPLIERS.get((user.get('role') or {}).get('current_role', 'starter'), 1)) if threshold == 50 else 0
+                    mutation, result = reward_patch(user, xp=xp, tokens=tokens, badge=badge, timestamp=int(datetime.now(timezone.utc).timestamp()*1000))
+                    user = {**user, **mutation};total += xp;new.append(threshold)
+                    if badge: badges.append(badge)
+                    transaction.set(ref, {'user_id': user_id, 'kind': 'cold_start', 'result': result, 'app_data_epoch': epoch})
+                if actual >= threshold: reached.add(threshold)
+            if new:
+                transaction.update(user_ref, {k:user[k] for k in ('xp', 'level', 'style_tokens', 'badges', 'updatedAt')})
+            next_progress = {**progress, 'progress': actual, 'target': 50, 'milestones_reached': sorted(reached), 'app_data_epoch': epoch}
+            if actual >= 50 or progress.get('status') == 'completed':
+                next_progress.update(status='completed', completed_at=progress.get('completed_at') or datetime.now(timezone.utc))
+                archive = self.db.collection('user_challenges').document(user_id).collection('completed').document(key_for(progress_ref.path, str(progress.get('started_at'))))
+                transaction.set(archive, next_progress)
+            transaction.set(progress_ref, next_progress)
+            if not new: return None
+            return {'milestone_reached': max(new), 'xp_awarded': total, 'badge_awarded': badges[-1] if badges else None, 'message': f'{max(new)} items cataloged!'}
+        return apply(self.db.transaction())
+
+    async def expire_old_challenges(self, user_id: str, expected_epoch=None) -> int:
+        """Archive expired instances atomically; never overwrite a completion."""
+        from firebase_admin import firestore
+        from .reward_ledger import read, key_for, WriteEpochFence
+        now = datetime.now(timezone.utc)
+        active = self.db.collection('user_challenges').document(user_id).collection('active')
+        count = 0
+        fence = WriteEpochFence(self.db, user_id, expected_epoch)
+        for snapshot in active.stream():
+            @firestore.transactional
+            def expire(transaction):
+                fence.check(transaction)
+                current = read(snapshot.reference, transaction)
+                if not current or current.get('status') != 'in_progress':
+                    return False
+                expires = current.get('expires_at')
+                if not isinstance(expires, datetime) or (expires.astimezone(timezone.utc) if expires.tzinfo else expires.replace(tzinfo=timezone.utc)) > now:
+                    return False
+                target = self.db.collection('user_challenges').document(user_id).collection('completed').document(key_for(snapshot.reference.path, str(current.get('started_at'))))
+                expired = {**current, 'status': 'expired', 'expired_at': now}
+                transaction.set(target, expired)
+                # Keep deterministic enrollment tombstone, preventing restart farming.
+                transaction.update(snapshot.reference, {'status': 'expired', 'expired_at': now})
+                return True
+            count += int(expire(self.db.transaction()))
+        return count
+
     async def validate_color_palette_challenge(
         self,
         user_id: str,

@@ -5,6 +5,13 @@ Endpoints for spending Style Tokens on variable rewards (Variable Ratio Reinforc
 
 from fastapi import Body, APIRouter, HTTPException, Depends, status
 from typing import Dict, Any
+from pydantic import BaseModel, Field, ConfigDict
+
+
+class PullRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    idempotency_key: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")
+
 import logging
 from ..auth.auth_service import get_current_user
 from ..custom_types.profile import UserProfile
@@ -15,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 @router.post("/pull")
 async def style_gacha_pull(
-    payload: Dict[str, Any] = Body(default={}),
+    payload: PullRequest,
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
@@ -35,7 +42,7 @@ async def style_gacha_pull(
                 detail="Gacha system is currently unavailable. Please try again later."
             )
         
-        pull_result = await addiction_service.perform_style_gacha_pull(user_id=user_id, idempotency_key=payload.get("idempotency_key"))
+        pull_result = await addiction_service.perform_style_gacha_pull(user_id=user_id, idempotency_key=payload.idempotency_key)
         
         if pull_result.get("error") == "Insufficient tokens":
             balance = pull_result.get("balance", 0)
@@ -59,6 +66,12 @@ async def style_gacha_pull(
                 detail="Gacha pull failed due to a server error. Please try again later."
             )
         
+        if not pull_result.get('already_recorded'):
+            try:
+                from ..services.challenge_actions import refresh_action_rewards
+                await refresh_action_rewards(user_id, expected_epoch=pull_result['app_data_epoch'])
+            except Exception:
+                logger.exception('Committed token pull rewards await reconciliation')
         rarity = pull_result.get("rarity", "COMMON")
         reward_data = pull_result.get("reward_data", {})
         

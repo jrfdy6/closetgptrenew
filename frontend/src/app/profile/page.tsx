@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Save, Palette, Heart, Settings, Sparkles } from 'lucide-react';
+import { User, Save, Palette, Heart, Settings, Sparkles, Trophy } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase-context';
 import Navigation from '@/components/Navigation';
 import ClientOnlyNav from '@/components/ClientOnlyNav';
@@ -876,6 +876,10 @@ export default function ProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            <Button variant="outline" onClick={() => router.push('/challenges')} className="w-full justify-start border-border/60 dark:border-border/70 text-muted-foreground hover:bg-secondary hover:text-foreground">
+              <Trophy aria-hidden="true" className="h-4 w-4 mr-2" />
+              Challenges and rewards
+            </Button>
             <Button 
               variant="outline" 
               className="w-full justify-start border-border/60 dark:border-border/70 text-muted-foreground hover:bg-secondary hover:text-foreground"

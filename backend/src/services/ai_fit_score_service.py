@@ -7,7 +7,9 @@ Based on feedback count, preference consistency, and AI prediction confidence
 import logging
 from typing import Dict, Optional, Any
 from datetime import datetime, timedelta
+from firebase_admin import firestore
 from ..config.firebase import db
+from .app_data_privacy import require_app_data_writable
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +20,7 @@ class AIFitScoreService:
     def __init__(self):
         self.db = db
     
-    async def get_feedback_count(self, user_id: str) -> int:
+    async def get_feedback_count(self, user_id: str, *, expected_epoch=None) -> int:
         """Get total feedback count for a user"""
         try:
             import time
@@ -33,9 +35,11 @@ class AIFitScoreService:
             return count
         except Exception as e:
             logger.error(f"Error getting feedback count: {e}", exc_info=True)
+            if expected_epoch is not None:
+                raise
             return 0
     
-    async def analyze_preference_consistency(self, user_id: str) -> float:
+    async def analyze_preference_consistency(self, user_id: str, *, expected_epoch=None) -> float:
         """
         Analyze how consistent user's preferences are
         
@@ -94,9 +98,11 @@ class AIFitScoreService:
             
         except Exception as e:
             logger.error(f"Error analyzing preference consistency: {e}", exc_info=True)
+            if expected_epoch is not None:
+                raise
             return 0.5
     
-    async def get_average_prediction_confidence(self, user_id: str) -> float:
+    async def get_average_prediction_confidence(self, user_id: str, *, expected_epoch=None) -> float:
         """
         Get average confidence of AI predictions for this user
         
@@ -151,9 +157,11 @@ class AIFitScoreService:
             
         except Exception as e:
             logger.error(f"Error calculating prediction confidence: {e}", exc_info=True)
+            if expected_epoch is not None:
+                raise
             return 0.5
     
-    async def calculate_ai_fit_score(self, user_id: str) -> float:
+    async def calculate_ai_fit_score(self, user_id: str, *, expected_epoch=None) -> float:
         """
         Calculate AI Fit Score using hybrid approach:
         - Component 1: Feedback count (0-40 points, caps at 50 feedback items)
@@ -164,16 +172,17 @@ class AIFitScoreService:
             Score from 0 to 100
         """
         try:
+            epoch = require_app_data_writable(self.db, user_id, expected_epoch)
             # Component 1: Feedback count
-            feedback_count = await self.get_feedback_count(user_id)
+            feedback_count = await self.get_feedback_count(user_id, expected_epoch=epoch)
             feedback_component = min(40, feedback_count * 0.8)
             
             # Component 2: Preference consistency
-            consistency = await self.analyze_preference_consistency(user_id)
+            consistency = await self.analyze_preference_consistency(user_id, expected_epoch=epoch)
             consistency_component = consistency * 30
             
             # Component 3: AI prediction confidence
-            confidence = await self.get_average_prediction_confidence(user_id)
+            confidence = await self.get_average_prediction_confidence(user_id, expected_epoch=epoch)
             confidence_component = confidence * 30
             
             # Calculate total score
@@ -181,6 +190,7 @@ class AIFitScoreService:
             
             # Round to 1 decimal place
             total_score = round(total_score, 1)
+            require_app_data_writable(self.db, user_id, epoch)
             
             logger.info(f"AI Fit Score for user {user_id}: {total_score} "
                        f"(feedback: {feedback_component:.1f}, "
@@ -191,12 +201,16 @@ class AIFitScoreService:
             
         except Exception as e:
             logger.error(f"Error calculating AI Fit Score for user {user_id}: {e}", exc_info=True)
+            if expected_epoch is not None:
+                raise
             return 0.0
     
     async def update_score_from_feedback(
         self,
         user_id: str,
-        feedback_data: Dict[str, Any]
+        feedback_data: Dict[str, Any],
+        *,
+        expected_epoch=None
     ) -> float:
         """
         Update AI Fit Score when new feedback is provided
@@ -205,15 +219,20 @@ class AIFitScoreService:
             New AI Fit Score
         """
         try:
+            epoch = require_app_data_writable(self.db, user_id, expected_epoch)
             # Recalculate score
-            new_score = await self.calculate_ai_fit_score(user_id)
+            new_score = await self.calculate_ai_fit_score(user_id, expected_epoch=epoch)
             
             # Update user profile
             user_ref = self.db.collection('users').document(user_id)
-            user_ref.update({
-                'ai_fit_score': new_score,
-                'updatedAt': int(datetime.now().timestamp() * 1000)
-            })
+            @firestore.transactional
+            def update(transaction):
+                require_app_data_writable(self.db, user_id, epoch, transaction)
+                transaction.update(user_ref, {
+                    'ai_fit_score': new_score,
+                    'updatedAt': int(datetime.now().timestamp() * 1000)
+                })
+            update(self.db.transaction())
             
             # Log the score update event
             from .gamification_service import gamification_service
@@ -221,6 +240,7 @@ class AIFitScoreService:
                 user_id=user_id,
                 event_type="ai_fit_score_updated",
                 metadata={
+                    "app_data_epoch": epoch,
                     "new_score": new_score,
                     "feedback_type": feedback_data.get('feedback_type'),
                     "rating": feedback_data.get('rating')
@@ -232,6 +252,8 @@ class AIFitScoreService:
             
         except Exception as e:
             logger.error(f"Error updating AI Fit Score: {e}", exc_info=True)
+            if expected_epoch is not None:
+                raise
             return 0.0
     
     async def get_score_explanation(self, user_id: str) -> Dict[str, Any]:
@@ -367,4 +389,3 @@ ai_fit_score_service = AIFitScoreService()
 
 # Export
 __all__ = ['AIFitScoreService', 'ai_fit_score_service']
-

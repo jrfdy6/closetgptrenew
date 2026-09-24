@@ -1,8 +1,8 @@
 "use client";
 
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, TrendingUp, Award } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { Sparkles, Award, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 interface XPNotificationProps {
   xp: number;
@@ -11,80 +11,43 @@ interface XPNotificationProps {
   onDismiss?: () => void;
   levelUp?: boolean;
   newLevel?: number;
+  inline?: boolean;
 }
 
-export default function XPNotification({
-  xp,
-  reason,
-  show = true,
-  onDismiss,
-  levelUp = false,
-  newLevel
-}: XPNotificationProps) {
+export default function XPNotification({ xp, reason, show = true, onDismiss, levelUp = false, newLevel, inline = false }: XPNotificationProps) {
   const [visible, setVisible] = useState(show);
-
+  const reduceMotion = useReducedMotion();
+  const dismiss = useRef(onDismiss);
+  dismiss.current = onDismiss;
   useEffect(() => {
     setVisible(show);
-    
-    if (show) {
-      // Auto-dismiss after 3 seconds
-      const timer = setTimeout(() => {
-        setVisible(false);
-        if (onDismiss) {
-          setTimeout(onDismiss, 300); // Wait for animation to complete
-        }
-      }, 3000);
+    if (!show) return;
+    const timer = setTimeout(() => { setVisible(false); dismiss.current?.(); }, 3500);
+    return () => clearTimeout(timer);
+  }, [show]);
 
-      return () => clearTimeout(timer);
-    }
-  }, [show, onDismiss]);
-
+  const validLevelUp = levelUp && Number.isInteger(newLevel) && (newLevel ?? 0) > 0;
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
+          initial={reduceMotion ? false : { opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 20 }}
-          transition={{
-            duration: 0.25,
-            ease: "easeOut"
-          }}
-          className={`fixed top-4 right-4 z-50 pointer-events-auto min-w-[240px] max-w-[320px]
-            rounded-xl p-3 shadow-lg backdrop-blur-sm ${
-              levelUp
-                ? 'bg-gradient-to-r from-[#C9956F] to-[#D4A574] border-2 border-[#C9956F]/40'
-                : 'bg-[#F5F0E8] dark:bg-[#251D18] border-2 border-[#C9956F]/30'
-            }`}
+          exit={{ opacity: 0, x: reduceMotion ? 0 : 20 }}
+          transition={{ duration: reduceMotion ? 0 : 0.25, ease: 'easeOut' }}
+          className={`${inline ? 'relative w-full' : 'fixed top-4 right-4 z-50 w-[calc(100%-2rem)] max-w-[320px]'} pointer-events-auto rounded-xl p-3 shadow-lg bg-card border-2 border-primary/30 text-card-foreground`}
         >
           <div className="flex items-center gap-3">
-            {levelUp ? (
-              <Award className="w-5 h-5 text-white" />
-            ) : (
-              <Sparkles className="w-5 h-5 text-[#C9956F] dark:text-[#D4A574]" />
-            )}
-            
-            <div className="flex-1">
-              {levelUp ? (
-                <>
-                  <div className="text-sm font-medium text-white">
-                    Level Up!
-                  </div>
-                  <div className="text-xs text-white/90 mt-0.5">
-                    You're now Level {newLevel}!
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="text-sm font-medium text-[#C9956F] dark:text-[#D4A574]">
-                    +{xp} XP
-                  </div>
-                  <div className="text-xs text-[#B8860B] dark:text-[#C9956F] mt-0.5">
-                    {reason}
-                  </div>
-                </>
-              )}
+            {validLevelUp ? <Award aria-hidden="true" className="h-5 w-5 shrink-0 text-[#80502F] dark:text-[#E8C8A0]" /> : <Sparkles aria-hidden="true" className="h-5 w-5 shrink-0 text-[#80502F] dark:text-[#E8C8A0]" />}
+            <div role="status" aria-live="polite" aria-atomic="true" className="min-w-0 flex-1">
+              <div className="text-sm font-semibold">{validLevelUp ? `Level ${newLevel} reached!` : `+${xp} XP`}</div>
+              <div className="mt-0.5 text-xs text-muted-foreground break-words">{validLevelUp ? `+${xp} XP · ${reason}` : reason}</div>
             </div>
+            {onDismiss && (
+              <button type="button" aria-label="Dismiss XP notification" onClick={() => { setVisible(false); dismiss.current?.(); }} className="flex min-h-11 min-w-11 items-center justify-center rounded-md hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <X aria-hidden="true" className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </motion.div>
       )}
@@ -92,48 +55,17 @@ export default function XPNotification({
   );
 }
 
-// Stacked XP Notifications Component
 interface XPNotificationStackProps {
-  notifications: Array<{
-    id: string;
-    xp: number;
-    reason: string;
-    levelUp?: boolean;
-    newLevel?: number;
-  }>;
+  notifications: Array<{ id: string; xp: number; reason: string; levelUp?: boolean; newLevel?: number }>;
   onDismiss: (id: string) => void;
 }
 
 export function XPNotificationStack({ notifications, onDismiss }: XPNotificationStackProps) {
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
-      <AnimatePresence>
-        {notifications.map((notification, index) => (
-          <motion.div
-            key={notification.id}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ 
-              opacity: 1, 
-              y: index * 80, // Stack notifications
-              x: 0 
-            }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{
-              duration: 0.25,
-              ease: "easeOut"
-            }}
-          >
-            <XPNotification
-              xp={notification.xp}
-              reason={notification.reason}
-              levelUp={notification.levelUp}
-              newLevel={notification.newLevel}
-              onDismiss={() => onDismiss(notification.id)}
-            />
-          </motion.div>
-        ))}
-      </AnimatePresence>
+    <div className="fixed top-4 right-4 z-50 flex w-[calc(100%-2rem)] max-w-[320px] max-h-[calc(100dvh-2rem)] flex-col gap-2 overflow-y-auto pointer-events-none">
+      {notifications.map(notification => (
+        <XPNotification key={notification.id} inline xp={notification.xp} reason={notification.reason} levelUp={notification.levelUp} newLevel={notification.newLevel} onDismiss={() => onDismiss(notification.id)} />
+      ))}
     </div>
   );
 }
-

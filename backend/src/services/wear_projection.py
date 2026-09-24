@@ -40,11 +40,12 @@ def finish_page(db, job_id, job, cursor, done=False, error=False):
     def save(transaction):
         current = read(ref, transaction)
         event = read(event_ref, transaction)
+        user = read(db.collection("users").document(job["user_id"]), transaction)
         if not current or current.get("fence") != job["fence"] or current.get("lease_owner") != job["lease_owner"]:
             return False
         attempts = int(current.get("attempts", 0)) + int(error)
         delay = [5, 30, 120, 600][attempts - 1] if error and attempts <= 4 else 3600 if error else 0
-        superseded = not event or event.get("event_revision", 1) != job["revision"] or event.get("app_data_epoch", 0) != job.get("app_data_epoch", 0)
+        superseded = not user or not app_data_write_allowed(user, job.get("app_data_epoch", 0)) or not event or event.get("event_revision", 1) != job["revision"] or event.get("app_data_epoch", 0) != job.get("app_data_epoch", 0)
         status = "superseded" if superseded else "pending" if error or not done else "complete"
         transaction.update(ref, {"status": status, "cursor": cursor, "attempts": attempts, "available_at": milliseconds() + delay * 1000, "lease_until": 0, "last_error": "projection_failed" if error else None})
         if event and status == "complete":
@@ -55,11 +56,12 @@ def finish_page(db, job_id, job, cursor, done=False, error=False):
 
 def _ms(value):
     if isinstance(value, (float, int)):
-        return int(value)
+        return int(value * 1000 if 0 < abs(value) < 100_000_000_000 else value)
     if hasattr(value, "timestamp"):
         return int(value.timestamp() * 1000)
     if isinstance(value, str):
-        return int(datetime.fromisoformat(value.replace("Z", "+00:00")).replace(tzinfo=timezone.utc).timestamp() * 1000)
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return int((parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)).timestamp() * 1000)
     return 0
 
 
@@ -71,14 +73,30 @@ def event_contribution(event, challenge, definition):
     if recorded < _ms(challenge.get("started_at")) or (challenge.get("expires_at") and recorded >= _ms(challenge["expires_at"])):
         return []
     rules = definition.rules
+    from .challenge_actions import is_action_challenge
+    if is_action_challenge(definition):
+        return []
     items = event.get("items", [])
     ids = event.get("item_ids", [item["id"] for item in items])
     if definition.id == "annual_wardrobe_master":
+        from zoneinfo import ZoneInfo
+        zone = ZoneInfo(event.get('timezone') or 'UTC')
         day = date.fromisoformat(event["wear_date"])
+        started = _ms(challenge.get('started_at'))
+        expires = _ms(challenge.get('expires_at'))
+        # Backdating affects the actual cycle, never whichever cycle happened
+        # to be active when the user recorded an old outfit.
+        worn_at = _ms(event.get('date_worn'))
+        if worn_at and (worn_at < started or expires and worn_at >= expires):
+            return []
+        if started and day < datetime.fromtimestamp(started / 1000, zone).date():
+            return []
+        if not worn_at and expires and day >= datetime.fromtimestamp(expires / 1000, zone).date():
+            return []
         return [(day - timedelta(days=day.weekday())).isoformat()]
     selected = set(challenge.get("items", []))
     if selected:
-        return list(selected.intersection(ids))
+        return [item['id'] for item in items if item['id'] in selected and item.get('lastWorn') and recorded - _ms(item['lastWorn']) >= int(rules.get('days_dormant_min', 0)) * 86400000]
     # Non-wear catalog challenges are processed by their own action.
     if any(key in rules for key in ("ratings_required", "ratings_days", "pulls_required", "rarity_required", "target_role", "token_balance_required", "target_level", "badges_required")) or definition.id in {"cold_start_quest", "wardrobe_builder", "wardrobe_curator"}:
         return []
@@ -87,7 +105,12 @@ def event_contribution(event, challenge, definition):
     if "styles_required" in rules:
         return [event["style"]] if event.get("style") else []
     if "formality_levels_required" in rules:
-        return [event["occasion"]] if event.get("occasion") else []
+        occasion = str(event.get('occasion') or '').lower().replace('-', ' ')
+        if any(word in occasion for word in ('black tie', 'gala', 'wedding', 'formal')): return ['formal']
+        if any(word in occasion for word in ('business', 'office', 'interview', 'work')): return ['business']
+        if any(word in occasion for word in ('smart casual', 'date', 'dinner')): return ['smart casual']
+        if any(word in occasion for word in ('casual', 'weekend', 'errand', 'brunch', 'lounge', 'gym', 'athletic')): return ['casual']
+        return []
     if "contexts_required" in rules:
         return [event["occasion"] + ":" + str((event.get("weather") or {}).get("condition", ""))] if event.get("occasion") else []
     if any(key in rules for key in ("never_worn", "days_dormant_min", "favorite_only", "target_wears", "max_cpw")):
@@ -114,9 +137,19 @@ def event_contribution(event, challenge, definition):
         return []
     if rules.get("texture_mixing") and len({str(item.get("texture") or item.get("material") or "").lower() for item in items} - {""}) < 2:
         return []
-    if rules.get("seasonal") and not event.get("season"):
-        return []
-    if rules.get("themed") and not event.get("theme"):
+    if rules.get("seasonal"):
+        month = date.fromisoformat(event['wear_date']).month
+        season = ('winter', 'spring', 'summer', 'fall')[(month % 12)//3]
+        if event.get('southern_hemisphere'):
+            season = {'winter':'summer','summer':'winter','spring':'fall','fall':'spring'}[season]
+        for item in items:
+            tags = item.get('season') or []
+            tags = [tags] if isinstance(tags, str) else tags
+            tags = {str(tag).lower().replace('autumn','fall') for tag in tags}
+            if season not in tags and not tags.intersection({'all seasons','all-season','all'}):
+                return []
+        if not items: return []
+    if rules.get("themed") and not any(word in str(event.get('occasion') or '').lower() for word in ('holiday','party','wedding','festival')):
         return []
     if rules.get("color_intensity") == "bold" and not any(str(item.get("color", "")).lower() in {"red", "orange", "yellow", "purple", "hot pink", "fuchsia", "lime", "turquoise"} for item in items):
         return []
@@ -156,6 +189,9 @@ def event_contribution(event, challenge, definition):
 
 def _target(definition):
     rules = definition.rules
+    from .challenge_actions import is_action_challenge, target_for
+    if is_action_challenge(definition):
+        return target_for(definition)
     for key in ("outfits_required", "items_required", "occasions_required", "weather_conditions_required", "moods_required", "categories_required", "unique_colors_required", "days_required", "streak_days", "weekend_days", "styles_required", "formality_levels_required", "contexts_required"):
         if key in rules:
             return int(rules[key])
@@ -191,10 +227,16 @@ def project_instance(db, event_id, revision, instance_ref, lease=None):
         prior_completion = read(completion_ref, transaction)
         if not user or not app_data_write_allowed(user, event.get("app_data_epoch", 0)):
             return False
-        if instance.get("status") in {"completed", "expired", "failed"}:
+        from .challenge_actions import is_action_challenge
+        if is_action_challenge(definition):
             transaction.set(receipt_ref, {"user_id": uid, "event_id": event_id, "revision": revision, "keys": []})
             return True
-        event = {**event, "event_id": event_id}
+        if instance.get("status") in {"completed", "failed"}:
+            transaction.set(receipt_ref, {"user_id": uid, "event_id": event_id, "revision": revision, "keys": []})
+            return True
+        location = user.get('location_data') or {}
+        latitude = location.get('latitude', location.get('lat'))
+        event = {**event, "event_id": event_id, 'southern_hemisphere': isinstance(latitude, (int, float)) and latitude < 0}
         keys = event_contribution(event, instance, definition)
         old_keys = receipt.get("keys", [])
         counts = dict(instance.get("wear_contributions") or {})
@@ -298,9 +340,18 @@ def process_page(db, job_id, worker_id):
         if done:
             project_milestones(db, job["event_id"], job["revision"], job.get("app_data_epoch", 0))
             refresh_wear_stats(db, job["event_id"], job["revision"], job.get("app_data_epoch", 0))
+            import asyncio
+            from .addiction_service import AddictionService
+            role_service = AddictionService(); role_service.db = db
+            asyncio.run(role_service.check_and_update_role(job['user_id'], job.get('app_data_epoch', 0)))
+            from .challenge_actions import reconcile_action_challenges
+            reconcile_action_challenges(db, job['user_id'], job.get('app_data_epoch', 0))
         finish_page(db, job_id, job, instances[-1].id if instances else job.get("cursor"), done=done)
         return True
-    except Exception:
+    except Exception as error:
+        if getattr(error, 'status_code', None) == 409:
+            finish_page(db, job_id, job, job.get('cursor'), done=True)
+            return True
         finish_page(db, job_id, job, job.get("cursor"), error=True)
         raise
 
@@ -339,7 +390,12 @@ def ensure_annual_challenge(db, uid, event_time, expected_epoch=None):
         collection = db.collection("user_challenges").document(uid).collection("active")
         existing = list(collection.where(filter=FieldFilter("challenge_id", "==", "annual_wardrobe_master")).stream(transaction=transaction))
         for snapshot in existing:
-            if snapshot.to_dict().get("cycle_number") == cycle:
+            record = snapshot.to_dict()
+            expiry = _ms(record.get('expires_at'))
+            # Preserve an enrolled legacy cycle until its valid current expiry.
+            if record.get('status') == 'in_progress' and event_time < expiry <= event_time + 366 * 86400000:
+                return snapshot.id
+            if record.get("cycle_number") == cycle:
                 return snapshot.id
         ref = collection.document("annual_wardrobe_master-" + str(cycle))
         previous = read(ref, transaction)

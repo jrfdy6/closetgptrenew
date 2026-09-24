@@ -374,7 +374,7 @@ export default function WardrobeInsightsHub({
                               {isSummer ? (
                                 <Sun className="h-5 w-5 text-amber-600" />
                               ) : (
-                                <Snowflake className="h-5 w-5 text-blue-600" />
+                                <Snowflake className="h-5 w-5 text-primary" />
                               )}
                             </div>
                             <div>
@@ -581,7 +581,7 @@ export default function WardrobeInsightsHub({
       <div className="mt-8 space-y-6">
         <div className="px-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-purple-600" />
+            <Sparkles className="w-5 h-5 text-primary" />
             Your Progress
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -601,8 +601,8 @@ export default function WardrobeInsightsHub({
         {/* Challenges Section */}
         <div className="px-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <Target className="w-5 h-5 text-blue-600" />
-            Weekly Challenges
+            <Target className="w-5 h-5 text-[#80502F] dark:text-[#E8C8A0]" />
+            Challenges
           </h3>
           <ChallengeListWrapper />
         </div>

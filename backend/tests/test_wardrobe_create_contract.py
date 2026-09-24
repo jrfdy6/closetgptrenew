@@ -2,12 +2,13 @@
 
 import ast
 import asyncio
+import logging
 from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
 import threading
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from fastapi import HTTPException
 from src.services import wardrobe_persistence as persistence
@@ -139,7 +140,7 @@ class CreationTests(unittest.TestCase):
         original = {**ITEM, 'userId': 'owner', 'name': 'Edited shirt', 'wearCount': 8, 'backgroundRemovedUrl': '/cutout.png', 'processing_status': 'completed'}
         db = Database({'upload-1': original})
         saved = persistence.create_owned_wardrobe_item(db, 'owner', ITEM)
-        self.assertEqual(saved, original)
+        self.assertEqual(saved, {**original, 'app_data_epoch': 0})
         self.assertEqual(db.records['upload-1'], original)
         self.assertEqual(db.writes, 0)
 
@@ -170,12 +171,19 @@ class CreationTests(unittest.TestCase):
                     self.assertEqual(db.records['upload-1'], original)
                     self.assertEqual(db.writes, 0)
 
+    def test_new_upload_creation_time_cannot_be_backdated_by_the_client(self):
+        db = Database()
+        saved = persistence.create_owned_wardrobe_item(db, 'owner', {**ITEM, 'createdAt': '2020-01-01T00:00:00Z'}, now='2026-09-24T12:00:00Z')
+        self.assertEqual(saved['createdAt'], '2026-09-24T12:00:00Z')
+        replay = persistence.create_owned_wardrobe_item(db, 'owner', {**ITEM, 'createdAt': '2019-01-01T00:00:00Z'}, now='2026-09-25T12:00:00Z')
+        self.assertEqual(replay['createdAt'], saved['createdAt'])
+
     def test_matching_legacy_aliases_are_preserved_on_idempotent_ack(self):
         original = {**ITEM, 'userId': 'owner', 'user_id': 'owner', 'firebase_uid': 'owner',
                     'uid': 'owner', 'ownerId': 'owner', 'metadata': {'workerResult': 'done'},
                     'wearCount': 8, 'processing_status': 'completed', 'backgroundRemovedUrl': '/original-cutout.png'}
         db = Database({'upload-1': original})
-        self.assertEqual(persistence.create_owned_wardrobe_item(db, 'owner', ITEM), original)
+        self.assertEqual(persistence.create_owned_wardrobe_item(db, 'owner', ITEM), {**original, 'app_data_epoch': 0})
         self.assertEqual(db.records['upload-1'], original)
         self.assertEqual(db.writes, 0)
 
@@ -231,7 +239,7 @@ def load_route():
     route = next(node for node in ast.parse(source.read_text()).body if isinstance(node, ast.AsyncFunctionDef) and node.name == 'add_wardrobe_item_direct')
     route.decorator_list = []
     route.args.defaults = []
-    namespace = {'HTTPException': HTTPException, 'reject_wardrobe_identity_overrides': reject_identity_overrides}
+    namespace = {'HTTPException': HTTPException, 'reject_wardrobe_identity_overrides': reject_identity_overrides, 'logger': logging.getLogger(__name__)}
     exec(compile(ast.Module(body=[route], type_ignores=[]), str(source), 'exec'), namespace)
     return namespace[route.name]
 
@@ -247,7 +255,7 @@ class EndpointTests(unittest.IsolatedAsyncioTestCase):
             return {**ITEM, 'userId': 'owner', 'wearCount': 8}
         timer = asyncio.get_running_loop().call_later(0.02, release.set)
         try:
-            with patch.dict('sys.modules', {'src.config.firebase': SimpleNamespace(db=Database())}), patch.object(persistence, 'create_owned_wardrobe_item', side_effect=slow_transaction):
+            with patch.dict('sys.modules', {'src.config.firebase': SimpleNamespace(db=Database())}), patch.object(persistence, 'create_owned_wardrobe_item', side_effect=slow_transaction), patch('src.services.challenge_actions.refresh_action_rewards', new_callable=AsyncMock):
                 result = await load_route()(ITEM, {'uid': 'owner'})
             self.assertTrue(result['success'])
             self.assertEqual(result['item']['wearCount'], 8)

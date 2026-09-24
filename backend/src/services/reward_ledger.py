@@ -30,8 +30,8 @@ def reward_patch(user, *, xp=0, tokens=0, badge=None, timestamp=0):
     return patch, {"success": True, "xp_awarded": xp, "tokens_awarded": tokens, "new_xp": new_xp, "level": patch["level"], "new_level": patch["level"], "level_up": patch["level"] > level_for(old_xp), "new_balance": patch["style_tokens"]["balance"], "badge_unlocked": badge if new_badge else None}
 
 
-def award(db, user_id, operation_id, *, xp=0, tokens=0, badge=None, apply_role_multiplier=False, metadata=None, expected_epoch=None):
-    if isinstance(xp, bool) or isinstance(tokens, bool) or xp < 0 or tokens < 0:
+def award(db, user_id, operation_id, *, xp=0, tokens=0, badge=None, apply_role_multiplier=False, metadata=None, expected_epoch=None, eligibility_check=None):
+    if type(xp) is not int or type(tokens) is not int or xp < 0 or tokens < 0:
         raise ValueError("Rewards must be nonnegative")
     user_ref = db.collection("users").document(user_id)
     receipt_ref = db.collection("reward_ledger").document(key_for(user_id, operation_id))
@@ -46,6 +46,13 @@ def award(db, user_id, operation_id, *, xp=0, tokens=0, badge=None, apply_role_m
             raise ValueError("User not found")
         if receipt:
             return {"success": True, "level": level_for(int(user.get("xp", 0))), "new_level": level_for(int(user.get("xp", 0))), **receipt.get("result", {}), "already_awarded": True, "xp_awarded": 0, "tokens_awarded": 0, "level_up": False, "badge_unlocked": None}
+        # Eligibility reads share this transaction with the canonical receipt
+        # and award. A reset or source mutation forces a recheck on retry.
+        if eligibility_check is not None and not eligibility_check(transaction, user):
+            level = level_for(int(user.get("xp", 0)))
+            return {"success": False, "eligible": False, "xp_awarded": 0,
+                    "tokens_awarded": 0, "level": level, "new_level": level,
+                    "level_up": False, "badge_unlocked": None}
         actual_tokens = int(tokens * TOKEN_MULTIPLIERS.get((user.get("role") or {}).get("current_role", "starter"), 1)) if apply_role_multiplier else tokens
         patch, result = reward_patch(user, xp=xp, tokens=actual_tokens, badge=badge, timestamp=timestamp)
         transaction.update(user_ref, patch)

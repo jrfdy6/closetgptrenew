@@ -700,15 +700,19 @@ async def rate_outfit(
                 logger.exception('Rating saved; preference update remains unavailable')
         xp_result = {}
         try:
-            xp_result = await gamification_service.award_xp(
-                user_id=current_user_id, amount=5, reason='outfit_rated',
-                metadata={'outfit_id': rating_request.outfitId,
-                          'app_data_epoch': saved['app_data_epoch'],
-                          'reward_operation_id': saved['reward_operation_id']})
+            from ...services.feedback_rewards import settle_feedback_reward
+            xp_result = await asyncio.to_thread(settle_feedback_reward, db, current_user_id,
+                saved['feedback_id'], expected_epoch=saved['app_data_epoch'])
         except Exception:
             # A retry uses the same reward operation and can safely settle a
             # reward interrupted after the rating transaction committed.
             logger.exception('Rating saved; its reward could not be confirmed')
+
+        try:
+            from ...services.challenge_actions import refresh_action_rewards
+            await refresh_action_rewards(current_user_id, expected_epoch=saved['app_data_epoch'])
+        except Exception:
+            logger.exception('Rating saved; challenges will be reconciled by maintenance')
 
         # Return response with learning confirmation and XP
         return OutfitRatingResponse(

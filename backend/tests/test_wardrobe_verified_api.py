@@ -7,7 +7,7 @@ import time
 from types import SimpleNamespace
 from typing import Any, Dict, Optional
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.testclient import TestClient
@@ -69,6 +69,9 @@ class WardrobeVerifiedHttpTests(unittest.TestCase):
         save_patch = patch.object(wardrobe_persistence, 'create_owned_wardrobe_item', return_value=self.document.data)
         self.save = save_patch.start()
         self.addCleanup(save_patch.stop)
+        reward_patch = patch('src.services.challenge_actions.refresh_action_rewards', new_callable=AsyncMock)
+        self.refresh_rewards = reward_patch.start()
+        self.addCleanup(reward_patch.stop)
         self.client = TestClient(wardrobe_app(self.database))
 
     def get(self, authorization='Bearer signed-token', suffix='', headers=None):
@@ -101,6 +104,18 @@ class WardrobeVerifiedHttpTests(unittest.TestCase):
         self.assertEqual(self.save.call_count, 2)
         self.save.assert_called_with(self.database, 'owner', payload)
         self.assertNotEqual(first.json()['item']['name'], payload['name'])
+
+    def test_saved_upload_refreshes_rewards_with_the_committed_epoch(self):
+        self.document.data['app_data_epoch'] = 7
+        self.assertEqual(self.post().status_code, 200)
+        self.refresh_rewards.assert_awaited_once_with('owner', expected_epoch=7, include_upload_milestones=True)
+
+    def test_reward_outage_never_turns_a_committed_upload_into_a_failed_save(self):
+        self.refresh_rewards.side_effect = RuntimeError('temporary reward outage')
+        result = self.post()
+        self.assertEqual(result.status_code, 200)
+        self.assertTrue(result.json()['success'])
+        self.assertEqual(result.json()['item']['id'], self.document.data['id'])
 
     def test_missing_guest_and_test_authorization_never_reach_storage(self):
         for authorization in (None, '', 'Basic token', 'Bearer test', 'Bearer TEST', 'Bearer a b'):

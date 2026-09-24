@@ -13,6 +13,16 @@ from .gamification_tasks import maintenance_pass
 logger = logging.getLogger(__name__)
 
 
+def foreground_pass(database, bucket, worker_id):
+    """A failed wear projection must not prevent privacy deletion progress."""
+    for name, action in (("wear", lambda: process_pending(database, worker_id, limit=10)),
+                         ("privacy", lambda: process_deletion_jobs(database, bucket, limit=2, max_records=100))):
+        try:
+            action()
+        except Exception:
+            logger.exception("Gamification foreground component failed: %s", name)
+
+
 def main():
     logging.basicConfig(level=logging.INFO)
     if db is None:
@@ -31,8 +41,7 @@ def main():
         next_maintenance = 0
         while running:
             try:
-                process_pending(db, worker_id, limit=10)
-                process_deletion_jobs(db, bucket, limit=2, max_records=100)
+                foreground_pass(db, bucket, worker_id)
                 if time.monotonic() >= next_maintenance and (maintenance is None or maintenance.done()):
                     if maintenance is not None:
                         maintenance.result()

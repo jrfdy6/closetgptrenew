@@ -431,6 +431,11 @@ async def add_wardrobe_item(
     from starlette.concurrency import run_in_threadpool
     try:
         item = await run_in_threadpool(create_owned_wardrobe_item, db, current_user.id, item_data)
+        try:
+            from src.services.challenge_actions import refresh_action_rewards
+            await refresh_action_rewards(current_user.id, expected_epoch=item.get('app_data_epoch', 0), include_upload_milestones=True)
+        except Exception:
+            logger.exception('Item saved; wardrobe rewards will be reconciled by maintenance')
         return {"success": True, "item_id": item['id'], "item": item, "message": "Item saved"}
     except AppDataDeletionError as error:
         raise HTTPException(error.status_code, error.detail) from None

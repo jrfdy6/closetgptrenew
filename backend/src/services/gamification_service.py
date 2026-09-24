@@ -14,6 +14,7 @@ from ..custom_types.gamification import (
     GamificationEvent,
     XPReward,
     BADGE_DEFINITIONS,
+    badge_details,
     LEVEL_TIERS,
     get_xp_for_level,
 )
@@ -83,7 +84,10 @@ class GamificationService:
     async def unlock_badge(
         self,
         user_id: str,
-        badge_id: str
+        badge_id: str,
+        *,
+        expected_epoch=None,
+        _eligibility_check=None
     ) -> Dict[str, Any]:
         """
         Unlock a badge for a user
@@ -92,9 +96,10 @@ class GamificationService:
             Dict with success status and badge info
         """
         from .reward_ledger import award
-        result = award(self.db, user_id, "badge-" + badge_id, badge=badge_id)
-        definition = BADGE_DEFINITIONS.get(badge_id)
-        return {**result, "success": bool(result.get("badge_unlocked")), "already_unlocked": not bool(result.get("badge_unlocked")), "badge_info": definition.dict() if definition else {"id": badge_id}}
+        result = award(self.db, user_id, "badge-" + badge_id, badge=badge_id,
+                       expected_epoch=expected_epoch, eligibility_check=_eligibility_check)
+        definition = badge_details(badge_id)
+        return {**result, "success": bool(result.get("badge_unlocked")), "already_unlocked": bool(result.get("success") and not result.get("badge_unlocked")), "badge_info": definition}
 
     async def get_user_gamification_state(self, user_id: str) -> Optional[GamificationState]:
         """Get complete gamification state for a user"""
@@ -182,59 +187,40 @@ class GamificationService:
             logger.error(f"Error logging gamification event: {e}", exc_info=True)
             return False
     
-    async def check_badge_unlock_conditions(self, user_id: str) -> List[str]:
-        """
-        Check if user has unlocked any new badges based on their activity
-        
-        Returns:
-            List of newly unlocked badge IDs
-        """
+    async def check_badge_unlock_conditions(self, user_id: str, *, expected_epoch=None) -> List[str]:
+        """Check owned live facts and award atomically within one captured epoch."""
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        from .app_data_privacy import require_app_data_writable
+        from .wardrobe_reads import owned_wardrobe_documents, wardrobe_owned_by, DELETED_FIELDS
         try:
+            epoch = require_app_data_writable(self.db, user_id, expected_epoch)
             newly_unlocked = []
-            
-            user_ref = self.db.collection('users').document(user_id)
-            user_doc = user_ref.get()
-            
-            if not user_doc.exists:
-                return []
-            
-            user_data = user_doc.to_dict()
-            current_badges = user_data.get('badges', [])
-            
-            # Get wardrobe count for starter badges
-            wardrobe_ref = self.db.collection('wardrobe').where('userId', '==', user_id)
-            wardrobe_count = len(list(wardrobe_ref.stream()))
-            
-            # Check starter closet badge (10 items)
-            if wardrobe_count >= 10 and BadgeType.STARTER_CLOSET.value not in current_badges:
-                result = await self.unlock_badge(user_id, BadgeType.STARTER_CLOSET.value)
+            conditions = ((BadgeType.STARTER_CLOSET.value, 'wardrobe', 10),
+                          (BadgeType.CLOSET_CATALOGER.value, 'wardrobe', 50),
+                          (BadgeType.STYLE_CONTRIBUTOR.value, 'feedback', 25),
+                          (BadgeType.AI_TRAINER.value, 'feedback', 100))
+            for badge_id, source, threshold in conditions:
+                def eligible(transaction, user, source=source, threshold=threshold):
+                    if source == 'wardrobe':
+                        return len(owned_wardrobe_documents(self.db, user_id, transaction)) >= threshold
+                    count = 0
+                    query = self.db.collection('outfit_feedback').where(filter=FieldFilter('user_id', '==', user_id))
+                    for snapshot in query.stream(transaction=transaction):
+                        row = snapshot.to_dict() or {}
+                        if wardrobe_owned_by(row, user_id) and not any(row.get(key) for key in DELETED_FIELDS):
+                            count += 1
+                            if count >= threshold:
+                                return True
+                    return False
+                result = await self.unlock_badge(user_id, badge_id, expected_epoch=epoch,
+                                                 _eligibility_check=eligible)
                 if result.get('success'):
-                    newly_unlocked.append(BadgeType.STARTER_CLOSET.value)
-            
-            # Check closet cataloger badge (50 items)
-            if wardrobe_count >= 50 and BadgeType.CLOSET_CATALOGER.value not in current_badges:
-                result = await self.unlock_badge(user_id, BadgeType.CLOSET_CATALOGER.value)
-                if result.get('success'):
-                    newly_unlocked.append(BadgeType.CLOSET_CATALOGER.value)
-            
-            # Check feedback badges
-            feedback_ref = self.db.collection('outfit_feedback').where('user_id', '==', user_id)
-            feedback_count = len(list(feedback_ref.stream()))
-            
-            if feedback_count >= 25 and BadgeType.STYLE_CONTRIBUTOR.value not in current_badges:
-                result = await self.unlock_badge(user_id, BadgeType.STYLE_CONTRIBUTOR.value)
-                if result.get('success'):
-                    newly_unlocked.append(BadgeType.STYLE_CONTRIBUTOR.value)
-            
-            if feedback_count >= 100 and BadgeType.AI_TRAINER.value not in current_badges:
-                result = await self.unlock_badge(user_id, BadgeType.AI_TRAINER.value)
-                if result.get('success'):
-                    newly_unlocked.append(BadgeType.AI_TRAINER.value)
-            
+                    newly_unlocked.append(badge_id)
             return newly_unlocked
-            
-        except Exception as e:
-            logger.error(f"Error checking badge conditions for user {user_id}: {e}", exc_info=True)
+        except Exception:
+            logger.exception("Error checking badge conditions")
+            if expected_epoch is not None:
+                raise
             return []
 
 

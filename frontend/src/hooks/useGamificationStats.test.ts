@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { useChallenges, useGamificationStats } from './useGamificationStats';
+import { useBadges, useChallenges, useGamificationStats } from './useGamificationStats';
 
 declare const beforeEach: jest.Lifecycle;
 declare const afterEach: jest.Lifecycle;
@@ -119,17 +119,17 @@ it('preserves timeout completion as unavailable instead of zero stats', async ()
   expect(fetch).toHaveBeenCalledTimes(1);
 });
 
-it('refreshes through the same proxy on outfit ratings and removes the listener on unmount', async () => {
+it('refreshes through the same proxy on confirmed activity and removes the listener on unmount', async () => {
   (fetch as jest.Mock).mockResolvedValue(success());
   const { result, unmount } = renderHook(useGamificationStats);
   await waitFor(() => expect(result.current.loading).toBe(false));
 
-  await act(async () => { window.dispatchEvent(new Event('outfitRated')); });
+  await act(async () => { window.dispatchEvent(new CustomEvent('gamificationActivityChanged', { detail: { uid: 'owner' } })); });
   expect(fetch).toHaveBeenCalledTimes(2);
   expect((fetch as jest.Mock).mock.calls.every(([url]) => url === '/api/gamification/stats')).toBe(true);
 
   unmount();
-  window.dispatchEvent(new Event('outfitRated'));
+  window.dispatchEvent(new CustomEvent('gamificationActivityChanged', { detail: { uid: 'owner' } }));
   expect(fetch).toHaveBeenCalledTimes(2);
 });
 
@@ -161,7 +161,7 @@ it('refreshes the summary after challenge changes only for the current account',
 it('a successful challenge start refreshes the list and summary without emitting a wear receipt', async () => {
   let started = false;
   (fetch as jest.Mock).mockImplementation(async (url: string) => {
-    if (url.endsWith('/start')) { started = true; return { ok: true }; }
+    if (url.endsWith('/start')) { started = true; return { ok: true, json: async () => ({ success: true }) }; }
     if (url.endsWith('/stats')) return success({ ...stats, active_challenges_count: started ? 1 : 0 });
     return { ok: true, json: async () => ({ data: { challenges: [] } }) };
   });
@@ -172,4 +172,66 @@ it('a successful challenge start refreshes the list and summary without emitting
   await waitFor(() => expect(result.current.summary.stats?.active_challenges_count).toBe(1));
   expect(wear).not.toHaveBeenCalled();
   window.removeEventListener('outfitMarkedAsWorn', wear);
+});
+
+it('loads completed history while keeping its failure separate from active challenges', async () => {
+  (fetch as jest.Mock).mockImplementation(async (url: string) => url.endsWith('/history')
+    ? { ok: false, status: 503 }
+    : { ok: true, json: async () => ({ success: true, data: { challenges: [{ challenge_id: 'one', status: 'in_progress' }] } }) });
+  const { result } = renderHook(useChallenges);
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  expect(result.current.error).toBeNull();
+  expect(result.current.activeChallenges).toHaveLength(1);
+  expect(result.current.historyError).toMatch(/could not be loaded/);
+  expect(result.current.completedChallenges).toEqual([]);
+});
+
+it('uses the history response and excludes expired instances from completed accomplishments', async () => {
+  (fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ success: true, data: { challenges: [
+    { challenge_id: 'done', status: 'completed', instance_id: 'week-1' }, { challenge_id: 'old', status: 'expired' },
+  ] } }) });
+  const { result } = renderHook(useChallenges);
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  expect(result.current.completedChallenges.map(c => c.challenge_id)).toEqual(['done']);
+  expect((fetch as jest.Mock).mock.calls.some(([url, options]) => url.endsWith('/history') && options.cache === 'no-store')).toBe(true);
+});
+
+it('rejects an HTTP-success application failure when starting a challenge', async () => {
+  (fetch as jest.Mock).mockImplementation(async (url: string) => ({ ok: true, json: async () => url.endsWith('/start') ? { success: false } : { success: true, data: { challenges: [] } } }));
+  const { result } = renderHook(useChallenges);
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  await act(async () => { expect(await result.current.startChallenge('one')).toBe(false); });
+});
+
+it('does not turn a malformed success payload into level one and zero counts', async () => {
+  (fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ success: true, data: {} }) });
+  const { result } = renderHook(useGamificationStats);
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  expect(result.current.stats).toBeNull();
+  expect(result.current.error).toMatch(/could not be loaded/);
+});
+
+it('refreshes summary after a confirmed badge unlock without recursively re-reading badges', async () => {
+  (fetch as jest.Mock).mockImplementation(async (url: string) => url.endsWith('/badges')
+    ? { ok: true, json: async () => ({ success: true, data: { badges: [{ id: 'starter_closet' }], newly_unlocked: ['starter_closet'] } }) }
+    : success());
+  const { result } = renderHook(() => ({ summary: useGamificationStats(), badges: useBadges() }));
+  await waitFor(() => expect(result.current.summary.loading || result.current.badges.loading).toBe(false));
+  expect((fetch as jest.Mock).mock.calls.filter(([url]) => url.endsWith('/badges'))).toHaveLength(1);
+  expect((fetch as jest.Mock).mock.calls.filter(([url]) => url.endsWith('/stats'))).toHaveLength(2);
+});
+
+it('releases an unconfirmed challenge start after the request deadline without claiming success', async () => {
+  (fetch as jest.Mock).mockImplementation(async (url: string, options: RequestInit) => {
+    if (url.endsWith('/start')) return new Promise((_resolve, reject) => options.signal?.addEventListener('abort', () => reject(new DOMException('Timed out', 'AbortError'))));
+    return { ok: true, json: async () => ({ success: true, data: { challenges: [] } }) };
+  });
+  const { result } = renderHook(useChallenges);
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  jest.useFakeTimers();
+  try {
+    let started!: Promise<boolean | undefined>;
+    await act(async () => { started = result.current.startChallenge('one'); });
+    await act(async () => { jest.advanceTimersByTime(30000); expect(await started).toBe(false); });
+  } finally { jest.useRealTimers(); }
 });

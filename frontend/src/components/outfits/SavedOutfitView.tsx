@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { publishWearReceipt } from '@/lib/wardrobeActivity';
+import { publishRatingReceipt, publishWearReceipt } from '@/lib/wardrobeActivity';
 import { useRouter } from 'next/navigation';
 import type { User } from 'firebase/auth';
 import OutfitResultsDisplay from '@/components/ui/outfit-results-display';
@@ -180,8 +180,11 @@ export default function SavedOutfitView({ id, user, authLoading = false }: { id:
     try {
       const token = await user.getIdToken();
       if (!current(key)) return;
-      await savedOutfitRequest('rate', token, { method: 'POST', body: JSON.stringify({ outfitId: id, ...(rating.rating ? { rating: rating.rating } : {}), isLiked: rating.isLiked, isDisliked: rating.isDisliked, feedback: rating.feedback }) });
-      if (current(key)) setRatingSubmitted(true);
+      const result = await savedOutfitRequest('rate', token, { method: 'POST', body: JSON.stringify({ outfitId: id, ...(rating.rating ? { rating: rating.rating } : {}), isLiked: rating.isLiked, isDisliked: rating.isDisliked, feedback: rating.feedback }) });
+      if (current(key)) {
+        publishRatingReceipt(user.uid, id, result);
+        setRatingSubmitted(true);
+      }
     } catch (err) { if (current(key)) setFeedbackError(message(err, 'Feedback could not be saved. Please retry.')); }
     finally { if (current(key)) { actions.current.delete('feedback'); setFeedbackPending(false); } }
   };
