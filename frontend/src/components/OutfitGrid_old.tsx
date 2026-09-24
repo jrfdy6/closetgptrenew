@@ -16,7 +16,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import useOutfits, { Outfit, OutfitFilters } from '@/lib/hooks/useOutfits';
+import useOutfits from '@/lib/hooks/useOutfits';
+import type { Outfit, OutfitFilters } from '@/lib/services/outfitService';
 import { cn } from '@/lib/utils';
 
 // ===== COMPONENT INTERFACE =====

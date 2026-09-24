@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ClothingItem } from "@/types/wardrobe";
+import type { ClothingItem } from "@/lib/hooks/useWardrobe";
 import BottomSheet from "./BottomSheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

@@ -35,12 +35,8 @@ const nextConfig = {
 
     return config;
   },
-  typescript: {
-    // During build, we'll ignore TypeScript errors to get the build working
-    ignoreBuildErrors: true,
-  },
   eslint: {
-    // During build, we'll ignore ESLint errors to get the build working
+    // CI runs the canonical lint command as a separate required step.
     ignoreDuringBuilds: true,
   },
   images: {

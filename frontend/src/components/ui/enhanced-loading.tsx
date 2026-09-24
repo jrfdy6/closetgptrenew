@@ -157,7 +157,9 @@ export function GridSkeleton({
   return (
     <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4", className)}>
       {Array.from({ length: count }).map((_, i) => (
-        <ItemSkeleton key={i} className="animate-fade-in" style={{ animationDelay: `${i * 50}ms` }} />
+        <div key={i} className="animate-fade-in" style={{ animationDelay: `${i * 50}ms` }}>
+          <ItemSkeleton />
+        </div>
       ))}
     </div>
   );
@@ -177,4 +179,3 @@ export function InlineSpinner({ size = 'sm', className }: { size?: 'sm' | 'md' |
     <Loader2 className={cn("animate-spin text-muted-foreground", sizeClasses[size], className)} />
   );
 }
-

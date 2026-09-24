@@ -1,3 +1,4 @@
+import { readVisualAttributes } from './garmentMetadata';
 import { ClothingItem, UserProfile, Season } from '../types/wardrobe';
 
 // Material compatibility rules
@@ -42,7 +43,7 @@ export interface ValidationResult {
 
 export function validateMaterialCompatibility(items: ClothingItem[]): ValidationResult {
   const warnings: string[] = [];
-  const materials = items.map(item => item.metadata?.visualAttributes?.material?.toLowerCase() || 'unknown');
+  const materials = items.map(item => readVisualAttributes(item)?.material?.toLowerCase() || 'unknown');
 
   for (let i = 0; i < materials.length; i++) {
     for (let j = i + 1; j < materials.length; j++) {
@@ -71,7 +72,7 @@ export function validateWeatherAppropriateness(items: ClothingItem[], season: Se
   const seasonMaterials = WEATHER_MATERIALS[season.toLowerCase()] || [];
 
   for (const item of items) {
-    const material = item.metadata?.visualAttributes?.material?.toLowerCase();
+    const material = readVisualAttributes(item)?.material?.toLowerCase();
     if (material && !seasonMaterials.includes(material)) {
       warnings.push(`${item.name} (${material}) may not be appropriate for ${season} weather`);
     }
@@ -114,7 +115,7 @@ export function validateBodyTypeFit(items: ClothingItem[], userProfile: UserProf
   const recommendedFits = BODY_TYPE_FITS[bodyType] || [];
 
   for (const item of items) {
-    const itemFit = item.metadata?.visualAttributes?.fit?.toLowerCase();
+    const itemFit = readVisualAttributes(item)?.fit?.toLowerCase();
     if (itemFit && !recommendedFits.includes(itemFit)) {
       warnings.push(`${item.name} (${itemFit} fit) may not be ideal for your ${bodyType} body type`);
     }
@@ -137,7 +138,7 @@ export function validateGenderAppropriateness(items: ClothingItem[], userProfile
   if (!gender) return { isValid: true, warnings: [] };
 
   for (const item of items) {
-    const itemGender = item.metadata?.visualAttributes?.genderTarget?.toLowerCase();
+    const itemGender = readVisualAttributes(item)?.genderTarget?.toLowerCase();
     if (itemGender && itemGender !== 'unisex' && itemGender !== gender) {
       warnings.push(`${item.name} is targeted for ${itemGender} but your preference is ${gender}`);
     }

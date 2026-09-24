@@ -80,7 +80,7 @@ export default function Carousel({
         return String(slide.key);
       }
       // Try to find a key in the slide's children
-      if (React.isValidElement(slide) && React.isValidElement(slide.props?.children)) {
+      if (React.isValidElement<{ children?: React.ReactNode }>(slide) && React.isValidElement(slide.props.children)) {
         const child = slide.props.children;
         if (child && typeof child === 'object' && 'key' in child && child.key != null) {
           return String(child.key);
@@ -268,4 +268,3 @@ export default function Carousel({
     </div>
   );
 }
-

@@ -10,14 +10,13 @@ import {
   Sparkles, 
   Crown, 
   Zap, 
-  Users, 
-  Star,
   TrendingUp,
   CheckCircle2,
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { subscriptionService, type Subscription } from '@/lib/services/subscriptionService';
+import { mapRoleToPlan, SubscriptionPlan } from '@/types/subscription';
 
 interface PremiumTeaserProps {
   variant?: 'default' | 'compact' | 'banner';
@@ -26,30 +25,6 @@ interface PremiumTeaserProps {
   onClose?: () => void;
   dismissible?: boolean;
 }
-
-interface Testimonial {
-  name: string;
-  text: string;
-  rating: number;
-}
-
-const TESTIMONIALS: Testimonial[] = [
-  {
-    name: 'Sarah M.',
-    text: 'Unlimited outfits changed how I plan my week!',
-    rating: 5
-  },
-  {
-    name: 'Alex T.',
-    text: 'The style insights are incredibly accurate.',
-    rating: 5
-  },
-  {
-    name: 'Jordan L.',
-    text: 'Worth every penny for the time it saves me.',
-    rating: 5
-  }
-];
 
 const PREMIUM_FEATURES = [
   {
@@ -74,16 +49,8 @@ const PREMIUM_FEATURES = [
   }
 ];
 
-// Mock social proof data (in production, fetch from backend)
-const SOCIAL_PROOF = {
-  totalUsers: 12500,
-  premiumUsers: 1850,
-  recentUpgrades: 47 // in last 24 hours
-};
-
 export default function PremiumTeaser({
   variant = 'default',
-  showSocialProof = true,
   className = '',
   onClose,
   dismissible = true
@@ -93,7 +60,6 @@ export default function PremiumTeaser({
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
 
   // Check if user already has premium
   useEffect(() => {
@@ -108,17 +74,6 @@ export default function PremiumTeaser({
       setLoading(false);
     }
   }, [user]);
-
-  // Rotate testimonials
-  useEffect(() => {
-    if (!showSocialProof) return;
-
-    const interval = setInterval(() => {
-      setCurrentTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [showSocialProof]);
 
   const handleUpgrade = async () => {
     if (!user) {
@@ -146,7 +101,7 @@ export default function PremiumTeaser({
   };
 
   // Don't show if user already has premium
-  if (loading || subscription?.tier === 'tier2' || subscription?.tier === 'tier3') {
+  if (loading || mapRoleToPlan(subscription?.role) !== SubscriptionPlan.FREE) {
     return null;
   }
 
@@ -293,46 +248,6 @@ export default function PremiumTeaser({
                 </div>
               </div>
 
-              {/* Social Proof */}
-              {showSocialProof && (
-                <div className="space-y-3 pt-4 border-t">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" />
-                      <span className="font-medium">
-                        {SOCIAL_PROOF.premiumUsers.toLocaleString()}+ Premium Users
-                      </span>
-                    </div>
-                    {SOCIAL_PROOF.recentUpgrades > 0 && (
-                      <Badge variant="secondary" className="text-xs">
-                        {SOCIAL_PROOF.recentUpgrades} joined today
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Testimonials */}
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={currentTestimonial}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="p-3 bg-white/50 dark:bg-gray-900/50 rounded-lg"
-                    >
-                      <div className="flex items-center gap-1 mb-1">
-                        {[...Array(TESTIMONIALS[currentTestimonial].rating)].map((_, i) => (
-                          <Star key={i} className="h-3 w-3 fill-[var(--copper-dark)] text-[var(--copper-dark)]" />
-                        ))}
-                      </div>
-                      <p className="text-sm italic">"{TESTIMONIALS[currentTestimonial].text}"</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        — {TESTIMONIALS[currentTestimonial].name}
-                      </p>
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-              )}
-
               {/* CTA Button */}
               <div className="pt-4">
                 <Button
@@ -354,4 +269,3 @@ export default function PremiumTeaser({
     </AnimatePresence>
   );
 }
-

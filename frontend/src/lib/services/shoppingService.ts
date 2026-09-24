@@ -48,7 +48,8 @@ export interface ShoppingRecommendationsResponse {
   shopping_strategy: ShoppingStrategy;
   total_estimated_cost: number;
   budget_range: string;
-  generated_at: string;
+  // Older cached dashboard payloads omit the generation timestamp.
+  generated_at?: string;
 }
 
 class ShoppingService {
@@ -91,7 +92,7 @@ class ShoppingService {
       const endpoint = `/api/wardrobe-analysis/gaps${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await this.makeAuthenticatedRequest(endpoint, user);
       
-      if (response?.success && response?.data?.shopping_recommendations) {
+      if (response?.success && response?.data?.shopping_recommendations?.success === true) {
         console.log('✅ Shopping recommendations fetched successfully');
         return response.data.shopping_recommendations;
       } else {

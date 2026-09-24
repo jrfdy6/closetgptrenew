@@ -715,7 +715,7 @@ export const getPersonalizedLayeringSuggestions = (
   const recommendations: string[] = [];
 
   // Basic temperature-based suggestions
-  const tempSuggestions = getLayeringSuggestions(items, temperature);
+  const tempSuggestions = getLayeringSuggestions(items.map(item => ({ ...item, type: item.type })), temperature);
   suggestions.push(...tempSuggestions);
 
   // Skin tone color suggestions
@@ -763,7 +763,7 @@ export const calculatePersonalizedLayeringScore = (
   let baseScore = 0.5;
 
   // Temperature compatibility (30% weight)
-  const tempValidation = validateLayeringCompatibility(items, temperature);
+  const tempValidation = validateLayeringCompatibility(items.map(item => ({ ...item, type: item.type })), temperature);
   baseScore += (tempValidation.isValid ? 0.8 : 0.3) * 0.3;
 
   // Skin tone compatibility (20% weight)
@@ -804,7 +804,7 @@ export const getEnhancedLayeringValidation = (
   userProfile?: UserProfile
 ) => {
   if (!userProfile) {
-    return validateLayeringCompatibility(items, temperature);
+    return validateLayeringCompatibility(items.map(item => ({ ...item, type: item.type })), temperature);
   }
 
   const skinTone = userProfile.skinTone || userProfile.measurements?.skinTone;
@@ -812,7 +812,7 @@ export const getEnhancedLayeringValidation = (
   const stylePreferences = userProfile.stylePreferences || [];
 
   // Get all validation results
-  const tempValidation = validateLayeringCompatibility(items, temperature);
+  const tempValidation = validateLayeringCompatibility(items.map(item => ({ ...item, type: item.type })), temperature);
   const colorValidation = skinTone ? validateColorSkinToneCompatibility('', skinTone) : { compatible: true, score: 0.5 };
   const bodyValidation = bodyType ? validateBodyTypeLayeringCompatibility(items, bodyType) : { compatible: true, score: 0.5 };
   const styleValidation = stylePreferences.length > 0 ? validateStylePreferenceCompatibility(items, stylePreferences) : { compatible: true, score: 0.5 };

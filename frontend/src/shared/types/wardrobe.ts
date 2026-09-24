@@ -19,6 +19,7 @@ import {
 } from '../types';
 
 // Infer types from schemas
+export type Season = typeof SeasonEnum._type;
 export type ClothingItem = typeof ClothingItemSchema._type;
 export type Outfit = typeof OutfitSchema._type;
 export type OutfitGeneratedOutfit = typeof OutfitGeneratedOutfitSchema._type;

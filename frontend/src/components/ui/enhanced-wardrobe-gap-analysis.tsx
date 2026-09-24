@@ -50,57 +50,10 @@ interface WardrobeGap {
   gapSize: number;
 }
 
-interface ShoppingRecommendation {
-  id: string;
-  name: string;
-  category: string;
-  item_type: string;
-  description: string;
-  style_tags: string[];
-  colors: string[];
-  sizes: string[];
-  materials: string[];
-  estimated_price: number;
-  priority: string;
-  why_needed: string;
-  styling_tips: string;
-  care_instructions: string;
-  versatility_score: number;
-  seasonality: string[];
-  formality_level: string;
-}
-
-interface StoreRecommendation {
-  name: string;
-  description: string;
-  price_range: string;
-}
-
-interface ShoppingStrategy {
-  total_items_needed: number;
-  high_priority_items: number;
-  estimated_total_cost: number;
-  budget_range: string;
-  shopping_phases: Array<{
-    phase: number;
-    name: string;
-    description: string;
-    items: ShoppingRecommendation[];
-    estimated_cost: number;
-  }>;
-  tips: string[];
-}
 
 interface EnhancedWardrobeGapAnalysisProps {
   gaps: WardrobeGap[];
-  shoppingRecommendations?: {
-    success: boolean;
-    recommendations: ShoppingRecommendation[];
-    store_recommendations: StoreRecommendation[];
-    shopping_strategy: ShoppingStrategy;
-    total_estimated_cost: number;
-    budget_range: string;
-  };
+  shoppingRecommendations?: ShoppingRecommendationsResponse;
   onRefresh?: () => void;
   className?: string;
 }
