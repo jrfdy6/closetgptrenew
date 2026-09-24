@@ -52,9 +52,16 @@ class OutfitService {
   }
 
   async createOutfit(outfit: OutfitCreate, token: string): Promise<Outfit> {
+    // Ownership, garment metadata and generated state are resolved by the API.
+    // Keep legacy caller fields from reaching its strict creation contract.
+    const editable = ['id', 'name', 'occasion', 'style', 'mood', 'season', 'description', 'notes'];
+    const payload = {
+      ...Object.fromEntries(Object.entries(outfit).filter(([field, value]) => editable.includes(field) && value !== undefined)),
+      items: outfit.items.map(item => ({ id: item.id })),
+    };
     const response = await this.makeRequest('/outfits', {
       method: 'POST',
-      body: JSON.stringify(outfit),
+      body: JSON.stringify(payload),
       headers: {
         Authorization: `Bearer ${token}`,
       },

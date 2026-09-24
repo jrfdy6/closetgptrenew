@@ -37,10 +37,11 @@ export interface OutfitCreate {
   occasion: string;
   style: string;
   mood?: string;
-  items: OutfitItem[];
+  items: Array<Pick<OutfitItem, 'id'>>;
   description?: string;
   notes?: string;
-  user_id: string;
+  /** @deprecated Legacy input only; ownership is never sent to the API. */
+  user_id?: string;
 }
 
 export interface OutfitUpdate {

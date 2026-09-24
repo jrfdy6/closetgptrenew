@@ -362,7 +362,13 @@ export default function StylePersonaPage() {
       (profile?.stylePersona as StylePersona | undefined) ||
       (profile as any)?.style_persona;
 
-    if (storedPersona && storedPersona.id && STYLE_PERSONAS[storedPersona.id]) {
+    // The quiz stores eight personas; the older local fallback catalog has only
+    // four. A complete saved result must not be replaced by client-side scoring.
+    const hasCompleteStoredPersona = storedPersona &&
+      ['name', 'tagline', 'description', 'styleMission'].every(key =>
+        typeof storedPersona[key] === 'string' && storedPersona[key].trim()) &&
+      Array.isArray(storedPersona.traits) && storedPersona.traits.every((trait: unknown) => typeof trait === 'string');
+    if (storedPersona && storedPersona.id && (STYLE_PERSONAS[storedPersona.id] || hasCompleteStoredPersona)) {
       console.log('🎭 [Style Persona] Using stored persona:', storedPersona);
       
       // Override the stored persona's examples with gender-specific ones

@@ -596,22 +596,12 @@ export default function CreateOutfitPage() {
         style: style || 'Classic',
         description: description || undefined,
         notes: notes || undefined,
-        user_id: user.uid,
-        items: selectedItems.map(item => ({
-          id: item.id,
-          name: item.name,
-          category: item.type,
-          style: item.style?.[0] || style || 'Classic',
-          color: item.color,
-          imageUrl: item.imageUrl,
-          user_id: item.userId
-        }))
+        items: selectedItems.map(item => ({ id: item.id }))
       };
 
       console.log('🎨 [CreateOutfit] Saving outfit:', { 
         name: outfitData.name, 
         itemCount: outfitData.items.length,
-        user_id: outfitData.user_id 
       });
 
       const createdOutfit = await createOutfit(outfitData);

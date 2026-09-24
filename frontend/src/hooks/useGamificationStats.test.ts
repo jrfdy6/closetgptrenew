@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { useGamificationStats } from './useGamificationStats';
+import { useChallenges, useGamificationStats } from './useGamificationStats';
 
 declare const beforeEach: jest.Lifecycle;
 declare const afterEach: jest.Lifecycle;
@@ -145,4 +145,31 @@ it('refreshes after a same-account wear receipt and return to the tab, ignoring 
   Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
   await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
   expect(fetch).toHaveBeenCalledTimes(3);
+});
+
+it('refreshes the summary after challenge changes only for the current account', async () => {
+  (fetch as jest.Mock).mockResolvedValue(success());
+  const { result } = renderHook(useGamificationStats);
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  await act(async () => { window.dispatchEvent(new CustomEvent('gamificationActivityChanged', { detail: { uid: 'other' } })); });
+  expect(fetch).toHaveBeenCalledTimes(1);
+  await act(async () => { window.dispatchEvent(new CustomEvent('gamificationActivityChanged', { detail: { uid: 'owner' } })); });
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
+
+
+it('a successful challenge start refreshes the list and summary without emitting a wear receipt', async () => {
+  let started = false;
+  (fetch as jest.Mock).mockImplementation(async (url: string) => {
+    if (url.endsWith('/start')) { started = true; return { ok: true }; }
+    if (url.endsWith('/stats')) return success({ ...stats, active_challenges_count: started ? 1 : 0 });
+    return { ok: true, json: async () => ({ data: { challenges: [] } }) };
+  });
+  const wear = jest.fn(); window.addEventListener('outfitMarkedAsWorn', wear);
+  const { result } = renderHook(() => ({ summary: useGamificationStats(), challenges: useChallenges() }));
+  await waitFor(() => expect(result.current.summary.loading || result.current.challenges.loading).toBe(false));
+  await act(async () => { expect(await result.current.challenges.startChallenge('thirty-wears')).toBe(true); });
+  await waitFor(() => expect(result.current.summary.stats?.active_challenges_count).toBe(1));
+  expect(wear).not.toHaveBeenCalled();
+  window.removeEventListener('outfitMarkedAsWorn', wear);
 });

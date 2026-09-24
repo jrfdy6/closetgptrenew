@@ -7,6 +7,7 @@ declare const it: jest.It;
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import CreateOutfitPage from './page';
+import outfitService from '@/lib/services/outfitService_proper';
 
 const mockCreateOutfit = jest.fn();
 const mockPush = jest.fn();
@@ -135,4 +136,22 @@ it('keeps a newly saved look while flat-lay admission is globally paused', async
   expect(mockRequestFlatLay).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Not right now' }));
   expect(mockPush).toHaveBeenCalledWith('/outfits?refresh=1');
+});
+
+
+it('sends the actual manual form through the service without ownership fields and keeps optional defaults', async () => {
+  mockCreateOutfit.mockImplementation(payload => outfitService.createOutfit(payload, 'test-token'));
+  await fillDraft();
+  await waitFor(() => expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Outfit created!' })));
+  expect(mockCreateOutfit).toHaveBeenCalledWith({
+    name: 'My manual look', occasion: 'Casual', style: 'Classic',
+    description: undefined, notes: 'Keep the exact blue shirt', items: [{ id: 'shirt-1' }],
+  });
+  const createRequest = (fetch as jest.Mock).mock.calls.find(([url, options]) => url === '/api/outfits' && options?.method === 'POST');
+  expect(createRequest).toBeDefined();
+  expect(JSON.parse(createRequest![1].body)).toEqual({
+    name: 'My manual look', occasion: 'Casual', style: 'Classic',
+    notes: 'Keep the exact blue shirt', items: [{ id: 'shirt-1' }],
+  });
+  expect(createRequest![1].headers.Authorization).toBe('Bearer test-token');
 });

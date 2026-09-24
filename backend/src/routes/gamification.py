@@ -197,6 +197,12 @@ async def get_user_badges(
         if not user_doc.exists:
             raise HTTPException(status_code=404, detail="User not found")
         
+        # Badge evaluation can persist a newly earned badge. Build this response
+        # from the committed state so the showcase matches the summary count.
+        newly_unlocked = await gamification_service.check_badge_unlock_conditions(current_user.id)
+        user_doc = user_ref.get()
+        if not user_doc.exists:
+            raise HTTPException(status_code=404, detail="User not found")
         user_data = user_doc.to_dict()
         badges = user_data.get('badges', [])
         
@@ -208,9 +214,6 @@ async def get_user_badges(
                     badge_details.append(badge_info.dict())
             except:
                 logger.warning(f"Badge {badge_id} not found in definitions")
-        
-        # Check for new badges that can be unlocked
-        newly_unlocked = await gamification_service.check_badge_unlock_conditions(current_user.id)
         
         return {
             "success": True,

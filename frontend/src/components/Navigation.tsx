@@ -114,7 +114,7 @@ export default function Navigation() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "group flex items-center space-x-2 px-4 py-2.5 min-h-[44px] h-[44px] rounded-xl text-sm font-medium transition-all duration-200",
+                      "group flex items-center space-x-2 px-2 lg:px-4 py-2.5 min-h-[44px] h-[44px] rounded-xl text-sm font-medium transition-all duration-200",
                       "text-muted-foreground",
                       "hover:text-foreground",
                       "hover:bg-secondary",

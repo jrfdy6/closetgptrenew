@@ -32,6 +32,7 @@ jobs:
           test_outfit_creation_admission test_outfit_persistence test_saved_outfit
           test_app_data_privacy test_privacy_routes test_privacy_lifecycle_fences
           test_wardrobe_create_contract test_wardrobe_mutations test_root_integration_review
+          test_badge_response test_forgotten_gems_recency
           test_route_registry test_privileged_route_registration -q
   frontend-contracts:
     runs-on: ubuntu-24.04

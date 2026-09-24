@@ -1,4 +1,4 @@
-import { useWardrobeActivityRefresh } from '@/hooks/useWardrobeActivityRefresh';
+import { GAMIFICATION_ACTIVITY_EVENT, useWardrobeActivityRefresh } from '@/hooks/useWardrobeActivityRefresh';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { getPublicBackendUrl } from '@/lib/publicBackendUrl';
@@ -376,8 +376,9 @@ export function useChallenges() {
       });
 
       if (response.ok) {
-        // Refresh challenges
-        await fetchChallenges();
+        if (owner.current !== user.uid) return false;
+        // Refresh both the challenge list and the summary from committed state.
+        window.dispatchEvent(new CustomEvent(GAMIFICATION_ACTIVITY_EVENT, { detail: { uid: user.uid } }));
         return true;
       }
       return false;

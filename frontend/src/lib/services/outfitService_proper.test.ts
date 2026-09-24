@@ -16,6 +16,23 @@ const draft = {
 beforeEach(() => { jest.clearAllMocks(); global.fetch = jest.fn(); });
 
 describe('manual outfit response contract', () => {
+  it('sends only editable creation fields and saved garment IDs from legacy caller payloads', async () => {
+    (fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ id: 'saved-1' }) });
+    await outfitService.createOutfit({
+      ...draft, userId: 'other', uid: 'other', wearCount: 900, createdAt: 123,
+      flat_lay_status: 'done', flat_lay_url: '/forged.png',
+      metadata: { flat_lay_requested: true }, subscription: { role: 'tier3' },
+    } as any, 'test-token');
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const [url, request] = (fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe('/api/outfits');
+    expect(request).toMatchObject({ method: 'POST', cache: 'no-store', headers: { Authorization: 'Bearer test-token' } });
+    expect(JSON.parse(request.body)).toEqual({
+      name: draft.name, occasion: 'Casual', style: 'Classic', notes: draft.notes,
+      items: [{ id: 'shirt-1' }],
+    });
+  });
+
   it.each([
     { outfit_id: 'saved-1' },
     { id: 'saved-1' },

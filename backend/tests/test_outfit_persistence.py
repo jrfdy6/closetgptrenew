@@ -263,6 +263,36 @@ class OutfitPersistenceTests(unittest.TestCase):
         self.assertEqual(self.store.writes, [])
         self.assertEqual(self.store.records['outfits'], {})
 
+    def test_manual_browser_default_payload_saves_with_server_owned_identity(self):
+        # The create form defaults untouched occasion/style selectors to these
+        # values. Its service sends only editable fields and garment IDs.
+        payload = {
+            'name': 'QA One Piece Selection',
+            'occasion': 'Casual',
+            'style': 'Classic',
+            'items': [{'id': 'item-0'}],
+        }
+        # Reproduce the original browser failure even with a matching UID:
+        # identity belongs to authentication, not the create request schema.
+        rejected = self.client.post('/api/outfits/', json={**payload, 'user_id': 'owner-1'})
+        self.assertEqual(rejected.status_code, 422, rejected.text)
+        self.assertEqual(rejected.json()['detail'][0]['loc'], ['body', 'user_id'])
+        self.assertEqual(self.store.writes, [])
+
+        response = self.client.post('/api/outfits/', json=payload)
+        self.assertEqual(response.status_code, 200, response.text)
+        saved = response.json()
+        self.assertTrue(saved['success'])
+        self.assertEqual(saved['name'], payload['name'])
+        self.assertEqual((saved['occasion'], saved['style']), ('Casual', 'Classic'))
+        self.assertEqual(saved['user_id'], 'owner-1')
+        self.assertEqual(saved['userId'], 'owner-1')
+        self.assertEqual(len(saved['items']), 1)
+        self.assertEqual(saved['items'][0]['id'], 'item-0')
+        self.assertEqual(saved['items'][0]['name'], 'Saved garment 0')
+        self.assertEqual(saved['items'][0]['imageUrl'], 'https://example.test/original-0.jpg')
+        self.assertEqual(self.store.records['outfits'][saved['id']]['user_id'], 'owner-1')
+
     def test_lists_legacy_records_deduplicates_and_hides_conflicting_owners(self):
         self.seed('legacy', userId='owner-1', favorite=True, notes='Legacy note', wearCount=4)
         self.seed('canonical', user_id='owner-1')

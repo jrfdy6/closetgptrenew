@@ -81,7 +81,7 @@ function TVECard() {
           </TooltipProvider>
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Track your wardrobe investment returns
+          Track your estimated wardrobe value
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
@@ -100,7 +100,7 @@ function TVECard() {
               <span className="text-sm text-muted-foreground">unlocked</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              {percentRecouped.toFixed(1)}% of your ${totalWardrobeCost.toFixed(0)} wardrobe investment
+              {percentRecouped.toFixed(1)}% of your ${totalWardrobeCost.toFixed(0)} estimated wardrobe investment
             </p>
           </div>
 
@@ -108,7 +108,7 @@ function TVECard() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-muted-foreground">
-                Investment Recouped
+                Estimated Investment Recouped
               </span>
               <span className="text-sm font-bold gradient-copper-text">
                 {percentRecouped.toFixed(1)}%
@@ -122,7 +122,7 @@ function TVECard() {
                 className="mt-2 flex items-center gap-1 text-xs text-[var(--copper-dark)]"
               >
                 <Sparkles className="w-3 h-3" />
-                <span className="font-medium">Full investment recouped! Now generating bonus value!</span>
+                <span className="font-medium">Estimated investment recouped! Now generating bonus value!</span>
               </motion.div>
             )}
           </div>

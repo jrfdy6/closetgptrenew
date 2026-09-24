@@ -35,3 +35,15 @@ it('opens the existing preferences editor and moves keyboard focus there without
   expect(screen.getByDisplayValue('Original name')).toBeVisible();
   expect((fetch as jest.Mock).mock.calls.every(([, options]) => !options.method || options.method === 'GET')).toBe(true);
 });
+it('shows the saved preferred style consistently in read and edit modes, not the quiz persona name', async () => {
+  (fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({
+    userId: 'owner', name: 'Original name', email: 'owner@example.test',
+    stylePreferences: ['Cottagecore'], measurements: {}, stylePersona: { id: 'classic', name: 'The Classic' },
+  }) });
+  render(<Page />);
+  expect(await screen.findByText('Cottagecore')).toBeVisible();
+  expect(screen.queryByText('The Classic')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /^Preferences$/i }));
+  expect(screen.getByText('Cottagecore')).toBeVisible();
+  expect((fetch as jest.Mock).mock.calls.every(([, options]) => !options.method || options.method === 'GET')).toBe(true);
+});

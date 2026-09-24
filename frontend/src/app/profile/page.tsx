@@ -565,7 +565,7 @@ export default function ProfilePage() {
                 </Select>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  {profile.stylePersona?.name || 'Not specified'}
+                  {profile.stylePreferences?.[0] || 'Not specified'}
                 </p>
               )}
             </div>
