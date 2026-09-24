@@ -1,7 +1,6 @@
 import { GAMIFICATION_ACTIVITY_EVENT, useWardrobeActivityRefresh } from '@/hooks/useWardrobeActivityRefresh';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { getPublicBackendUrl } from '@/lib/publicBackendUrl';
 
 export interface LevelInfo {
   level: number;
@@ -318,13 +317,12 @@ export function useChallenges() {
       setHistoryError(null);
       const token = await user.getIdToken();
       if (!current()) return;
-      const backendUrl = getPublicBackendUrl();
       const timeout = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent) ? 60000 : 30000;
       const readChallenges = async (path: string): Promise<Challenge[]> => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
         try {
-          const response = await fetch(`${backendUrl}/api/challenges/${path}`, {
+          const response = await fetch(`/api/challenges/${path}`, {
             cache: 'no-store',
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
             signal: controller.signal,
@@ -370,7 +368,7 @@ export function useChallenges() {
       if (owner.current !== user.uid) return false;
       const controller = new AbortController();
       timeoutId = setTimeout(() => controller.abort(), 30000);
-      const response = await fetch(`${getPublicBackendUrl()}/api/challenges/${encodeURIComponent(challengeId)}/start`, {
+      const response = await fetch(`/api/challenges/${encodeURIComponent(challengeId)}/start`, {
         method: 'POST',
         signal: controller.signal,
         headers: {

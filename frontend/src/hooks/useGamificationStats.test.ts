@@ -186,6 +186,62 @@ it('loads completed history while keeping its failure separate from active chall
   expect(result.current.completedChallenges).toEqual([]);
 });
 
+it('reads all challenge lists through the existing same-origin proxy with bearer authentication', async () => {
+  (fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ success: true, data: { challenges: [] } }) });
+  const { result } = renderHook(useChallenges);
+  await waitFor(() => expect(result.current.loading).toBe(false));
+
+  expect(fetch).toHaveBeenCalledTimes(3);
+  for (const path of ['active', 'available', 'history']) {
+    expect(fetch).toHaveBeenCalledWith(`/api/challenges/${path}`, {
+      cache: 'no-store',
+      headers: { Authorization: 'Bearer firebase-token', 'Content-Type': 'application/json' },
+      signal: expect.any(AbortSignal),
+    });
+  }
+  expect(result.current).toMatchObject({ error: null, historyError: null });
+});
+
+it('starts a challenge through the same-origin proxy with its ID encoded and authorization retained', async () => {
+  (fetch as jest.Mock).mockImplementation(async (url: string) => ({
+    ok: true,
+    json: async () => url.endsWith('/start') ? { success: true } : { success: true, data: { challenges: [] } },
+  }));
+  const { result } = renderHook(useChallenges);
+  await waitFor(() => expect(result.current.loading).toBe(false));
+
+  await act(async () => { expect(await result.current.startChallenge('capsule/spring ?#')).toBe(true); });
+
+  expect(fetch).toHaveBeenCalledWith('/api/challenges/capsule%2Fspring%20%3F%23/start', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer firebase-token', 'Content-Type': 'application/json' },
+    signal: expect.any(AbortSignal),
+  });
+  expect((fetch as jest.Mock).mock.calls.every(([url]) => url.startsWith('/api/challenges/'))).toBe(true);
+});
+
+it('keeps a failed history read honest and recovers through the same-origin proxy on retry', async () => {
+  let failHistory = true;
+  (fetch as jest.Mock).mockImplementation(async (url: string) => {
+    if (url === '/api/challenges/history' && failHistory) throw new TypeError('Failed to fetch');
+    return { ok: true, json: async () => ({ success: true, data: { challenges: url.endsWith('/history')
+      ? [{ challenge_id: 'done', status: 'completed', instance_id: 'week-1' }]
+      : [] } }) };
+  });
+  const { result } = renderHook(useChallenges);
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  expect(result.current.error).toBeNull();
+  expect(result.current.historyError).toMatch(/could not be loaded/);
+  expect(result.current.completedChallenges).toEqual([]);
+
+  failHistory = false;
+  await act(async () => result.current.refetch());
+
+  expect(result.current.historyError).toBeNull();
+  expect(result.current.completedChallenges.map(challenge => challenge.challenge_id)).toEqual(['done']);
+  expect(fetch).toHaveBeenCalledTimes(6);
+});
+
 it('uses the history response and excludes expired instances from completed accomplishments', async () => {
   (fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ success: true, data: { challenges: [
     { challenge_id: 'done', status: 'completed', instance_id: 'week-1' }, { challenge_id: 'old', status: 'expired' },

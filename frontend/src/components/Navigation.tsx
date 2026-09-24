@@ -105,7 +105,7 @@ export default function Navigation() {
           </div>
 
           {/* Desktop Navigation - Modern pill design */}
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <div className="flex items-center space-x-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -134,7 +134,7 @@ export default function Navigation() {
           </div>
 
           {/* Right side - Cleaner design */}
-          <div className="hidden md:flex items-center space-x-3">
+          <div className="hidden lg:flex items-center space-x-3">
             <ThemeToggle />
             {user && (
               <Button
@@ -149,7 +149,7 @@ export default function Navigation() {
           </div>
 
           {/* Mobile menu button - Larger touch target */}
-          <div className="md:hidden flex items-center space-x-2">
+          <div className="lg:hidden flex items-center space-x-2">
             <ThemeToggle />
             <button
               onClick={(e) => {
@@ -177,7 +177,7 @@ export default function Navigation() {
         <>
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] md:hidden transition-opacity duration-200"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] lg:hidden transition-opacity duration-200"
             onClick={() => {
               console.log('🔴 Backdrop clicked, closing menu');
               setIsMenuOpen(false);
@@ -187,7 +187,7 @@ export default function Navigation() {
           
           {/* Menu Panel */}
           <div 
-            className="fixed inset-x-0 top-16 bottom-0 bg-background z-[70] md:hidden overflow-y-auto shadow-2xl"
+            className="fixed inset-x-0 top-16 bottom-0 bg-background z-[70] lg:hidden overflow-y-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
