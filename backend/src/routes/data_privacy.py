@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, field_validator
 from firebase_admin import firestore
+from starlette.concurrency import run_in_threadpool
 
 from ..auth.verified_user import verified_user_id
 from ..config.firebase import db
@@ -42,6 +43,10 @@ def _settings(user):
 
 @router.get('/privacy-settings')
 async def get_privacy_settings(user_id: str = Depends(verified_user_id)):
+    return await run_in_threadpool(_read_privacy_settings, user_id)
+
+
+def _read_privacy_settings(user_id):
     user = db.collection('users').document(user_id).get()
     if not user.exists:
         raise HTTPException(404, 'Account not found')
@@ -73,7 +78,7 @@ async def delete_user_data(data_type: Optional[str] = Query(None), user_id: str 
 @router.get('/privacy-data/status')
 async def deletion_status(user_id: str = Depends(verified_user_id)):
     try:
-        return read_deletion_status(db, user_id)
+        return await run_in_threadpool(read_deletion_status, db, user_id)
     except AppDataDeletionError as error:
         raise HTTPException(error.status_code, error.detail) from error
 

@@ -32,6 +32,8 @@ jobs:
           test_tve_epoch_hooks test_derived_epoch_hooks test_wardrobe_verified_api
           test_onboarding_state test_quiz_profile test_user_profile
           test_outfit_creation_admission test_outfit_persistence test_saved_outfit
+          test_generation_admission test_recommendation_fidelity_endpoint
+          test_saved_outfit_item_ownership test_auth_compat_privacy test_read_endpoint_concurrency
           test_app_data_privacy test_privacy_routes test_privacy_lifecycle_fences
           test_wardrobe_create_contract test_wardrobe_mutations test_root_integration_review
           test_badge_response test_forgotten_gems_recency test_null_recency test_firestore_index_manifest

@@ -15,7 +15,8 @@ DATABASE_SOURCE = Path(__file__).resolve().parents[1] / 'src/routes/outfits/data
 
 def load_item_resolver():
     """Run the real resolver/helpers without importing application/cloud setup."""
-    names = {'resolve_item_ids_to_objects', 'outfit_belongs_to_user', 'convert_firebase_url'}
+    names = {'resolve_item_ids_to_objects', '_resolve_item_ids_to_objects_sync',
+             'outfit_belongs_to_user', 'convert_firebase_url'}
     definitions = [node for node in ast.parse(DATABASE_SOURCE.read_text()).body
                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in names]
     if {node.name for node in definitions} != names:

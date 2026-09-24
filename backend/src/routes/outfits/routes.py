@@ -1709,10 +1709,11 @@ async def get_saved_outfit(outfit_id: str, user_id: str = Depends(verified_user_
     from ...config.firebase import db
     from ...services.saved_outfit import read_saved_outfit, SavedOutfitNotFound
     from fastapi.encoders import jsonable_encoder
+    from starlette.concurrency import run_in_threadpool
     if db is None:
         raise HTTPException(status_code=503, detail='Saved outfits are temporarily unavailable.')
     try:
-        result = read_saved_outfit(db, outfit_id, user_id)
+        result = await run_in_threadpool(read_saved_outfit, db, outfit_id, user_id)
         return JSONResponse(jsonable_encoder(result), headers={'Cache-Control': 'private, no-store'})
     except SavedOutfitNotFound:
         raise HTTPException(status_code=404, detail='Outfit not found')

@@ -2,6 +2,7 @@
 from typing import Optional
 from fastapi import Depends, Request, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from starlette.concurrency import run_in_threadpool
 from .verified_user import verify_bearer_claims
 from ..custom_types.profile import UserProfile
 
@@ -43,11 +44,12 @@ def _profile(claims):
 
 
 async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> UserProfile:
-    return _profile(_claims(credentials))
+    return await run_in_threadpool(lambda: _profile(_claims(credentials)))
 
 
 async def get_current_user_id(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> str:
-    return _claims(credentials)['uid']
+    claims = await run_in_threadpool(_claims, credentials)
+    return claims['uid']
 
 
 async def get_current_user_optional(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> Optional[UserProfile]:
@@ -55,4 +57,4 @@ async def get_current_user_optional(request: Request, credentials: Optional[HTTP
     authorization = request.headers.get('authorization')
     if authorization is None:
         return None
-    return _profile(verify_bearer_claims(authorization))
+    return await run_in_threadpool(lambda: _profile(verify_bearer_claims(authorization)))
