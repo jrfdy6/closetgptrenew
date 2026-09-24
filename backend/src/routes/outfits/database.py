@@ -406,6 +406,12 @@ async def save_outfit(user_id: str, outfit_id: str, outfit_record: Dict[str, Any
 
 
 async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_cache: Dict[str, Dict] = None) -> List[Dict[str, Any]]:
+    """Resolve all synchronous SDK work outside the request event loop."""
+    from starlette.concurrency import run_in_threadpool
+    return await run_in_threadpool(_resolve_item_ids_to_objects_sync, items, user_id, wardrobe_cache)
+
+
+def _resolve_item_ids_to_objects_sync(items: List[Any], user_id: str, wardrobe_cache: Dict[str, Dict] = None) -> List[Dict[str, Any]]:
     """
     Resolve item IDs to actual item objects from the wardrobe collection.
     If an item is already a dictionary, return it as is.
@@ -493,6 +499,12 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_c
 
 
 async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+    """Materialize queries and hydrate the page in one bounded worker call."""
+    from starlette.concurrency import run_in_threadpool
+    return await run_in_threadpool(_get_user_outfits_sync, user_id, limit, offset)
+
+
+def _get_user_outfits_sync(user_id: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
     """Get user outfits from Firestore with pagination."""
     if limit < 1 or offset < 0:
         raise HTTPException(status_code=422, detail='Outfit limit must be positive and offset nonnegative')
@@ -584,7 +596,7 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         for outfit_data in outfits:
             if 'items' in outfit_data and outfit_data['items']:
                 try:
-                    outfit_data['items'] = await resolve_item_ids_to_objects(outfit_data['items'], user_id, wardrobe_cache)
+                    outfit_data['items'] = _resolve_item_ids_to_objects_sync(outfit_data['items'], user_id, wardrobe_cache)
                 except Exception as e:
                     logger.error(f"🔥 Failed to resolve items for outfit {outfit_data.get('id')}: {e}")
                     outfit_data['items'] = []  # Set empty items instead of crashing

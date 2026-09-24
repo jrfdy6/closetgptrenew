@@ -115,12 +115,18 @@ async def start_challenge(
 async def get_challenge_history(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
+    """Read and materialize completed history outside the request event loop."""
+    from starlette.concurrency import run_in_threadpool
+    return await run_in_threadpool(_read_challenge_history, current_user.id)
+
+
+def _read_challenge_history(user_id: str) -> Dict[str, Any]:
     """
     Get user's completed challenges history
     """
     try:
         completed_ref = challenge_service.db.collection('user_challenges')\
-            .document(current_user.id)\
+            .document(user_id)\
             .collection('completed')
         
         history = []

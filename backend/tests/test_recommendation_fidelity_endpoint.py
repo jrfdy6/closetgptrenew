@@ -28,6 +28,7 @@ from src.utils.outfit_analysis import generate_outfit_analysis
 class RecommendationFidelityEndpointTests(unittest.TestCase):
     seed = admission_tests.ActiveGenerationAdmissionTests.seed
     generate = admission_tests.ActiveGenerationAdmissionTests.generate
+    persist_record = admission_tests.ActiveGenerationAdmissionTests.persist_record
 
     def setUp(self):
         previous_logging = logging.root.manager.disable
