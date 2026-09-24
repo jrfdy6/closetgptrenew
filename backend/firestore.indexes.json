@@ -319,6 +319,90 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "outfit_history",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "user_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date_worn",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "outfit_history",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "feedback",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "outfit_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "wardrobe",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "favorite",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "outfits",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "user_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "feedback",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "user_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

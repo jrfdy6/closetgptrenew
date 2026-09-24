@@ -184,7 +184,7 @@ class GWSService:
             
             for doc in all_items:
                 item_data = doc.to_dict()
-                last_worn = item_data.get('lastWorn', 0)
+                last_worn = (item_data.get('lastWorn') or 0)
                 wear_count = item_data.get('wearCount', 0)
                 
                 # Item was dormant if it had low wear count or old last worn
