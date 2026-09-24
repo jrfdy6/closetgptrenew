@@ -14,24 +14,27 @@ If OpenClaw workspace docs and the product repo disagree, this file wins for Eas
 
 ## Current release and privileged boundary — September 24, 2026
 
-The onboarding and connected-app release is deployed on `main` at
-`cfe6cdd425e93eee624d3ac7c9b4c4e3236aa8b3` (PRs 10 and 11). The prior Goal 6
-hold and paused-worker notes are historical; the API and image worker are running,
-and `EASYOUTFIT_FLATLAY_REQUESTS_PAUSED=false`. The subsequent deep gamification
-audit is being implemented on `codex/gamification-launch-polish`; do not describe
-that candidate as deployed until its exact artifacts and acceptance are recorded.
-See [the 59-challenge baseline audit](../gamification-launch-audit-2026-09-24.md)
-and [launch verification](GAMIFICATION_LAUNCH_VERIFICATION.md).
+The latest full-stack acceptance snapshot is `c29271dcdf83e629d27e7d88381d9698b7028c8e`
+([PR 12](https://github.com/jrfdy6/closetgptrenew/pull/12)). The onboarding release,
+reward recovery, all-catalog challenge corrections and private automation worker
+are deployed. Flatlay admission remains open. The IDs below identify that snapshot;
+frontend-only responsive follow-ups can supersede its Vercel artifact. For the current
+frontend revision, check the production deployment metadata and the containing PR's
+Vercel check. Do not substitute local build IDs for deployed artifacts.
 
-- Vercel production: `dpl_6eppYsKS4oEhhkUUCZbCcbQw6mBG`, exact `cfe6cdd4`.
-- Railway API: `bc01e86d-4a9f-40f7-8ce9-8329a9ae7a8a`, exact `cfe6cdd4`.
-- Railway rewards/privacy worker: `82d06727-ddf2-4680-9d55-96151dc21f53`, exact `cfe6cdd4`.
-- Railway image worker: `b599b94b-67ee-4a62-be57-4b34bfd4733c`, `31e1fe8a`;
-  its worker subtree is byte-identical to `cfe6cdd4`.
-- Protected Firestore rules: `6ac4e643-cf21-4042-be05-1d75bcd53561`, SHA-256
+- Vercel snapshot: `dpl_6eF2UN9nnquyqNGn1fe7qPJaW7YQ`, exact `c29271dc`.
+- Railway API: `fd1e1ff0-bc3d-493d-9854-3795b26031b0`, exact `c29271dc`.
+- Railway rewards/privacy worker: `320bb991-63af-4b16-9e93-efc74ddb93f9`, exact `c29271dc`.
+- Image worker source and interfaces are unchanged by the gamification release;
+  no paid image was generated during these checks.
+- Protected Firestore rules remain `6ac4e643-cf21-4042-be05-1d75bcd53561`, SHA-256
   `1ddc121a3bac204aff875a10ab2606bd84863e5fe4c9199946ab33d4a87d3dea`.
-  All 26 production indexes were READY. The complete index manifest is
+  All 26 production indexes were READY. The complete manifest is
   `backend/firestore.indexes.json`; the empty frontend manifest must not replace it.
+
+See [the historical baseline audit](../gamification-launch-audit-2026-09-24.md)
+and [launch verification](GAMIFICATION_LAUNCH_VERIFICATION.md) for the fixed defects,
+measured evidence, runtime acceptance and explicit limits.
 
 Vercel serves the frontend, public Firebase client configuration and thin fixed-origin
 API proxies. It contains no Firebase Admin runtime and needs no Admin private keys.

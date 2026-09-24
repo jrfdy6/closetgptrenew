@@ -15,14 +15,15 @@ Canonical operator playbook:
 
 ## Privileged boundary — released September 24, 2026
 
-The current released `main` is `cfe6cdd425e93eee624d3ac7c9b4c4e3236aa8b3`.
-Vercel and the Railway API use this source. The image worker is active on a
+The latest full-stack acceptance snapshot is `c29271dcdf83e629d27e7d88381d9698b7028c8e`
+(PR 12). The Railway API and rewards worker use this source; frontend-only responsive
+follow-ups can advance Vercel without changing those backend code trees. The image worker is active on a
 byte-identical worker subtree; flatlay admission is open and ordinary credit
 guards remain enforced. A separate private rewards/privacy worker processes
 wear projections, account-data deletion and daily/weekly maintenance. It uses
 existing Firebase references and has no provider/payment credentials or public domain.
-The operator playbook records exact artifacts. The deeper gamification polish
-candidate requires its own frozen-source and runtime acceptance before release.
+The operator playbook records exact artifacts. The gamification polish passed its frozen-source, remote CI and runtime checks;
+[launch verification](GAMIFICATION_LAUNCH_VERIFICATION.md) records coverage and limits.
 
 | Surface | Candidate responsibility |
 | --- | --- |
