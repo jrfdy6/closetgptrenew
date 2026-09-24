@@ -359,3 +359,11 @@ class CatalogTests(WearTestFixture):
             details=badge_details(badge)
             self.assertIn('feedback',details['description'])
             self.assertEqual(details['unlock_condition'],'Earned through outfit feedback')
+
+    def test_wear_projected_catalog_copy_requires_recorded_activity(self):
+        for definition in CHALLENGE_CATALOG.values():
+            if not is_action_challenge(definition):
+                self.assertFalse(definition.description.lower().startswith('create '),definition.id)
+        definition=CHALLENGE_CATALOG['complete_catalog']
+        self.assertEqual(definition.rules['categories_required'],8)
+        self.assertIn('clothing types',definition.description)

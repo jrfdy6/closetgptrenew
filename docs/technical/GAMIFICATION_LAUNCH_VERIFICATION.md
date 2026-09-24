@@ -4,8 +4,9 @@
 
 Reviewed commit `5a53a0a2e3c98c8871fcc6ed5ecf9c8802408a01` merged as
 `c29271dcdf83e629d27e7d88381d9698b7028c8e`, with identical tree
-`e0b42ccdbdb1f4db535676cf37e678fbafb188bc`. The containing follow-up changes only
-the existing navigation's desktop breakpoint and this release documentation.
+`e0b42ccdbdb1f4db535676cf37e678fbafb188bc`. The containing follow-up corrects the existing navigation's desktop breakpoint,
+uses the existing same-origin API proxy for challenge reads/enrollment, and aligns
+challenge wording with recorded-wear triggers. It adds no pages, API handlers or formulas.
 The [baseline audit](../gamification-launch-audit-2026-09-24.md) is a historical record
 of defects that prompted these fixes, not the current verification verdict.
 
@@ -27,6 +28,19 @@ The bounded final source review found no remaining launch blocker in the reviewe
 | Production acceptance | **PR 12 matching frontend/API/worker verified** | API and worker SUCCESS on the merge, API health 200, no sampled startup/index/reward-error markers. 39 corrected public-page/health/auth-denial checks passed. Existing approved QA session read 66 XP and persisted challenge/garment progress through the new backend. This does not imply a new authenticated production-domain browser login. |
 
 The browser observations above were supplied by the root integration run. The independent review used source inspection, local tests, transaction doubles, and the reproduced failure cases; it did not independently operate a browser or production account.
+
+## Browser connection follow-up
+
+An intermittent local browser `TypeError: Failed to fetch` affected direct cross-origin
+challenge reads. Forty concurrent direct API reads, four preflights and raw gzip checks
+all passed; that did not establish a backend defect or prove the browser failure harmless.
+Challenge reads and enrollment now use the same existing `/api` proxy as XP and badges,
+retaining bearer headers, no-store reads, deadlines and account fences. Hook tests cover
+same-origin reads, encoded enrollment IDs, authentication and error/retry recovery.
+Repeated fresh browser loads then displayed the completed history without application
+errors; one automation locator timeout reported the expected tab already visible and
+was confirmed by the next observation. This is bounded evidence, not a universal
+network-reliability claim. Backend APIs remain protected and no new handler was added.
 
 ## Reviewed boundaries
 
@@ -67,7 +81,7 @@ The reports and harness listed below were copied to durable private `launch-poli
 | Remote GitHub CI | [App integration contracts](https://github.com/jrfdy6/closetgptrenew/actions/runs/35997403746), 439 backend and 952 frontend tests; [Linux worker contracts](https://github.com/jrfdy6/closetgptrenew/actions/runs/35997403854), passed |
 | Railway API | `fd1e1ff0-bc3d-493d-9854-3795b26031b0`, SUCCESS on `c29271dc` |
 | Railway rewards/privacy worker | `320bb991-63af-4b16-9e93-efc74ddb93f9`, SUCCESS on `c29271dc` |
-| Vercel full-stack snapshot | `dpl_6eF2UN9nnquyqNGn1fe7qPJaW7YQ`, READY on `c29271dc`; all three canonical domains served `build-1790251980162`. The containing frontend-only follow-up has its own deployment check. |
+| Vercel full-stack snapshot | `dpl_6eF2UN9nnquyqNGn1fe7qPJaW7YQ`, READY on `c29271dc`; all three canonical domains served `build-1790251980162`. The containing follow-up has its own deployment check. |
 | Image worker / rules / indexes | Code/interfaces/rules/index manifest unchanged; 26 production indexes independently verified READY. No image generation invoked. |
 | Responsive acceptance follow-up | Active-tab override resolved; browser checks passed at 375/390/768/1024 px after the navigation breakpoint correction. Native camera/share remain unverified. |
 

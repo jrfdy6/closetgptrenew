@@ -16,8 +16,8 @@ Canonical operator playbook:
 ## Privileged boundary — released September 24, 2026
 
 The latest full-stack acceptance snapshot is `c29271dcdf83e629d27e7d88381d9698b7028c8e`
-(PR 12). The Railway API and rewards worker use this source; frontend-only responsive
-follow-ups can advance Vercel without changing those backend code trees. The image worker is active on a
+(PR 12). The Railway API and rewards worker use this source; subsequent polish follow-ups can advance deployments. Inspect exact deployment
+metadata for the current revision; this dated snapshot is not a moving alias. The image worker is active on a
 byte-identical worker subtree; flatlay admission is open and ordinary credit
 guards remain enforced. A separate private rewards/privacy worker processes
 wear projections, account-data deletion and daily/weekly maintenance. It uses

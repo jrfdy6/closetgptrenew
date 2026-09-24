@@ -18,7 +18,7 @@ The latest full-stack acceptance snapshot is `c29271dcdf83e629d27e7d88381d9698b7
 ([PR 12](https://github.com/jrfdy6/closetgptrenew/pull/12)). The onboarding release,
 reward recovery, all-catalog challenge corrections and private automation worker
 are deployed. Flatlay admission remains open. The IDs below identify that snapshot;
-frontend-only responsive follow-ups can supersede its Vercel artifact. For the current
+subsequent polish follow-ups can supersede its Vercel artifact. For the current
 frontend revision, check the production deployment metadata and the containing PR's
 Vercel check. Do not substitute local build IDs for deployed artifacts.
 
