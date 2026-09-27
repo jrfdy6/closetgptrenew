@@ -303,25 +303,46 @@ def update_wear_metadata(db, user_id, event_id, updates):
 
 def _previous_worn(db, transaction, user_id, event_id, *, item_id=None, outfit_id=None, baseline=None):
     from google.cloud.firestore_v1 import FieldFilter
+    from .wear_statistics import parse_wear_timestamp
+    from .wardrobe_reads import DELETED_FIELDS
+
+    baseline_instant = parse_wear_timestamp(baseline) if baseline else None
+    if baseline and baseline_instant is None:
+        raise OutfitWearError(409, "Wear history needs to be refreshed.")
+    baseline_time = int(baseline_instant.timestamp() * 1000) if baseline_instant else 0
     query = db.collection("outfit_history").where(filter=FieldFilter("user_id", "==", user_id))
     if not item_id:
         query = query.where(filter=FieldFilter("outfit_id", "==", outfit_id))
-    # Read active managed events in newest-first pages; tombstones do not count.
+    # Firestore orders by stored type before value. An old ISO string can
+    # precede a newer numeric timestamp, so compare every matching instant.
     query = query.order_by("date_worn", direction="DESCENDING")
-    latest = _timestamp_ms(baseline) if baseline else 0
+    latest = 0
     for snapshot in query.stream(transaction=transaction):
         event = snapshot.to_dict()
-        ids = event.get("item_ids") or [item.get("id") if isinstance(item, dict) else item for item in event.get("items", [])]
-        if item_id and item_id not in ids:
+        if not owns_garment(event, user_id):
             continue
-        event_time = _timestamp_ms(event["date_worn"])
-        if snapshot.id == event_id or event.get("undone"):
-            if event_time == latest:
-                latest = 0
+        if item_id:
+            ids = event.get("item_ids")
+            if not ids:
+                items = event.get("items")
+                ids = [item.get("id") if isinstance(item, dict) else item for item in items] if isinstance(items, list) else []
+            if not isinstance(ids, list) or item_id not in ids:
+                continue
+        excluded = snapshot.id == event_id or event.get("undone") or any(event.get(key) for key in DELETED_FIELDS)
+        instant = parse_wear_timestamp(event.get("date_worn"), date_timezone=event.get("timezone") or "UTC")
+        if instant is None:
+            if excluded:
+                continue
+            raise OutfitWearError(409, "Wear history needs to be refreshed.")
+        event_time = int(instant.timestamp() * 1000)
+        if excluded:
+            if event_time == baseline_time:
+                baseline_time = 0
             continue
         latest = max(latest, event_time)
-        break
-    return latest or None
+    # A tombstone only invalidates the legacy baseline at that instant; it
+    # cannot erase a later active contribution found elsewhere in the scan.
+    return max(latest, baseline_time) or None
 
 
 def undo_wear(db, user_id, event_id, *, now=None):
