@@ -53,6 +53,118 @@ beforeEach(() => {
   fetchMock = jest.fn(() => response(clone(outfit)));
   global.fetch = fetchMock;
 });
+
+describe('Saved look visibility refresh', () => {
+  let visibility: jest.SpyInstance;
+  const changeVisibility = (state: DocumentVisibilityState) => {
+    visibility.mockReturnValue(state);
+    fireEvent(document, new Event('visibilitychange'));
+  };
+  beforeEach(() => {
+    visibility = jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+  });
+  afterEach(() => { visibility.mockRestore(); });
+
+  it('adopts wear and favorite changes on return without losing unsaved feedback or writing', async () => {
+    render(<SavedOutfitView id="look" user={user} />);
+    await loaded();
+    expect(screen.getByText('Wear count: 0')).toBeInTheDocument();
+    act(() => latest().onFeedbackChange('Keep my unsaved note'));
+    changeVisibility('hidden');
+    outfit = { ...outfit, wearCount: 1, lastWorn: Date.now(), isFavorite: true };
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    changeVisibility('visible');
+    await screen.findByText('Wear count: 1');
+    expect(screen.getByText('Worn today: true')).toBeInTheDocument();
+    expect(screen.getByText('Favorite: true')).toBeInTheDocument();
+    expect(screen.getByText('Feedback: Keep my unsaved note')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(writes()).toHaveLength(0);
+    expect(previewRequest).not.toHaveBeenCalled();
+  });
+
+  it('pauses automatic reads while hidden and resumes pending status once on return', async () => {
+    jest.useFakeTimers();
+    outfit = { ...outfit, flat_lay_status: 'pending' };
+    render(<SavedOutfitView id="look" user={user} />);
+    await loaded();
+    changeVisibility('hidden');
+    await act(async () => { jest.advanceTimersByTime(30000); });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    changeVisibility('visible');
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    changeVisibility('visible');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await act(async () => { jest.advanceTimersByTime(5000); });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('waits for visibility before reading a saved look mounted in a hidden tab', async () => {
+    visibility.mockReturnValue('hidden');
+    render(<SavedOutfitView id="look" user={user} />);
+    await act(async () => {});
+    expect(fetchMock).not.toHaveBeenCalled();
+    changeVisibility('visible');
+    await loaded();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('coalesces returns during a read into one follow-up without overlapping requests', async () => {
+    render(<SavedOutfitView id="look" user={user} />);
+    await loaded();
+    const olderResult = clone(outfit);
+    const pending = deferred();
+    fetchMock.mockImplementationOnce(() => pending.promise);
+    changeVisibility('hidden'); changeVisibility('visible');
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    changeVisibility('hidden'); changeVisibility('visible');
+    changeVisibility('hidden'); changeVisibility('visible');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    outfit = { ...outfit, wearCount: 2 };
+    await act(async () => { pending.resolve(await response(olderResult)); });
+    await screen.findByText('Wear count: 2');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(writes()).toHaveLength(0);
+  });
+
+  it('cleans up the listener and ignores a delayed return read after sign-out', async () => {
+    const view = render(<SavedOutfitView id="look" user={user} />);
+    await loaded();
+    const pending = deferred();
+    fetchMock.mockImplementationOnce(() => pending.promise);
+    changeVisibility('hidden'); changeVisibility('visible');
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    const signal = fetchMock.mock.calls[1][1].signal as AbortSignal;
+    view.rerender(<SavedOutfitView id="look" user={null} />);
+    expect(signal.aborted).toBe(true);
+    changeVisibility('hidden'); changeVisibility('visible');
+    await act(async () => { pending.resolve(await response({ ...outfit, wearCount: 8 })); });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument();
+    expect(screen.queryByText('Wear count: 8')).not.toBeInTheDocument();
+    view.unmount();
+    changeVisibility('hidden'); changeVisibility('visible');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('ignores foreign wear events and recovers a failed return read on the next return', async () => {
+    render(<SavedOutfitView id="look" user={user} />);
+    await loaded();
+    act(() => window.dispatchEvent(new CustomEvent('outfitMarkedAsWorn', {
+      detail: { uid: 'another-owner', outfitId: 'look', wearCount: 9 },
+    })));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    fetchMock.mockImplementationOnce(() => response({ error: 'Temporarily unavailable' }, 503));
+    changeVisibility('hidden'); changeVisibility('visible');
+    await waitFor(() => expect(latest().updatesError).toBe('Temporarily unavailable'));
+    expect(screen.getByText('Wear count: 0')).toBeInTheDocument();
+    outfit = { ...outfit, wearCount: 1 };
+    changeVisibility('hidden'); changeVisibility('visible');
+    await screen.findByText('Wear count: 1');
+    expect(latest().updatesError).toBeUndefined();
+    expect(writes()).toHaveLength(0);
+  });
+});
 afterEach(() => { jest.useRealTimers(); });
 
 describe('Owned saved outfit controller', () => {

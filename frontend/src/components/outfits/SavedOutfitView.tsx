@@ -68,11 +68,18 @@ export default function SavedOutfitView({ id, user, authLoading = false }: { id:
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     let wasPending = false;
+    let inFlight = false;
+    let refreshQueued = false;
+    let visible = document.visibilityState === 'visible';
+    const clearTimer = () => { if (timer) clearTimeout(timer); timer = undefined; };
     const refresh = async () => {
+      if (disposed || !current(key) || !visible || inFlight) return;
+      clearTimer();
+      inFlight = true;
       setRefreshing(true);
       try {
         const token = await user.getIdToken();
-        if (disposed || !current(key)) return;
+        if (disposed || !current(key) || !visible) return;
         const revision = mutationRevision.current;
         const result = await readSavedOutfit(id, user.uid, token, controller.signal);
         if (disposed || !current(key) || revision !== mutationRevision.current) return;
@@ -91,14 +98,33 @@ export default function SavedOutfitView({ id, user, authLoading = false }: { id:
         if (err instanceof SavedOutfitError && [401, 403, 404].includes(err.status)) setSaved(null);
         setLoadError({ key, message: message(err, 'Your saved outfit could not be loaded.'), status: err instanceof SavedOutfitError ? err.status : undefined });
       } finally {
+        inFlight = false;
         if (!disposed && current(key)) {
           setRefreshing(false);
-          if (wasPending) timer = setTimeout(refresh, 5000);
+          if (visible && refreshQueued) {
+            refreshQueued = false;
+            void refresh();
+          } else if (visible && wasPending) timer = setTimeout(refresh, 5000);
         }
       }
     };
-    refresh();
-    return () => { disposed = true; controller.abort(); if (timer) clearTimeout(timer); };
+    const onVisibilityChange = () => {
+      const nextVisible = document.visibilityState === 'visible';
+      if (nextVisible === visible) return;
+      visible = nextVisible;
+      clearTimer();
+      if (!visible) return;
+      // A return during an older read needs one fresh read after it settles.
+      // Keep requests serial even when tabs are switched repeatedly.
+      if (inFlight) refreshQueued = true;
+      else { refreshQueued = false; void refresh(); }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    void refresh();
+    return () => {
+      disposed = true; controller.abort(); clearTimer();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [id, user?.uid, version]);
 
   useEffect(() => {
