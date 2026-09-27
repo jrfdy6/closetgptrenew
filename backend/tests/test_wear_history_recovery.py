@@ -246,3 +246,80 @@ class MixedHistoryUndoTests(WearTestFixture):
         with patch.object(FakeQuery, "stream", firestore_type_order_stream):
             wear.undo_wear(self.db, "owner", latest["event_id"])
         self.assertEqual(self.db.rows["outfits"]["look"]["lastWorn"], first["date_worn"])
+
+    def test_history_reads_grow_with_rows_not_garment_count(self):
+        initial = copy.deepcopy(self.db.rows)
+        for rows in (10, 100):
+            for garments in (3, 8):
+                with self.subTest(rows=rows, garments=garments):
+                    self.db.rows = copy.deepcopy(initial)
+                    outfit = self.db.rows["outfits"]["look"]
+                    for index in range(garments - 2):
+                        item = self.garment(f"extra-{index}", "accessory")
+                        self.db.seed("wardrobe", item["id"], item)
+                        outfit["items"].append(item)
+                    ids = [item["id"] for item in outfit["items"]]
+                    for index in range(rows - 1):
+                        self.legacy(f"old-{index}", (self.now - timedelta(days=index + 1)).isoformat(),
+                                    outfit_id="look" if index % 2 else "another", item_ids=ids)
+                    # The database query must remain scoped to this account.
+                    self.legacy("foreign", self.now.isoformat(), user_id="other")
+                    event = self.record()
+                    reads = []
+                    def count(query, transaction=None):
+                        snapshots = list(firestore_type_order_stream(query, transaction))
+                        if query.name == "outfit_history":
+                            reads.append((query.filters, len(snapshots)))
+                        return iter(snapshots)
+                    with patch.object(FakeQuery, "stream", count):
+                        wear.undo_wear(self.db, "owner", event["event_id"])
+                    self.assertEqual(reads, [([("user_id", "==", "owner")], rows)])
+
+    def test_history_snapshot_is_reloaded_on_transaction_retry(self):
+        first = self.record()
+        latest = self.record("latest", now=self.now + timedelta(days=2))
+        new_instant = self.now + timedelta(days=1)
+        rewards = copy.deepcopy(self.db.rows["reward_ledger"])
+        def concurrent_history_update(database):
+            updated = dict(database.rows["outfit_history"][first["event_id"]])
+            updated["date_worn"] = new_instant.isoformat()
+            database.seed("outfit_history", first["event_id"], updated)
+        self.db.before_commit = concurrent_history_update
+        queries = []
+        def count(query, transaction=None):
+            if query.name == "outfit_history":
+                queries.append(transaction)
+            return firestore_type_order_stream(query, transaction)
+        with patch.object(FakeQuery, "stream", count):
+            wear.undo_wear(self.db, "owner", latest["event_id"])
+        self.assertEqual(len(queries), 2)
+        self.assertIsNot(queries[0], queries[1])
+        self.assertEqual(self.db.conflicts, 1)
+        expected = int(new_instant.timestamp() * 1000)
+        self.assertEqual(self.db.rows["outfits"]["look"]["lastWorn"], expected)
+        for item in ("dress", "shoes"):
+            self.assertEqual(self.db.rows["wardrobe"][item]["lastWorn"], expected)
+        self.assertEqual(self.db.rows["reward_ledger"], rewards)
+
+    def test_partial_history_read_fails_without_writing_a_partial_recovery(self):
+        self.record()
+        latest = self.record("latest", now=self.now + timedelta(days=1))
+        before = copy.deepcopy(self.db.rows)
+        def interrupted(query, transaction=None):
+            snapshots = firestore_type_order_stream(query, transaction)
+            for snapshot in snapshots:
+                yield snapshot
+                if query.name == "outfit_history":
+                    raise RuntimeError("History stream interrupted")
+        with patch.object(FakeQuery, "stream", interrupted), self.assertRaisesRegex(RuntimeError, "interrupted"):
+            wear.undo_wear(self.db, "owner", latest["event_id"])
+        self.assertEqual(self.db.rows, before)
+
+    def test_shared_snapshot_does_not_parse_unrelated_invalid_history(self):
+        first = self.record()
+        latest = self.record("latest", now=self.now + timedelta(days=1))
+        self.legacy("unrelated", "invalid", outfit_id="another", item_ids=["other-item"])
+        wear.undo_wear(self.db, "owner", latest["event_id"])
+        self.assertEqual(self.db.rows["outfits"]["look"]["lastWorn"], first["date_worn"])
+        for item in ("dress", "shoes"):
+            self.assertEqual(self.db.rows["wardrobe"][item]["lastWorn"], first["date_worn"])
