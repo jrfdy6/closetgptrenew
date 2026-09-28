@@ -279,7 +279,7 @@ class ChallengeService:
             
         except Exception as e:
             logger.error(f"Error getting active challenges: {e}", exc_info=True)
-            return []
+            raise
     
     async def get_available_challenges(self, user_id: str) -> List[Dict[str, Any]]:
         """Get challenges available to start"""
@@ -344,7 +344,7 @@ class ChallengeService:
             
         except Exception as e:
             logger.error(f"Error getting available challenges: {e}", exc_info=True)
-            return []
+            raise
     
     async def check_30_wears_milestones(self, user_id: str, item_id: str, new_wear_count: int) -> Optional[Dict[str, Any]]:
         # Canonical wear projection supplies before/after evidence. This old

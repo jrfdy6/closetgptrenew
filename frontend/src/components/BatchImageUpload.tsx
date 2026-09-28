@@ -35,6 +35,29 @@ const statusLabel: Record<UploadStatus, string> = {
   saving: 'Saving to your wardrobe', success: 'Saved to your wardrobe', error: 'Not saved yet', duplicate: 'Already added',
 };
 
+type UploadStage = 'upload' | 'analysis' | 'save';
+const stageError: Record<UploadStage, string> = {
+  upload: "We couldn't confirm the photo upload. Check your connection, then retry this photo.",
+  analysis: "Your photo is uploaded, but we couldn't identify it. Check your connection, then retry analysis.",
+  save: "Your photo is ready, but we couldn't confirm it was saved. Check your connection, then retry saving.",
+};
+const knownErrors = new Set([
+  'This photo could not be read. Choose it again.',
+  'This HEIC photo could not be read. Export it as JPEG or choose another photo.',
+  'Photo upload failed. Retry this photo.',
+  'Your photo uploaded, but its details could not be identified. Retry analysis.',
+  'This item was not confirmed saved. Please retry.',
+]);
+function recoveryMessage(error: unknown, stage: UploadStage): string {
+  if (error instanceof Error && knownErrors.has(error.message)) return error.message;
+  const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+  if (typeof code === 'string' && [
+    'auth/user-token-expired', 'auth/id-token-expired', 'auth/invalid-user-token',
+    'auth/user-disabled', 'auth/user-not-found', 'auth/requires-recent-login',
+  ].includes(code)) return 'Please sign in again, then retry this photo. Your selection is kept.';
+  return stageError[stage];
+}
+
 /** One stable item ID and one acknowledged save per photo, including retries. */
 export default function BatchImageUpload({ onUploadComplete, onItemSaved, onError, onPendingChange, userId }: BatchImageUploadProps) {
   const { user } = useFirebase();
@@ -51,6 +74,14 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
   const preparingSelections = useRef(new Set<symbol>());
   const pendingCallback = useRef(onPendingChange);
   const unreportedSaves = useRef(new Map<string, SavedItem>());
+  // Acknowledgment records the latest read already started at save time.
+  const confirmedHashes = useRef(new Map<string, number>());
+  const latestWardrobeRequest = useRef(0);
+  const latestSuccessfulWardrobeRequest = useRef(0);
+  const wardrobeHashes = useRef(new Set<string>());
+  // Retain checkpoints even when a failed representative is removed. Another
+  // copy must explicitly retry the same attempt, never silently start over.
+  const attempts = useRef(new Map<string, UploadItem>());
   const visibleItems = queueOwner === userId && user?.uid === userId ? items : [];
   itemsRef.current = visibleItems;
   currentUser.current = user;
@@ -72,6 +103,11 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
     setItems([]);
     itemsRef.current = [];
     unreportedSaves.current.clear();
+    confirmedHashes.current.clear();
+    wardrobeHashes.current.clear();
+    latestWardrobeRequest.current += 1;
+    latestSuccessfulWardrobeRequest.current = 0;
+    attempts.current.clear();
     setQueueOwner(userId);
     setBusy(false);
     running.current = false;
@@ -84,8 +120,43 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
     };
   }, [userId, user?.uid]);
 
+  const reconcileDuplicates = useCallback((rows: UploadItem[]): UploadItem[] => {
+    const representatives = new Map<string, string>();
+    // A successful row owns its hash until a read started after acknowledgment
+    // observes its deletion. In-flight rows always retain ownership.
+    rows.forEach(item => {
+      if (item.hash && (['uploading', 'analyzing', 'saving'].includes(item.status) ||
+        (item.status === 'success' && (confirmedHashes.current.has(item.hash) || wardrobeHashes.current.has(item.hash))))) {
+        representatives.set(item.hash, item.id);
+      }
+    });
+    return rows.map(item => {
+      if (!item.hash || item.status === 'success') return item;
+      const representative = representatives.get(item.hash);
+      if (representative === item.id) return item;
+      if (representative || confirmedHashes.current.has(item.hash) || wardrobeHashes.current.has(item.hash)) return { ...item, status: 'duplicate' };
+      const previous = attempts.current.get(item.hash);
+      const eligible = previous && previous.id !== item.id ? {
+        ...item, id: previous.id, preparedFile: previous.preparedFile,
+        imageUrl: previous.imageUrl, savedInput: previous.savedInput,
+        error: previous.error, status: previous.status,
+      } : item.status === 'duplicate' ? { ...item, status: item.error ? 'error' as const : 'pending' as const } : item;
+      representatives.set(item.hash, eligible.id);
+      return eligible;
+    });
+  }, []);
   const update = (id: string, values: Partial<UploadItem>) => {
-    const next = itemsRef.current.map(item => item.id === id ? { ...item, ...values } : item);
+    const next = itemsRef.current.map(item => {
+      if (item.id !== id) return item;
+      const updated = { ...item, ...values };
+      if (updated.hash) {
+        if (updated.status === 'success') {
+          confirmedHashes.current.set(updated.hash, latestWardrobeRequest.current);
+          attempts.current.delete(updated.hash);
+        } else attempts.current.set(updated.hash, updated);
+      }
+      return updated;
+    });
     itemsRef.current = next;
     setItems(next);
   };
@@ -104,8 +175,9 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
     }
   }, [isCurrent, onUploadComplete]);
   const removeItem = (item: UploadItem) => {
+    if (running.current) return;
     URL.revokeObjectURL(item.preview);
-    const next = itemsRef.current.filter(entry => entry.id !== item.id);
+    const next = reconcileDuplicates(itemsRef.current.filter(entry => entry.id !== item.id));
     itemsRef.current = next;
     setItems(next);
     void finishResolvedBatch(userId);
@@ -124,33 +196,40 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
     try {
       const token = await user.getIdToken();
       if (!selectionIsCurrent()) return;
+      const wardrobeRequest = ++latestWardrobeRequest.current;
       const response = await fetch('/api/wardrobe', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
       const payload = await response.json();
       if (!selectionIsCurrent()) return;
       if (!response.ok || payload.success !== true || !Array.isArray(payload.items)) {
         throw new Error('We could not check your saved photos. Please try selecting them again.');
       }
-      const knownHashes = new Set<string>([
-        ...payload.items.flatMap((item: SavedItem) => [item.contentHash, item.imageHash].filter(Boolean)),
-        ...itemsRef.current.map(item => item.hash).filter((value): value is string => Boolean(value)),
-      ]);
+      // Keep the newest successful snapshot: a later pending/failed request
+      // cannot discard valid evidence. Reads started before acknowledgment
+      // still cannot invalidate that local save.
+      const latestWardrobeHashes = new Set<string>();
+      payload.items.forEach((item: SavedItem) => {
+        [item.contentHash, item.imageHash].forEach(hash => {
+          if (typeof hash === 'string' && hash) latestWardrobeHashes.add(hash);
+        });
+      });
+      if (wardrobeRequest > latestSuccessfulWardrobeRequest.current) {
+        latestSuccessfulWardrobeRequest.current = wardrobeRequest;
+        wardrobeHashes.current = latestWardrobeHashes;
+        confirmedHashes.current.forEach((acknowledgedDuringRequest, hash) => {
+          if (acknowledgedDuringRequest < wardrobeRequest) confirmedHashes.current.delete(hash);
+        });
+      }
       for (const file of files) {
         const hash = await photoHash(file);
         if (!selectionIsCurrent()) return;
-        const duplicate = knownHashes.has(hash);
-        knownHashes.add(hash);
         let preparedFile: File | undefined;
         let error: string | undefined;
         try { preparedFile = await prepareCapsulePhoto(file); } catch (failure) { error = failure instanceof Error ? failure.message : 'This photo could not be read.'; }
         if (!selectionIsCurrent()) return;
-        selected.push({ id: `item-${crypto.randomUUID()}`, file, hash, preparedFile, error, preview: URL.createObjectURL(preparedFile || file), status: duplicate ? 'duplicate' : error ? 'error' : 'pending' });
+        selected.push({ id: `item-${crypto.randomUUID()}`, file, hash, preparedFile, error, preview: URL.createObjectURL(preparedFile || file), status: error ? 'error' : 'pending' });
       }
-      // A concurrent selection may have staged the same hash during preparation.
-      const stagedHashes = new Set(itemsRef.current.map(item => item.hash).filter(Boolean));
-      selected.forEach(item => {
-        if (item.hash && stagedHashes.has(item.hash)) item.status = 'duplicate';
-      });
-      const next = [...itemsRef.current, ...selected];
+      // Re-evaluate against the rows still present after asynchronous preparation.
+      const next = reconcileDuplicates([...itemsRef.current, ...selected]);
       itemsRef.current = next;
       setItems(next);
       staged = true;
@@ -165,7 +244,7 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
         if (staged) await finishResolvedBatch(owner);
       }
     }
-  }, [user, userId, isCurrent, finishResolvedBatch]);
+  }, [user, userId, isCurrent, finishResolvedBatch, reconcileDuplicates]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop, disabled: busy,
@@ -189,6 +268,8 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
     try {
       for (const item of pending) {
         if (!isCurrent(owner)) break;
+        if (!itemsRef.current.some(row => row.id === item.id && (row.status === 'pending' || row.status === 'error'))) continue;
+        let stage: UploadStage = item.savedInput ? 'save' : item.imageUrl ? 'analysis' : 'upload';
         try {
           if (!item.imageUrl) {
             update(item.id, { status: 'uploading', error: undefined });
@@ -207,6 +288,7 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
           }
           if (!isCurrent(owner)) break;
           if (!item.savedInput) {
+            stage = 'analysis';
             update(item.id, { status: 'analyzing', error: undefined });
             const response = await fetch(`${getPublicBackendUrl()}/analyze-image`, {
               method: 'POST', headers: { Authorization: `Bearer ${await guardedUser.getIdToken()}`, 'Content-Type': 'application/json' },
@@ -235,6 +317,7 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
             update(item.id, { savedInput: item.savedInput });
           }
           if (!isCurrent(owner)) break;
+          stage = 'save';
           update(item.id, { status: 'saving', error: undefined });
           const saved = await persistBatchWardrobeItem(item.savedInput!, guardedUser);
           if (!isCurrent(owner)) break;
@@ -245,7 +328,7 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
           try { await onItemSaved?.(saved); } catch { /* Parent owns reconciliation feedback. */ }
         } catch (error) {
           if (!isCurrent(owner)) break;
-          const message = error instanceof Error ? error.message : 'This item was not confirmed saved. Please retry.';
+          const message = recoveryMessage(error, stage);
           update(item.id, { status: 'error', error: message });
           onError?.(message);
         }

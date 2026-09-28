@@ -107,26 +107,33 @@ export default function OutfitGenerationPage() {
   useEffect(() => () => { activeUser.current = undefined; }, []);
   const { weather, loading: weatherLoading, fetchWeatherByLocation } = useAutoWeather();
   const { toast } = useToast();
-  const [baseItem, setBaseItem] = useState<any>(null);
-  const [wardrobeItems, setWardrobeItems] = useState<any[]>([]);
-  const [wardrobeLoading, setWardrobeLoading] = useState(false);
-  const [wardrobeLoadError, setWardrobeLoadError] = useState<string | null>(null);
+  const [storedBaseItem, setBaseItem] = useState<any>(null);
+  const [storedWardrobeItems, setWardrobeItems] = useState<any[]>([]);
+  const [wardrobeOwner, setWardrobeOwner] = useState<string | null>(null);
+  const [loadingWardrobe, setWardrobeLoading] = useState(false);
+  const [storedWardrobeLoadError, setWardrobeLoadError] = useState<string | null>(null);
   const [wardrobeLoadAttempt, setWardrobeLoadAttempt] = useState(0);
   const [freshWeatherData, setFreshWeatherData] = useState<WeatherData | null>(null);
-  // Extract base item ID from URL parameters
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const baseItemId = urlParams.get('baseItemId');
-    
-    if (baseItemId) {
-      console.log('🔍 Base item ID from URL:', baseItemId);
-      // We'll find the full item when wardrobe loads
-      setBaseItem({ id: baseItemId });
-    }
-  }, []);
+  // Hide a prior account's wardrobe immediately, before its effect cleanup runs.
+  const ownsWardrobeState = Boolean(user && wardrobeOwner === user.uid);
+  const baseItem = ownsWardrobeState ? storedBaseItem : null;
+  const wardrobeItems = ownsWardrobeState ? storedWardrobeItems : [];
+  const wardrobeLoading = Boolean(user) && (!ownsWardrobeState || loadingWardrobe);
+  const wardrobeLoadError = ownsWardrobeState ? storedWardrobeLoadError : null;
 
   // Fetch wardrobe items when user is available
   useEffect(() => {
+    let disposed = false;
+    const controller = new AbortController();
+    const requestUserId = user?.uid;
+    const current = () => !disposed && activeUser.current === requestUserId;
+    const baseItemId = new URLSearchParams(window.location.search).get('baseItemId');
+    setWardrobeOwner(requestUserId ?? null);
+    setWardrobeItems([]);
+    setBaseItem(baseItemId ? { id: baseItemId } : null);
+    setWardrobeLoadError(null);
+    setWardrobeLoading(Boolean(user));
+
     const fetchWardrobeItems = async () => {
       if (!user) return;
       
@@ -134,7 +141,9 @@ export default function OutfitGenerationPage() {
         setWardrobeLoading(true);
         setWardrobeLoadError(null);
         const wardrobeToken = await user.getIdToken();
+        if (!current()) return;
         const response = await fetch('/api/wardrobe', {
+          signal: controller.signal,
           headers: {
             'Authorization': `Bearer ${wardrobeToken}`,
           },
@@ -142,6 +151,7 @@ export default function OutfitGenerationPage() {
         
         if (response.ok) {
           const data = await response.json();
+          if (!current()) return;
           // Handle the wardrobe API response structure
           const items = data.items || data;
           if (!Array.isArray(items)) throw new Error('Invalid wardrobe response');
@@ -199,23 +209,27 @@ export default function OutfitGenerationPage() {
               setBaseItem(repairedBaseItem);
             } else {
               console.warn('🔍 Base item not found in wardrobe:', baseItemId);
-              setBaseItem(null);
+              // Preserve the explicit anchor so it cannot become unrestricted generation.
+              setBaseItem({ id: baseItemId });
+              setWardrobeLoadError('Your required wardrobe item is no longer available. Retry your wardrobe or choose another piece from your wardrobe.');
             }
           }
         } else {
           throw new Error('Wardrobe request failed');
         }
       } catch (error) {
+        if (!current()) return;
         console.error('🔍 Error fetching wardrobe items:', error);
         setWardrobeLoadError('Your saved wardrobe could not be loaded. Please retry before creating an outfit.');
       } finally {
-        setWardrobeLoading(false);
+        if (current()) setWardrobeLoading(false);
       }
     };
 
     if (user) {
       fetchWardrobeItems();
     }
+    return () => { disposed = true; controller.abort(); };
   }, [user, wardrobeLoadAttempt]);
   
   // Use Next.js API routes instead of direct backend calls
@@ -427,7 +441,7 @@ export default function OutfitGenerationPage() {
   };
 
   const handleGenerateOutfit = async () => {
-    if (generationInFlight.current) return;
+    if (generationInFlight.current || wardrobeLoading || profileLoading || wardrobeLoadError) return;
     if (!user) {
       setError('Please sign in to generate outfits');
       return;

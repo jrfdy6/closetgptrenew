@@ -191,7 +191,10 @@ def mark_outfit_worn(db, outfit_id, user_id, idempotency_key, timezone_name="UTC
         raw_items = outfit.get("items")
         if not isinstance(raw_items, list) or not 1 <= len(raw_items) <= 20:
             raise OutfitWearError(409, "This saved outfit has no complete set of garments to log.")
-        item_ids = [item.get("id") if isinstance(item, dict) else item for item in raw_items]
+        # Match saved-result reads for legacy references without trusting their
+        # embedded garment metadata; every resolved ID is still checked below.
+        item_ids = [(item.get("id") or item.get("itemId") or item.get("item_id"))
+                    if isinstance(item, dict) else item for item in raw_items]
         if any(not _valid_id(item_id) for item_id in item_ids) or len(set(item_ids)) != len(item_ids):
             raise OutfitWearError(409, "This saved outfit has invalid or repeated garments. Please refresh.")
         garments = []
@@ -301,31 +304,50 @@ def update_wear_metadata(db, user_id, event_id, updates):
     return update(db.transaction())
 
 
-def _previous_worn(db, transaction, user_id, event_id, *, item_id=None, outfit_id=None, baseline=None):
-    from google.cloud.firestore_v1 import FieldFilter
-    query = db.collection("outfit_history").where(filter=FieldFilter("user_id", "==", user_id))
-    if not item_id:
-        query = query.where(filter=FieldFilter("outfit_id", "==", outfit_id))
-    # Read active managed events in newest-first pages; tombstones do not count.
-    query = query.order_by("date_worn", direction="DESCENDING")
-    latest = _timestamp_ms(baseline) if baseline else 0
-    for snapshot in query.stream(transaction=transaction):
-        event = snapshot.to_dict()
-        ids = event.get("item_ids") or [item.get("id") if isinstance(item, dict) else item for item in event.get("items", [])]
-        if item_id and item_id not in ids:
+def _previous_worn(history, user_id, event_id, *, item_id=None, outfit_id=None, baseline=None):
+    from .wear_statistics import parse_wear_timestamp
+    from .wardrobe_reads import DELETED_FIELDS
+
+    baseline_instant = parse_wear_timestamp(baseline) if baseline else None
+    if baseline and baseline_instant is None:
+        raise OutfitWearError(409, "Wear history needs to be refreshed.")
+    baseline_time = int(baseline_instant.timestamp() * 1000) if baseline_instant else 0
+    # Firestore orders by stored type before value. An old ISO string can
+    # precede a newer numeric timestamp, so compare every matching instant.
+    latest = 0
+    for identifier, event in history:
+        if not owns_garment(event, user_id):
             continue
-        event_time = _timestamp_ms(event["date_worn"])
-        if snapshot.id == event_id or event.get("undone"):
-            if event_time == latest:
-                latest = 0
+        if not item_id and event.get("outfit_id") != outfit_id:
+            continue
+        if item_id:
+            ids = event.get("item_ids")
+            if not ids:
+                items = event.get("items")
+                ids = [item.get("id") if isinstance(item, dict) else item for item in items] if isinstance(items, list) else []
+            if not isinstance(ids, list) or item_id not in ids:
+                continue
+        excluded = identifier == event_id or event.get("undone") or any(event.get(key) for key in DELETED_FIELDS)
+        instant = parse_wear_timestamp(event.get("date_worn"), date_timezone=event.get("timezone") or "UTC")
+        if instant is None:
+            if excluded:
+                continue
+            raise OutfitWearError(409, "Wear history needs to be refreshed.")
+        event_time = int(instant.timestamp() * 1000)
+        if excluded:
+            if event_time == baseline_time:
+                baseline_time = 0
             continue
         latest = max(latest, event_time)
-        break
-    return latest or None
+    # A tombstone only invalidates the legacy baseline at that instant; it
+    # cannot erase a later active contribution found elsewhere in the scan.
+    return max(latest, baseline_time) or None
 
 
 def undo_wear(db, user_id, event_id, *, now=None):
     """Keep earned rewards; reverse physical contributions exactly once."""
+    from google.cloud.firestore_v1 import FieldFilter
+
     reference = db.collection("outfit_history").document(event_id)
     timestamp = int((now or datetime.now(timezone.utc)).timestamp() * 1000)
     epoch_fence = WriteEpochFence(db, user_id)
@@ -347,13 +369,17 @@ def undo_wear(db, user_id, event_id, *, now=None):
             return {"success": True, "undone": True, "event_id": event_id, "outfit_id": event.get("outfit_id")}
         outfit_ref = db.collection("outfits").document(event["outfit_id"])
         outfit = _read(outfit_ref, transaction)
-        previous_outfit = _previous_worn(db, transaction, user_id, event_id, outfit_id=event["outfit_id"], baseline=(outfit or {}).get("wear_baseline_last_worn"))
+        # Share this user's snapshot across outfit/garment recovery. Keep it
+        # inside the callback so every transaction retry reads fresh versions.
+        query = db.collection("outfit_history").where(filter=FieldFilter("user_id", "==", user_id)).order_by("date_worn", direction="DESCENDING")
+        history = [(snapshot.id, snapshot.to_dict()) for snapshot in query.stream(transaction=transaction)]
+        previous_outfit = _previous_worn(history, user_id, event_id, outfit_id=event["outfit_id"], baseline=(outfit or {}).get("wear_baseline_last_worn"))
         garments = []
         for item in event.get("items", []):
             garment_ref = db.collection("wardrobe").document(item["id"])
             garment = _read(garment_ref, transaction)
             if garment and owns_garment(garment, user_id):
-                previous = _previous_worn(db, transaction, user_id, event_id, item_id=item["id"], baseline=garment.get("wear_baseline_last_worn"))
+                previous = _previous_worn(history, user_id, event_id, item_id=item["id"], baseline=garment.get("wear_baseline_last_worn"))
                 garments.append((garment_ref, garment, previous))
         suggestion_ref = db.collection("daily_outfit_suggestions").document(event["suggestion_id"]) if event.get("suggestion_id") else None
         suggestion = _read(suggestion_ref, transaction) if suggestion_ref else None

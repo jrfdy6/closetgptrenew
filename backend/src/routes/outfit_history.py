@@ -148,16 +148,28 @@ def serialize_firestore_doc(doc):
     return data
 
 @router.get("/")
-async def get_outfit_history(
+def get_outfit_history(
     current_user: UserProfile = Depends(get_current_user),
-    start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
-    end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
+    start_date: Optional[str] = Query(None, description="Inclusive start date (YYYY-MM-DD, UTC)"),
+    end_date: Optional[str] = Query(None, description="Inclusive end date (YYYY-MM-DD, UTC)"),
     outfit_id: Optional[str] = Query(None, description="Filter by specific outfit ID"),
-    limit: Optional[int] = Query(100, description="Number of entries to return")
+    limit: int = Query(100, ge=1, le=1000, description="Maximum active entries to return (1–1000)")
 ):
     """
-    Get user's outfit history entries
+    Get active history, newest first. Date-only bounds use UTC, independent of
+    the server timezone. End dates include the whole day. This list has no
+    offset or public cursor; count is the returned count, not a lifetime total.
+    At most 1,000 stored rows are scanned. If that cannot satisfy the limit or
+    establish exhaustion, return 503 instead of an incomplete success.
     """
+    try:
+        start = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=timezone.utc) if start_date else None
+        end = datetime.strptime(end_date, '%Y-%m-%d').replace(tzinfo=timezone.utc) if end_date else None
+        if start and end and start > end:
+            raise ValueError("Reversed date range")
+        end_exclusive = end + timedelta(days=1) if end else None
+    except (ValueError, OverflowError):
+        raise HTTPException(422, "Use valid YYYY-MM-DD dates with start_date <= end_date.") from None
     # Import Firebase inside function to prevent import-time crashes
     try:
         from google.cloud import firestore
@@ -181,57 +193,57 @@ async def get_outfit_history(
         if outfit_id:
             query = query.where(filter=FieldFilter('outfit_id', '==', outfit_id))
         
-        # Add date filters if provided
-        if start_date:
-            start_timestamp = datetime.strptime(start_date, '%Y-%m-%d').timestamp() * 1000
-            query = query.where(filter=FieldFilter('date_worn', '>=', start_timestamp))
-        
-        if end_date:
-            end_timestamp = datetime.strptime(end_date, '%Y-%m-%d').timestamp() * 1000
-            query = query.where(filter=FieldFilter('date_worn', '<=', end_timestamp))
-        
-        # Limit results before ordering (Firestore requirement)
-        if limit:
-            query = query.limit(limit)
-        
-        # Order by date worn (newest first) - only if we have documents
-        try:
-            from google.cloud.firestore_v1 import Query
-            query = query.order_by('date_worn', direction=Query.DESCENDING)
-        except Exception as e:
-            logger.warning(f"Could not order by date_worn: {e}")
-        
-        # Execute query
-        logger.info(f"🔍 DEBUG: About to execute Firestore query")
-        docs = query.stream()
-        logger.info(f"🔍 DEBUG: Query executed, processing documents")
-        
+        if start:
+            query = query.where(filter=FieldFilter('date_worn', '>=', start.timestamp() * 1000))
+        if end_exclusive:
+            query = query.where(filter=FieldFilter('date_worn', '<', end_exclusive.timestamp() * 1000))
+
+        # A snapshot cursor includes document identity so tied timestamps are
+        # neither skipped nor repeated. Ordering failure must not fall back to
+        # an arbitrary history order.
+        query = query.order_by('date_worn', direction=firestore.Query.DESCENDING)
+        query = query.order_by('__name__', direction=firestore.Query.DESCENDING)
+
         outfit_history = []
         doc_count = 0
-        for doc in docs:
-            doc_count += 1
-            data = doc.to_dict()
-            if data.get("undone"):
-                continue
-            outfit_history.append({
-                "id": doc.id,
-                "outfitId": (data.get('outfit_id') if data else None),
-                "outfitName": (data.get('outfit_name', 'Unknown Outfit') if data else 'Unknown Outfit'),
-                "outfitImage": (data.get('outfit_image', '') if data else ''),
-                "dateWorn": (data.get('date_worn') if data else None),
-                "weather": data.get('weather', {
-                    "temperature": 0,
-                    "condition": "Unknown",
-                    "humidity": 0
-                }),
-                "occasion": (data.get('occasion', 'Casual') if data else 'Casual'),
-                "mood": (data.get('mood', 'Comfortable') if data else 'Comfortable'),
-                "notes": (data.get('notes', '') if data else ''),
-                "tags": (data.get('tags', []) if data else []),
-                "createdAt": (data.get('created_at') if data else None),
-                "updatedAt": (data.get('updated_at') if data else None)
-            })
-        
+        cursor = None
+        scan_limit = 1000
+        while len(outfit_history) < limit:
+            if doc_count >= scan_limit:
+                raise HTTPException(503, "History scan limit reached. Narrow the date range or request fewer entries.")
+            page_size = min(100, scan_limit - doc_count)
+            page_query = query.start_after(cursor) if cursor is not None else query
+            docs = list(page_query.limit(page_size).stream())
+            doc_count += len(docs)
+            for doc in docs:
+                data = doc.to_dict()
+                # Legacy rows may omit undone; only an actual undo hides them.
+                if data.get("undone"):
+                    continue
+                outfit_history.append({
+                    "id": doc.id,
+                    "outfitId": (data.get('outfit_id') if data else None),
+                    "outfitName": (data.get('outfit_name', 'Unknown Outfit') if data else 'Unknown Outfit'),
+                    "outfitImage": (data.get('outfit_image', '') if data else ''),
+                    "dateWorn": (data.get('date_worn') if data else None),
+                    "weather": data.get('weather', {
+                        "temperature": 0,
+                        "condition": "Unknown",
+                        "humidity": 0
+                    }),
+                    "occasion": (data.get('occasion', 'Casual') if data else 'Casual'),
+                    "mood": (data.get('mood', 'Comfortable') if data else 'Comfortable'),
+                    "notes": (data.get('notes', '') if data else ''),
+                    "tags": (data.get('tags', []) if data else []),
+                    "createdAt": (data.get('created_at') if data else None),
+                    "updatedAt": (data.get('updated_at') if data else None)
+                })
+                if len(outfit_history) == limit:
+                    break
+            if len(docs) < page_size:
+                break
+            cursor = docs[-1]
+
         logger.info(f"Retrieved {len(outfit_history)} outfit history entries for user {current_user.id}")
         logger.info(f"🔍 DEBUG: Processed {doc_count} documents from Firestore")
         
@@ -242,6 +254,8 @@ async def get_outfit_history(
             "user_id": current_user.id
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"❌ Error fetching outfit history: {str(e)}")
         logger.error(f"❌ User ID: {current_user.id if current_user else 'None'}")
@@ -250,7 +264,7 @@ async def get_outfit_history(
         raise HTTPException(503, "Outfit history is temporarily unavailable. Please retry.") from None
 
 @router.post("/mark-worn")
-async def mark_outfit_as_worn(data: Dict[str, Any], current_user: UserProfile = Depends(get_current_user)):
+def mark_outfit_as_worn(data: Dict[str, Any], current_user: UserProfile = Depends(get_current_user)):
     """Calendar and deployed clients share the canonical wear transaction."""
     from ..services.outfit_wear import mark_outfit_worn, OutfitWearError, _digest
     from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -287,7 +301,7 @@ async def update_outfit_history_entry(entry_id: str, updates: Dict[str, Any], cu
 
 
 @router.delete("/{entry_id}")
-async def delete_outfit_history_entry(entry_id: str, current_user: UserProfile = Depends(get_current_user)):
+def delete_outfit_history_entry(entry_id: str, current_user: UserProfile = Depends(get_current_user)):
     from ..services.outfit_wear import undo_wear, OutfitWearError
     try:
         return undo_wear(get_db(), current_user.id, entry_id)
@@ -456,7 +470,7 @@ async def clear_todays_suggestion_cache(current_user: UserProfile = Depends(get_
     return {"success": True, "deleted_count": deleted}
 
 @router.post("/today-suggestion/wear")
-async def mark_today_suggestion_as_worn(data: Dict[str, Any], current_user: UserProfile = Depends(get_current_user)):
+def mark_today_suggestion_as_worn(data: Dict[str, Any], current_user: UserProfile = Depends(get_current_user)):
     from ..services.outfit_wear import mark_outfit_worn, OutfitWearError, _digest
     from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
     try:

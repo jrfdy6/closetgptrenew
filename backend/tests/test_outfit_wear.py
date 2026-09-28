@@ -194,6 +194,104 @@ class WearTestFixture(unittest.TestCase):
 
 
 class OutfitWearTests(WearTestFixture):
+    def test_legacy_item_aliases_open_wear_and_reopen_with_canonical_history(self):
+        from src.services.saved_outfit import read_saved_outfit
+        references = [{"itemId": "dress", "name": "Untrusted snapshot"}, {"item_id": "shoes"}]
+        self.db.rows["outfits"]["look"]["items"] = copy.deepcopy(references)
+        saved = read_saved_outfit(self.db, "look", "owner")
+        self.assertTrue(saved["items_available"])
+        self.assertEqual([item["id"] for item in saved["items"]], ["dress", "shoes"])
+        receipt = self.record()
+        history = self.db.rows["outfit_history"][receipt["event_id"]]
+        self.assertEqual(history["item_ids"], ["dress", "shoes"])
+        self.assertEqual([item["name"] for item in history["items"]], ["Saved dress", "Saved shoes"])
+        self.assertEqual(receipt["garment_wear_counts"], {"dress": 7, "shoes": 7})
+        reopened = read_saved_outfit(self.db, "look", "owner")
+        self.assertEqual(reopened["wearCount"], 5)
+        self.assertEqual(reopened["lastWorn"], receipt["last_worn"])
+        self.assertEqual(self.db.rows["outfits"]["look"]["items"], references)
+        xp = self.db.rows["users"]["owner"]["xp"]
+        for retry in (self.record(), self.record("new-key-same-day")):
+            self.assertEqual(retry["event_id"], receipt["event_id"])
+            self.assertEqual(retry["wear_count"], 5)
+            self.assertEqual(retry["rewards"]["xp_awarded"], 0)
+        self.assertEqual(self.db.rows["users"]["owner"]["xp"], xp)
+        self.assertEqual(len(self.db.rows["outfit_history"]), 1)
+
+    def test_legacy_alias_wear_recovers_lost_ack_without_duplicate_rewards(self):
+        self.db.rows["outfits"]["look"]["items"] = [{"item_id": "dress"}, {"itemId": "shoes"}]
+        self.db.lose_ack = True
+        with self.assertRaises(RuntimeError):
+            self.record()
+        xp = self.db.rows["users"]["owner"]["xp"]
+        replay = self.record()
+        self.assertTrue(replay["already_recorded"])
+        self.assertEqual(replay["wear_count"], 5)
+        self.assertEqual(replay["rewards"]["xp_awarded"], 0)
+        self.assertEqual(self.db.rows["users"]["owner"]["xp"], xp)
+        self.assertEqual(len(self.db.rows["outfit_history"]), 1)
+
+    def test_legacy_alias_wear_undo_and_reactivation_preserve_reward_receipt(self):
+        from src.services.saved_outfit import read_saved_outfit
+        self.db.rows["outfits"]["look"]["items"] = [{"itemId": "dress"}, {"item_id": "shoes"}]
+        first = self.record()
+        rewards = copy.deepcopy(self.db.rows[wear.REWARDS_COLLECTION])
+        user = copy.deepcopy(self.db.rows["users"]["owner"])
+        wear.undo_wear(self.db, "owner", first["event_id"], now=self.now)
+        self.assertEqual(read_saved_outfit(self.db, "look", "owner")["wearCount"], 4)
+        replay = self.record()
+        self.assertTrue(replay["undone"])
+        reactivated = self.record("new-action")
+        self.assertEqual(reactivated["event_id"], first["event_id"])
+        self.assertEqual(reactivated["wear_count"], 5)
+        self.assertEqual(reactivated["rewards"]["xp_awarded"], 0)
+        self.assertEqual(reactivated["garment_wear_counts"], {"dress": 7, "shoes": 7})
+        self.assertEqual(self.db.rows[wear.REWARDS_COLLECTION], rewards)
+        self.assertEqual(self.db.rows["users"]["owner"], user)
+        self.assertEqual(len(self.db.rows["outfit_history"]), 1)
+
+    def test_legacy_alias_precedence_matches_saved_detail_without_snapshot_trust(self):
+        from src.services.saved_outfit import read_saved_outfit
+        self.db.rows["outfits"]["look"]["items"] = [
+            {"id": "dress", "itemId": "foreign", "item_id": "missing"},
+            {"id": "", "itemId": "shoes", "item_id": "foreign"},
+        ]
+        saved = read_saved_outfit(self.db, "look", "owner")
+        self.assertEqual([item["id"] for item in saved["items"]], ["dress", "shoes"])
+        receipt = self.record()
+        self.assertEqual(self.db.rows["outfit_history"][receipt["event_id"]]["item_ids"], ["dress", "shoes"])
+
+    def test_legacy_alias_invalid_or_duplicate_ids_fail_without_mutation(self):
+        invalid_sets = [
+            [{"itemId": "dress"}, {"item_id": "dress"}],
+            [{"id": "dress"}, {"itemId": "dress"}],
+            [{"itemId": "bad/path", "item_id": "dress"}, {"id": "shoes"}],
+            [{"id": "bad/path", "itemId": "dress"}, {"id": "shoes"}],
+            [{"itemId": 42, "item_id": "dress"}, {"id": "shoes"}],
+            [{"item_id": " dress "}, {"id": "shoes"}],
+            [{"item_id": ".."}, {"id": "shoes"}],
+            [{"itemId": ""}, {"id": "shoes"}],
+        ]
+        for references in invalid_sets:
+            with self.subTest(references=references):
+                self.db.rows["outfits"]["look"]["items"] = references
+                before = copy.deepcopy(self.db.rows)
+                with self.assertRaises(wear.OutfitWearError) as caught:
+                    self.record()
+                self.assertEqual(caught.exception.status_code, 409)
+                self.assertEqual(self.db.rows, before)
+
+    def test_legacy_aliases_still_require_current_owned_available_complete_garments(self):
+        self.db.rows["outfits"]["look"]["items"] = [{"itemId": "dress"}, {"item_id": "shoes"}]
+        for updates in ({"userId": "foreign"}, {"user_id": "foreign"}, {"deleted_at": 1}, {"type": "hat"}):
+            with self.subTest(updates=updates):
+                self.db.rows["wardrobe"]["dress"] = {**self.garment("dress", "dress"), **updates}
+                before = copy.deepcopy(self.db.rows)
+                with self.assertRaises(wear.OutfitWearError) as caught:
+                    self.record()
+                self.assertEqual(caught.exception.status_code, 409)
+                self.assertEqual(self.db.rows, before)
+
     def test_two_piece_dress_and_shoes_commits_consistent_counts_history_and_receipts(self):
         result = self.record()
         self.assertEqual(result["wear_date"], "2026-09-21")

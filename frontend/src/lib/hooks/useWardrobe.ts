@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useFirebase } from '@/lib/firebase-context';
 import { WardrobeService } from '@/lib/services/wardrobeService';
 import { safeToDate } from '@/lib/utils/dateUtils';
@@ -58,154 +58,134 @@ export interface WardrobeFilters {
 
 export function useWardrobe() {
   const { user } = useFirebase();
-  const [items, setItems] = useState<ClothingItem[]>([]);
+  const uid = user?.uid ?? null;
+  const account = useRef({ uid, revision: 0 });
+  if (account.current.uid !== uid) {
+    account.current = { uid, revision: account.current.revision + 1 };
+  }
+  const revision = account.current.revision;
+  const mounted = useRef(true);
+  const requestSequence = useRef(0);
+  const [stateOwner, setStateOwner] = useState(revision);
+  const [storedItems, setItems] = useState<ClothingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<WardrobeFilters>({});
+  // Hide the previous account synchronously, before reset effects can run.
+  const ownsState = uid !== null && stateOwner === revision;
+  const items = useMemo(() => ownsState ? storedItems : [], [ownsState, storedItems]);
+  const current = useCallback((ownerRevision: number, owner: string | null) =>
+    mounted.current && owner !== null && account.current.uid === owner &&
+    account.current.revision === ownerRevision, []);
 
-  // Fetch wardrobe items
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; requestSequence.current += 1; };
+  }, []);
+
+  // A confirmed mutation supersedes reads started before its acknowledgement.
+  const acknowledgeMutation = useCallback(() => {
+    requestSequence.current += 1;
+    setLoading(false);
+  }, []);
+
   const fetchItems = useCallback(async () => {
-    if (!user) {
-      setItems([]);
-      setLoading(false);
-      return;
-    }
-
+    if (!current(revision, uid)) return;
+    const sequence = ++requestSequence.current;
+    const active = () => current(revision, uid) && sequence === requestSequence.current;
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-
-      // Use real API call to backend directly
       const wardrobeItems = await WardrobeService.getWardrobeItems();
-      setItems(wardrobeItems);
+      if (active()) setItems(wardrobeItems);
     } catch (err) {
-      console.error('Error fetching wardrobe items:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch wardrobe items');
+      if (active()) setError(err instanceof Error ? err.message : 'Failed to fetch wardrobe items');
     } finally {
-      setLoading(false);
+      if (active()) setLoading(false);
     }
-  }, [user?.uid]); // Use user.uid instead of user object
+  }, [uid, revision, current]);
 
-  // Add new item
   const addItem = useCallback(async (item: Omit<ClothingItem, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
-    if (!user) return;
-
+    if (!current(revision, uid)) return;
     try {
-      // Use real API call to backend
       const newItem = await WardrobeService.addWardrobeItem(item);
+      if (!current(revision, uid)) return;
+      acknowledgeMutation();
       setItems(prev => [...prev, newItem]);
       return newItem;
     } catch (err) {
+      if (!current(revision, uid)) return;
       setError(err instanceof Error ? err.message : 'Failed to add item');
       throw err;
     }
-  }, [user?.uid]); // Use user.uid instead of user object
+  }, [uid, revision, current, acknowledgeMutation]);
 
-  // Update item
   const updateItem = useCallback(async (id: string, updates: Partial<ClothingItem>) => {
+    if (!current(revision, uid)) return;
     try {
-      // Use real API call to backend
       await WardrobeService.updateWardrobeItem(id, updates);
-
-      // Update local state
-      setItems(prev => prev.map(item =>
-        item.id === id
-          ? { ...item, ...updates, updatedAt: new Date() }
-          : item
-      ));
+      if (!current(revision, uid)) return;
+      acknowledgeMutation();
+      setItems(prev => prev.map(item => item.id === id
+        ? { ...item, ...updates, updatedAt: new Date() } : item));
     } catch (err) {
+      if (!current(revision, uid)) return;
       setError(err instanceof Error ? err.message : 'Failed to update item');
       throw err;
     }
-  }, []);
+  }, [uid, revision, current, acknowledgeMutation]);
 
-  // Delete item
   const deleteItem = useCallback(async (id: string) => {
+    if (!current(revision, uid)) return;
     try {
-      console.log(`🗑️ [useWardrobe] Starting delete for item ${id}`);
-
-      // Use real API call to backend
       await WardrobeService.deleteWardrobeItem(id);
-
-      console.log(`✅ [useWardrobe] Successfully deleted item ${id} from backend`);
-
-      // Update local state
-      setItems(prev => {
-        const newItems = prev.filter(item => item.id !== id);
-        console.log(`🔄 [useWardrobe] Updated local state. Items before: ${prev.length}, after: ${newItems.length}`);
-        return newItems;
-      });
-
-      console.log(`✅ [useWardrobe] Item ${id} successfully deleted and removed from UI`);
+      if (!current(revision, uid)) return;
+      acknowledgeMutation();
+      setItems(prev => prev.filter(item => item.id !== id));
     } catch (err) {
-      console.error(`❌ [useWardrobe] Error deleting item ${id}:`, err);
+      if (!current(revision, uid)) return;
       setError(err instanceof Error ? err.message : 'Failed to delete item');
       throw err;
     }
-  }, []);
+  }, [uid, revision, current, acknowledgeMutation]);
 
-  // Toggle favorite
   const toggleFavorite = useCallback(async (id: string) => {
+    if (!current(revision, uid)) return;
+    const item = items.find(candidate => candidate.id === id);
+    if (!item) return;
+    const favorite = !item.favorite;
     try {
-      console.log(`🔍 [useWardrobe] Starting toggle favorite for item ${id}`);
-
-      // Use functional update to avoid dependency on items
-      setItems(prev => {
-        const currentItem = prev.find(item => item.id === id);
-        if (!currentItem) {
-          console.error(`🔍 [useWardrobe] Item ${id} not found in current items`);
-          return prev;
-        }
-
-        const newFavoriteValue = !currentItem.favorite;
-        console.log(`🔍 [useWardrobe] Current favorite: ${currentItem.favorite}, new value: ${newFavoriteValue}`);
-
-        // Use real API call to backend
-        WardrobeService.toggleFavorite(id, newFavoriteValue).then(() => {
-          console.log(`✅ [useWardrobe] Successfully toggled favorite for item ${id}`);
-        }).catch(err => {
-          console.error(`❌ [useWardrobe] Error toggling favorite:`, err);
-          setError(err instanceof Error ? err.message : 'Failed to toggle favorite');
-        });
-
-        const updated = prev.map(item =>
-          item.id === id
-            ? { ...item, favorite: newFavoriteValue, updatedAt: new Date() }
-            : item
-        );
-        console.log(`🔍 [useWardrobe] Updated items state, item ${id} favorite: ${newFavoriteValue}`);
-        return updated;
-      });
-
+      // Keep the request outside React's replayable state updater.
+      await WardrobeService.toggleFavorite(id, favorite);
+      if (!current(revision, uid)) return;
+      acknowledgeMutation();
+      setItems(prev => prev.map(candidate => candidate.id === id
+        ? { ...candidate, favorite, updatedAt: new Date() } : candidate));
     } catch (err) {
-      console.error(`❌ [useWardrobe] Error toggling favorite:`, err);
+      if (!current(revision, uid)) return;
       setError(err instanceof Error ? err.message : 'Failed to toggle favorite');
       throw err;
     }
-  }, []); // Remove items dependency
+  }, [uid, revision, current, acknowledgeMutation, items]);
 
-  // Increment wear count
   const incrementWearCount = useCallback(async (id: string) => {
+    if (!current(revision, uid)) return;
     try {
-      // Use real API call to backend
       const receipt = await WardrobeService.incrementWearCount(id);
-
-      // Update local state
-      setItems(prev => prev.map(item =>
-        item.id === id
-          ? {
-              ...item,
-              wearCount: receipt.newWearCount,
-              lastWorn: new Date(receipt.lastWorn < 1e11 ? receipt.lastWorn * 1000 : receipt.lastWorn),
-              updatedAt: new Date()
-            }
-          : item
-      ));
+      if (!current(revision, uid)) return;
+      acknowledgeMutation();
+      setItems(prev => prev.map(item => item.id === id ? {
+        ...item,
+        wearCount: receipt.newWearCount,
+        lastWorn: new Date(receipt.lastWorn < 1e11 ? receipt.lastWorn * 1000 : receipt.lastWorn),
+        updatedAt: new Date()
+      } : item));
     } catch (err) {
+      if (!current(revision, uid)) return;
       setError(err instanceof Error ? err.message : 'Failed to update wear count');
       throw err;
     }
-  }, []);
+  }, [uid, revision, current, acknowledgeMutation]);
 
   // Get filtered items
   const getFilteredItems = useCallback(() => {
@@ -295,16 +275,21 @@ export function useWardrobe() {
     setFilters({});
   }, []);
 
-  // Initialize
+  // Reset account-owned state before starting this account's initial read.
   useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+    setStateOwner(revision);
+    setItems([]);
+    setError(null);
+    setFilters({});
+    setLoading(uid !== null);
+    void fetchItems();
+  }, [uid, revision, fetchItems]);
 
   return {
     items,
-    loading,
-    error,
-    filters,
+    loading: uid !== null && (!ownsState || loading),
+    error: ownsState ? error : null,
+    filters: ownsState ? filters : {},
     addItem,
     updateItem,
     deleteItem,

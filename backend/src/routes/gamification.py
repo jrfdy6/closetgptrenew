@@ -103,6 +103,22 @@ async def get_gamification_stats(
         if not user_doc.exists:
             raise HTTPException(status_code=404, detail="User not found")
         
+        # Get AI Fit Score explanation
+        ai_fit_explanation = await ai_fit_score_service.get_score_explanation(current_user.id)
+
+        # Get TVE stats
+        tve_stats = await tve_service.calculate_wardrobe_tve(current_user.id)
+
+        # Get active challenges
+        from ..services.challenge_service import challenge_service
+        active_challenges = await challenge_service.get_active_challenges(current_user.id)
+
+        # Reconciliation above can complete a challenge and award XP/tokens/badges.
+        # Derive the response from its committed profile, not the earlier snapshot.
+        user_doc = user_ref.get()
+        if not user_doc.exists:
+            raise HTTPException(status_code=404, detail="User not found")
+
         user_data = user_doc.to_dict()
         # Get actual XP and level from Firestore
         user_xp = user_data.get('xp', 0)
@@ -123,16 +139,6 @@ async def get_gamification_stats(
         
         # Get level info using actual XP
         level_info = gamification_service.get_level_info(user_xp)
-        
-        # Get AI Fit Score explanation
-        ai_fit_explanation = await ai_fit_score_service.get_score_explanation(current_user.id)
-        
-        # Get TVE stats
-        tve_stats = await tve_service.calculate_wardrobe_tve(current_user.id)
-        
-        # Get active challenges
-        from ..services.challenge_service import challenge_service
-        active_challenges = await challenge_service.get_active_challenges(current_user.id)
         
         return {
             "success": True,

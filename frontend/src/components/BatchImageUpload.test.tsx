@@ -425,3 +425,346 @@ it('releases partial previews and pending state after unmount without callbacks 
   window.dispatchEvent(warning);
   expect(warning.defaultPrevented).toBe(false);
 });
+
+
+it('promotes the remaining unsaved duplicate after its first representative is removed', async () => {
+  (persistBatchWardrobeItem as jest.Mock).mockImplementation(async item => item);
+  render(<BatchImageUpload userId="test-owner" />);
+  await choose('same.jpg', 'same.jpg');
+  fireEvent.click(screen.getAllByRole('button', { name: 'Remove same.jpg from this selection' })[0]);
+  expect(screen.getByText('Ready to upload')).toBeVisible();
+  start();
+  await screen.findByText('Saved to your wardrobe');
+  expect(persistBatchWardrobeItem).toHaveBeenCalledTimes(1);
+});
+
+it.each(['Failed to fetch', 'Load failed'])('replaces raw upload transport error %s with actionable feedback', async raw => {
+  const original = mockFetch.getMockImplementation()!;
+  mockFetch.mockImplementation(async (...args) => {
+    if (args[0].endsWith('/api/image/upload')) throw new TypeError(raw);
+    return original(...args);
+  });
+  const onError = jest.fn();
+  render(<BatchImageUpload userId="test-owner" onError={onError} />);
+  await choose('shirt.jpg'); start();
+  expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't confirm the photo upload. Check your connection, then retry this photo.");
+  expect(onError).toHaveBeenCalledWith("We couldn't confirm the photo upload. Check your connection, then retry this photo.");
+  expect(screen.getByRole('button', { name: 'Retry upload' })).toBeVisible();
+});
+
+it.each(['upload', 'analysis', 'save'].flatMap(stage => ['Failed to fetch', 'Load failed'].map(raw => [stage, raw])))('recovers %s transport failure (%s) without replaying completed stages or a saved sibling', async (stage, raw) => {
+  const original = mockFetch.getMockImplementation()!;
+  let uploads = 0; let analyses = 0; let saves = 0;
+  mockFetch.mockImplementation(async (...args) => {
+    if (args[0].endsWith('/api/image/upload') && ++uploads === 2 && stage === 'upload') throw new TypeError(raw);
+    if (args[0].endsWith('/analyze-image') && ++analyses === 2 && stage === 'analysis') throw new TypeError(raw);
+    return original(...args);
+  });
+  (persistBatchWardrobeItem as jest.Mock).mockImplementation(async item => {
+    if (++saves === 2 && stage === 'save') throw new TypeError(raw);
+    return item;
+  });
+  const complete = jest.fn(); const itemSaved = jest.fn(); const onError = jest.fn();
+  render(<BatchImageUpload userId="test-owner" onUploadComplete={complete} onItemSaved={itemSaved} onError={onError} />);
+  await choose('first.jpg', 'second.jpg'); start();
+  const retry = await screen.findByRole('button', { name: `Retry ${stage}` });
+  const message = stage === 'upload' ? "We couldn't confirm the photo upload. Check your connection, then retry this photo."
+    : stage === 'analysis' ? "Your photo is uploaded, but we couldn't identify it. Check your connection, then retry analysis."
+      : "Your photo is ready, but we couldn't confirm it was saved. Check your connection, then retry saving.";
+  expect(screen.getByRole('alert')).toHaveTextContent(message);
+  expect(onError).toHaveBeenCalledWith(message);
+  expect(screen.getByText('first.jpg')).toBeVisible();
+  expect(screen.getByText('second.jpg')).toBeVisible();
+  expect(itemSaved).toHaveBeenCalledTimes(1);
+  expect(complete).not.toHaveBeenCalled();
+  fireEvent.click(retry);
+  await waitFor(() => expect(complete).toHaveBeenCalledTimes(1));
+  expect(itemSaved).toHaveBeenCalledTimes(2);
+  expect(uploads).toBe(stage === 'upload' ? 3 : 2);
+  expect(analyses).toBe(stage === 'analysis' ? 3 : 2);
+  expect(saves).toBe(stage === 'save' ? 3 : 2);
+  if (stage === 'save') {
+    const calls = (persistBatchWardrobeItem as jest.Mock).mock.calls;
+    expect(calls[1][0]).toBe(calls[2][0]);
+  }
+});
+
+it('keeps persisted duplicates blocked after either selected copy is removed', async () => {
+  wardrobeItems = [{ imageHash: 'sha256:same.jpg' }];
+  render(<BatchImageUpload userId="test-owner" />);
+  await choose('same.jpg', 'same.jpg');
+  fireEvent.click(screen.getAllByRole('button', { name: 'Remove same.jpg from this selection' })[0]);
+  expect(screen.getByText('Already added')).toBeVisible();
+  expect(screen.queryByRole('button', { name: /^Save / })).not.toBeInTheDocument();
+  expect(persistBatchWardrobeItem).not.toHaveBeenCalled();
+});
+
+it.each(['upload', 'analysis', 'save'])('preserves a removed failed representative’s %s checkpoint for its duplicate', async stage => {
+  const original = mockFetch.getMockImplementation()!;
+  let failed = false;
+  mockFetch.mockImplementation(async (...args) => {
+    if (!failed && ((stage === 'upload' && args[0].endsWith('/api/image/upload')) || (stage === 'analysis' && args[0].endsWith('/analyze-image')))) {
+      failed = true; throw new TypeError('Failed to fetch');
+    }
+    return original(...args);
+  });
+  (persistBatchWardrobeItem as jest.Mock).mockImplementation(async item => {
+    if (!failed && stage === 'save') { failed = true; throw new TypeError('Load failed'); }
+    return item;
+  });
+  const complete = jest.fn();
+  render(<BatchImageUpload userId="test-owner" onUploadComplete={complete} />);
+  await choose('same.jpg', 'same.jpg', 'same.jpg'); start();
+  await screen.findByRole('button', { name: `Retry ${stage}` });
+  const writesBeforeRemoval = mockFetch.mock.calls.length;
+  fireEvent.click(screen.getAllByRole('button', { name: 'Remove same.jpg from this selection' })[0]);
+  expect(screen.getByRole('button', { name: `Retry ${stage}` })).toBeVisible();
+  expect(screen.getByText('Already added')).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Save 1 item' })).toBeVisible();
+  expect(mockFetch).toHaveBeenCalledTimes(writesBeforeRemoval);
+  expect(complete).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: `Retry ${stage}` }));
+  await waitFor(() => expect(complete).toHaveBeenCalledTimes(1));
+  expect(mockFetch.mock.calls.filter(([url]) => url.endsWith('/api/image/upload'))).toHaveLength(stage === 'upload' ? 2 : 1);
+  expect(mockFetch.mock.calls.filter(([url]) => url.endsWith('/analyze-image'))).toHaveLength(stage === 'analysis' ? 2 : 1);
+  const calls = (persistBatchWardrobeItem as jest.Mock).mock.calls;
+  expect(calls).toHaveLength(stage === 'save' ? 2 : 1);
+  expect(calls[0][0].id).toBe('item-test-1');
+  if (stage === 'save') expect(calls[0][0]).toBe(calls[1][0]);
+});
+
+it('resumes an uncertain save with its original identity after all copies are removed and reselected', async () => {
+  (persistBatchWardrobeItem as jest.Mock).mockRejectedValueOnce(new TypeError('Load failed')).mockImplementation(async item => item);
+  render(<BatchImageUpload userId="test-owner" />);
+  await choose('same.jpg'); start();
+  await screen.findByRole('button', { name: 'Retry save' });
+  fireEvent.click(screen.getByRole('button', { name: 'Remove same.jpg from this selection' }));
+  await choose('same.jpg');
+  fireEvent.click(screen.getByRole('button', { name: 'Retry save' }));
+  await screen.findByText('Saved to your wardrobe');
+  const calls = (persistBatchWardrobeItem as jest.Mock).mock.calls;
+  expect(calls[0][0]).toBe(calls[1][0]);
+  expect(mockFetch.mock.calls.filter(([url]) => url.endsWith('/api/image/upload'))).toHaveLength(1);
+});
+
+it('protects an acknowledged save from a wardrobe read started before it finished', async () => {
+  (persistBatchWardrobeItem as jest.Mock).mockImplementation(async item => item);
+  render(<BatchImageUpload userId="test-owner" />);
+  await choose('same.jpg', 'same.jpg');
+  const staleRead = deferred<unknown>();
+  mockFetch.mockReturnValueOnce(staleRead.promise);
+  let selecting!: Promise<void>;
+  await act(async () => { selecting = mockOnDrop([photo('same.jpg')]); });
+  start();
+  await screen.findByText('Saved to your wardrobe');
+  fireEvent.click(screen.getAllByRole('button', { name: 'Remove same.jpg from this selection' })[0]);
+  await act(async () => {
+    staleRead.resolve({ ok: true, json: async () => ({ success: true, items: [] }) });
+    await selecting;
+  });
+  expect(screen.getAllByText('Already added')).toHaveLength(2);
+  expect(screen.queryByRole('button', { name: /^Save / })).not.toBeInTheDocument();
+  expect(persistBatchWardrobeItem).toHaveBeenCalledTimes(1);
+});
+
+it('keeps an in-flight representative exclusive when an overlapping duplicate preparation finishes', async () => {
+  const save = deferred<{ id: string }>(); const preparation = deferred<File>();
+  (persistBatchWardrobeItem as jest.Mock).mockReturnValue(save.promise);
+  render(<BatchImageUpload userId="test-owner" />);
+  await choose('same.jpg');
+  (prepareCapsulePhoto as jest.Mock).mockReturnValueOnce(preparation.promise);
+  let selecting!: Promise<void>;
+  await act(async () => { selecting = mockOnDrop([photo('same.jpg')]); });
+  start(); await screen.findByText('Saving to your wardrobe');
+  await act(async () => { preparation.resolve(photo('same.jpg')); await selecting; });
+  expect(screen.getByText('Already added')).toBeVisible();
+  expect(screen.queryByRole('button', { name: /Remove/ })).not.toBeInTheDocument();
+  expect(persistBatchWardrobeItem).toHaveBeenCalledTimes(1);
+  await act(async () => { save.resolve({ id: 'item-test-1' }); });
+  expect(screen.queryByRole('button', { name: /^Save / })).not.toBeInTheDocument();
+  expect(mockFetch.mock.calls.filter(([url]) => url.endsWith('/api/image/upload'))).toHaveLength(1);
+});
+
+it('clears saved hashes and uncertain attempts when the queue changes accounts', async () => {
+  (persistBatchWardrobeItem as jest.Mock).mockImplementationOnce(async item => item).mockRejectedValueOnce(new TypeError('Load failed')).mockImplementation(async item => item);
+  const view = render(<BatchImageUpload userId="test-owner" />);
+  await choose('saved.jpg', 'uncertain.jpg'); start();
+  await screen.findByRole('button', { name: 'Retry save' });
+  mockUser.uid = 'other-owner';
+  view.rerender(<BatchImageUpload userId="other-owner" />);
+  await choose('saved.jpg', 'uncertain.jpg');
+  expect(screen.getAllByText('Ready to upload')).toHaveLength(2);
+  start(); await screen.findByText('All items saved');
+  const saves = (persistBatchWardrobeItem as jest.Mock).mock.calls;
+  expect(saves.slice(2).map(([item]) => item.userId)).toEqual(['other-owner', 'other-owner']);
+  expect(saves[3][0].id).not.toBe(saves[1][0].id);
+});
+
+it('keeps a known photo validation error and replaces credential details with a sign-in action', async () => {
+  (prepareCapsulePhoto as jest.Mock).mockRejectedValueOnce(new Error('This HEIC photo could not be read. Export it as JPEG or choose another photo.'))
+    .mockRejectedValueOnce(new Error('This HEIC photo could not be read. Export it as JPEG or choose another photo.'));
+  const onError = jest.fn();
+  render(<BatchImageUpload userId="test-owner" onError={onError} />);
+  await choose('shirt.heic'); start();
+  await waitFor(() => expect(onError).toHaveBeenCalledWith('This HEIC photo could not be read. Export it as JPEG or choose another photo.'));
+  mockUser.getIdToken.mockRejectedValueOnce(Object.assign(new Error('Firebase: credential details'), { code: 'auth/user-token-expired' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Retry upload' }));
+  await waitFor(() => expect(onError).toHaveBeenLastCalledWith('Please sign in again, then retry this photo. Your selection is kept.'));
+  expect(screen.queryByText(/credential details/)).not.toBeInTheDocument();
+});
+
+it('promotes a readable duplicate when the original failed before any upload attempt', async () => {
+  (prepareCapsulePhoto as jest.Mock).mockRejectedValueOnce(new Error('This HEIC photo could not be read. Export it as JPEG or choose another photo.'));
+  (persistBatchWardrobeItem as jest.Mock).mockImplementation(async item => item);
+  render(<BatchImageUpload userId="test-owner" />);
+  await choose('same.jpg', 'same.jpg');
+  fireEvent.click(screen.getAllByRole('button', { name: 'Remove same.jpg from this selection' })[0]);
+  expect(screen.getByText('Ready to upload')).toBeVisible();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  start(); await screen.findByText('Saved to your wardrobe');
+  expect(persistBatchWardrobeItem).toHaveBeenCalledTimes(1);
+});
+
+it('elects a still-preparing duplicate when the original is removed before preparation completes', async () => {
+  const preparation = deferred<File>();
+  (persistBatchWardrobeItem as jest.Mock).mockImplementation(async item => item);
+  render(<BatchImageUpload userId="test-owner" />);
+  await choose('same.jpg');
+  (prepareCapsulePhoto as jest.Mock).mockReturnValueOnce(preparation.promise);
+  let selecting!: Promise<void>;
+  await act(async () => { selecting = mockOnDrop([photo('same.jpg')]); });
+  fireEvent.click(screen.getByRole('button', { name: 'Remove same.jpg from this selection' }));
+  await act(async () => { preparation.resolve(photo('same.jpg')); await selecting; });
+  expect(screen.getByText('Ready to upload')).toBeVisible();
+  start(); await screen.findByText('Saved to your wardrobe');
+  expect(persistBatchWardrobeItem).toHaveBeenCalledTimes(1);
+});
+
+it.each([true, false])('refreshes wardrobe hashes while mounted when the persisted photo is deleted: %s', async deleted => {
+  wardrobeItems = [{ contentHash: 'sha256:same.jpg' }];
+  (persistBatchWardrobeItem as jest.Mock).mockImplementation(async item => item);
+  render(<BatchImageUpload userId="test-owner" />);
+  await choose('same.jpg');
+  expect(screen.getByText('Already added')).toBeVisible();
+  expect(screen.queryByRole('button', { name: /^Save / })).not.toBeInTheDocument();
+
+  // A later wardrobe read observes a deletion from another tab, or confirms
+  // that the item still exists. Keep this uploader and its first row mounted.
+  wardrobeItems = deleted ? [] : [{ imageHash: 'sha256:same.jpg' }];
+  await choose('same.jpg');
+  expect(mockFetch.mock.calls.filter(([url]) => url === '/api/wardrobe')).toHaveLength(2);
+  if (deleted) {
+    expect(screen.getAllByText('Ready to upload')).toHaveLength(1);
+    expect(screen.getAllByText('Already added')).toHaveLength(1);
+    start();
+    await screen.findByText('Saved to your wardrobe');
+    expect(persistBatchWardrobeItem).toHaveBeenCalledTimes(1);
+    expect(mockFetch.mock.calls.filter(([url]) => url.endsWith('/api/image/upload'))).toHaveLength(1);
+  } else {
+    expect(screen.getAllByText('Already added')).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: /^Save / })).not.toBeInTheDocument();
+    expect(persistBatchWardrobeItem).not.toHaveBeenCalled();
+  }
+});
+
+it.each([true, false])('allows re-adding a locally saved photo after a later read observes deletion (saved row removed: %s)', async removeSavedRow => {
+  (persistBatchWardrobeItem as jest.Mock).mockImplementation(async item => item);
+  render(<BatchImageUpload userId="test-owner" />);
+  await choose('same.jpg'); start();
+  await screen.findByText('Saved to your wardrobe');
+  const firstSavedId = (persistBatchWardrobeItem as jest.Mock).mock.calls[0][0].id;
+  if (removeSavedRow) fireEvent.click(screen.getByRole('button', { name: 'Remove same.jpg from this selection' }));
+  // This read starts after acknowledgment and observes the other tab's deletion.
+  wardrobeItems = [];
+  await choose('same.jpg');
+  expect(screen.getAllByText('Ready to upload')).toHaveLength(1);
+  start();
+  await waitFor(() => expect(persistBatchWardrobeItem).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(screen.queryByText('Saving to your wardrobe')).not.toBeInTheDocument());
+  expect((persistBatchWardrobeItem as jest.Mock).mock.calls[1][0].id).not.toBe(firstSavedId);
+  expect(mockFetch.mock.calls.filter(([url]) => url.endsWith('/api/image/upload'))).toHaveLength(2);
+});
+
+it('ignores an older wardrobe snapshot resolving after the newer deletion snapshot', async () => {
+  const older = deferred<unknown>(); const newer = deferred<unknown>();
+  mockFetch.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+  (persistBatchWardrobeItem as jest.Mock).mockImplementation(async item => item);
+  render(<BatchImageUpload userId="test-owner" />);
+  let olderSelection!: Promise<void>; let newerSelection!: Promise<void>;
+  await act(async () => { olderSelection = mockOnDrop([photo('same.jpg')]); });
+  await act(async () => { newerSelection = mockOnDrop([photo('same.jpg')]); });
+  await act(async () => {
+    newer.resolve({ ok: true, json: async () => ({ success: true, items: [] }) });
+    await newerSelection;
+  });
+  await act(async () => {
+    older.resolve({ ok: true, json: async () => ({ success: true, items: [{ contentHash: 'sha256:same.jpg' }] }) });
+    await olderSelection;
+  });
+  expect(screen.getAllByText('Ready to upload')).toHaveLength(1);
+  expect(screen.getAllByText('Already added')).toHaveLength(1);
+  start();
+  await screen.findByText('Saved to your wardrobe');
+  expect(persistBatchWardrobeItem).toHaveBeenCalledTimes(1);
+  expect(mockFetch.mock.calls.filter(([url]) => url.endsWith('/api/image/upload'))).toHaveLength(1);
+});
+
+it('keeps a locally saved photo blocked when the newer wardrobe read still contains its hash', async () => {
+  (persistBatchWardrobeItem as jest.Mock).mockImplementation(async item => item);
+  render(<BatchImageUpload userId="test-owner" />);
+  await choose('same.jpg'); start();
+  await screen.findByText('Saved to your wardrobe');
+  fireEvent.click(screen.getByRole('button', { name: 'Remove same.jpg from this selection' }));
+  wardrobeItems = [{ contentHash: 'sha256:same.jpg' }];
+  await choose('same.jpg');
+  expect(screen.getByText('Already added')).toBeVisible();
+  expect(screen.queryByRole('button', { name: /^Save / })).not.toBeInTheDocument();
+  expect(persistBatchWardrobeItem).toHaveBeenCalledTimes(1);
+});
+
+it.each([true, false])('retains successful duplicate evidence when a newer read fails (failure first: %s)', async failureFirst => {
+  const older = deferred<unknown>(); const newer = deferred<unknown>();
+  mockFetch.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+  render(<BatchImageUpload userId="test-owner" />);
+  let first!: Promise<void>; let second!: Promise<void>;
+  await act(async () => { first = mockOnDrop([photo('same.jpg')]); });
+  await act(async () => { second = mockOnDrop([photo('same.jpg')]); });
+  const succeed = async () => {
+    older.resolve({ ok: true, json: async () => ({ success: true, items: [{ contentHash: 'sha256:same.jpg' }] }) });
+    await first;
+  };
+  const fail = async () => {
+    newer.resolve({ ok: false, json: async () => ({ success: false, items: [] }) });
+    await second;
+  };
+  await act(failureFirst ? fail : succeed);
+  await act(failureFirst ? succeed : fail);
+  expect(screen.queryByRole('button', { name: /^Save / })).not.toBeInTheDocument();
+  expect(screen.getByText('Already added')).toBeVisible();
+  expect(screen.getByText('We could not check your saved photos. Please try selecting them again.')).toBeVisible();
+  expect(persistBatchWardrobeItem).not.toHaveBeenCalled();
+});
+
+it('does not reuse a successful old-account snapshot after a newer read fails across sign-out and return', async () => {
+  const older = deferred<unknown>(); const newer = deferred<unknown>();
+  mockFetch.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+  const view = render(<BatchImageUpload userId="test-owner" />);
+  let first!: Promise<void>; let second!: Promise<void>;
+  await act(async () => { first = mockOnDrop([photo('same.jpg')]); });
+  await act(async () => { second = mockOnDrop([photo('same.jpg')]); });
+  mockUser.uid = 'other-owner';
+  view.rerender(<BatchImageUpload userId="other-owner" />);
+  mockUser.uid = 'test-owner';
+  view.rerender(<BatchImageUpload userId="test-owner" />);
+  await act(async () => {
+    newer.resolve({ ok: false, json: async () => ({ success: false, items: [] }) });
+    await second;
+    older.resolve({ ok: true, json: async () => ({ success: true, items: [{ contentHash: 'sha256:same.jpg' }] }) });
+    await first;
+  });
+  expect(screen.queryByText('same.jpg')).not.toBeInTheDocument();
+  expect(screen.queryByText('We could not check your saved photos. Please try selecting them again.')).not.toBeInTheDocument();
+  await choose('same.jpg');
+  expect(screen.getByText('Ready to upload')).toBeVisible();
+  expect(screen.queryByText('Already added')).not.toBeInTheDocument();
+});

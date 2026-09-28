@@ -186,3 +186,97 @@ it('links a blocked new-user creation to the existing setup without losing requi
   expect(mockGenerate).toHaveBeenCalledTimes(1);
   expectNoAdditionalWrites();
 });
+
+
+it('holds configured and random generation when the URL-required garment is missing, then retries without dropping it', async () => {
+  window.history.replaceState({}, '', '/outfits/generate?baseItemId=missing-shirt');
+  render(<OutfitGenerationPage />);
+  expect(await screen.findByRole('alert')).toHaveTextContent('Your required wardrobe item is no longer available.');
+  expect(screen.getByRole('button', { name: 'Choose outfit settings' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Surprise Me! (Shuffle)' })).toBeDisabled();
+  expect(mockGenerate).not.toHaveBeenCalled();
+
+  const restored = { ...items[0], id: 'missing-shirt', name: 'Restored shirt' };
+  (fetch as jest.Mock).mockImplementation(async (url: RequestInfo | URL) => {
+    if (url === '/api/wardrobe') return { ok: true, json: async () => ({ items: [restored, ...items.slice(1)] }) };
+    throw new Error(`Unexpected request: ${String(url)}`);
+  });
+  mockGenerate.mockResolvedValue({ data: { id: 'anchored-look', items: [restored, ...items.slice(1)] } });
+  fireEvent.click(screen.getByRole('button', { name: 'Retry wardrobe' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Surprise Me! (Shuffle)' })).toBeEnabled());
+  expect(screen.getByText('Restored shirt')).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Surprise Me! (Shuffle)' }));
+  await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/outfits/anchored-look'));
+  expect(mockGenerate).toHaveBeenCalledTimes(1);
+  expect(mockGenerate).toHaveBeenCalledWith(expect.objectContaining({ baseItemId: 'missing-shirt' }), 'token-owner');
+  expectNoAdditionalWrites();
+});
+
+it.each(['success', 'failure'])('discards an earlier account wardrobe %s and preserves the new account missing-anchor block', async outcome => {
+  window.history.replaceState({}, '', '/outfits/generate?baseItemId=shirt');
+  let finishEarlier!: (value: unknown) => void;
+  let wardrobeReads = 0;
+  let earlierSignal: AbortSignal | undefined;
+  (fetch as jest.Mock).mockImplementation(async (url: RequestInfo | URL, init?: RequestInit) => {
+    if (url === '/api/wardrobe') {
+      wardrobeReads += 1;
+      if (wardrobeReads === 1) {
+        earlierSignal = init?.signal as AbortSignal;
+        return new Promise(resolve => { finishEarlier = resolve; });
+      }
+      return { ok: true, json: async () => ({ items: [] }) };
+    }
+    if (url === '/api/user/profile?fresh=1') return { ok: true, json: async () => ({ gender: 'Non-binary' }) };
+    throw new Error(`Unexpected request: ${String(url)}`);
+  });
+  const view = render(<OutfitGenerationPage />);
+  await waitFor(() => expect(wardrobeReads).toBe(1));
+  mockUser = makeUser('different-owner');
+  view.rerender(<OutfitGenerationPage />);
+  expect(earlierSignal?.aborted).toBe(true);
+  expect(await screen.findByRole('alert')).toHaveTextContent('Your required wardrobe item is no longer available.');
+  await act(async () => finishEarlier({ ok: outcome === 'success', json: async () => ({
+    items: [{ ...items[0], name: 'Private first-owner shirt' }, ...items.slice(1)],
+  }) }));
+  expect(screen.queryByText('Private first-owner shirt')).not.toBeInTheDocument();
+  expect(screen.getByRole('alert')).toHaveTextContent('Your required wardrobe item is no longer available.');
+  expect(screen.getByRole('button', { name: 'Surprise Me! (Shuffle)' })).toBeDisabled();
+  expect(mockGenerate).not.toHaveBeenCalled();
+});
+
+it('hides a loaded earlier account piece while the replacement wardrobe is pending and ignores its late failure after sign-out', async () => {
+  window.history.replaceState({}, '', '/outfits/generate?baseItemId=shirt');
+  const view = render(<OutfitGenerationPage />);
+  expect(await screen.findByText('Plain shirt')).toBeVisible();
+  let rejectRead!: (reason: Error) => void;
+  (fetch as jest.Mock).mockImplementation(async (url: RequestInfo | URL) => {
+    if (url === '/api/wardrobe') return new Promise((_, reject) => { rejectRead = reject; });
+    if (url === '/api/user/profile?fresh=1') return { ok: true, json: async () => ({ gender: 'Non-binary' }) };
+    throw new Error(`Unexpected request: ${String(url)}`);
+  });
+  mockUser = makeUser('different-owner');
+  view.rerender(<OutfitGenerationPage />);
+  expect(screen.queryByText('Plain shirt')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Surprise Me! (Shuffle)' })).toBeDisabled();
+  await waitFor(() => expect(rejectRead).toBeDefined());
+  mockUser = null as unknown as ReturnType<typeof makeUser>;
+  view.rerender(<OutfitGenerationPage />);
+  await act(async () => rejectRead(new Error('Earlier account read failed')));
+  expect(screen.queryByText('Plain shirt')).not.toBeInTheDocument();
+  expect(screen.queryByText(/Your saved wardrobe could not be loaded/)).not.toBeInTheDocument();
+  expect(mockGenerate).not.toHaveBeenCalled();
+});
+
+it('does not dispatch an earlier account wardrobe request when its token arrives after the account changed', async () => {
+  let finishToken!: (token: string) => void;
+  const delayedToken = new Promise<string>(resolve => { finishToken = resolve; });
+  mockUser.getIdToken.mockImplementation(() => delayedToken);
+  const view = render(<OutfitGenerationPage />);
+  mockUser = makeUser('different-owner');
+  view.rerender(<OutfitGenerationPage />);
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Surprise Me! (Shuffle)' })).toBeEnabled());
+  await act(async () => finishToken('token-owner'));
+  const wardrobeRequests = (fetch as jest.Mock).mock.calls.filter(([url]) => url === '/api/wardrobe');
+  expect(wardrobeRequests).toHaveLength(1);
+  expect(wardrobeRequests[0][1].headers.Authorization).toBe('Bearer token-different-owner');
+});
