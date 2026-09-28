@@ -7,7 +7,7 @@ the worker. No provider credentials, cloud services, sleeps or timing targets.
 import ast
 import asyncio
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 import importlib.util
 import logging
 from pathlib import Path
@@ -17,14 +17,14 @@ from typing import Any, Dict, List, Optional
 import unittest
 from unittest.mock import patch
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query as QueryParameter
 from fastapi.responses import JSONResponse
 from httpx import ASGITransport, AsyncClient
 from pydantic import BaseModel, ConfigDict
 
 from src.auth import auth_service, verified_user
 from src.custom_types.gamification import CHALLENGE_CATALOG
-from src.services import saved_outfit
+from src.services import saved_outfit, wear_statistics
 
 
 SOURCE = Path(__file__).resolve().parents[1] / 'src'
@@ -70,33 +70,40 @@ class Document:
 
 
 class Query:
-    def __init__(self, store, path, filters=(), order=None, maximum=None):
+    def __init__(self, store, path, filters=(), order=None, maximum=None, fields=None):
         self.store, self.path = store, path
-        self.filters, self.order, self.maximum = filters, order, maximum
+        self.filters, self.order, self.maximum, self.fields = filters, order, maximum, fields
 
     def document(self, key):
         return Document(self.store, self.path + '/' + key)
 
-    def where(self, field, operator, value):
-        return Query(self.store, self.path, self.filters + ((field, operator, value),), self.order, self.maximum)
+    def where(self, *args, filter=None):
+        predicate = (filter.field_path, filter.op_string, filter.value) if filter else args
+        return Query(self.store, self.path, self.filters + (predicate,), self.order, self.maximum, self.fields)
+
+    def select(self, field_paths):
+        return Query(self.store, self.path, self.filters, self.order, self.maximum, tuple(field_paths))
 
     def order_by(self, field, direction=None):
-        return Query(self.store, self.path, self.filters, (field, direction), self.maximum)
+        return Query(self.store, self.path, self.filters, (field, direction), self.maximum, self.fields)
 
     def limit(self, maximum):
-        return Query(self.store, self.path, self.filters, self.order, maximum)
+        return Query(self.store, self.path, self.filters, self.order, maximum, self.fields)
 
     def stream(self):
         # This is deliberately a generator: even an empty query performs I/O
         # only when consumed. Query shape is asserted separately below.
         self.store.gate.read(('stream', self.path))
         self.store.queries.append((self.path, self.filters, self.order, self.maximum))
+        self.store.projections.append((self.path, self.fields))
         if self.path in self.store.empty_streams:
             return
         prefix = self.path + '/'
         rows = [(path, value) for path, value in self.store.rows.items()
                 if path.startswith(prefix) and '/' not in path[len(prefix):]]
         for path, value in rows[:self.maximum]:
+            if self.fields is not None:
+                value = {field: value[field] for field in self.fields if field in value}
             yield Snapshot(path, value)
 
 
@@ -104,6 +111,7 @@ class ReadOnlyStore:
     def __init__(self, gate, rows, empty_streams=()):
         self.gate, self.rows = gate, deepcopy(rows)
         self.empty_streams, self.queries = empty_streams, []
+        self.projections = []
 
     def collection(self, name):
         return Query(self, name)
@@ -209,6 +217,51 @@ class ReadEndpointConcurrencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_optional_signed_in_verification_and_profile_share_one_worker(self):
         await self.check_auth_dependency(auth_service.get_current_user_optional)
+
+    def stats_app(self):
+        app = route_app('routes/outfit_stats_simple.py', {'get_simple_outfit_stats'}, {
+            '__package__': 'src.routes', 'UserProfile': SimpleNamespace,
+            'get_current_user': lambda: SimpleNamespace(id='owner'), 'Query': QueryParameter,
+            'weekly_wear_summary': lambda db, uid: wear_statistics.weekly_wear_summary(
+                db, uid, datetime(2026, 9, 23, 16, 30, tzinfo=timezone.utc)),
+            '_owned_records': wear_statistics._owned_records,
+        }, '/api/outfit-stats')
+        return app
+
+    async def test_stats_history_and_totals_are_projected_and_consumed_in_one_worker(self):
+        gate = ReadGate()
+        store = self.store(gate, {
+            'users/owner': {'location_data': {'timezone': 'America/New_York'}},
+            'outfit_history/owned': {'user_id': 'owner', 'date_worn': '2026-09-23',
+                                     'items': [{'private': 'large historical snapshot'}]},
+            'outfit_history/legacy': {'userId': 'owner', 'wear_date': '2026-09-22'},
+            'outfit_history/conflicting': {'user_id': 'owner', 'userId': 'other', 'date_worn': '2026-09-23'},
+            'outfit_history/undone': {'user_id': 'owner', 'date_worn': '2026-09-23', 'undone': True},
+            'outfits/owned': {'user_id': 'owner', 'userId': 'owner', 'metadata': {'huge': 'analysis'}},
+            'outfits/legacy': {'userId': 'owner'},
+            'outfits/conflicting': {'user_id': 'owner', 'userId': 'other'},
+            **{f'outfits/{field}': {'user_id': 'owner', field: True}
+               for field in ('deleted', 'isDeleted', 'deletedAt', 'deleted_at')},
+        })
+        before = deepcopy(store.rows)
+        response = await self.while_read_is_pending(self.stats_app(), '/api/outfit-stats/stats?days=30', gate)
+        result = response.json()
+        self.assertEqual((result['total_outfits'], result['outfits_this_week'], result['totalThisWeek']), (2, 2, 2))
+        self.assertEqual((result['days_queried'], result['timezone']), (30, 'America/New_York'))
+        self.assertEqual(result['source'], 'outfit_history_individual_events')
+        self.assertEqual([operation for operation, _ in gate.calls], [
+            ('get', 'users/owner'), ('stream', 'outfit_history'), ('stream', 'outfit_history'),
+            ('stream', 'outfits'), ('stream', 'outfits'),
+        ])
+        expected = {
+            'outfit_history': {'user_id', 'userId', 'undone', 'wear_operation_version', 'wear_date',
+                               'timezone', 'date_worn', 'date', 'createdAt', 'created_at'},
+            'outfits': {'user_id', 'userId', 'deleted', 'isDeleted', 'deletedAt', 'deleted_at'},
+        }
+        self.assertEqual([(name, set(fields or ())) for name, fields in store.projections],
+                         [(name, expected[name]) for name in ('outfit_history', 'outfit_history', 'outfits', 'outfits')])
+        self.assertTrue(all(query[3] is None for query in store.queries), 'Statistics must not truncate history')
+        self.assertEqual(store.rows, before)
 
     async def test_saved_detail_transaction_and_all_garments_share_one_worker(self):
         gate = ReadGate()

@@ -55,6 +55,18 @@ class Document:
             return snapshot
 
 
+class ProjectedQuery:
+    def __init__(self, query, field_paths):
+        self.query, self.field_paths = query, tuple(field_paths)
+
+    def stream(self, transaction=None):
+        for snapshot in self.query.stream(transaction=transaction):
+            projected = copy.copy(snapshot)
+            data = snapshot.to_dict()
+            projected.data = {field: data[field] for field in self.field_paths if field in data}
+            yield projected
+
+
 class FakeQuery:
     def __init__(self, db, name, filters=None, ordering=None, cap=None, cursor=None):
         self.db, self.name = db, name
@@ -69,6 +81,8 @@ class FakeQuery:
     def start_after(self, cursor):
         value = cursor.get("__name__") if isinstance(cursor, dict) else cursor
         return FakeQuery(self.db, self.name, self.filters, self.ordering, self.cap, value.id)
+    def select(self, field_paths):
+        return ProjectedQuery(self, field_paths)
     def stream(self, transaction=None):
         found = []
         for key in self.db.rows.get(self.name, {}):

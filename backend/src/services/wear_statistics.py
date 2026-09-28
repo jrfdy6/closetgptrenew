@@ -96,12 +96,17 @@ def _owned(value, user_id):
     return bool(owners) and all(owner == user_id for owner in owners)
 
 
-def _owned_records(db, collection, user_id):
+def _owned_records(db, collection, user_id, *, fields=None):
     from google.cloud.firestore_v1.base_query import FieldFilter
 
+    # Both aliases are required even for a narrow projection: a record whose
+    # aliases disagree must never pass ownership validation through omission.
+    projected_fields = tuple(dict.fromkeys(("user_id", "userId", *fields))) if fields is not None else None
     seen = set()
     for field in ("user_id", "userId"):
         query = db.collection(collection).where(filter=FieldFilter(field, "==", user_id))
+        if projected_fields is not None:
+            query = query.select(projected_fields)
         for snapshot in query.stream():
             if snapshot.id in seen:
                 continue
@@ -143,7 +148,11 @@ def weekly_wear_summary(db, uid, now=None):
         return worn_at is not None and start <= worn_at < end and worn_at <= instant
 
     count, history_count = 0, 0
-    for event in _owned_records(db, "outfit_history", uid):
+    for event in _owned_records(
+        db, "outfit_history", uid,
+        fields=("undone", "wear_operation_version", "wear_date", "timezone",
+                "date_worn", "date", "createdAt", "created_at"),
+    ):
         history_count += 1
         if not event.get("undone") and in_week(_history_timestamp(event, zone)):
             count += 1
@@ -151,7 +160,10 @@ def weekly_wear_summary(db, uid, now=None):
     source = "outfit_history_individual_events"
     if history_count == 0:
         source = "lastWorn_fallback"
-        for outfit in _owned_records(db, "outfits", uid):
+        for outfit in _owned_records(
+            db, "outfits", uid,
+            fields=("lastWorn", "deleted", "isDeleted", "deletedAt", "deleted_at"),
+        ):
             if any(outfit.get(field) for field in ("deleted", "isDeleted", "deletedAt", "deleted_at")):
                 continue
             if in_week(parse_wear_timestamp(outfit.get("lastWorn"), date_timezone=zone)):

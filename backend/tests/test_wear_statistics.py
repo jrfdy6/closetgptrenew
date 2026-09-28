@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 import unittest
 
-from src.services.wear_statistics import parse_wear_timestamp, week_bounds, weekly_wear_summary
+from src.services.wear_statistics import _owned_records, parse_wear_timestamp, week_bounds, weekly_wear_summary
 
 
 UTC = timezone.utc
@@ -32,28 +32,34 @@ class Document:
 
 
 class Query:
-    def __init__(self, db, collection, predicate=None):
-        self.db, self.collection, self.predicate = db, collection, predicate
+    def __init__(self, db, collection, predicate=None, fields=None):
+        self.db, self.collection, self.predicate, self.fields = db, collection, predicate, fields
 
     def document(self, identifier):
         return Document(self.db, self.collection, identifier)
 
     def where(self, *, filter):
-        return Query(self.db, self.collection, (filter.field_path, filter.value))
+        return Query(self.db, self.collection, (filter.field_path, filter.value), self.fields)
+
+    def select(self, field_paths):
+        return Query(self.db, self.collection, self.predicate, tuple(field_paths))
 
     def stream(self):
         self.db.queries.append(self.collection)
+        self.db.projections.append((self.collection, self.fields))
         for identifier, row in self.db.rows.get(self.collection, {}).items():
             if self.db.fail_queries:
                 raise RuntimeError("history unavailable")
             if not self.predicate or row.get(self.predicate[0]) == self.predicate[1]:
+                if self.fields is not None:
+                    row = {field: row[field] for field in self.fields if field in row}
                 yield Snapshot(identifier, row)
 
 
 class Store:
     def __init__(self):
         self.rows = {"users": {"owner": copy.deepcopy(PROFILE)}, "outfit_history": {}, "outfits": {}}
-        self.reads, self.queries = [], []
+        self.reads, self.queries, self.projections = [], [], []
         self.fail_reads = self.fail_queries = False
 
     def collection(self, name):
@@ -205,6 +211,35 @@ class WeeklySummaryTests(unittest.TestCase):
     def test_bad_managed_instant_does_not_fall_back_to_later_creation_time(self):
         self.history("managed", wear_operation_version=2, date_worn="invalid", wear_date="2026-09-01", createdAt=NOW)
         self.assertEqual(self.summary()["outfits_worn_this_week"], 0)
+
+    def test_null_managed_date_stays_managed_when_projected(self):
+        self.history("managed", date_worn=None, wear_date=None, createdAt=NOW)
+        self.assertEqual(self.summary()["outfits_worn_this_week"], 0)
+
+    def test_history_projection_excludes_snapshots_without_losing_timestamp_fields(self):
+        self.history("event", items=[{"metadata": "large wardrobe snapshot"}], outfit_snapshot={"large": "value"})
+        self.assertEqual(self.summary()["outfits_worn_this_week"], 1)
+        expected = {"user_id", "userId", "undone", "wear_operation_version", "wear_date", "timezone",
+                    "date_worn", "date", "createdAt", "created_at"}
+        self.assertEqual([(name, set(fields or ())) for name, fields in self.db.projections],
+                         [("outfit_history", expected), ("outfit_history", expected)])
+
+    def test_optional_projection_always_retains_both_owner_aliases_and_deduplicates(self):
+        self.outfit("dual", userId="owner", items=[{"large": "snapshot"}])
+        self.outfit("conflicting", userId="other")
+        self.outfit("legacy", user_id=None, userId="owner")
+        records = list(_owned_records(self.db, "outfits", "owner", fields=("lastWorn",)))
+        self.assertEqual(len(records), 2)
+        self.assertTrue(all(set(row) <= {"user_id", "userId", "lastWorn"} for row in records))
+        self.assertTrue(all(set(fields) == {"user_id", "userId", "lastWorn"}
+                            for _, fields in self.db.projections))
+
+    def test_fallback_projection_excludes_outfit_metadata_and_preserves_delete_flags(self):
+        self.outfit("event", metadata={"large": "analysis"}, items=[{"large": "snapshot"}])
+        self.assertEqual(self.summary()["outfits_worn_this_week"], 1)
+        expected = {"user_id", "userId", "lastWorn", "deleted", "isDeleted", "deletedAt", "deleted_at"}
+        projections = [(name, set(fields or ())) for name, fields in self.db.projections if name == "outfits"]
+        self.assertEqual(projections, [("outfits", expected), ("outfits", expected)])
 
     def test_fallback_counts_only_active_owned_outfits_and_never_future(self):
         self.outfit("canonical")

@@ -61,6 +61,42 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
+it('loads and refreshes saved outfits without requesting unused statistics', async () => {
+  const unusedStats = deferred<ReturnType<typeof response>>();
+  let rows = [savedLook];
+  (fetch as jest.Mock).mockImplementation(async (url: string) =>
+    url.includes('/outfit-stats/') ? unusedStats.promise : response({ outfits: rows }));
+  const { result } = renderHook(useOutfits);
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  expect(result.current.outfits[0].name).toBe(savedLook.name);
+  expect(result.current.stats).toBeNull();
+
+  rows = [{ ...savedLook, name: 'Refreshed look' }];
+  await act(async () => { await result.current.refresh(); });
+  expect(result.current.outfits[0].name).toBe('Refreshed look');
+  expect((fetch as jest.Mock).mock.calls.map(([url]) => url)).toEqual([
+    '/api/outfits?limit=50&offset=0', '/api/outfits?limit=50&offset=0',
+  ]);
+});
+
+it('fetches statistics only when explicitly requested without blocking the saved list', async () => {
+  const pendingStats = deferred<ReturnType<typeof response>>();
+  (fetch as jest.Mock).mockImplementation(async (url: string) =>
+    url.includes('/outfit-stats/') ? pendingStats.promise : response({ outfits: [savedLook] }));
+  const { result } = renderHook(useOutfits);
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  let statsRequest!: Promise<void>;
+  await act(async () => { statsRequest = result.current.fetchStats(); });
+  expect(result.current.loading).toBe(false);
+  expect(result.current.outfits).toHaveLength(1);
+  expect((fetch as jest.Mock).mock.calls.filter(([url]) => url.includes('/outfit-stats/'))).toHaveLength(1);
+  await act(async () => {
+    pendingStats.resolve(response({ success: true, data: { total: 1 } }));
+    await statsRequest;
+  });
+  expect(result.current.stats).toEqual({ total: 1 });
+});
+
 it('exposes the first list failure and never schedules background retries', async () => {
   jest.useFakeTimers();
   (fetch as jest.Mock).mockImplementation(async (url: string) => response(url.includes('/outfit-stats/') ? {} : { error: 'Unavailable' }, url.includes('/outfit-stats/') ? 200 : 503));
@@ -107,14 +143,20 @@ it('hides previous account rows and discards its pending list and stats response
     return otherUser ? newList.promise : oldList.promise;
   });
   const { result, rerender } = renderHook(useOutfits);
-  await act(async () => { result.current.addNewOutfit(savedLook as any); });
+  let previousStats!: Promise<void>;
+  await act(async () => {
+    result.current.addNewOutfit(savedLook as any);
+    previousStats = result.current.fetchStats();
+  });
   expect(result.current.outfits).toHaveLength(1);
   mockUser = { uid: 'user-2', getIdToken: jest.fn().mockResolvedValue('other-token') };
   rerender();
   expect(result.current.outfits).toEqual([]);
+  await act(async () => { await result.current.fetchStats(); });
   await act(async () => {
     oldList.resolve(response({ outfits: [{ ...savedLook, name: 'Private previous look' }] }));
     oldStats.resolve(response({ total: 99 }));
+    await previousStats;
   });
   expect(result.current.outfits).toEqual([]);
   expect(result.current.stats).toEqual({ total: 22 });
@@ -175,6 +217,7 @@ it('retries a lost wear acknowledgement with the same key and uses authoritative
   expect(result.current.outfits[0].wearCount).toBe(8);
   expect(result.current.outfits[0].lastWorn).toBe(1790100000000);
   expect(sessionStorage.getItem('easyoutfit:pending-wear:v1:user-1:saved-1')).toBeNull();
+  expect((fetch as jest.Mock).mock.calls.filter(([url]) => url.includes('/outfit-stats/'))).toHaveLength(0);
 });
 
 it('retains the first page after a failed next page and permits a bounded explicit retry', async () => {
