@@ -649,7 +649,7 @@ export default function CreateOutfitPage() {
       {onboardingRequired && <div role="alert" className="mx-auto max-w-7xl p-4"><p>Finish your style profile and ten-item capsule before saving a new outfit. Your current selections are still here.</p><Link href="/onboarding" className="inline-flex min-h-11 items-center underline">Continue my setup</Link></div>}
         
         {/* Header */}
-        <div className="sticky top-0 z-40 glass-navbar px-4 py-4 border-b border-stone-200 dark:border-stone-700">
+        <div className="sticky top-16 z-40 glass-navbar px-4 py-4 border-b border-stone-200 dark:border-stone-700">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
