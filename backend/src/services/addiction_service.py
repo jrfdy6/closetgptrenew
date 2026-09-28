@@ -337,6 +337,7 @@ class AddictionService:
         from .challenge_actions import _rows
         from .wear_projection import _ms
         from .wear_rewards import reward_timezone
+        from .wear_statistics import parse_wear_timestamp, _zone
         ref = self.db.collection('users').document(user_id)
         fence = WriteEpochFence(self.db, user_id, expected_epoch)
         @firestore.transactional
@@ -349,8 +350,16 @@ class AddictionService:
             try: current_role = UserRole(current)
             except ValueError: current_role = UserRole.STARTER; current = 'starter'
             history = [r for r in _rows(self.db.collection('outfit_history').where(filter=FieldFilter('user_id', '==', user_id)), transaction) if not r.get('undone')]
+            zone = ZoneInfo(reward_timezone(user, 'UTC'))
+            # Historical wear dates use the same parser as weekly statistics.
+            # Invalid dates are not role evidence and must not poison a newer
+            # valid wear's projection; policy/expiry dates still use strict _ms.
+            parsed_dates = [parse_wear_timestamp(r.get('date_worn'),
+                            date_timezone=_zone(r.get('timezone'), zone.key).key) for r in history]
+            wear_times = [int(worn.timestamp() * 1000) for worn in parsed_dates if worn is not None]
+            history = [r for r, worn in zip(history, parsed_dates) if worn is not None]
             now = datetime.now(tz.utc); now_ms = int(now.timestamp()*1000)
-            recent = sum(now_ms-7*86400000 <= _ms(r.get('date_worn')) <= now_ms for r in history)
+            recent = sum(now_ms-7*86400000 <= worn <= now_ms for worn in wear_times)
             result = {'promoted': False, 'demoted': False, 'outfits_this_week': recent, 'required': 5}
             recovery = dict(role.get('recovery') or {})
             if recovery.get('in_recovery'):
@@ -358,8 +367,7 @@ class AddictionService:
                 today = now.astimezone(zone).date(); this_week = today-timedelta(days=today.weekday())
                 began = _ms(recovery.get('recovery_started_at'))
                 weeks = {}
-                for event in history:
-                    worn = _ms(event.get('date_worn'))
+                for worn in wear_times:
                     if began <= worn <= now_ms:
                         day = datetime.fromtimestamp(worn/1000, zone).date(); week = day-timedelta(days=day.weekday())
                         weeks[week] = weeks.get(week, 0)+1

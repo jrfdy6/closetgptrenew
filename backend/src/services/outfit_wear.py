@@ -191,7 +191,10 @@ def mark_outfit_worn(db, outfit_id, user_id, idempotency_key, timezone_name="UTC
         raw_items = outfit.get("items")
         if not isinstance(raw_items, list) or not 1 <= len(raw_items) <= 20:
             raise OutfitWearError(409, "This saved outfit has no complete set of garments to log.")
-        item_ids = [item.get("id") if isinstance(item, dict) else item for item in raw_items]
+        # Match saved-result reads for legacy references without trusting their
+        # embedded garment metadata; every resolved ID is still checked below.
+        item_ids = [(item.get("id") or item.get("itemId") or item.get("item_id"))
+                    if isinstance(item, dict) else item for item in raw_items]
         if any(not _valid_id(item_id) for item_id in item_ids) or len(set(item_ids)) != len(item_ids):
             raise OutfitWearError(409, "This saved outfit has invalid or repeated garments. Please refresh.")
         garments = []

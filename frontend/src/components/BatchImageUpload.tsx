@@ -74,7 +74,11 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
   const preparingSelections = useRef(new Set<symbol>());
   const pendingCallback = useRef(onPendingChange);
   const unreportedSaves = useRef(new Map<string, SavedItem>());
-  const confirmedHashes = useRef(new Set<string>());
+  // Acknowledgment records the latest read already started at save time.
+  const confirmedHashes = useRef(new Map<string, number>());
+  const latestWardrobeRequest = useRef(0);
+  const latestSuccessfulWardrobeRequest = useRef(0);
+  const wardrobeHashes = useRef(new Set<string>());
   // Retain checkpoints even when a failed representative is removed. Another
   // copy must explicitly retry the same attempt, never silently start over.
   const attempts = useRef(new Map<string, UploadItem>());
@@ -100,6 +104,9 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
     itemsRef.current = [];
     unreportedSaves.current.clear();
     confirmedHashes.current.clear();
+    wardrobeHashes.current.clear();
+    latestWardrobeRequest.current += 1;
+    latestSuccessfulWardrobeRequest.current = 0;
     attempts.current.clear();
     setQueueOwner(userId);
     setBusy(false);
@@ -115,17 +122,19 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
 
   const reconcileDuplicates = useCallback((rows: UploadItem[]): UploadItem[] => {
     const representatives = new Map<string, string>();
-    // In-flight and acknowledged rows always retain ownership of their hash.
+    // A successful row owns its hash until a read started after acknowledgment
+    // observes its deletion. In-flight rows always retain ownership.
     rows.forEach(item => {
-      if (item.hash && ['uploading', 'analyzing', 'saving', 'success'].includes(item.status)) {
+      if (item.hash && (['uploading', 'analyzing', 'saving'].includes(item.status) ||
+        (item.status === 'success' && (confirmedHashes.current.has(item.hash) || wardrobeHashes.current.has(item.hash))))) {
         representatives.set(item.hash, item.id);
       }
     });
     return rows.map(item => {
-      if (!item.hash) return item;
+      if (!item.hash || item.status === 'success') return item;
       const representative = representatives.get(item.hash);
       if (representative === item.id) return item;
-      if (representative || confirmedHashes.current.has(item.hash)) return { ...item, status: 'duplicate' };
+      if (representative || confirmedHashes.current.has(item.hash) || wardrobeHashes.current.has(item.hash)) return { ...item, status: 'duplicate' };
       const previous = attempts.current.get(item.hash);
       const eligible = previous && previous.id !== item.id ? {
         ...item, id: previous.id, preparedFile: previous.preparedFile,
@@ -142,7 +151,7 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
       const updated = { ...item, ...values };
       if (updated.hash) {
         if (updated.status === 'success') {
-          confirmedHashes.current.add(updated.hash);
+          confirmedHashes.current.set(updated.hash, latestWardrobeRequest.current);
           attempts.current.delete(updated.hash);
         } else attempts.current.set(updated.hash, updated);
       }
@@ -187,17 +196,29 @@ export default function BatchImageUpload({ onUploadComplete, onItemSaved, onErro
     try {
       const token = await user.getIdToken();
       if (!selectionIsCurrent()) return;
+      const wardrobeRequest = ++latestWardrobeRequest.current;
       const response = await fetch('/api/wardrobe', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
       const payload = await response.json();
       if (!selectionIsCurrent()) return;
       if (!response.ok || payload.success !== true || !Array.isArray(payload.items)) {
         throw new Error('We could not check your saved photos. Please try selecting them again.');
       }
+      // Keep the newest successful snapshot: a later pending/failed request
+      // cannot discard valid evidence. Reads started before acknowledgment
+      // still cannot invalidate that local save.
+      const latestWardrobeHashes = new Set<string>();
       payload.items.forEach((item: SavedItem) => {
         [item.contentHash, item.imageHash].forEach(hash => {
-          if (typeof hash === 'string' && hash) confirmedHashes.current.add(hash);
+          if (typeof hash === 'string' && hash) latestWardrobeHashes.add(hash);
         });
       });
+      if (wardrobeRequest > latestSuccessfulWardrobeRequest.current) {
+        latestSuccessfulWardrobeRequest.current = wardrobeRequest;
+        wardrobeHashes.current = latestWardrobeHashes;
+        confirmedHashes.current.forEach((acknowledgedDuringRequest, hash) => {
+          if (acknowledgedDuringRequest < wardrobeRequest) confirmedHashes.current.delete(hash);
+        });
+      }
       for (const file of files) {
         const hash = await photoHash(file);
         if (!selectionIsCurrent()) return;
