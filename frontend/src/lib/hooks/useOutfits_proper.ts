@@ -557,12 +557,11 @@ export function useOutfits(): UseOutfitsReturn {
   }, [user, current, clearError, handleError]);
 
   /**
-   * Fetch outfit statistics
+   * Fetch outfit statistics explicitly for consumers that display them.
    */
   const fetchStats = useCallback(async () => {
     const revision = account.current.revision;
     if (user && !current(revision, user.uid)) { return; }
-    // RE-ENABLED - stats endpoint should be working now
     if (!user) {
       setError('User not authenticated');
       return;
@@ -607,19 +606,16 @@ export function useOutfits(): UseOutfitsReturn {
   }, [user, current, clearError, handleError]);
 
   /**
-   * Refresh all data
+   * Refresh saved outfits. Statistics are independent, opt-in reads.
    */
   const refresh = useCallback(async () => {
-    console.log('🔄 [useOutfits] Refreshing all data');
+    console.log('🔄 [useOutfits] Refreshing saved outfits');
 
     // Reset pagination state
     setHasMore(true);
 
-    await Promise.all([
-      fetchOutfits(currentFilters),
-      fetchStats()
-    ]);
-  }, [fetchOutfits, fetchStats, currentFilters]);
+    await fetchOutfits(currentFilters);
+  }, [fetchOutfits, currentFilters]);
 
   /**
    * Get outfit by ID from local state
@@ -639,7 +635,6 @@ export function useOutfits(): UseOutfitsReturn {
     setLoadingMore(false); setHasMore(false); setCurrentFilters({});
     if (user && !authLoading) {
       void fetchOutfits();
-      void fetchStats();
     } else setLoading(Boolean(authLoading));
     return () => { mounted.current = false; account.current.revision += 1; };
   }, [user?.uid, authLoading]);
