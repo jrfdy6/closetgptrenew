@@ -522,8 +522,13 @@ async def mark_outfit_as_worn(
         from ...config.firebase import db
         if db is None:
             raise RuntimeError("Storage unavailable")
-        result = (mark_legacy_outfit_worn(db, outfit_id, user_id) if body is None else
-                  mark_outfit_worn(db, outfit_id, user_id, body.idempotency_key, body.timezone))
+        from starlette.concurrency import run_in_threadpool
+        if body is None:
+            result = await run_in_threadpool(mark_legacy_outfit_worn, db, outfit_id, user_id)
+        else:
+            result = await run_in_threadpool(
+                mark_outfit_worn, db, outfit_id, user_id, body.idempotency_key, body.timezone
+            )
         return JSONResponse(result, headers={"Cache-Control": "private, no-store"})
     except OutfitWearError as error:
         raise HTTPException(status_code=error.status_code, detail=error.detail) from None

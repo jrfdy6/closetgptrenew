@@ -148,7 +148,7 @@ def serialize_firestore_doc(doc):
     return data
 
 @router.get("/")
-async def get_outfit_history(
+def get_outfit_history(
     current_user: UserProfile = Depends(get_current_user),
     start_date: Optional[str] = Query(None, description="Inclusive start date (YYYY-MM-DD, UTC)"),
     end_date: Optional[str] = Query(None, description="Inclusive end date (YYYY-MM-DD, UTC)"),
@@ -264,7 +264,7 @@ async def get_outfit_history(
         raise HTTPException(503, "Outfit history is temporarily unavailable. Please retry.") from None
 
 @router.post("/mark-worn")
-async def mark_outfit_as_worn(data: Dict[str, Any], current_user: UserProfile = Depends(get_current_user)):
+def mark_outfit_as_worn(data: Dict[str, Any], current_user: UserProfile = Depends(get_current_user)):
     """Calendar and deployed clients share the canonical wear transaction."""
     from ..services.outfit_wear import mark_outfit_worn, OutfitWearError, _digest
     from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -301,7 +301,7 @@ async def update_outfit_history_entry(entry_id: str, updates: Dict[str, Any], cu
 
 
 @router.delete("/{entry_id}")
-async def delete_outfit_history_entry(entry_id: str, current_user: UserProfile = Depends(get_current_user)):
+def delete_outfit_history_entry(entry_id: str, current_user: UserProfile = Depends(get_current_user)):
     from ..services.outfit_wear import undo_wear, OutfitWearError
     try:
         return undo_wear(get_db(), current_user.id, entry_id)
@@ -470,7 +470,7 @@ async def clear_todays_suggestion_cache(current_user: UserProfile = Depends(get_
     return {"success": True, "deleted_count": deleted}
 
 @router.post("/today-suggestion/wear")
-async def mark_today_suggestion_as_worn(data: Dict[str, Any], current_user: UserProfile = Depends(get_current_user)):
+def mark_today_suggestion_as_worn(data: Dict[str, Any], current_user: UserProfile = Depends(get_current_user)):
     from ..services.outfit_wear import mark_outfit_worn, OutfitWearError, _digest
     from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
     try:

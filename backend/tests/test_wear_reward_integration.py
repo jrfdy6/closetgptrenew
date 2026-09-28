@@ -310,7 +310,7 @@ class LegacyAdapterStatusTests(WearTestFixture):
         from fastapi import APIRouter,Depends,HTTPException,FastAPI
         from fastapi.testclient import TestClient
         path=Path(__file__).resolve().parents[1]/'src/routes/outfit_history.py'
-        nodes=[node for node in ast.parse(path.read_text()).body if isinstance(node,ast.AsyncFunctionDef) and node.name in {'mark_outfit_as_worn','mark_today_suggestion_as_worn'}]
+        nodes=[node for node in ast.parse(path.read_text()).body if isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef)) and node.name in {'mark_outfit_as_worn','mark_today_suggestion_as_worn'}]
         namespace={'__package__':'src.routes','router':APIRouter(),'Dict':Dict,'Any':Any,'Depends':Depends,'get_current_user':lambda:SimpleNamespace(id='owner'),'UserProfile':Any,'HTTPException':HTTPException,'get_db':lambda:self.db,'datetime':datetime}
         exec(compile(ast.Module(body=nodes,type_ignores=[]),str(path),'exec'),namespace)
         app=FastAPI();app.include_router(namespace['router']);self.client=TestClient(app)

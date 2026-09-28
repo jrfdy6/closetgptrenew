@@ -28,7 +28,7 @@ class HistoryReadTests(unittest.TestCase):
         # The installed SDK encodes the real snapshot cursor and query below.
         source = Path(__file__).resolve().parents[1] / 'src/routes/outfit_history.py'
         handler = next(node for node in ast.parse(source.read_text()).body
-                       if isinstance(node, ast.AsyncFunctionDef) and node.name == 'get_outfit_history')
+                       if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == 'get_outfit_history')
         self.db = firestore.Client(project='synthetic-history', credentials=AnonymousCredentials())
         self.rows, self.queries = {}, []
         self.after_page = self.fail_page = None
